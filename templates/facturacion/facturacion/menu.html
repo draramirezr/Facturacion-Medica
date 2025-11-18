@@ -1,0 +1,307 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Sistema de Facturación - Dra. Shirley Ramírez{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .facturacion-hero {
+        background: rgba(242, 226, 230, 0.3);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .facturacion-hero::before {
+        content: '';
+        position: absolute;
+        width: 200px;
+        height: 200px;
+        background-image: url("{{ url_for('static', filename='images/icono-marca.png') }}");
+        background-size: contain;
+        background-repeat: no-repeat;
+        opacity: 0.03;
+        top: -30px;
+        right: -30px;
+        transform: rotate(15deg);
+        pointer-events: none;
+    }
+    
+    .maestra-card {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+        height: 100%;
+        cursor: pointer;
+    }
+    
+    .maestra-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 30px rgba(206, 176, 183, 0.25);
+        border-color: var(--primary-color);
+    }
+    
+    .maestra-card i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #CEB0B7;
+        opacity: 1;
+        transition: all 0.3s ease;
+    }
+    
+    .maestra-card:hover i {
+        transform: scale(1.1);
+        color: #B89BA3;
+    }
+    
+    .maestra-card h4 {
+        color: var(--primary-color);
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+    }
+    
+    .maestra-card p {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin: 0;
+    }
+    
+    .btn-volver {
+        background: #ACACAD !important;
+        border: none;
+        color: white !important;
+        border-radius: 15px;
+        padding: 0.5rem 1.5rem;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    
+    .btn-volver:hover {
+        background: #9A9A9B !important;
+        color: white !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(172, 172, 173, 0.3);
+    }
+    
+    .btn-volver i {
+        color: white !important;
+    }
+    
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-card {
+        animation: fadeInUp 0.5s ease-out;
+    }
+</style>
+
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="facturacion-hero animate-card">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2.2rem; margin-bottom: 0;">
+                    <i class="fas fa-file-invoice-dollar me-2"></i>
+                    Sistema de Facturación
+                </h1>
+            </div>
+            <a href="{{ url_for('admin') }}" class="btn-volver">
+                <i class="fas fa-arrow-left me-2"></i>
+                Volver al Panel
+            </a>
+        </div>
+    </div>
+
+    {% if current_user.perfil == 'Administrador' or current_user.perfil == 'Nivel 2' %}
+    <!-- Maestras -->
+    <div class="row g-4">
+        <!-- Maestra de ARS -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.1s">
+            <a href="{{ url_for('facturacion_ars') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-hospital"></i>
+                    <h4>ARS</h4>
+                    <p>Administradoras de Riesgos de Salud</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Maestra de Médicos -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.2s">
+            <a href="{{ url_for('facturacion_medicos') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-user-md"></i>
+                    <h4>Médicos</h4>
+                    <p>Registro de médicos del consultorio</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Maestra de Código ARS -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.3s">
+            <a href="{{ url_for('facturacion_codigo_ars') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-barcode"></i>
+                    <h4>Código ARS</h4>
+                    <p>Códigos de médicos por ARS</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Maestra de Centros Médicos -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.35s">
+            <a href="{{ url_for('facturacion_centros_medicos') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-hospital-alt"></i>
+                    <h4>Centros Médicos</h4>
+                    <p>Registro de centros médicos</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Maestra de Centro x Médico -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.38s">
+            <a href="{{ url_for('facturacion_medico_centro') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-link"></i>
+                    <h4>Centro x Médico</h4>
+                    <p>Relación centros y médicos</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Maestra de Tipos de Servicios -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.4s">
+            <a href="{{ url_for('facturacion_servicios') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-clipboard-list"></i>
+                    <h4>Servicios</h4>
+                    <p>Tipos de servicios médicos</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- NCF -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.5s">
+            <a href="{{ url_for('facturacion_ncf') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-file-invoice"></i>
+                    <h4>NCF</h4>
+                    <p>Números de Comprobante Fiscal</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Maestra de Pacientes -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.6s">
+            <a href="{{ url_for('facturacion_pacientes') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-users"></i>
+                    <h4>Pacientes</h4>
+                    <p>Registro de pacientes únicos</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Histórico de Facturas -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.7s">
+            <a href="{{ url_for('facturacion_historico') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-history"></i>
+                    <h4>Histórico</h4>
+                    <p>Consultar facturas generadas</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- Dashboard (Administradores dentro de maestras) -->
+        {% if current_user.perfil == 'Administrador' %}
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.8s">
+            <a href="{{ url_for('facturacion_dashboard') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-chart-line"></i>
+                    <h4>Dashboard</h4>
+                    <p>Indicadores y estadísticas</p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Dashboard para Registro de Facturas y Nivel 2 (fuera de maestras) -->
+    {% if current_user.perfil in ['Registro de Facturas', 'Nivel 2'] %}
+    <div class="row g-4 mb-4">
+        <div class="col-lg-3 col-md-6 animate-card">
+            <a href="{{ url_for('facturacion_dashboard') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-chart-line"></i>
+                    <h4>Dashboard</h4>
+                    <p>Indicadores y estadísticas</p>
+                </div>
+            </a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Sección de Facturación Principal -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <h3 style="color: var(--primary-color); font-weight: 700; margin-bottom: 1.5rem; text-align: center;">
+                <i class="fas fa-file-invoice-dollar me-2"></i>Sistema de Facturación
+            </h3>
+        </div>
+        
+        <!-- Agregar Pacientes -->
+        <div class="{% if current_user.perfil == 'Registro de Facturas' %}col-lg-6{% else %}col-lg-4{% endif %} animate-card" style="animation-delay: 0.6s">
+            <a href="{{ url_for('facturacion_facturas_nueva') }}" style="text-decoration: none;">
+                <div class="maestra-card" style="background: rgba(242, 226, 230, 0.2); border: 2px solid #CEB0B7; height: 100%;">
+                    <i class="fas fa-user-plus" style="font-size: 3rem; color: #CEB0B7;"></i>
+                    <h4 style="color: #CEB0B7; font-size: 1.3rem;">AGREGAR PACIENTES</h4>
+                    <p style="color: #ACACAD; font-weight: 600;">Agregar nuevos pacientes a facturar</p>
+                </div>
+            </a>
+        </div>
+        
+        <!-- Estado de Facturación -->
+        <div class="{% if current_user.perfil == 'Registro de Facturas' %}col-lg-6{% else %}col-lg-4{% endif %} animate-card" style="animation-delay: 0.7s">
+            <a href="{{ url_for('facturacion_pacientes_pendientes') }}" style="text-decoration: none;">
+                <div class="maestra-card" style="background: rgba(242, 226, 230, 0.2); border: 2px solid #CEB0B7; height: 100%;">
+                    <i class="fas fa-clipboard-list" style="font-size: 3rem; color: #CEB0B7;"></i>
+                    <h4 style="color: #CEB0B7; font-size: 1.3rem;">ESTADO DE FACTURACIÓN</h4>
+                    <p style="color: #ACACAD; font-weight: 600;">Gestión de pacientes pendientes y facturados</p>
+                </div>
+            </a>
+        </div>
+        
+        {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+        <!-- Generar Factura -->
+        <div class="col-lg-4 animate-card" style="animation-delay: 0.8s">
+            <a href="{{ url_for('facturacion_generar') }}" style="text-decoration: none;">
+                <div class="maestra-card" style="background: rgba(242, 226, 230, 0.2); border: 2px solid #B89BA3; height: 100%;">
+                    <i class="fas fa-file-invoice-dollar" style="font-size: 3rem; color: #B89BA3;"></i>
+                    <h4 style="color: #B89BA3; font-size: 1.3rem;">GENERAR FACTURA</h4>
+                    <p style="color: #ACACAD; font-weight: 600;">Crear factura desde pendientes</p>
+                </div>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

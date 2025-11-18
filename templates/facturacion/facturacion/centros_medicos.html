@@ -1,0 +1,230 @@
+{% extends "base.html" %}
+
+{% block title %}Maestra de Centros Médicos - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .facturacion-hero {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.3) 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .search-box {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+        margin-bottom: 2rem;
+    }
+    
+    .table-facturacion {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+        overflow: hidden;
+    }
+    
+    .table-responsive-wrapper {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar {
+        height: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb {
+        background: #AB9B9F;
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #8A7A7F;
+    }
+    
+    .table-facturacion table {
+        min-width: 800px;
+    }
+    
+    .table-facturacion th {
+        background: #AB9B9F !important;
+        background-color: #AB9B9F !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+    }
+    
+    .table-facturacion thead th {
+        color: #FFFFFF !important;
+    }
+    
+    .table-facturacion td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(206, 176, 183, 0.1);
+    }
+    
+    .table-facturacion tbody tr:hover {
+        background-color: rgba(206, 176, 183, 0.05);
+    }
+    
+    .btn-action {
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin: 0 0.2rem;
+    }
+    
+    .btn-editar {
+        background: white;
+        border: 2px solid #CEB0B7;
+        color: #CEB0B7;
+    }
+    
+    .btn-editar:hover {
+        background: #AB9B9F;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .btn-eliminar {
+        background: white;
+        border: 2px solid #ACACAD;
+        color: #ACACAD;
+    }
+    
+    .btn-eliminar:hover {
+        background: #ACACAD;
+        color: white;
+        transform: translateY(-2px);
+    }
+    
+    .btn-volver {
+        background: #ACACAD;
+        color: white;
+        border: none;
+        padding: 0.6rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-volver:hover {
+        background: #8A8A8B;
+        transform: translateY(-2px);
+        color: white;
+    }
+    
+    .btn-agregar {
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89CA3 100%);
+        color: white;
+        border: none;
+        padding: 0.6rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-agregar:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(206, 176, 183, 0.4);
+        color: white;
+    }
+</style>
+
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="facturacion-hero">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 style="color: var(--primary-color); font-weight: 700; margin: 0;">
+                <i class="fas fa-hospital-alt me-2"></i>
+                Centros Médicos
+            </h2>
+            <div>
+                <a href="{{ url_for('facturacion_centros_medicos_nuevo') }}" class="btn btn-agregar">
+                    <i class="fas fa-plus me-2"></i>Agregar Centro
+                </a>
+                <a href="{{ url_for('facturacion_menu') }}" class="btn btn-volver">
+                    <i class="fas fa-arrow-left me-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="search-box">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-10">
+                <label class="form-label" style="color: var(--primary-color); font-weight: 600;">
+                    <i class="fas fa-search me-2"></i>Buscar Centro Médico
+                </label>
+                <input type="text" class="form-control" name="search" 
+                       placeholder="Buscar por nombre o RNC..." value="{{ search }}">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-agregar w-100">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla -->
+    {% if centros_list %}
+    <div class="table-facturacion">
+        <div class="table-responsive-wrapper">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Dirección</th>
+                        <th>RNC</th>
+                        <th>Teléfono</th>
+                        <th style="width: 150px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for centro in centros_list %}
+                    <tr>
+                        <td><strong style="color: var(--primary-color);">{{ centro['nombre'] }}</strong></td>
+                        <td>{{ centro['direccion'] }}</td>
+                        <td>{{ centro['rnc'] }}</td>
+                        <td>{{ centro['telefono'] if centro['telefono'] else '-' }}</td>
+                        <td>
+                            <a href="{{ url_for('facturacion_centros_medicos_editar', centro_id=centro['id']) }}" 
+                               class="btn btn-action btn-editar" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form method="POST" action="{{ url_for('facturacion_centros_medicos_eliminar', centro_id=centro['id']) }}" 
+                                  style="display: inline;" onsubmit="return confirm('¿Está seguro de eliminar este centro médico?');">
+                                <button type="submit" class="btn btn-action btn-eliminar" title="Eliminar">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info" style="background: rgba(206, 176, 183, 0.1); border: 2px solid var(--primary-color); color: var(--text-dark);">
+        <i class="fas fa-info-circle me-2"></i>
+        No hay centros médicos registrados. Haz clic en "Agregar Centro" para comenzar.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

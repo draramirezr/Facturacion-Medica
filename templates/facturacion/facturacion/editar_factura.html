@@ -1,0 +1,779 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Factura #{{ factura['id'] }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .editar-hero {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(184, 155, 163, 0.2) 100%);
+        border: 2px solid #CEB0B7;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .alerta-dias {
+        background: linear-gradient(135deg, #fff9e6 0%, #fff3cd 100%);
+        border: 2px solid #ffcc00;
+        border-radius: 15px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 3px 10px rgba(255, 204, 0, 0.2);
+    }
+    
+    .alerta-dias.urgente {
+        background: linear-gradient(135deg, #ffe6e6 0%, #ffcccc 100%);
+        border-color: #ff4444;
+    }
+    
+    .info-factura-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(206, 176, 183, 0.15);
+    }
+    
+    .seccion-pacientes {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+    }
+    
+    .seccion-titulo {
+        color: #B89BA3;
+        font-size: 1.3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid #CEB0B7;
+    }
+    
+    .table-scroll-wrapper {
+        max-height: 400px;
+        overflow-y: auto;
+        overflow-x: auto;
+        position: relative;
+        margin-top: 1rem;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-thumb {
+        background: #CEB0B7;
+        border-radius: 10px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #B89BA3;
+    }
+    
+    .tabla-editar th {
+        background: #B89BA3 !important;
+        color: white !important;
+        font-weight: 600;
+        padding: 0.8rem;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+        font-size: 0.9rem;
+    }
+    
+    .tabla-editar td {
+        padding: 0.8rem;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(206, 176, 183, 0.1);
+        font-size: 0.85rem;
+    }
+    
+    .tabla-editar tbody tr:hover {
+        background-color: rgba(206, 176, 183, 0.05);
+    }
+    
+    .btn-agregar-paciente,
+    .btn-eliminar-paciente {
+        padding: 0.25rem 0.6rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.75rem;
+        border: none;
+        transition: all 0.3s ease;
+        cursor: pointer;
+        white-space: nowrap;
+    }
+    
+    .btn-agregar-paciente i,
+    .btn-eliminar-paciente i {
+        font-size: 0.7rem;
+        margin-right: 0.2rem;
+    }
+    
+    .btn-agregar-paciente {
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        color: white;
+    }
+    
+    .btn-agregar-paciente:hover {
+        background: linear-gradient(135deg, #B89BA3 0%, #A88B8F 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 3px 8px rgba(206, 176, 183, 0.3);
+    }
+    
+    .btn-eliminar-paciente {
+        background: linear-gradient(135deg, #ACACAD 0%, #9A9A9B 100%);
+        color: white;
+    }
+    
+    .btn-eliminar-paciente:hover {
+        background: linear-gradient(135deg, #9A9A9B 0%, #8A8A8B 100%);
+        transform: translateY(-2px);
+        box-shadow: 0 3px 8px rgba(172, 172, 173, 0.3);
+    }
+    
+    .btn-agregar-paciente:disabled,
+    .btn-eliminar-paciente:disabled {
+        background: #cccccc;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .btn-guardar-cambios {
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        color: white;
+        border: none;
+        padding: 1rem 3rem;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(206, 176, 183, 0.3);
+    }
+    
+    .btn-guardar-cambios:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(206, 176, 183, 0.4);
+    }
+    
+    .btn-cancelar {
+        background: white;
+        color: #666;
+        border: 2px solid #ddd;
+        padding: 1rem 2rem;
+        border-radius: 12px;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cancelar:hover {
+        background: #f8f9fa;
+        border-color: #999;
+    }
+    
+    .contador-cambios {
+        display: inline-block;
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        color: white;
+        padding: 0.5rem 1.2rem;
+        border-radius: 20px;
+        font-weight: 700;
+        margin-left: 1rem;
+        font-size: 1rem;
+        box-shadow: 0 3px 10px rgba(206, 176, 183, 0.3);
+    }
+    
+    .badge-agregado {
+        background: #4CAF50;
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
+    
+    .badge-eliminar {
+        background: #ff4444;
+        color: white;
+        padding: 0.3rem 0.8rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
+    
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    .info-item {
+        padding: 0.8rem;
+        background: rgba(206, 176, 183, 0.05);
+        border-radius: 10px;
+        border-left: 4px solid #CEB0B7;
+    }
+    
+    .info-item label {
+        font-size: 0.85rem;
+        color: #666;
+        font-weight: 600;
+        display: block;
+        margin-bottom: 0.3rem;
+    }
+    
+    .info-item .valor {
+        font-size: 1rem;
+        color: #333;
+        font-weight: 700;
+    }
+    
+    /* ============ RESPONSIVE - 100% MOBILE OPTIMIZADO ============ */
+    
+    @media (max-width: 1200px) {
+        .seccion-titulo {
+            font-size: 1.2rem;
+        }
+        
+        .tabla-editar th,
+        .tabla-editar td {
+            padding: 0.6rem;
+            font-size: 0.8rem;
+        }
+    }
+    
+    @media (max-width: 992px) {
+        .editar-hero h1 {
+            font-size: 1.8rem;
+        }
+        
+        .seccion-titulo {
+            font-size: 1.1rem;
+        }
+        
+        .btn-guardar-cambios,
+        .btn-cancelar {
+            padding: 0.8rem 2rem;
+            font-size: 1rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .editar-hero {
+            padding: 1.5rem;
+        }
+        
+        .editar-hero h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .editar-hero p {
+            font-size: 0.9rem;
+        }
+        
+        .alerta-dias h5 {
+            font-size: 1rem;
+        }
+        
+        .alerta-dias p {
+            font-size: 0.85rem;
+        }
+        
+        .info-factura-card,
+        .seccion-pacientes {
+            padding: 1rem;
+        }
+        
+        .seccion-titulo {
+            font-size: 1rem;
+        }
+        
+        .table-scroll-wrapper {
+            max-height: 300px;
+        }
+        
+        .tabla-editar {
+            font-size: 0.75rem;
+        }
+        
+        .tabla-editar th,
+        .tabla-editar td {
+            padding: 0.5rem;
+            font-size: 0.75rem;
+        }
+        
+        .btn-agregar-paciente,
+        .btn-eliminar-paciente {
+            padding: 0.2rem 0.5rem;
+            font-size: 0.7rem;
+        }
+        
+        .btn-agregar-paciente i,
+        .btn-eliminar-paciente i {
+            font-size: 0.65rem;
+        }
+        
+        .btn-guardar-cambios {
+            width: 100%;
+            margin-bottom: 1rem;
+            padding: 0.9rem 2rem;
+            font-size: 1rem;
+        }
+        
+        .btn-cancelar {
+            width: 100%;
+            padding: 0.9rem 2rem;
+            font-size: 0.95rem;
+        }
+        
+        .contador-cambios {
+            display: block;
+            margin: 1rem 0;
+            text-align: center;
+            font-size: 0.9rem;
+        }
+        
+        .info-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .info-item {
+            padding: 0.6rem;
+        }
+        
+        .info-item label {
+            font-size: 0.8rem;
+        }
+        
+        .info-item .valor {
+            font-size: 0.9rem;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .editar-hero {
+            padding: 1rem;
+            border-radius: 15px;
+        }
+        
+        .editar-hero h1 {
+            font-size: 1.3rem;
+        }
+        
+        .editar-hero .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+        }
+        
+        .editar-hero .text-end {
+            width: 100%;
+            text-align: left !important;
+            margin-top: 1rem;
+        }
+        
+        .btn-cancelar {
+            width: 100%;
+        }
+        
+        .alerta-dias {
+            padding: 0.8rem;
+            border-radius: 10px;
+        }
+        
+        .alerta-dias h5 {
+            font-size: 0.9rem;
+        }
+        
+        .alerta-dias p {
+            font-size: 0.8rem;
+        }
+        
+        .info-factura-card,
+        .seccion-pacientes {
+            padding: 0.8rem;
+            border-radius: 12px;
+        }
+        
+        .seccion-titulo {
+            font-size: 0.95rem;
+            margin-bottom: 0.8rem;
+        }
+        
+        .table-scroll-wrapper {
+            max-height: 250px;
+        }
+        
+        .tabla-editar th,
+        .tabla-editar td {
+            padding: 0.4rem;
+            font-size: 0.7rem;
+        }
+        
+        .btn-agregar-paciente,
+        .btn-eliminar-paciente {
+            padding: 0.2rem 0.4rem;
+            font-size: 0.65rem;
+        }
+        
+        .btn-agregar-paciente i,
+        .btn-eliminar-paciente i {
+            font-size: 0.6rem;
+            margin-right: 0.1rem;
+        }
+        
+        .btn-guardar-cambios {
+            padding: 0.8rem 1.5rem;
+            font-size: 0.95rem;
+            border-radius: 10px;
+        }
+        
+        .btn-cancelar {
+            padding: 0.7rem 1.5rem;
+            font-size: 0.9rem;
+            border-radius: 10px;
+        }
+        
+        .contador-cambios {
+            font-size: 0.85rem;
+            padding: 0.4rem 1rem;
+        }
+        
+        #resumenCambios {
+            font-size: 0.9rem !important;
+        }
+    }
+    
+    @media (max-width: 375px) {
+        .container-fluid {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        
+        .editar-hero {
+            padding: 0.8rem;
+        }
+        
+        .editar-hero h1 {
+            font-size: 1.1rem;
+        }
+        
+        .alerta-dias {
+            padding: 0.6rem;
+        }
+        
+        .info-factura-card,
+        .seccion-pacientes {
+            padding: 0.6rem;
+        }
+        
+        .tabla-editar th,
+        .tabla-editar td {
+            padding: 0.3rem;
+            font-size: 0.65rem;
+        }
+        
+        .btn-agregar-paciente,
+        .btn-eliminar-paciente {
+            padding: 0.15rem 0.35rem;
+            font-size: 0.6rem;
+        }
+        
+        .btn-agregar-paciente i,
+        .btn-eliminar-paciente i {
+            font-size: 0.55rem;
+        }
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <!-- Hero Section -->
+    <div class="editar-hero">
+        <div class="d-flex justify-content-between align-items-center flex-wrap">
+            <div>
+                <h1 class="mb-2">✏️ Editar Factura #{{ factura['id'] }}</h1>
+                <p class="mb-0 text-muted"><strong>NCF:</strong> {{ factura['ncf_numero'] }}</p>
+            </div>
+            <div class="text-end">
+                <a href="{{ url_for('facturacion_historico') }}" class="btn btn-cancelar">
+                    <i class="fas fa-arrow-left"></i> Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alerta de Días Restantes -->
+    {% if dias_restantes <= 7 %}
+    <div class="alerta-dias urgente">
+        <h5><i class="fas fa-exclamation-triangle"></i> ¡Atención! Quedan solo {{ dias_restantes }} día(s) para editar esta factura</h5>
+        <p class="mb-0">Después de 30 días desde la creación, no se podrá modificar.</p>
+    </div>
+    {% else %}
+    <div class="alerta-dias">
+        <h5><i class="fas fa-info-circle"></i> Días restantes para editar: {{ dias_restantes }}</h5>
+        <p class="mb-0">Fecha de creación: {{ factura['fecha_factura'] }} (Hace {{ dias_transcurridos }} días)</p>
+    </div>
+    {% endif %}
+
+    <!-- Información de la Factura -->
+    <div class="info-factura-card">
+        <h4 class="seccion-titulo">📋 Información de la Factura</h4>
+        <div class="info-grid">
+            <div class="info-item">
+                <label>Fecha Factura</label>
+                <div class="valor">{{ factura['fecha_factura'] }}</div>
+            </div>
+            <div class="info-item">
+                <label>Médico que Factura</label>
+                <div class="valor">{{ factura['medico_nombre'] }}</div>
+            </div>
+            <div class="info-item">
+                <label>ARS</label>
+                <div class="valor">{{ factura['nombre_ars'] }}</div>
+            </div>
+            <div class="info-item">
+                <label>NCF</label>
+                <div class="valor">{{ factura['ncf_numero'] }}</div>
+            </div>
+            <div class="info-item">
+                <label>Total Actual</label>
+                <div class="valor">RD$ {{ "{:,.2f}".format(factura['total']) }}</div>
+            </div>
+        </div>
+    </div>
+
+    <form method="POST" id="formEditarFactura">
+        <!-- Campos ocultos para enviar los IDs -->
+        <input type="hidden" name="pacientes_agregar_ids" id="pacientes_agregar_ids" value="[]">
+        <input type="hidden" name="pacientes_eliminar_ids" id="pacientes_eliminar_ids" value="[]">
+
+        <!-- SECCIÓN 1: Pacientes Actuales en la Factura -->
+        <div class="seccion-pacientes">
+            <h4 class="seccion-titulo">
+                👥 Pacientes en la Factura ({{ pacientes_factura|length }})
+                <span id="contadorEliminar" class="contador-cambios" style="display: none;">
+                    A Eliminar: <span id="numEliminar">0</span>
+                </span>
+            </h4>
+            
+            {% if pacientes_factura %}
+            <div class="table-scroll-wrapper">
+                <table class="table tabla-editar table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">No.</th>
+                            <th>Paciente</th>
+                            <th>NSS</th>
+                            <th>Fecha Servicio</th>
+                            <th>Médico Consulta</th>
+                            <th>Servicio</th>
+                            <th>Monto</th>
+                            <th style="width: 120px;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paciente in pacientes_factura %}
+                        <tr id="row-factura-{{ paciente['id'] }}" data-paciente-id="{{ paciente['id'] }}" data-monto="{{ paciente['monto'] }}">
+                            <td class="text-center">{{ loop.index }}</td>
+                            <td>{{ paciente['nombre_paciente'] }}</td>
+                            <td>{{ paciente['nss'] }}</td>
+                            <td>{{ paciente['fecha_servicio'] }}</td>
+                            <td>{{ paciente['medico_nombre'] }}</td>
+                            <td>{{ paciente['servicio_nombre'] or 'N/A' }}</td>
+                            <td class="text-end">RD$ {{ "{:,.2f}".format(paciente['monto']) }}</td>
+                            <td class="text-center">
+                                <button type="button" class="btn-eliminar-paciente" onclick="marcarParaEliminar({{ paciente['id'] }})">
+                                    <i class="fas fa-trash"></i> Eliminar
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-circle"></i> No hay pacientes en esta factura.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- SECCIÓN 2: Pacientes Pendientes del Mismo ARS (Para Agregar) -->
+        <div class="seccion-pacientes">
+            <h4 class="seccion-titulo">
+                ➕ Pacientes Pendientes - {{ factura['nombre_ars'] }} ({{ pacientes_pendientes|length }})
+                <span id="contadorAgregar" class="contador-cambios" style="display: none;">
+                    A Agregar: <span id="numAgregar">0</span>
+                </span>
+            </h4>
+            
+            {% if pacientes_pendientes %}
+            <div class="table-scroll-wrapper">
+                <table class="table tabla-editar table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 50px;">No.</th>
+                            <th>Paciente</th>
+                            <th>NSS</th>
+                            <th>Fecha Servicio</th>
+                            <th>Médico Consulta</th>
+                            <th>Servicio</th>
+                            <th>Monto</th>
+                            <th style="width: 120px;">Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for paciente in pacientes_pendientes %}
+                        <tr id="row-pendiente-{{ paciente['id'] }}" data-paciente-id="{{ paciente['id'] }}" data-monto="{{ paciente['monto'] }}">
+                            <td class="text-center">{{ loop.index }}</td>
+                            <td>{{ paciente['paciente_nombre_completo'] or paciente['nombre_paciente'] }}</td>
+                            <td>{{ paciente['nss'] }}</td>
+                            <td>{{ paciente['fecha_servicio'] }}</td>
+                            <td>{{ paciente['medico_nombre'] }}</td>
+                            <td>{{ paciente['servicio_nombre'] or 'N/A' }}</td>
+                            <td class="text-end">RD$ {{ "{:,.2f}".format(paciente['monto']) }}</td>
+                            <td class="text-center">
+                                <button type="button" class="btn-agregar-paciente" onclick="marcarParaAgregar({{ paciente['id'] }})">
+                                    <i class="fas fa-plus"></i> Agregar
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> No hay pacientes pendientes para agregar a esta ARS.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="text-center mt-4 mb-5">
+            <button type="submit" class="btn-guardar-cambios" id="btnGuardarCambios" disabled>
+                <i class="fas fa-save"></i> Guardar Cambios
+            </button>
+            <a href="{{ url_for('facturacion_historico') }}" class="btn btn-cancelar">
+                <i class="fas fa-times"></i> Cancelar
+            </a>
+            <div class="mt-3">
+                <span id="resumenCambios" style="font-size: 1.1rem; color: #666;"></span>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Arrays para almacenar los cambios
+let pacientesAgregar = [];
+let pacientesEliminar = [];
+
+function marcarParaAgregar(pacienteId) {
+    const row = document.getElementById(`row-pendiente-${pacienteId}`);
+    const btn = row.querySelector('.btn-agregar-paciente');
+    
+    if (pacientesAgregar.includes(pacienteId)) {
+        // Ya está marcado, desmarcar
+        pacientesAgregar = pacientesAgregar.filter(id => id !== pacienteId);
+        btn.innerHTML = '<i class="fas fa-plus"></i> Agregar';
+        btn.classList.remove('btn-agregar-paciente');
+        btn.classList.add('btn-agregar-paciente');
+        row.style.background = '';
+    } else {
+        // Marcar para agregar
+        pacientesAgregar.push(pacienteId);
+        btn.innerHTML = '<i class="fas fa-check"></i> Marcado';
+        btn.style.background = 'linear-gradient(135deg, #45a049 0%, #357a38 100%)';
+        row.style.background = 'rgba(76, 175, 80, 0.1)';
+    }
+    
+    actualizarContadores();
+}
+
+function marcarParaEliminar(pacienteId) {
+    const row = document.getElementById(`row-factura-${pacienteId}`);
+    const btn = row.querySelector('.btn-eliminar-paciente');
+    
+    if (pacientesEliminar.includes(pacienteId)) {
+        // Ya está marcado, desmarcar
+        pacientesEliminar = pacientesEliminar.filter(id => id !== pacienteId);
+        btn.innerHTML = '<i class="fas fa-trash"></i> Eliminar';
+        btn.style.background = 'linear-gradient(135deg, #ff4444 0%, #cc0000 100%)';
+        row.style.background = '';
+    } else {
+        // Marcar para eliminar
+        pacientesEliminar.push(pacienteId);
+        btn.innerHTML = '<i class="fas fa-check"></i> Marcado';
+        btn.style.background = 'linear-gradient(135deg, #cc0000 0%, #990000 100%)';
+        row.style.background = 'rgba(255, 68, 68, 0.1)';
+    }
+    
+    actualizarContadores();
+}
+
+function actualizarContadores() {
+    // Actualizar campos ocultos
+    document.getElementById('pacientes_agregar_ids').value = JSON.stringify(pacientesAgregar);
+    document.getElementById('pacientes_eliminar_ids').value = JSON.stringify(pacientesEliminar);
+    
+    // Actualizar contadores visuales
+    const numAgregar = pacientesAgregar.length;
+    const numEliminar = pacientesEliminar.length;
+    
+    document.getElementById('numAgregar').textContent = numAgregar;
+    document.getElementById('numEliminar').textContent = numEliminar;
+    
+    // Mostrar/ocultar contadores
+    document.getElementById('contadorAgregar').style.display = numAgregar > 0 ? 'inline-block' : 'none';
+    document.getElementById('contadorEliminar').style.display = numEliminar > 0 ? 'inline-block' : 'none';
+    
+    // Habilitar/deshabilitar botón de guardar
+    const btnGuardar = document.getElementById('btnGuardarCambios');
+    const hayCambios = numAgregar > 0 || numEliminar > 0;
+    btnGuardar.disabled = !hayCambios;
+    
+    // Actualizar resumen
+    let resumen = [];
+    if (numAgregar > 0) resumen.push(`${numAgregar} paciente(s) a agregar`);
+    if (numEliminar > 0) resumen.push(`${numEliminar} paciente(s) a eliminar`);
+    
+    document.getElementById('resumenCambios').textContent = hayCambios 
+        ? `📝 ${resumen.join(' • ')}` 
+        : '';
+}
+
+// Confirmación antes de enviar
+document.getElementById('formEditarFactura').addEventListener('submit', function(e) {
+    const numAgregar = pacientesAgregar.length;
+    const numEliminar = pacientesEliminar.length;
+    
+    let mensaje = '¿Confirmar los siguientes cambios?\n\n';
+    if (numAgregar > 0) mensaje += `✅ Agregar: ${numAgregar} paciente(s)\n`;
+    if (numEliminar > 0) mensaje += `❌ Eliminar: ${numEliminar} paciente(s)\n`;
+    mensaje += '\nEl total de la factura se recalculará automáticamente.';
+    
+    if (!confirm(mensaje)) {
+        e.preventDefault();
+    }
+});
+
+// Inicializar contadores
+actualizarContadores();
+</script>
+
+{% endblock %}
+

@@ -1,0 +1,395 @@
+/* ========== ESTILOS RESPONSIVE GLOBALES PARA FACTURACIÓN ========== */
+
+/* TABLET (max-width: 992px) */
+@media (max-width: 992px) {
+    .facturacion-hero {
+        padding: 1.5rem;
+        border-radius: 15px;
+    }
+    
+    .facturacion-hero h1,
+    .facturacion-hero h2 {
+        font-size: 1.8rem !important;
+    }
+    
+    .search-box {
+        padding: 1.25rem;
+    }
+    
+    .table-facturacion th,
+    .table-facturacion td {
+        padding: 0.85rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* MOBILE (max-width: 768px) */
+@media (max-width: 768px) {
+    .facturacion-hero {
+        padding: 1.5rem;
+        border-radius: 15px;
+    }
+    
+    .facturacion-hero h1,
+    .facturacion-hero h2 {
+        font-size: 1.5rem !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    .facturacion-hero .d-flex {
+        flex-direction: column;
+        align-items: stretch !important;
+        gap: 0.75rem;
+    }
+    
+    .facturacion-hero .d-flex > div {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+    
+    .btn-agregar, 
+    .btn-volver, 
+    .btn-nuevo,
+    .btn-primary,
+    .btn-secondary {
+        flex: 1;
+        min-width: 140px;
+        padding: 0.7rem 1rem !important;
+        font-size: 0.9rem !important;
+        text-align: center;
+        white-space: nowrap;
+    }
+    
+    .search-box {
+        padding: 1rem;
+        border-radius: 12px;
+    }
+    
+    .search-box .row {
+        gap: 0.5rem;
+    }
+    
+    .search-box .col-md-10,
+    .search-box .col-md-8,
+    .search-box .col-md-6,
+    .search-box .col-md-4,
+    .search-box .col-md-3,
+    .search-box .col-md-2 {
+        width: 100% !important;
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+    
+    .search-box .form-label {
+        font-size: 0.9rem;
+        margin-bottom: 0.4rem;
+    }
+    
+    .search-box .form-control,
+    .search-box .form-select {
+        font-size: 0.9rem;
+    }
+    
+    .search-box button[type="submit"] {
+        margin-top: 0.5rem;
+        width: 100%;
+    }
+    
+    .table-facturacion {
+        border-radius: 12px;
+        margin: 0 -15px;
+    }
+    
+    .table-responsive-wrapper {
+        padding: 0 15px;
+    }
+    
+    .table-facturacion th,
+    .table-facturacion td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+    }
+    
+    .table-facturacion th {
+        white-space: nowrap;
+    }
+    
+    .btn-action {
+        padding: 0.35rem 0.6rem !important;
+        font-size: 0.8rem !important;
+        margin: 0.1rem;
+    }
+    
+    .btn-action i {
+        font-size: 0.9rem;
+    }
+    
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+    
+    .alert {
+        font-size: 0.9rem;
+        padding: 1rem;
+    }
+    
+    /* Forms responsive */
+    .form-container {
+        padding: 0;
+    }
+    
+    .form-card {
+        padding: 1.5rem;
+        border-radius: 15px;
+    }
+    
+    .form-card h1 {
+        font-size: 1.5rem !important;
+    }
+    
+    .form-card .btn-guardar, 
+    .form-card .btn-cancelar {
+        padding: 0.7rem 1.2rem;
+        font-size: 0.9rem;
+    }
+    
+    .form-label {
+        font-size: 0.95rem;
+    }
+    
+    .form-control, 
+    .form-select,
+    textarea {
+        font-size: 0.9rem;
+    }
+    
+    /* Dashboard y cards */
+    .stat-card,
+    .dashboard-card,
+    .info-card {
+        margin-bottom: 1rem;
+    }
+    
+    .stat-card h3,
+    .dashboard-card h3 {
+        font-size: 1.2rem !important;
+    }
+    
+    /* Modales */
+    .modal-dialog {
+        margin: 1rem;
+    }
+    
+    .modal-body {
+        padding: 1rem;
+    }
+    
+    /* Tabs */
+    .nav-tabs {
+        flex-wrap: wrap;
+    }
+    
+    .nav-tabs .nav-link {
+        font-size: 0.85rem;
+        padding: 0.5rem 0.75rem;
+    }
+}
+
+/* MOBILE PEQUEÑO (max-width: 576px) */
+@media (max-width: 576px) {
+    .facturacion-hero {
+        padding: 1rem;
+    }
+    
+    .facturacion-hero h1,
+    .facturacion-hero h2 {
+        font-size: 1.3rem !important;
+    }
+    
+    .facturacion-hero h1 i,
+    .facturacion-hero h2 i {
+        display: none;
+    }
+    
+    .btn-agregar, 
+    .btn-volver,
+    .btn-nuevo {
+        font-size: 0.85rem !important;
+        padding: 0.6rem 0.8rem !important;
+        min-width: 120px;
+    }
+    
+    .btn-agregar i, 
+    .btn-volver i,
+    .btn-nuevo i {
+        display: none;
+    }
+    
+    .search-box {
+        padding: 0.75rem;
+    }
+    
+    .search-box .form-label {
+        font-size: 0.85rem;
+    }
+    
+    .search-box .form-control,
+    .search-box .form-select {
+        font-size: 0.85rem;
+        padding: 0.5rem;
+    }
+    
+    .table-facturacion th,
+    .table-facturacion td {
+        padding: 0.6rem 0.4rem;
+        font-size: 0.8rem;
+    }
+    
+    .btn-action {
+        padding: 0.3rem 0.5rem !important;
+        font-size: 0.75rem !important;
+        margin: 0;
+    }
+    
+    .btn-action span {
+        display: none; /* Ocultar texto, solo iconos */
+    }
+    
+    /* Forms */
+    .form-card {
+        padding: 1rem;
+    }
+    
+    .form-card h1 {
+        font-size: 1.3rem !important;
+    }
+    
+    .form-card h1 i {
+        display: none;
+    }
+    
+    .form-card .btn-guardar, 
+    .form-card .btn-cancelar {
+        padding: 0.6rem 1rem;
+        font-size: 0.85rem;
+        flex: 1;
+    }
+    
+    .form-card .d-flex.justify-content-between {
+        gap: 0.5rem;
+    }
+    
+    .form-label i {
+        display: none;
+    }
+    
+    .form-label {
+        font-size: 0.85rem;
+    }
+    
+    .form-control,
+    .form-select,
+    textarea {
+        font-size: 0.85rem;
+        padding: 0.5rem;
+    }
+    
+    /* Dashboard */
+    .stat-card h3 {
+        font-size: 1rem !important;
+    }
+    
+    .stat-card .stat-value {
+        font-size: 1.8rem !important;
+    }
+    
+    /* Alertas y mensajes */
+    .alert {
+        font-size: 0.85rem;
+        padding: 0.75rem;
+    }
+    
+    /* Paginación */
+    .pagination {
+        font-size: 0.85rem;
+    }
+    
+    .pagination .page-link {
+        padding: 0.4rem 0.6rem;
+    }
+}
+
+/* MOBILE MUY PEQUEÑO (max-width: 375px) */
+@media (max-width: 375px) {
+    .facturacion-hero h1,
+    .facturacion-hero h2 {
+        font-size: 1.1rem !important;
+    }
+    
+    .btn-agregar, 
+    .btn-volver,
+    .btn-nuevo {
+        font-size: 0.8rem !important;
+        padding: 0.5rem 0.6rem !important;
+        min-width: 100px;
+    }
+    
+    .table-facturacion th,
+    .table-facturacion td {
+        padding: 0.5rem 0.3rem;
+        font-size: 0.75rem;
+    }
+    
+    .btn-action {
+        padding: 0.25rem 0.4rem !important;
+        font-size: 0.7rem !important;
+    }
+    
+    .form-card {
+        padding: 0.75rem;
+    }
+    
+    .form-card h1 {
+        font-size: 1.1rem !important;
+    }
+}
+
+/* ========== UTILITIES RESPONSIVE ========== */
+
+/* Ocultar elementos en mobile */
+@media (max-width: 768px) {
+    .hide-mobile {
+        display: none !important;
+    }
+    
+    .show-mobile {
+        display: block !important;
+    }
+}
+
+/* Ocultar elementos en desktop */
+@media (min-width: 769px) {
+    .hide-desktop {
+        display: none !important;
+    }
+    
+    .show-desktop {
+        display: block !important;
+    }
+}
+
+/* Stack columns en mobile */
+@media (max-width: 768px) {
+    .stack-mobile {
+        flex-direction: column !important;
+    }
+    
+    .stack-mobile > * {
+        width: 100% !important;
+        margin-bottom: 0.5rem;
+    }
+}
+

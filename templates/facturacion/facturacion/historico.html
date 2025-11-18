@@ -1,0 +1,392 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Histórico de Facturas{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .historico-hero {
+        background: linear-gradient(135deg, rgba(172, 172, 173, 0.1) 0%, rgba(154, 154, 155, 0.2) 100%);
+        border: 2px solid #ACACAD;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .filtros-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(172, 172, 173, 0.1);
+    }
+    
+    .tabla-historico {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(172, 172, 173, 0.15);
+        overflow: hidden;
+    }
+    
+    /* Contenedor con scroll */
+    .table-scroll-wrapper {
+        max-height: 600px;
+        overflow-y: auto;
+        overflow-x: auto;
+        position: relative;
+    }
+    
+    /* Barra de desplazamiento personalizada */
+    .table-scroll-wrapper::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-thumb {
+        background: #AB9B9F;
+        border-radius: 10px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #8A7A7F;
+    }
+    
+    .tabla-historico th {
+        background: #AB9B9F !important;
+        background-color: #AB9B9F !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .tabla-historico thead th {
+        color: #FFFFFF !important;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .tabla-historico td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(172, 172, 173, 0.1);
+    }
+    
+    .tabla-historico tbody tr:hover {
+        background-color: rgba(172, 172, 173, 0.05);
+    }
+    
+    .btn-ver-factura {
+        background: white;
+        border: 2px solid #CEB0B7;
+        color: #CEB0B7;
+        padding: 0.5rem 1.2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 0.9rem;
+    }
+    
+    .btn-ver-factura:hover {
+        background: #AB9B9F;
+        color: white;
+        transform: scale(1.05);
+    }
+    
+    .btn-editar-factura {
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        border: none;
+        color: white;
+        padding: 0.5rem 1.2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 0.9rem;
+        margin: 0.2rem;
+    }
+    
+    .btn-editar-factura i {
+        color: white !important;
+    }
+    
+    .btn-editar-factura:hover {
+        background: linear-gradient(135deg, #B89BA3 0%, #A88B8F 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(206, 176, 183, 0.4);
+    }
+    
+    .btn-editar-factura:hover i {
+        color: white !important;
+    }
+    
+    .btn-editar-factura.disabled {
+        background: #cccccc;
+        cursor: not-allowed;
+        opacity: 0.6;
+        pointer-events: none;
+    }
+    
+    .btn-editar-factura.disabled i {
+        color: white !important;
+    }
+    
+    .badge-ncf {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.2) 0%, rgba(242, 226, 230, 0.3) 100%);
+        color: #B89BA3;
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        font-weight: 700;
+        font-size: 0.85rem;
+        font-family: 'Courier New', monospace;
+        border: 1px solid #CEB0B7;
+    }
+    
+    .btn-filtrar {
+        background: linear-gradient(135deg, #ACACAD 0%, #9A9A9B 100%);
+        border: none;
+        color: white;
+        padding: 0.6rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-filtrar:hover {
+        background: linear-gradient(135deg, #9A9A9B 0%, #8A8A8B 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(172, 172, 173, 0.4);
+    }
+    
+    .btn-limpiar {
+        background: white;
+        border: 2px solid #ACACAD;
+        color: #ACACAD;
+        padding: 0.6rem 2rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-limpiar:hover {
+        background: #ACACAD;
+        color: white;
+    }
+</style>
+
+<div class="container mt-4">
+    <!-- Hero Section -->
+    <div class="historico-hero">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 style="color: #ACACAD; font-weight: 800; font-size: 2.5rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-history me-2"></i>
+                    Histórico de Facturas
+                </h1>
+                <p style="color: #999; margin: 0; font-size: 1.1rem; font-weight: 600;">
+                    Consulta y visualiza las facturas generadas
+                </p>
+            </div>
+            <a href="{{ url_for('facturacion_menu') }}" class="btn-limpiar">
+                <i class="fas fa-arrow-left me-2"></i>
+                Volver al Menú
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filtros-card">
+        <h5 style="color: #ACACAD; font-weight: 700; margin-bottom: 1.5rem;">
+            <i class="fas fa-filter me-2"></i>
+            Filtros de Búsqueda
+        </h5>
+        <form method="GET" action="{{ url_for('facturacion_historico') }}">
+            <div class="row">
+                <div class="col-md-3 mb-3">
+                    <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                        <i class="fas fa-hospital-symbol"></i> ARS
+                    </label>
+                    <select class="form-select" name="ars_id">
+                        <option value="">Todas las ARS</option>
+                        {% for ars in ars_list %}
+                        <option value="{{ ars['id'] }}" {% if ars_id_seleccionado == ars['id'] %}selected{% endif %}>
+                            {{ ars['nombre_ars'] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                        <i class="fas fa-user-md"></i> Médico
+                    </label>
+                    <select class="form-select" name="medico_id">
+                        <option value="">Todos los Médicos</option>
+                        {% for medico in medicos_list %}
+                        <option value="{{ medico['id'] }}" {% if medico_id_seleccionado == medico['id'] %}selected{% endif %}>
+                            {{ medico['nombre'] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                        <i class="fas fa-file-invoice"></i> NCF
+                    </label>
+                    <input type="text" class="form-control" name="ncf" value="{{ ncf or '' }}" placeholder="Buscar NCF...">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                        <i class="fas fa-calendar"></i> Desde
+                    </label>
+                    <input type="date" class="form-control" name="fecha_desde" value="{{ fecha_desde or '' }}">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                        <i class="fas fa-calendar"></i> Hasta
+                    </label>
+                    <input type="date" class="form-control" name="fecha_hasta" value="{{ fecha_hasta or '' }}">
+                </div>
+            </div>
+            <div class="text-end">
+                <a href="{{ url_for('facturacion_historico') }}" class="btn btn-limpiar me-2">
+                    <i class="fas fa-times-circle me-1"></i>
+                    Limpiar
+                </a>
+                <button type="submit" class="btn btn-filtrar">
+                    <i class="fas fa-search me-1"></i>
+                    Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla de Facturas -->
+    <div class="tabla-historico">
+        <div class="table-scroll-wrapper">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 8%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">ID</th>
+                        <th style="width: 12%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Fecha</th>
+                        <th style="width: 20%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">NCF</th>
+                        <th style="width: 20%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">ARS</th>
+                        <th style="width: 18%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Médico</th>
+                        <th style="width: 12%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;" class="text-center">Monto</th>
+                        <th style="width: 10%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;" class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for factura in facturas %}
+                <tr>
+                    <td><strong>{{ factura['id'] }}</strong></td>
+                    <td>{{ factura['fecha_factura'] }}</td>
+                    <td>
+                        <span class="badge-ncf">
+                            {{ factura['ncf_numero'] if factura['ncf_numero'] else factura['ncf'] }}
+                        </span>
+                    </td>
+                    <td>{{ factura['nombre_ars'] }}</td>
+                    <td><small>{{ factura['medico_nombre'] }}</small></td>
+                    <td class="text-center"><strong style="color: #B89BA3;"> {{ factura['total']|formato_moneda }}</strong></td>
+                    <td class="text-center">
+                        <!-- Botón Ver Factura -->
+                        <a href="{{ url_for('facturacion_ver_factura', factura_id=factura['id']) }}" 
+                           class="btn-ver-factura"
+                           title="Ver factura">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        
+                        <!-- Botón Editar (solo si tiene menos de 30 días) -->
+                        <!-- La validación de fecha se hace en JavaScript al final del archivo -->
+                        <a href="{{ url_for('facturacion_editar_factura', factura_id=factura['id']) }}" 
+                           class="btn-editar-factura"
+                           id="btnEditar{{ factura['id'] }}"
+                           data-fecha="{{ factura['fecha_factura'] }}"
+                           title="Editar factura">
+                            <i class="fas fa-edit"></i>
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center" style="padding: 3rem;">
+                        <i class="fas fa-inbox" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                        <p style="color: #999; margin: 0;">No se encontraron facturas</p>
+                        <p style="color: #999; font-size: 0.9rem;">Intenta ajustar los filtros de búsqueda</p>
+                    </td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Resumen -->
+    {% if facturas %}
+    <div class="filtros-card mt-4">
+        <div class="row">
+            <div class="col-md-6 text-center">
+                <h6 style="color: #999; margin-bottom: 0.5rem;">Total de Facturas</h6>
+                <h3 style="color: #ACACAD; font-weight: 800;">{{ facturas|length }}</h3>
+            </div>
+            <div class="col-md-6 text-center">
+                <h6 style="color: #999; margin-bottom: 0.5rem;">Monto Total</h6>
+                <h3 style="color: #B89BA3; font-weight: 800;">
+ {{ (facturas|sum(attribute='total'))|formato_moneda }}
+                </h3>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Validar si cada factura es editable (menos de 30 días)
+document.addEventListener('DOMContentLoaded', function() {
+    const botonesEditar = document.querySelectorAll('[id^="btnEditar"]');
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    
+    botonesEditar.forEach(btn => {
+        const fechaFacturaStr = btn.getAttribute('data-fecha');
+        const fechaFactura = new Date(fechaFacturaStr + 'T00:00:00');
+        
+        // Calcular diferencia en días
+        const diffTime = hoy - fechaFactura;
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        
+        if (diffDays > 30) {
+            // Deshabilitar botón si pasaron más de 30 días
+            btn.classList.add('disabled');
+            btn.style.pointerEvents = 'none';
+            btn.title = `No editable (${diffDays} días desde creación)`;
+            btn.onclick = function(e) {
+                e.preventDefault();
+                alert(`⚠️ Esta factura no se puede editar porque han transcurrido ${diffDays} días desde su creación.\n\nEl límite para editar es de 30 días.`);
+                return false;
+            };
+        } else {
+            // Mostrar días restantes en el tooltip
+            const diasRestantes = 30 - diffDays;
+            btn.title = `Editar factura (${diasRestantes} día${diasRestantes !== 1 ? 's' : ''} restante${diasRestantes !== 1 ? 's' : ''})`;
+        }
+    });
+});
+</script>
+{% endblock %}
+
+

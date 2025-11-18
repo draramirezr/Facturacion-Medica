@@ -1,0 +1,157 @@
+/* Archivo CSS para aplicar el color de fondo PIGGY PINK (#F2E2E6) en toda la página */
+
+/* Aplicar el color de fondo PIGGY PINK a toda la página */
+body {
+    background-color: #F2E2E6 !important;
+    background-image: none !important;
+}
+
+/* Aplicar el fondo también al html para asegurar cobertura completa */
+html {
+    background-color: #F2E2E6 !important;
+}
+
+/* Mantener el fondo en todas las secciones principales */
+.main-content,
+.container,
+.container-fluid {
+    background-color: transparent !important;
+}
+
+/* Ajustar las tarjetas para que se vean bien sobre el fondo PIGGY PINK */
+.card,
+.service-card,
+.testimonial-card {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+/* Ajustar el navbar para que se vea bien sobre el fondo PIGGY PINK */
+.navbar,
+.header {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Ajustar el footer para que se vea bien sobre el fondo PIGGY PINK */
+.footer {
+    background-color: rgba(255, 255, 255, 0.8) !important;
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(255, 255, 255, 0.3);
+}
+
+/* Ajustar las secciones de servicios para que mantengan el fondo PIGGY PINK */
+.services,
+.about,
+.testimonials,
+.contact {
+    background-color: transparent !important;
+}
+
+/* Ajustar el hero section para que mantenga su gradiente pero se vea bien con el fondo */
+.hero {
+    background: linear-gradient(135deg, rgba(44, 90, 160, 0.9) 0%, rgba(74, 144, 226, 0.9) 100%) !important;
+    backdrop-filter: blur(10px);
+}
+
+/* Ajustar los formularios para que se vean bien sobre el fondo PIGGY PINK */
+.form-control {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border: 2px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.form-control:focus {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(44, 90, 160, 0.25) !important;
+}
+
+/* Ajustar las alertas para que se vean bien sobre el fondo PIGGY PINK */
+.alert {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Ajustar el botón de WhatsApp para que se vea bien */
+.whatsapp-float {
+    background: #25d366 !important;
+    box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3) !important;
+}
+
+.whatsapp-float:hover {
+    box-shadow: 0 6px 25px rgba(37, 211, 102, 0.5) !important;
+}
+
+/* Asegurar que todas las páginas mantengan el fondo PIGGY PINK */
+.page-wrapper {
+    background-color: #F2E2E6 !important;
+    min-height: 100vh;
+}
+
+/* Ajustar el scrollbar para que se vea bien con el fondo PIGGY PINK */
+::-webkit-scrollbar-track {
+    background: #F2E2E6 !important;
+}
+
+/* Mejorar la legibilidad del texto sobre el fondo PIGGY PINK */
+.text-muted {
+    color: #6c757d !important;
+}
+
+/* Ajustar los enlaces para que se vean bien sobre el fondo PIGGY PINK */
+a {
+    color: var(--primary-color) !important;
+}
+
+a:hover {
+    color: #1a3d6b !important;
+}
+
+/* Asegurar que las imágenes mantengan su aspecto sobre el fondo PIGGY PINK */
+img {
+    background-color: transparent !important;
+}
+
+/* Ajustar las tablas para que se vean bien sobre el fondo PIGGY PINK */
+.table {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px);
+}
+
+/* Ajustar los modales para que se vean bien sobre el fondo PIGGY PINK */
+.modal-content {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Ajustar los dropdowns para que se vean bien sobre el fondo PIGGY PINK */
+.dropdown-menu {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Asegurar que el fondo PIGGY PINK se mantenga en todas las resoluciones */
+@media (max-width: 768px) {
+    body,
+    html {
+        background-color: #F2E2E6 !important;
+    }
+    
+    .card,
+    .service-card,
+    .testimonial-card {
+        background-color: rgba(255, 255, 255, 0.95) !important;
+    }
+}
+
+@media (max-width: 576px) {
+    body,
+    html {
+        background-color: #F2E2E6 !important;
+    }
+}

@@ -1,0 +1,391 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Vista Previa - Factura{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    @media print {
+        .no-print {
+            display: none !important;
+        }
+        .factura-container {
+            box-shadow: none !important;
+            border: none !important;
+        }
+    }
+    
+    .factura-container {
+        background: white;
+        max-width: 900px;
+        margin: 2rem auto;
+        padding: 2rem;
+        box-shadow: 0 10px 50px rgba(0, 0, 0, 0.1);
+        border-radius: 10px;
+    }
+    
+    .factura-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #CEB0B7;
+    }
+    
+    .factura-logo {
+        max-width: 120px;
+        height: auto;
+    }
+    
+    .factura-title-center {
+        flex: 1;
+        text-align: center;
+        padding-top: 0.5rem;
+    }
+    
+    .factura-title {
+        color: #CEB0B7;
+        font-weight: 800;
+        font-size: 2.5rem;
+        margin: 0;
+        line-height: 1;
+        letter-spacing: 2px;
+    }
+    
+    .factura-title-small {
+        color: #ACACAD;
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        letter-spacing: 1px;
+    }
+    
+    .factura-info {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.75rem;
+        margin-bottom: 1.25rem;
+    }
+    
+    .info-box {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.2) 100%);
+        border: 2px solid #CEB0B7;
+        border-radius: 10px;
+        padding: 1rem;
+    }
+    
+    .info-box h6 {
+        color: #B89BA3;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        font-size: 0.85rem;
+        text-transform: uppercase;
+    }
+    
+    .info-box p {
+        margin: 0.25rem 0;
+        color: #333;
+        font-weight: 600;
+    }
+    
+    .info-box .highlight {
+        color: #CEB0B7;
+        font-size: 1.1rem;
+        font-weight: 800;
+    }
+    
+    .tabla-factura {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 2rem 0;
+    }
+    
+    .tabla-factura thead {
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        color: white;
+    }
+    
+    .tabla-factura th {
+        padding: 0.75rem 0.5rem;
+        text-align: left;
+        font-size: 0.85rem;
+        font-weight: 700;
+    }
+    
+    .tabla-factura td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid #eee;
+        font-size: 0.85rem;
+    }
+    
+    .tabla-factura tbody tr:hover {
+        background-color: rgba(206, 176, 183, 0.05);
+    }
+    
+    .tabla-factura .text-right {
+        text-align: right;
+    }
+    
+    .tabla-factura .text-center {
+        text-align: center;
+    }
+    
+    .totales-section {
+        margin-top: 2rem;
+        border-top: 2px solid #CEB0B7;
+        padding-top: 1rem;
+    }
+    
+    .total-row {
+        display: flex;
+        justify-content: flex-end;
+        padding: 0.5rem 0;
+        font-size: 1rem;
+    }
+    
+    .total-row.subtotal {
+        color: #666;
+    }
+    
+    .total-row.itbis {
+        color: #666;
+    }
+    
+    .total-row.total {
+        font-size: 1.5rem;
+        font-weight: 800;
+        color: #CEB0B7;
+        border-top: 2px solid #CEB0B7;
+        padding-top: 1rem;
+        margin-top: 0.5rem;
+    }
+    
+    .total-label {
+        width: 150px;
+        text-align: right;
+        margin-right: 2rem;
+        font-weight: 700;
+    }
+    
+    .total-value {
+        width: 150px;
+        text-align: right;
+    }
+    
+    .footer-factura {
+        text-align: center;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 2px solid #eee;
+        color: #666;
+        font-size: 0.85rem;
+        line-height: 1.4;
+    }
+    
+    .footer-factura p {
+        margin: 0.25rem 0;
+    }
+    
+    .footer-factura strong {
+        color: #CEB0B7;
+    }
+    
+    .btn-generar-factura {
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        border: none;
+        color: white;
+        padding: 1rem 3rem;
+        border-radius: 15px;
+        font-weight: 700;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+        display: block;
+        width: 100%;
+        max-width: 400px;
+        margin: 2rem auto;
+    }
+    
+    .btn-generar-factura:hover {
+        background: linear-gradient(135deg, #B89BA3 0%, #A88A92 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(206, 176, 183, 0.4);
+    }
+    
+    .btn-volver {
+        background: #ACACAD !important;
+        border: none;
+        color: white !important;
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-volver:hover {
+        background: #9A9A9B !important;
+        color: white !important;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(172, 172, 173, 0.4);
+    }
+    
+    .btn-volver i {
+        color: white !important;
+    }
+    
+    .alert-preview {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.2) 100%);
+        border: 2px solid #CEB0B7;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        text-align: center;
+        color: #666;
+    }
+    
+    .alert-preview i {
+        color: #CEB0B7;
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .alert-preview h5 {
+        color: #B89BA3;
+        font-weight: 700;
+        margin-top: 0.5rem;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <!-- Alerta de Vista Previa -->
+    <div class="alert-preview no-print">
+        <i class="fas fa-eye"></i>
+        <h5>Vista Previa de la Factura</h5>
+        <p>Revisa los datos antes de generar la factura definitiva. Al hacer clic en "GENERAR FACTURA", se guardará, descargará automáticamente y enviará por email.</p>
+    </div>
+
+    <!-- Contenedor de la Factura -->
+    <div class="factura-container">
+        <!-- Header Compacto -->
+        <div class="factura-header">
+            <img src="{{ url_for('static', filename='logos/logo-dra-shirley.png') }}" alt="Logo" class="factura-logo">
+            <div class="factura-title-center">
+                <h1 class="factura-title">FACTURA</h1>
+                <div class="factura-title-small">CRÉDITO FISCAL</div>
+            </div>
+            <div style="width: 120px;"></div>
+        </div>
+
+        <!-- Información Principal en 3 Columnas -->
+        <div class="factura-info">
+            <div class="info-box">
+                <h6>Información de Factura</h6>
+                <p><strong>Fecha:</strong> {{ fecha_factura }}</p>
+                <p><strong>Cliente (ARS):</strong> {{ ars['nombre_ars'] }}</p>
+                {% if ars['rnc'] %}
+                <p><strong>RNC:</strong> {{ ars['rnc'] }}</p>
+                {% endif %}
+            </div>
+            <div class="info-box">
+                <h6>NCF</h6>
+                <p class="highlight">{{ ncf_completo }}</p>
+                <p><strong>Tipo:</strong> {{ ncf['tipo'] }}</p>
+                {% if ncf['fecha_fin'] %}
+                <p><strong>Válido hasta:</strong> {{ ncf['fecha_fin'] }}</p>
+                {% endif %}
+            </div>
+            <div class="info-box">
+                <h6>Información del Médico</h6>
+                <p style="margin-bottom: 0.1rem;"><strong>Médico:</strong> {{ medico['nombre'] }}</p>
+                <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #666;">{{ medico['especialidad'] }}</p>
+                <p><strong>Cédula:</strong> {{ medico['cedula'] }}</p>
+            </div>
+        </div>
+
+        <!-- Tabla de Pacientes/Servicios -->
+        <table class="tabla-factura">
+            <thead>
+                <tr>
+                    <th style="width: 5%;">No.</th>
+                    <th style="width: 20%;">NOMBRES PACIENTE</th>
+                    <th style="width: 12%;">NSS/CONTRATO</th>
+                    <th style="width: 10%;">FECHA</th>
+                    <th style="width: 13%;">AUTORIZACIÓN</th>
+                    <th style="width: 25%;">SERVICIO</th>
+                    <th style="width: 15%;" class="text-right">V/UNITARIO</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for paciente in pacientes %}
+                <tr>
+                    <td class="text-center">{{ loop.index }}</td>
+                    <td><strong>{{ paciente['nombre_paciente'] }}</strong></td>
+                    <td>{{ paciente['nss'] }}</td>
+                    <td>{{ paciente['fecha_servicio'] }}</td>
+                    <td><code style="background: rgba(206, 176, 183, 0.1); padding: 0.25rem 0.5rem; border-radius: 5px;">{{ paciente['autorizacion'] }}</code></td>
+                    <td>{{ paciente['descripcion_servicio'] }}</td>
+                    <td class="text-right"><strong> {{ paciente['monto']|formato_moneda }}</strong></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Sección de Totales -->
+        <div class="totales-section">
+            <div class="total-row subtotal">
+                <div class="total-label">SUB-TOTAL:</div>
+                <div class="total-value"> {{ subtotal|formato_moneda }}</div>
+            </div>
+            <div class="total-row itbis">
+                <div class="total-label">ITBIS:</div>
+                <div class="total-value">*E</div>
+            </div>
+            <div class="total-row total">
+                <div class="total-label">TOTAL:</div>
+                <div class="total-value"> {{ total|formato_moneda }}</div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer-factura">
+            <p><strong>{{ medico['nombre'] }}</strong></p>
+            <p>{{ medico['especialidad'] }} | Cédula: {{ medico['cedula'] }}{% if medico['exequatur'] %} | EXEQUATUR: {{ medico['exequatur'] }}{% endif %}</p>
+            <p>{{ centro_medico['nombre'] }}, {{ centro_medico['direccion'] }}</p>
+        </div>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="no-print" style="max-width: 900px; margin: 2rem auto;">
+        <form method="POST" action="{{ url_for('facturacion_generar_final') }}">
+            <input type="hidden" name="pacientes_ids" value="{{ pacientes_ids }}">
+            <input type="hidden" name="ars_id" value="{{ ars_id }}">
+            <input type="hidden" name="ncf_id" value="{{ ncf_id }}">
+            <input type="hidden" name="medico_factura_id" value="{{ medico_factura_id }}">
+            <input type="hidden" name="fecha_factura" value="{{ fecha_factura }}">
+            
+            <button type="submit" class="btn-generar-factura">
+                <i class="fas fa-check-circle me-2"></i>
+                GENERAR FACTURA
+            </button>
+        </form>
+        
+        <div class="text-center mt-3">
+            <a href="{{ url_for('facturacion_menu') }}" class="btn-volver">
+                <i class="fas fa-arrow-left me-2"></i>
+                Volver al Menú
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+// Opcional: función para imprimir
+function imprimirFactura() {
+    window.print();
+}
+</script>
+{% endblock %}
+

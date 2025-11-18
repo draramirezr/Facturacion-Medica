@@ -1,0 +1,288 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Pacientes - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .maestra-hero {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.3) 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .search-box {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 2px 10px rgba(206, 176, 183, 0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .table-facturacion {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+    }
+    
+    /* Contenedor con scroll */
+    .table-scroll-wrapper {
+        max-height: 600px;
+        overflow-y: auto;
+        overflow-x: auto;
+        position: relative;
+    }
+    
+    /* Barra de desplazamiento personalizada */
+    .table-scroll-wrapper::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-thumb {
+        background: #AB9B9F;
+        border-radius: 10px;
+    }
+    
+    .table-scroll-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #8A7A7F;
+    }
+    
+    .table-facturacion th {
+        background: #AB9B9F !important;
+        background-color: #AB9B9F !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .table-facturacion thead th {
+        color: #FFFFFF !important;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .table-facturacion td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(206, 176, 183, 0.1);
+    }
+    
+    .badge-registros {
+        background: #AB9B9F;
+        color: white;
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .badge-unico {
+        background: #AB9B9F;
+        color: white;
+        padding: 0.3rem 0.6rem;
+        border-radius: 6px;
+        font-weight: 600;
+        font-size: 0.75rem;
+    }
+    
+    .btn-volver {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.7rem 1.5rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-volver:hover {
+        background: var(--primary-color);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(206, 176, 183, 0.3);
+    }
+    
+    .info-card {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.2) 100%);
+        border-left: 4px solid #CEB0B7;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .stat-box {
+        background: white;
+        border-radius: 10px;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 2px 10px rgba(206, 176, 183, 0.1);
+        border: 2px solid rgba(206, 176, 183, 0.2);
+    }
+    
+    .stat-box h3 {
+        font-size: 2rem;
+        font-weight: 800;
+        color: #CEB0B7;
+        margin: 0.5rem 0;
+    }
+    
+    .stat-box p {
+        color: #666;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="maestra-hero">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-users me-2"></i>
+                    Maestra de Pacientes
+                </h1>
+                <p style="color: #666; margin: 0;">Pacientes únicos registrados en el sistema</p>
+            </div>
+            <div>
+                <a href="{{ url_for('facturacion_menu') }}" class="btn btn-volver">
+                    <i class="fas fa-arrow-left me-2"></i>Volver al Menú
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Información -->
+    <div class="info-card">
+        <i class="fas fa-info-circle me-2" style="color: #CEB0B7;"></i>
+        <strong>Nota:</strong> Esta maestra se alimenta automáticamente cuando agregas pacientes en "Agregar Pacientes". 
+        <br>
+        <small style="color: #666; margin-top: 0.5rem; display: block;">
+            <i class="fas fa-key me-1"></i>
+            <strong>Llave Única: NSS + ARS</strong> - Un mismo paciente puede aparecer múltiples veces si tiene diferentes ARS asignadas.
+        </small>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="stats-grid">
+        <div class="stat-box">
+            <i class="fas fa-users" style="font-size: 2rem; color: #CEB0B7;"></i>
+            <h3>{{ pacientes_list|length }}</h3>
+            <p>Registros Únicos</p>
+            <small style="color: #999; font-size: 0.75rem;">NSS + ARS</small>
+        </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="search-box">
+        <form method="GET" action="{{ url_for('facturacion_pacientes') }}" class="row g-3 align-items-end">
+            <div class="col-md-10">
+                <label class="form-label" style="color: #666; font-weight: 600;">
+                    <i class="fas fa-search me-1"></i>Buscar Paciente
+                </label>
+                <input type="text" 
+                       class="form-control" 
+                       name="search" 
+                       value="{{ search }}" 
+                       placeholder="Buscar por NSS o Nombre..."
+                       style="border-radius: 10px; border: 2px solid rgba(206, 176, 183, 0.3);">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" 
+                        class="btn w-100"
+                        style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); color: white; border-radius: 10px; padding: 0.6rem;">
+                    <i class="fas fa-search me-1"></i>Buscar
+                </button>
+            </div>
+        </form>
+        {% if search %}
+        <div class="mt-2">
+            <a href="{{ url_for('facturacion_pacientes') }}" class="text-decoration-none" style="color: #CEB0B7;">
+                <i class="fas fa-times-circle me-1"></i>Limpiar búsqueda
+            </a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tabla de Pacientes -->
+    <div class="table-facturacion">
+        {% if pacientes_list %}
+        <div class="table-scroll-wrapper">
+            <table class="table mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 10%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">ID</th>
+                        <th style="width: 20%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">NSS</th>
+                        <th style="width: 45%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Nombre Completo</th>
+                        <th style="width: 25%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">ARS</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for paciente in pacientes_list %}
+                    <tr>
+                        <td><strong>{{ paciente['id'] }}</strong></td>
+                        <td>
+                            <span class="badge-unico">
+                                <i class="fas fa-id-card me-1"></i>{{ paciente['nss'] }}
+                            </span>
+                        </td>
+                        <td>
+                            <strong style="color: #282828;">{{ paciente['nombre'] }}</strong>
+                        </td>
+                        <td>
+                            {% if paciente['nombre_ars'] %}
+                                <span style="color: #666;">{{ paciente['nombre_ars'] }}</span>
+                            {% else %}
+                                <span style="color: #999; font-style: italic;">Sin ARS</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-user-slash" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+            <p style="color: #999; margin: 0;">
+                {% if search %}
+                    No se encontraron pacientes con "{{ search }}"
+                {% else %}
+                    No hay pacientes registrados aún
+                {% endif %}
+            </p>
+            <p style="color: #999; font-size: 0.9rem; margin-top: 0.5rem;">
+                Los pacientes se agregan automáticamente al usar "Agregar Pacientes"
+            </p>
+        </div>
+        {% endif %}
+    </div>
+
+    {% if pacientes_list %}
+    <div class="mt-3" style="color: #666; font-size: 0.9rem; text-align: center;">
+        <i class="fas fa-info-circle me-1"></i>
+        Total de pacientes únicos mostrados: <strong>{{ pacientes_list|length }}</strong>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

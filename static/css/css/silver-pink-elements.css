@@ -1,0 +1,277 @@
+/* Archivo CSS para aplicar el color SILVER PINK (#CEB0B7) en sombras, menús y botones */
+
+/* Variables CSS actualizadas con SILVER PINK */
+:root {
+    --silver-pink: #CEB0B7;           /* SILVER PINK - Color principal para sombras y elementos */
+    --silver-pink-light: #DBC4CA;     /* SILVER PINK más claro */
+    --silver-pink-dark: #B89CA3;      /* SILVER PINK más oscuro */
+    --silver-pink-shadow: rgba(206, 176, 183, 0.3);  /* SILVER PINK para sombras */
+    --silver-pink-shadow-light: rgba(206, 176, 183, 0.15);  /* SILVER PINK sombra suave */
+    --silver-pink-shadow-medium: rgba(206, 176, 183, 0.25); /* SILVER PINK sombra media */
+    --silver-pink-shadow-strong: rgba(206, 176, 183, 0.4);  /* SILVER PINK sombra fuerte */
+}
+
+/* Aplicar SILVER PINK a los botones principales */
+.btn-primary {
+    background: linear-gradient(135deg, var(--silver-pink) 0%, var(--silver-pink-dark) 100%) !important;
+    border: none !important;
+    color: white !important;
+    box-shadow: 0 4px 15px var(--silver-pink-shadow) !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--silver-pink-dark) 0%, var(--silver-pink) 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px var(--silver-pink-shadow-medium) !important;
+    color: white !important;
+}
+
+.btn-primary:focus {
+    box-shadow: 0 0 0 0.2rem var(--silver-pink-shadow-light) !important;
+}
+
+/* Aplicar SILVER PINK a los botones outline */
+.btn-outline-primary {
+    border: 2px solid var(--silver-pink) !important;
+    color: var(--silver-pink) !important;
+    background-color: transparent !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--silver-pink) !important;
+    border-color: var(--silver-pink) !important;
+    color: white !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 4px 15px var(--silver-pink-shadow) !important;
+}
+
+/* Aplicar SILVER PINK a las sombras de las tarjetas */
+.card,
+.service-card,
+.testimonial-card {
+    box-shadow: 0 4px 20px var(--silver-pink-shadow-light) !important;
+    border: 1px solid rgba(206, 176, 183, 0.2) !important;
+    transition: all 0.3s ease !important;
+}
+
+.card:hover,
+.service-card:hover,
+.testimonial-card:hover {
+    box-shadow: 0 8px 30px var(--silver-pink-shadow-medium) !important;
+    transform: translateY(-5px) !important;
+    border-color: var(--silver-pink-shadow) !important;
+}
+
+/* Aplicar SILVER PINK al navbar */
+.navbar {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(15px) !important;
+    border-bottom: 2px solid var(--silver-pink-shadow-light) !important;
+    box-shadow: 0 2px 10px var(--silver-pink-shadow-light) !important;
+}
+
+.navbar-brand {
+    color: var(--silver-pink) !important;
+    font-weight: 700 !important;
+}
+
+.navbar-nav .nav-link {
+    color: var(--text-dark) !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    position: relative !important;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--silver-pink) !important;
+}
+
+.navbar-nav .nav-link::after {
+    content: '' !important;
+    position: absolute !important;
+    bottom: 0 !important;
+    left: 50% !important;
+    width: 0 !important;
+    height: 2px !important;
+    background-color: var(--silver-pink) !important;
+    transition: all 0.3s ease !important;
+    transform: translateX(-50%) !important;
+}
+
+.navbar-nav .nav-link:hover::after {
+    width: 80% !important;
+}
+
+/* Aplicar SILVER PINK a los iconos de servicios */
+.service-icon {
+    background: linear-gradient(135deg, var(--silver-pink) 0%, var(--silver-pink-dark) 100%) !important;
+    box-shadow: 0 4px 15px var(--silver-pink-shadow) !important;
+    transition: all 0.3s ease !important;
+}
+
+.service-card:hover .service-icon {
+    background: linear-gradient(135deg, var(--silver-pink-dark) 0%, var(--silver-pink) 100%) !important;
+    transform: scale(1.1) !important;
+    box-shadow: 0 6px 20px var(--silver-pink-shadow-medium) !important;
+}
+
+/* Aplicar SILVER PINK a los formularios */
+.form-control {
+    border: 2px solid rgba(206, 176, 183, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.form-control:focus {
+    border-color: var(--silver-pink) !important;
+    box-shadow: 0 0 0 0.2rem var(--silver-pink-shadow-light) !important;
+}
+
+/* Aplicar SILVER PINK a las alertas */
+.alert-success {
+    background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(206, 176, 183, 0.05) 100%) !important;
+    border-left: 4px solid var(--silver-pink) !important;
+    color: var(--text-dark) !important;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(206, 176, 183, 0.05) 100%) !important;
+    border-left: 4px solid var(--silver-pink) !important;
+    color: var(--text-dark) !important;
+}
+
+/* Aplicar SILVER PINK al botón de WhatsApp */
+.whatsapp-float {
+    background: linear-gradient(135deg, #25d366 0%, #20ba5a 100%) !important;
+    box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3) !important;
+    transition: all 0.3s ease !important;
+}
+
+.whatsapp-float:hover {
+    transform: scale(1.1) !important;
+    box-shadow: 0 6px 25px rgba(37, 211, 102, 0.5) !important;
+}
+
+/* Aplicar SILVER PINK al footer */
+.footer {
+    background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(206, 176, 183, 0.05) 100%) !important;
+    border-top: 2px solid var(--silver-pink-shadow-light) !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+.footer h5,
+.footer h6 {
+    color: var(--silver-pink) !important;
+    font-weight: 600 !important;
+}
+
+/* Aplicar SILVER PINK a los enlaces */
+a {
+    color: var(--silver-pink) !important;
+    transition: all 0.3s ease !important;
+}
+
+a:hover {
+    color: var(--silver-pink-dark) !important;
+}
+
+/* Aplicar SILVER PINK a los títulos de sección */
+.section-title::after {
+    background: linear-gradient(135deg, var(--silver-pink) 0%, var(--silver-pink-dark) 100%) !important;
+}
+
+/* Aplicar SILVER PINK a los testimonios */
+.testimonial-card::before {
+    color: var(--silver-pink) !important;
+}
+
+/* Aplicar SILVER PINK a las clases de utilidad */
+.text-primary {
+    color: var(--silver-pink) !important;
+}
+
+.bg-primary {
+    background: linear-gradient(135deg, var(--silver-pink) 0%, var(--silver-pink-dark) 100%) !important;
+}
+
+.border-primary {
+    border-color: var(--silver-pink) !important;
+}
+
+/* Aplicar SILVER PINK al scrollbar */
+::-webkit-scrollbar-thumb {
+    background: linear-gradient(135deg, var(--silver-pink) 0%, var(--silver-pink-dark) 100%) !important;
+    border-radius: 4px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--silver-pink-dark) !important;
+}
+
+/* Aplicar SILVER PINK a los dropdowns */
+.dropdown-menu {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(15px) !important;
+    border: 1px solid var(--silver-pink-shadow-light) !important;
+    box-shadow: 0 4px 20px var(--silver-pink-shadow-light) !important;
+}
+
+.dropdown-item:hover {
+    background-color: rgba(206, 176, 183, 0.1) !important;
+    color: var(--silver-pink-dark) !important;
+}
+
+/* Aplicar SILVER PINK a los modales */
+.modal-content {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(15px) !important;
+    border: 1px solid var(--silver-pink-shadow-light) !important;
+    box-shadow: 0 8px 30px var(--silver-pink-shadow-medium) !important;
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--silver-pink-shadow-light) !important;
+}
+
+.modal-footer {
+    border-top: 1px solid var(--silver-pink-shadow-light) !important;
+}
+
+/* Aplicar SILVER PINK a las tablas */
+.table {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px) !important;
+}
+
+/* DESHABILITADO - Los encabezados usan color específico #AB9B9F sin opacidad */
+/* .table thead th {
+    background-color: rgba(206, 176, 183, 0.1) !important;
+    color: var(--silver-pink-dark) !important;
+    border-bottom: 2px solid var(--silver-pink-shadow-light) !important;
+} */
+
+/* Responsive - mantener SILVER PINK en todas las resoluciones */
+@media (max-width: 768px) {
+    .btn-primary,
+    .btn-outline-primary {
+        padding: 10px 20px !important;
+        font-size: 0.9rem !important;
+    }
+    
+    .card,
+    .service-card,
+    .testimonial-card {
+        box-shadow: 0 2px 15px var(--silver-pink-shadow-light) !important;
+    }
+}
+
+@media (max-width: 576px) {
+    .navbar {
+        box-shadow: 0 1px 5px var(--silver-pink-shadow-light) !important;
+    }
+    
+    .whatsapp-float {
+        box-shadow: 0 2px 15px rgba(37, 211, 102, 0.3) !important;
+    }
+}

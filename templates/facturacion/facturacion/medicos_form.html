@@ -1,0 +1,192 @@
+﻿{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if medico else 'Nuevo' }} Médico - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/facturacion-responsive.css') }}">
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+        padding: 2.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        border-radius: 10px;
+        border: 2px solid rgba(206, 176, 183, 0.3);
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(206, 176, 183, 0.25);
+    }
+    
+    .btn-guardar {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-guardar:hover {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(206, 176, 183, 0.3);
+    }
+    
+    .btn-cancelar {
+        background: white;
+        border: 2px solid var(--text-muted);
+        color: var(--text-muted);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cancelar:hover {
+        background: var(--text-muted);
+        color: white;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="form-container">
+        <div class="mb-4">
+            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
+                <i class="fas fa-user-md me-2"></i>
+                {{ 'Editar Médico' if medico else 'Nuevo Médico' }}
+            </h1>
+            <p class="text-muted">Complete los datos del médico</p>
+        </div>
+
+        <div class="form-card">
+            <form method="POST">
+                <div class="mb-4">
+                    <label for="nombre" class="form-label">
+                        <i class="fas fa-user me-2 text-primary"></i>Nombre Completo *
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="nombre" 
+                           name="nombre" 
+                           value="{{ medico['nombre'] if medico else '' }}" 
+                           required 
+                           placeholder="Ej: Dra. Shirley Ramírez"
+                           maxlength="200">
+                </div>
+
+                <div class="mb-4">
+                    <label for="especialidad" class="form-label">
+                        <i class="fas fa-stethoscope me-2 text-primary"></i>Especialidad *
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="especialidad" 
+                           name="especialidad" 
+                           value="{{ medico['especialidad'] if medico else '' }}" 
+                           required 
+                           placeholder="Ej: GINECOLOGO/OBSTETRA"
+                           maxlength="100">
+                </div>
+
+                <div class="mb-4">
+                    <label for="cedula" class="form-label">
+                        <i class="fas fa-id-card me-2 text-primary"></i>Cédula *
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="cedula" 
+                           name="cedula" 
+                           value="{{ medico['cedula'] if medico else '' }}" 
+                           required 
+                           placeholder="Ej: 014-0020410-1"
+                           maxlength="50">
+                </div>
+
+                <div class="mb-4">
+                    <label for="exequatur" class="form-label">
+                        <i class="fas fa-certificate me-2 text-primary"></i>Exequátur
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="exequatur" 
+                           name="exequatur" 
+                           value="{{ medico['exequatur'] if medico and medico['exequatur'] else '' }}" 
+                           placeholder="Ej: 123456"
+                           maxlength="50">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Número de licencia médica (Exequátur)
+                    </small>
+                </div>
+
+                <div class="mb-4">
+                    <label for="email" class="form-label">
+                        <i class="fas fa-envelope me-2 text-primary"></i>Correo Electrónico
+                    </label>
+                    <input type="email" 
+                           class="form-control" 
+                           id="email" 
+                           name="email" 
+                           value="{{ medico['email'] if medico and medico['email'] else '' }}" 
+                           placeholder="Ej: doctor@correo.com"
+                           maxlength="100">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Se enviará automáticamente el PDF de pacientes pendientes a este correo
+                    </small>
+                </div>
+
+                <div class="mb-4">
+                    <div class="form-check" style="padding: 1rem; background: rgba(206, 176, 183, 0.1); border-radius: 10px; border-left: 4px solid #CEB0B7;">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               id="factura" 
+                               name="factura" 
+                               value="1"
+                               {% if medico and medico['factura'] %}checked{% endif %}
+                               style="width: 20px; height: 20px; margin-top: 0.25rem; cursor: pointer;">
+                        <label class="form-check-label" for="factura" style="margin-left: 10px; cursor: pointer; font-weight: 600; color: #CEB0B7;">
+                            <i class="fas fa-file-invoice-dollar me-2"></i>Habilitado para Facturar
+                        </label>
+                        <small class="d-block text-muted mt-2" style="margin-left: 30px;">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Este médico podrá generar facturas en el sistema
+                        </small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between gap-3 mt-5">
+                    <a href="{{ url_for('facturacion_medicos') }}" class="btn btn-cancelar">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-guardar">
+                        <i class="fas fa-save me-2"></i>{{ 'Actualizar' if medico else 'Guardar' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

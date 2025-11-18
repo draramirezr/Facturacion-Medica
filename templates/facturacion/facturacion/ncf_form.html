@@ -1,0 +1,193 @@
+﻿{% extends "base.html" %}
+
+{% block title %}{{ 'Editar NCF' if ncf else 'Nuevo NCF' }} - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/facturacion-responsive.css') }}">
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        background: white;
+        border-radius: 20px;
+        padding: 3rem;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #282828;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        border-radius: 10px;
+        border: 2px solid rgba(206, 176, 183, 0.3);
+        padding: 0.75rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(206, 176, 183, 0.25);
+    }
+    
+    .btn-guardar {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-guardar:hover {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(206, 176, 183, 0.3);
+    }
+    
+    .btn-cancelar {
+        background: white;
+        border: 2px solid var(--text-muted);
+        color: var(--text-muted);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cancelar:hover {
+        background: var(--text-muted);
+        color: white;
+    }
+</style>
+
+<div class="container">
+    <div class="form-container">
+        <div class="mb-4">
+            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
+                <i class="fas fa-file-invoice me-2"></i>
+                {{ 'Editar NCF' if ncf else 'Nuevo NCF' }}
+            </h1>
+            <p style="color: #666; margin: 0;">Complete los campos del Número de Comprobante Fiscal</p>
+        </div>
+
+        <form method="POST">
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" for="tipo">
+                        <i class="fas fa-tag me-2"></i>Tipo <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="tipo" 
+                           name="tipo" 
+                           value="{{ ncf['tipo'] if ncf else '' }}" 
+                           required
+                           placeholder="Ej: Factura de Crédito Fiscal">
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" for="prefijo">
+                        <i class="fas fa-hashtag me-2"></i>Prefijo <span class="text-danger">*</span>
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="prefijo" 
+                           name="prefijo" 
+                           value="{{ ncf['prefijo'] if ncf else '' }}" 
+                           required
+                           placeholder="Ej: B01"
+                           maxlength="10">
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="tamaño">
+                        <i class="fas fa-ruler-horizontal me-2"></i>Tamaño <span class="text-danger">*</span>
+                    </label>
+                    <input type="number" 
+                           class="form-control" 
+                           id="tamaño" 
+                           name="tamaño" 
+                           value="{{ ncf['tamaño'] if ncf else '' }}" 
+                           required
+                           min="1"
+                           placeholder="Ej: 8">
+                    <small class="text-muted">Cantidad de dígitos del número</small>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="ultimo_numero">
+                        <i class="fas fa-sort-numeric-up me-2"></i>Último Número
+                    </label>
+                    <input type="number" 
+                           class="form-control" 
+                           id="ultimo_numero" 
+                           name="ultimo_numero" 
+                           value="{{ ncf['ultimo_numero'] if ncf else '0' }}" 
+                           min="0"
+                           placeholder="0"
+                           onchange="calcularProximo()">
+                    <small class="text-muted">Último número utilizado</small>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-calculator me-2"></i>Próximo Número
+                    </label>
+                    <input type="number" 
+                           class="form-control" 
+                           id="proximo_numero" 
+                           value="{{ (ncf['ultimo_numero'] + 1) if ncf else '1' }}" 
+                           disabled
+                           style="background-color: #f5f5f5; cursor: not-allowed; font-family: 'Courier New', monospace; font-weight: 600;">
+                    <small class="text-muted">Calculado automáticamente</small>
+                </div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label" for="fecha_fin">
+                        Fecha Fin
+                    </label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="fecha_fin" 
+                           name="fecha_fin" 
+                           value="{{ ncf['fecha_fin'] if ncf and ncf['fecha_fin'] else '' }}">
+                    <small class="text-muted">Fecha de vencimiento o fin de validez del NCF (opcional)</small>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between gap-3 mt-4">
+                <a href="{{ url_for('facturacion_ncf') }}" class="btn btn-cancelar">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-guardar">
+                    <i class="fas fa-save me-2"></i>{{ 'Actualizar' if ncf else 'Guardar' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+function calcularProximo() {
+    const ultimoNumero = parseInt(document.getElementById('ultimo_numero').value) || 0;
+    const proximoNumero = ultimoNumero + 1;
+    document.getElementById('proximo_numero').value = proximoNumero;
+}
+
+// Actualizar en tiempo real cuando se cambia el último número
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('ultimo_numero').addEventListener('input', calcularProximo);
+});
+</script>
+{% endblock %}
+

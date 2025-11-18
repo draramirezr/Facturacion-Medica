@@ -1,0 +1,264 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Maestra de Médicos - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .facturacion-hero {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.3) 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .search-box {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+        margin-bottom: 2rem;
+    }
+    
+    .table-facturacion {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+        overflow: hidden;
+    }
+    
+    /* Contenedor con scroll horizontal para responsive */
+    .table-responsive-wrapper {
+        overflow-x: auto;
+        overflow-y: visible;
+    }
+    
+    /* Barra de desplazamiento personalizada */
+    .table-responsive-wrapper::-webkit-scrollbar {
+        height: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb {
+        background: #AB9B9F;
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+        background: #8A7A7F;
+    }
+    
+    .table-facturacion table {
+        min-width: 1000px; /* Ancho mínimo para médicos (más columnas) */
+    }
+    
+    .table-facturacion th {
+        background: #AB9B9F !important;
+        background-color: #AB9B9F !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+    }
+    
+    .table-facturacion thead th {
+        color: #FFFFFF !important;
+    }
+    
+    .table-facturacion td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(206, 176, 183, 0.1);
+    }
+    
+    .table-facturacion tbody tr:hover {
+        background-color: rgba(206, 176, 183, 0.05);
+    }
+    
+    .btn-action {
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin: 0 0.2rem;
+    }
+    
+    .btn-editar {
+        background: white;
+        border: 2px solid #CEB0B7;
+        color: #CEB0B7;
+    }
+    
+    .btn-editar:hover {
+        background: #AB9B9F;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(206, 176, 183, 0.3);
+    }
+    
+    .btn-eliminar {
+        background: white;
+        border: 2px solid #ACACAD;
+        color: #ACACAD;
+    }
+    
+    .btn-eliminar:hover {
+        background: #ACACAD;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px rgba(172, 172, 173, 0.3);
+    }
+    
+    .btn-nuevo {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.7rem 1.5rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-nuevo:hover {
+        background: #AB9B9F;
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(206, 176, 183, 0.3);
+    }
+    
+    .btn-volver {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.7rem 1.5rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-volver:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .badge-especialidad {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.2) 0%, rgba(242, 226, 230, 0.4) 100%);
+        color: var(--text-dark);
+        padding: 0.4rem 0.8rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+</style>
+
+<div class="container py-5">
+    <!-- Hero -->
+    <div class="facturacion-hero">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-user-md me-2"></i>
+                    Maestra de Médicos
+                </h1>
+                <p class="text-muted mb-0">Registro de médicos del consultorio</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('facturacion_medicos_nuevo') }}" class="btn btn-nuevo">
+                    <i class="fas fa-plus me-2"></i>Nuevo Médico
+                </a>
+                <a href="{{ url_for('facturacion_menu') }}" class="btn btn-volver">
+                    <i class="fas fa-arrow-left me-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="search-box">
+        <form method="GET" action="{{ url_for('facturacion_medicos') }}">
+            <div class="row">
+                <div class="col-md-10">
+                    <input type="text" name="search" class="form-control" placeholder="Buscar por nombre, cédula o especialidad..." value="{{ search }}" style="border-radius: 10px;">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100" style="border-radius: 10px; background: var(--primary-color); border: none;">
+                        <i class="fas fa-search me-2"></i>Buscar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-facturacion">
+        {% if medicos_list %}
+        <div class="table-responsive-wrapper">
+            <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width: 5%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">ID</th>
+                    <th style="width: 25%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Nombre</th>
+                    <th style="width: 15%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Especialidad</th>
+                    <th style="width: 12%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Cédula</th>
+                    <th style="width: 10%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Exequátur</th>
+                    <th style="width: 18%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Email</th>
+                    <th style="width: 15%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;" class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for medico in medicos_list %}
+                <tr>
+                    <td><strong>{{ medico['id'] }}</strong></td>
+                    <td>{{ medico['nombre'] }}</td>
+                    <td><span class="badge-especialidad">{{ medico['especialidad'] }}</span></td>
+                    <td>{{ medico['cedula'] }}</td>
+                    <td>
+                        {% if medico['exequatur'] %}
+                            <strong>{{ medico['exequatur'] }}</strong>
+                        {% else %}
+                            <span class="text-muted"><i class="fas fa-minus"></i></span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if medico['email'] %}
+                            <small>{{ medico['email'] }}</small>
+                        {% else %}
+                            <span class="text-muted"><i class="fas fa-minus"></i></span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{{ url_for('facturacion_medicos_editar', medico_id=medico['id']) }}" class="btn btn-action btn-editar">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+                            <form method="POST" action="{{ url_for('facturacion_medicos_eliminar', medico_id=medico['id']) }}" style="display: inline; margin: 0;" 
+                                  onsubmit="return confirm('¿Estás segura de eliminar este médico?');">
+                                <button type="submit" class="btn btn-action btn-eliminar">
+                                    <i class="fas fa-trash"></i> Eliminar
+                                </button>
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-muted); opacity: 0.5;"></i>
+            <p class="text-muted mt-3">No se encontraron registros</p>
+            <a href="{{ url_for('facturacion_medicos_nuevo') }}" class="btn btn-nuevo mt-2">
+                <i class="fas fa-plus me-2"></i>Crear primer médico
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

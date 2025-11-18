@@ -1,0 +1,464 @@
+/* Estilos personalizados con la paleta de colores de Dra. Shirley Ramírez */
+
+/* Variables de color adicionales optimizadas */
+:root {
+    --success-color: #4CAF50;
+    --warning-color: #FF9800;
+    --info-color: #2196F3;
+    --light-bg: var(--accent-light);
+    --card-shadow: var(--shadow-light);
+    --card-shadow-hover: var(--shadow-medium);
+}
+
+/* Mejoras en las tarjetas de servicios */
+.service-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s ease;
+    border: 1px solid var(--border-light);
+    position: relative;
+    overflow: hidden;
+}
+
+.service-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: var(--gradient-primary);
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.service-card:hover::before {
+    transform: scaleX(1);
+}
+
+.service-card:hover {
+    transform: translateY(-5px);
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--primary-color);
+}
+
+.service-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: var(--gradient-hero);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-medium);
+}
+
+.service-card:hover .service-icon {
+    transform: scale(1.1);
+    background: var(--gradient-accent);
+    box-shadow: var(--shadow-strong);
+}
+
+/* Mejoras en las tarjetas de testimonios */
+.testimonial-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    box-shadow: var(--card-shadow);
+    transition: all 0.3s ease;
+    border-left: 4px solid var(--primary-color);
+    position: relative;
+}
+
+.testimonial-card::before {
+    content: '"';
+    position: absolute;
+    top: -10px;
+    left: 20px;
+    font-size: 4rem;
+    color: var(--primary-color);
+    font-family: serif;
+    line-height: 1;
+}
+
+.testimonial-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+    border-left-color: var(--secondary-color);
+}
+
+/* Mejoras en los botones */
+.btn-primary {
+    background: var(--gradient-primary);
+    border: none;
+    border-radius: 25px;
+    padding: 12px 30px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-primary::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: left 0.5s;
+}
+
+.btn-primary:hover::before {
+    left: 100%;
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-strong);
+}
+
+.btn-outline-primary {
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    border-radius: 25px;
+    padding: 10px 28px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+.btn-outline-primary:hover {
+    background: var(--gradient-hero);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-medium);
+}
+
+/* Mejoras en el hero */
+.hero {
+    background: var(--gradient-hero);
+    position: relative;
+    overflow: hidden;
+}
+
+.hero::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 100px;
+    background: linear-gradient(to top, rgba(255,255,255,0.1), transparent);
+}
+
+/* Mejoras en la navegación */
+.navbar {
+    background: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--border-light);
+    transition: all 0.3s ease;
+}
+
+.navbar-brand {
+    font-weight: 700;
+    color: var(--primary-color) !important;
+}
+
+.navbar-nav .nav-link {
+    color: var(--text-dark) !important;
+    font-weight: 500;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.navbar-nav .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    width: 0;
+    height: 2px;
+    background: var(--primary-color);
+    transition: all 0.3s ease;
+    transform: translateX(-50%);
+}
+
+.navbar-nav .nav-link:hover::after {
+    width: 100%;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--primary-color) !important;
+}
+
+/* Mejoras en las alertas */
+.alert-success {
+    background: linear-gradient(135deg, #E8F5E8 0%, #F0F8F0 100%);
+    border-left: 4px solid var(--success-color);
+    color: #2E7D32;
+}
+
+.alert-warning {
+    background: linear-gradient(135deg, #FFF8E1 0%, #FFFBF0 100%);
+    border-left: 4px solid var(--warning-color);
+    color: #E65100;
+}
+
+.alert-danger {
+    background: linear-gradient(135deg, #FFEBEE 0%, #FFF0F2 100%);
+    border-left: 4px solid var(--primary-color);
+    color: #C62828;
+}
+
+.alert-info {
+    background: linear-gradient(135deg, #E3F2FD 0%, #F0F8FF 100%);
+    border-left: 4px solid var(--info-color);
+    color: #1565C0;
+}
+
+/* Mejoras en los formularios */
+.form-control {
+    border: 2px solid #E0E0E0;
+    border-radius: 10px;
+    padding: 12px 15px;
+    transition: all 0.3s ease;
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(171, 155, 159, 0.25);
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+}
+
+/* Mejoras en las secciones */
+.section-title {
+    position: relative;
+    margin-bottom: 3rem;
+}
+
+.section-title::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 60px;
+    height: 3px;
+    background: var(--gradient-primary);
+    border-radius: 2px;
+}
+
+/* Animaciones suaves */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(30px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.fade-in-up {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+/* Responsive mejoras */
+@media (max-width: 768px) {
+    .service-card {
+        padding: 1.5rem;
+    }
+    
+    .testimonial-card {
+        padding: 1.5rem;
+    }
+    
+    .btn-primary,
+    .btn-outline-primary {
+        padding: 10px 20px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Mejoras en el scroll */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--gradient-primary);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-color);
+}
+
+/* ============================================
+   ELIMINAR CHECKMARKS VERDES DE VALIDACIÓN
+   ============================================ */
+
+/* Ocultar los iconos de validación de Bootstrap en todos los formularios */
+.form-control.is-valid,
+.was-validated .form-control:valid,
+.form-control:valid {
+    border-color: #E0E0E0 !important;
+    padding-right: calc(1.5em + 0.75rem) !important;
+    background-image: none !important;
+    background-repeat: no-repeat !important;
+    background-position: right calc(0.375em + 0.1875rem) center !important;
+    background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
+}
+
+.form-control.is-valid:focus,
+.was-validated .form-control:valid:focus,
+.form-control:valid:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(171, 155, 159, 0.25) !important;
+    background-image: none !important;
+}
+
+/* Ocultar feedback de validación visual */
+.valid-feedback,
+.valid-tooltip {
+    display: none !important;
+}
+
+/* Mantener solo los mensajes de error (is-invalid) */
+.form-control.is-invalid,
+.was-validated .form-control:invalid {
+    border-color: #dc3545 !important;
+}
+
+.invalid-feedback,
+.invalid-tooltip {
+    display: block !important;
+}
+
+/* Aplicar a select, textarea y otros inputs */
+.form-select.is-valid,
+.was-validated .form-select:valid,
+.form-select:valid,
+textarea.form-control.is-valid,
+.was-validated textarea.form-control:valid,
+textarea.form-control:valid,
+textarea:valid,
+input[type="checkbox"].form-check-input.is-valid,
+.was-validated input[type="checkbox"].form-check-input:valid,
+input[type="checkbox"]:valid,
+input[type="radio"].form-check-input.is-valid,
+.was-validated input[type="radio"].form-check-input:valid,
+input[type="radio"]:valid,
+input[type="text"]:valid,
+input[type="email"]:valid,
+input[type="tel"]:valid,
+input[type="date"]:valid,
+input[type="password"]:valid,
+input[type="number"]:valid,
+input[type="url"]:valid {
+    background-image: none !important;
+    border-color: #E0E0E0 !important;
+}
+
+/* Asegurar que no haya checkmarks en ningún estado - Regla SUPER agresiva */
+input:valid,
+select:valid,
+textarea:valid,
+.form-control:valid,
+.form-select:valid,
+input.form-control:valid,
+textarea.form-control:valid,
+select.form-control:valid,
+input[required]:valid,
+select[required]:valid,
+textarea[required]:valid {
+    background-image: none !important;
+    border-color: #ced4da !important;
+}
+
+/* Sobrescribir estilos de Bootstrap 5 para :valid */
+input:not(:placeholder-shown):valid,
+textarea:not(:placeholder-shown):valid {
+    background-image: none !important;
+}
+
+/* Forzar en focus también */
+input:valid:focus,
+select:valid:focus,
+textarea:valid:focus {
+    background-image: none !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(171, 155, 159, 0.25) !important;
+}
+
+/* ============================================
+   OCULTAR TODOS LOS CHECKMARKS VERDES GLOBALES
+   ============================================ */
+
+/* Ocultar iconos fa-check de color verde en toda la aplicación */
+.text-success .fa-check,
+.text-success .fa-check-circle,
+.text-success .fa-check-double,
+i.fa-check.text-success,
+i.fa-check-circle.text-success,
+i.fa-check-double.text-success,
+span.text-success i.fa-check,
+span.text-success i.fa-check-circle {
+    display: none !important;
+}
+
+/* Prevenir que los checkmarks se muestren con clases success de Bootstrap */
+.alert-success .fa-check,
+.alert-success .fa-check-circle,
+.bg-success .fa-check,
+.bg-success .fa-check-circle,
+.badge-success .fa-check,
+.badge-success .fa-check-circle {
+    display: none !important;
+}
+
+/* Ocultar cualquier ícono de check que tenga color verde directo */
+i[class*="fa-check"][style*="color: green"],
+i[class*="fa-check"][style*="color: #28a745"],
+i[class*="fa-check"][style*="color: #4CAF50"],
+i[class*="fa-check"][style*="color:#28a745"],
+i[class*="fa-check"][style*="color:#4CAF50"] {
+    display: none !important;
+}
+
+/* Ocultar símbolos de checkmark Unicode */
+.text-success::before {
+    content: "" !important;
+}
+
+/* Si hay elementos con clase 'checkmark' o 'check-icon' en verde */
+.checkmark.text-success,
+.check-icon.text-success,
+.success-icon i[class*="check"],
+.validated-icon.success {
+    display: none !important;
+}
+
+

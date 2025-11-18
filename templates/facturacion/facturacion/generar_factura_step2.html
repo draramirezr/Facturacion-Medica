@@ -1,0 +1,590 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Generar Factura - Paso 2{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .facturacion-hero {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.2) 100%);
+        border: 2px solid #CEB0B7;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 2rem 0;
+        gap: 1rem;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.2rem;
+    }
+    
+    .step-number.inactive {
+        background: #e0e0e0;
+        color: #999;
+    }
+    
+    .step-number.completed {
+        background: #ACACAD;
+    }
+    
+    .step-arrow {
+        font-size: 1.5rem;
+        color: #CEB0B7;
+    }
+    
+    .config-summary {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(206, 176, 183, 0.1);
+    }
+    
+    .config-item {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-right: 2rem;
+        color: #666;
+    }
+    
+    .config-item i {
+        color: #CEB0B7;
+    }
+    
+    .config-item strong {
+        color: #B89BA3;
+    }
+    
+    .filters-card {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 15px rgba(206, 176, 183, 0.1);
+    }
+    
+    .tabla-pacientes {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+        overflow: hidden;
+    }
+    
+    .tabla-pacientes th {
+        background: #AB9B9F !important;
+        background-color: #AB9B9F !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+    }
+    
+    .tabla-pacientes thead th {
+        color: #FFFFFF !important;
+    }
+    
+    .tabla-pacientes td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(206, 176, 183, 0.1);
+    }
+    
+    .tabla-pacientes tbody tr:hover {
+        background-color: rgba(206, 176, 183, 0.05);
+    }
+    
+    .tabla-pacientes tbody tr.selected {
+        background-color: rgba(206, 176, 183, 0.15);
+    }
+    
+    .checkbox-custom {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+        accent-color: #CEB0B7;
+    }
+    
+    .total-seleccionado {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.2) 100%);
+        border: 2px solid #CEB0B7;
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        margin: 2rem 0;
+    }
+    
+    .total-valor {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #000000;
+        margin: 0;
+    }
+    
+    .btn-generar-final {
+        background: white;
+        border: 2px solid #CEB0B7;
+        color: #CEB0B7;
+        padding: 1rem 3rem;
+        border-radius: 15px;
+        font-weight: 700;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-generar-final:hover:not(:disabled) {
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(206, 176, 183, 0.4);
+    }
+    
+    .btn-generar-final:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    .filter-btn {
+        background: white;
+        border: 2px solid #CEB0B7;
+        color: #CEB0B7;
+        padding: 0.5rem 1.5rem;
+        border-radius: 10px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+    }
+    
+    .filter-btn:hover {
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        color: white;
+    }
+    
+    .filter-btn.clear {
+        background: white;
+        border: 2px solid #ACACAD;
+        color: #ACACAD;
+    }
+    
+    .filter-btn.clear:hover {
+        background: #ACACAD;
+        color: white;
+    }
+    
+    .table-responsive {
+        max-height: 600px;
+        overflow-y: auto;
+        overflow-x: auto;
+        position: relative;
+    }
+    
+    .table-responsive::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-thumb {
+        background: #CEB0B7;
+        border-radius: 10px;
+    }
+    
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+        background: #B89BA3;
+    }
+    
+    .tabla-pacientes thead {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <!-- Hero Section -->
+    <div class="facturacion-hero">
+        <div class="text-center">
+            <h1 style="color: #CEB0B7; font-weight: 800; font-size: 2.5rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-file-invoice-dollar me-2"></i>
+                Generar Factura
+            </h1>
+            <p style="color: #ACACAD; margin: 0; font-size: 1.1rem; font-weight: 600;">
+                Selecciona los pacientes para incluir en la factura
+            </p>
+        </div>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step">
+            <div class="step-number completed">
+                <i class="fas fa-check"></i>
+            </div>
+            <span style="color: #ACACAD; font-weight: 600;">Configuración</span>
+        </div>
+        <div class="step-arrow">
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <span style="color: #CEB0B7; font-weight: 600;">Selección de Pacientes</span>
+        </div>
+        <div class="step-arrow">
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="step">
+            <div class="step-number inactive">3</div>
+            <span style="color: #999; font-weight: 600;">Generación</span>
+        </div>
+    </div>
+
+    <!-- Resumen de Configuración -->
+    <div class="config-summary">
+        <h5 style="color: #B89BA3; font-weight: 700; margin-bottom: 1rem;">
+            <i class="fas fa-info-circle me-2"></i>
+            Configuración Actual
+        </h5>
+        <div>
+            <div class="config-item">
+                <i class="fas fa-hospital-symbol"></i>
+                <span><strong>ARS:</strong> {{ ars['nombre_ars'] }}</span>
+            </div>
+            <div class="config-item">
+                <i class="fas fa-file-invoice"></i>
+                <span><strong>NCF:</strong> {{ ncf['tipo'] }} - {{ ncf['prefijo'] }}</span>
+            </div>
+            <div class="config-item">
+                <i class="fas fa-user-md"></i>
+                <span><strong>Médico que Factura:</strong> {{ medico_factura_nombre }}</span>
+            </div>
+            <div class="config-item">
+                <i class="fas fa-calendar-alt"></i>
+                <span><strong>Fecha Factura:</strong> {{ fecha_factura }}</span>
+            </div>
+            <div class="config-item">
+                <i class="fas fa-users"></i>
+                <span><strong>Total Pacientes Disponibles:</strong> <span style="color: #CEB0B7; font-weight: 700;">{{ pendientes|length }}</span></span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="filters-card">
+        <h5 style="color: #B89BA3; font-weight: 700; margin-bottom: 1.5rem;">
+            <i class="fas fa-filter me-2"></i>
+            Filtros de Búsqueda
+        </h5>
+        <div class="row">
+            <div class="col-md-12 mb-3">
+                <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                    <i class="fas fa-user-md"></i> Médico
+                </label>
+                <select class="form-select" id="filtroMedico" onchange="aplicarFiltros()">
+                    <option value="">Todos los médicos</option>
+                    {% for medico in medicos %}
+                    <option value="{{ medico['id'] }}">{{ medico['nombre'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+        <div class="text-end">
+            <button class="filter-btn clear" onclick="limpiarFiltros()">
+                <i class="fas fa-times-circle me-1"></i>
+                Limpiar Filtros
+            </button>
+            <button class="filter-btn" onclick="toggleSelectAll()">
+                <i class="fas fa-check-double me-1"></i>
+                Seleccionar Todos (Filtrados)
+            </button>
+        </div>
+    </div>
+
+    <!-- Tabla de Pacientes -->
+    <form id="formGenerar" method="POST">
+        <input type="hidden" name="step" value="2">
+        <input type="hidden" name="pacientes_ids" id="pacientes_ids">
+        <input type="hidden" name="ars_id" value="{{ ars['id'] }}">
+        <input type="hidden" name="ncf_id" value="{{ ncf['id'] }}">
+        <input type="hidden" name="medico_factura_id" value="{{ medico_factura_id }}">
+        <input type="hidden" name="fecha_factura" value="{{ fecha_factura }}">
+        
+        <div class="table-responsive">
+            <table class="table tabla-pacientes">
+                <thead>
+                    <tr>
+                        <th style="width: 3%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">
+                            <input type="checkbox" class="checkbox-custom" id="selectAllMain" onclick="toggleSelectAllMain(this)">
+                        </th>
+                        <th style="width: 8%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">NSS</th>
+                        <th style="width: 18%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Nombre</th>
+                        <th style="width: 9%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Fecha de Consulta</th>
+                        <th style="width: 12%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Autorización</th>
+                        <th style="width: 18%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Servicio</th>
+                        <th style="width: 10%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;" class="text-center">Monto</th>
+                        <th style="width: 15%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important; cursor: pointer; user-select: none;" onclick="ordenarPorMedico()" title="Click para ordenar">
+                            Médico Paciente 
+                            <i class="fas fa-sort" style="font-size: 0.8rem; margin-left: 5px;" id="iconoOrdenMedico"></i>
+                        </th>
+                    </tr>
+                </thead>
+                <tbody id="tablaBody">
+                    {% for paciente in pendientes %}
+                    <tr data-medico="{{ paciente['medico_consulta'] }}" 
+                        data-medico-nombre="{{ paciente['medico_nombre'] }}"
+                        data-fecha="{{ paciente['fecha_servicio'] }}">
+                        <td>
+                            <input type="checkbox" class="checkbox-custom paciente-check" 
+                                   value="{{ paciente['id'] }}" 
+                                   data-monto="{{ paciente['monto'] }}"
+                                   onchange="calcularTotal()">
+                        </td>
+                        <td>{{ paciente['nss'] }}</td>
+                        <td><strong>{{ paciente['paciente_nombre_completo'] }}</strong></td>
+                        <td>{{ paciente['fecha_servicio'] }}</td>
+                        <td><code style="background: rgba(206, 176, 183, 0.1); padding: 0.25rem 0.5rem; border-radius: 5px;">{{ paciente['autorizacion'] }}</code></td>
+                        <td>{{ paciente['descripcion_servicio'] }}</td>
+                        <td class="text-center"><strong> {{ "{:,.2f}".format(paciente['monto']) }}</strong></td>
+                        <td><small style="color: #666;">{{ paciente['medico_nombre'] }}</small></td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center" style="padding: 3rem;">
+                            <i class="fas fa-inbox" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                            <p style="color: #999; margin: 0;">No hay pacientes pendientes para esta ARS</p>
+                            <p style="color: #999; font-size: 0.9rem;">Verifique que haya registros pendientes de facturación</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Total Seleccionado -->
+        <div class="total-seleccionado">
+            <p style="color: #666; margin: 0; font-size: 1.1rem; font-weight: 600;">TOTAL DE LA FACTURA</p>
+            <p class="total-valor"> <span id="total-valor">0.00</span></p>
+            <p style="color: #999; margin: 0; font-size: 0.85rem;">
+                <i class="fas fa-check-circle me-1"></i>
+                <span id="num-pacientes">0</span> paciente(s) seleccionado(s)
+            </p>
+        </div>
+
+        <!-- Botones -->
+        <div class="row">
+            <div class="col-md-6 mb-3">
+                <a href="{{ url_for('facturacion_menu') }}" class="btn w-100" 
+                   style="background: #ACACAD !important; color: white !important; border-radius: 15px; padding: 1rem; font-weight: 700; font-size: 1.2rem; text-decoration: none; display: block; text-align: center; border: none;">
+                    <i class="fas fa-arrow-left me-2" style="color: white !important;"></i><span style="color: white !important;">Volver al Menú</span>
+                </a>
+            </div>
+            <div class="col-md-6 mb-3">
+                <button type="submit" class="btn btn-generar-final w-100" id="btnGenerar" disabled>
+                    <i class="fas fa-eye me-2"></i>Ver Factura
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+let todasLasFilas = [];
+let ordenMedicoAscendente = true; // Para alternar entre ascendente y descendente
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Guardar todas las filas originales
+    const tbody = document.getElementById('tablaBody');
+    todasLasFilas = Array.from(tbody.querySelectorAll('tr[data-medico]'));
+});
+
+function aplicarFiltros() {
+    const medico = document.getElementById('filtroMedico').value;
+    
+    todasLasFilas.forEach(fila => {
+        let mostrar = true;
+        
+        // Filtro por médico
+        if (medico && fila.dataset.medico !== medico) {
+            mostrar = false;
+        }
+        
+        fila.style.display = mostrar ? '' : 'none';
+    });
+    
+    // Recalcular total después de filtrar
+    calcularTotal();
+}
+
+function limpiarFiltros() {
+    document.getElementById('filtroMedico').value = '';
+    
+    todasLasFilas.forEach(fila => {
+        fila.style.display = '';
+    });
+    
+    calcularTotal();
+}
+
+function ordenarPorMedico() {
+    const tbody = document.getElementById('tablaBody');
+    const icono = document.getElementById('iconoOrdenMedico');
+    
+    // Obtener todas las filas visibles
+    const filas = Array.from(tbody.querySelectorAll('tr[data-medico-nombre]'));
+    
+    // Ordenar las filas
+    filas.sort((a, b) => {
+        const medicoA = (a.dataset.medicoNombre || '').toLowerCase();
+        const medicoB = (b.dataset.medicoNombre || '').toLowerCase();
+        
+        if (ordenMedicoAscendente) {
+            return medicoA.localeCompare(medicoB);
+        } else {
+            return medicoB.localeCompare(medicoA);
+        }
+    });
+    
+    // Limpiar tbody
+    tbody.innerHTML = '';
+    
+    // Agregar filas ordenadas
+    filas.forEach(fila => tbody.appendChild(fila));
+    
+    // Actualizar icono y estado
+    if (ordenMedicoAscendente) {
+        icono.className = 'fas fa-sort-up';
+    } else {
+        icono.className = 'fas fa-sort-down';
+    }
+    
+    // Alternar orden para el próximo click
+    ordenMedicoAscendente = !ordenMedicoAscendente;
+    
+    // Actualizar array global
+    todasLasFilas = Array.from(tbody.querySelectorAll('tr[data-medico]'));
+}
+
+function toggleSelectAll() {
+    const checkboxes = document.querySelectorAll('.paciente-check');
+    let allChecked = true;
+    
+    checkboxes.forEach(cb => {
+        const fila = cb.closest('tr');
+        if (fila.style.display !== 'none' && !cb.checked) {
+            allChecked = false;
+        }
+    });
+    
+    checkboxes.forEach(cb => {
+        const fila = cb.closest('tr');
+        if (fila.style.display !== 'none') {
+            cb.checked = !allChecked;
+            if (cb.checked) {
+                fila.classList.add('selected');
+            } else {
+                fila.classList.remove('selected');
+            }
+        }
+    });
+    
+    calcularTotal();
+}
+
+function toggleSelectAllMain(checkbox) {
+    const checkboxes = document.querySelectorAll('.paciente-check');
+    checkboxes.forEach(cb => {
+        const fila = cb.closest('tr');
+        if (fila.style.display !== 'none') {
+            cb.checked = checkbox.checked;
+            if (checkbox.checked) {
+                fila.classList.add('selected');
+            } else {
+                fila.classList.remove('selected');
+            }
+        }
+    });
+    calcularTotal();
+}
+
+function calcularTotal() {
+    let total = 0;
+    let count = 0;
+    const checkboxes = document.querySelectorAll('.paciente-check');
+    
+    checkboxes.forEach(cb => {
+        const fila = cb.closest('tr');
+        if (cb.checked && fila.style.display !== 'none') {
+            total += parseFloat(cb.dataset.monto);
+            count++;
+            fila.classList.add('selected');
+        } else {
+            fila.classList.remove('selected');
+        }
+    });
+    
+    // Formatear con separadores de miles
+    const totalFormateado = total.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    
+    document.getElementById('total-valor').textContent = totalFormateado;
+    document.getElementById('num-pacientes').textContent = count;
+    
+    // Habilitar/deshabilitar botón
+    const btnGenerar = document.getElementById('btnGenerar');
+    btnGenerar.disabled = count === 0;
+}
+
+document.getElementById('formGenerar').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const checkboxes = document.querySelectorAll('.paciente-check:checked');
+    const ids = [];
+    
+    checkboxes.forEach(cb => {
+        const fila = cb.closest('tr');
+        if (fila.style.display !== 'none') {
+            ids.push(parseInt(cb.value));
+        }
+    });
+    
+    if (ids.length === 0) {
+        alert('Debe seleccionar al menos un paciente para generar la factura');
+        return false;
+    }
+    
+    // Guardar IDs en campo oculto
+    document.getElementById('pacientes_ids').value = JSON.stringify(ids);
+    
+    // Enviar formulario
+    this.submit();
+});
+</script>
+{% endblock %}
+

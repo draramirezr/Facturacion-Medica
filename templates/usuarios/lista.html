@@ -1,0 +1,335 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Gestión de Usuarios - Panel Administrativo{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/admin-responsive.css') }}">
+<style>
+    .admin-container {
+        max-width: 1200px;
+        margin: 50px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+    
+    .admin-header {
+        border-bottom: 3px solid #CEB0B7;
+        padding-bottom: 20px;
+        margin-bottom: 30px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    
+    .admin-header h1 {
+        color: #282828;
+        font-size: 28px;
+        margin: 0;
+    }
+    
+    .btn-container {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    
+    .btn {
+        padding: 10px 20px;
+        border-radius: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    
+    .btn-primary {
+        background: #CEB0B7 !important;
+        color: white !important;
+    }
+    
+    .btn-primary:hover {
+        background: #B89BA3 !important;
+        color: white !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(206, 176, 183, 0.4);
+    }
+    
+    .btn-secondary {
+        background: #ACACAD !important;
+        color: white !important;
+    }
+    
+    .btn-secondary:hover {
+        background: #9A9A9B !important;
+        color: white !important;
+    }
+    
+    .btn-success {
+        background: #CEB0B7 !important;
+        color: white !important;
+    }
+    
+    .btn-success:hover {
+        background: #B89BA3 !important;
+        color: white !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(206, 176, 183, 0.4);
+    }
+    
+    .btn-danger {
+        background: #ACACAD !important;
+        color: white !important;
+    }
+    
+    .btn-danger:hover {
+        background: #9A9A9B !important;
+        color: white !important;
+    }
+    
+    .btn-warning {
+        background: #CEB0B7 !important;
+        color: white !important;
+    }
+    
+    .btn-warning:hover {
+        background: #B89BA3 !important;
+        color: white !important;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 15px rgba(206, 176, 183, 0.4);
+    }
+    
+    .flash {
+        padding: 15px 20px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-weight: 500;
+    }
+    
+    .flash.success { background: #F2E2E6; color: #B89BA3; border-left: 4px solid #CEB0B7; }
+    .flash.error { background: #E6E6E6; color: #666666; border-left: 4px solid #ACACAD; }
+    .flash.warning { background: #F2E2E6; color: #B89BA3; border-left: 4px solid #CEB0B7; }
+    .flash.info { background: #F2E2E6; color: #B89BA3; border-left: 4px solid #CEB0B7; }
+    
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+    }
+    
+    th {
+        background: #CEB0B7;
+        color: white;
+        padding: 15px;
+        text-align: left;
+        font-weight: 600;
+    }
+    
+    td {
+        padding: 15px;
+        border-bottom: 1px solid #E0E0E0;
+    }
+    
+    tr:hover {
+        background-color: #F2E2E6;
+    }
+    
+    .badge {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+    }
+    
+    .badge-success {
+        background: #CEB0B7;
+        color: white;
+    }
+    
+    .badge-danger {
+        background: #ACACAD;
+        color: white;
+    }
+    
+    .badge-admin {
+        background: #ACACAD;
+        color: white;
+    }
+    
+    .badge-user {
+        background: #F2E2E6;
+        color: #666666;
+    }
+    
+    .actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    
+    .btn-sm {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+    
+    .no-users {
+        text-align: center;
+        padding: 40px;
+        color: #666;
+    }
+    
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #CEB0B7 0%, #ACACAD 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 600;
+        font-size: 16px;
+    }
+    
+    @media (max-width: 768px) {
+        .admin-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        table {
+            font-size: 14px;
+        }
+        
+        th, td {
+            padding: 10px;
+        }
+        
+        .actions {
+            flex-direction: column;
+        }
+    }
+</style>
+
+<div class="admin-container">
+    <div class="admin-header">
+        <h1>👥 Gestión de Usuarios</h1>
+        <div class="btn-container">
+            <a href="{{ url_for('admin_usuarios_nuevo') }}" class="btn btn-success">
+                ➕ Nuevo Usuario
+            </a>
+            <a href="{{ url_for('admin') }}" class="btn btn-secondary">
+                ← Volver al Panel
+            </a>
+        </div>
+    </div>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <div class="table-container">
+        {% if usuarios %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Usuario</th>
+                        <th>Email</th>
+                        <th>Perfil</th>
+                        <th>Estado</th>
+                        <th>Último Acceso</th>
+                        <th>Fecha Creación</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for usuario in usuarios %}
+                    <tr>
+                        <td>
+                            <div class="user-info">
+                                <div class="user-avatar">
+                                    {{ usuario.nombre[0].upper() }}
+                                </div>
+                                <strong>{{ usuario.nombre }}</strong>
+                            </div>
+                        </td>
+                        <td>{{ usuario.email }}</td>
+                        <td>
+                            {% if usuario.perfil == 'Administrador' %}
+                                <span class="badge badge-admin">🔑 Administrador</span>
+                            {% elif usuario.perfil == 'Nivel 2' %}
+                                <span class="badge badge-admin" style="background: #CEB0B7;">⭐ Nivel 2</span>
+                            {% else %}
+                                <span class="badge badge-user">📝 {{ usuario.perfil }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.activo %}
+                                <span class="badge badge-success">✅ Activo</span>
+                            {% else %}
+                                <span class="badge badge-danger">❌ Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.last_login %}
+                                {{ usuario.last_login.strftime('%Y-%m-%d %H:%M') if usuario.last_login is not string else usuario.last_login[:16] }}
+                            {% else %}
+                                <span style="color: #999;">Nunca</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if usuario.created_at %}
+                                {{ usuario.created_at.strftime('%Y-%m-%d') if usuario.created_at is not string else usuario.created_at[:10] }}
+                            {% else %}
+                                <span style="color: #999;">N/A</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="actions">
+                                <a href="{{ url_for('admin_usuarios_editar', usuario_id=usuario.id) }}" 
+                                   class="btn btn-warning btn-sm">
+                                    ✏️ Editar
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="no-users">
+                <h3>No hay usuarios registrados</h3>
+                <p>Crea el primer usuario para comenzar</p>
+                <a href="{{ url_for('admin_usuarios_nuevo') }}" class="btn btn-success" style="margin-top: 20px;">
+                    ➕ Crear Usuario
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

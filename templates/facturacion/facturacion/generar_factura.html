@@ -1,0 +1,391 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Generar Factura - Paso 1{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .facturacion-hero {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.2) 100%);
+        border: 2px solid #CEB0B7;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin: 2rem 0;
+        gap: 1rem;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        color: white;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 800;
+        font-size: 1.2rem;
+    }
+    
+    .step-number.inactive {
+        background: #e0e0e0;
+        color: #999;
+    }
+    
+    .step-arrow {
+        font-size: 1.5rem;
+        color: #CEB0B7;
+    }
+    
+    .form-config {
+        background: white;
+        border-radius: 20px;
+        padding: 3rem;
+        box-shadow: 0 10px 40px rgba(206, 176, 183, 0.15);
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .form-group label {
+        color: #CEB0B7;
+        font-weight: 700;
+        font-size: 1.1rem;
+        margin-bottom: 0.8rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .form-group label .required {
+        color: #ACACAD;
+        font-size: 1.3rem;
+    }
+    
+    .form-control, .form-select {
+        border: 2px solid rgba(206, 176, 183, 0.3);
+        border-radius: 12px;
+        padding: 0.9rem 1.2rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: #CEB0B7;
+        box-shadow: 0 0 0 0.2rem rgba(206, 176, 183, 0.25);
+        outline: none;
+    }
+    
+    .btn-volver {
+        background-color: #ACACAD;
+        background: #ACACAD;
+        border: none;
+        color: white;
+        padding: 1rem;
+        border-radius: 15px;
+        font-weight: 700;
+        font-size: 1.2rem;
+        display: block;
+        text-decoration: none;
+        text-align: center;
+    }
+    
+    .btn-volver:hover {
+        background-color: #ACACAD;
+        background: #ACACAD;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .btn-volver i {
+        color: white;
+    }
+    
+    .btn-continuar {
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        border: none;
+        color: white;
+        padding: 1rem;
+        border-radius: 15px;
+        font-weight: 700;
+        font-size: 1.2rem;
+        transition: all 0.3s ease;
+        display: block;
+    }
+    
+    .btn-continuar:hover:not(:disabled) {
+        background: linear-gradient(135deg, #B89BA3 0%, #A88A92 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(206, 176, 183, 0.4);
+    }
+    
+    .btn-continuar:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        background: linear-gradient(135deg, #e0e0e0 0%, #d0d0d0 100%);
+    }
+    
+    .select-wrapper {
+        position: relative;
+    }
+    
+    .select-icon {
+        position: absolute;
+        left: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #CEB0B7;
+        pointer-events: none;
+    }
+    
+    .form-select.with-icon {
+        padding-left: 3rem;
+    }
+</style>
+
+<div class="container mt-4">
+    <!-- Hero Section -->
+    <div class="facturacion-hero">
+        <div class="text-center">
+            <h1 style="color: #CEB0B7; font-weight: 800; font-size: 2.5rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-file-invoice-dollar me-2"></i>
+                Generar Factura
+            </h1>
+            <p style="color: #ACACAD; margin: 0; font-size: 1.1rem; font-weight: 600;">
+                Sistema de facturación paso a paso
+            </p>
+        </div>
+    </div>
+
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step">
+            <div class="step-number">1</div>
+            <span style="color: #CEB0B7; font-weight: 600;">Configuración</span>
+        </div>
+        <div class="step-arrow">
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="step">
+            <div class="step-number inactive">2</div>
+            <span style="color: #999; font-weight: 600;">Selección de Pacientes</span>
+        </div>
+        <div class="step-arrow">
+            <i class="fas fa-chevron-right"></i>
+        </div>
+        <div class="step">
+            <div class="step-number inactive">3</div>
+            <span style="color: #999; font-weight: 600;">Generación</span>
+        </div>
+    </div>
+
+    <!-- Formulario de Configuración -->
+    <form method="POST" id="formConfiguracion" class="form-config">
+        <input type="hidden" name="step" value="1">
+        
+        <h3 style="color: #B89BA3; font-weight: 700; margin-bottom: 2rem; text-align: center;">
+            <i class="fas fa-cog me-2"></i>
+            Configuración de la Factura
+        </h3>
+
+        <!-- ARS -->
+        <div class="form-group mb-4">
+            <label for="ars_id">
+                <i class="fas fa-hospital-symbol"></i>
+                ARS (Administradora de Riesgos de Salud)
+                <span class="required">*</span>
+            </label>
+            <div class="select-wrapper">
+                <i class="fas fa-building select-icon"></i>
+                <select class="form-select with-icon" id="ars_id" name="ars_id" required onchange="checkForm(); seleccionarNCFporARS()">
+                    <option value="">-- Seleccione una ARS --</option>
+                    {% for ars in ars_list %}
+                    <option value="{{ ars['id'] }}" data-nombre="{{ ars['nombre_ars'] }}">{{ ars['nombre_ars'] }} {% if ars['rnc'] %}(RNC: {{ ars['rnc'] }}){% endif %}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <small class="text-muted">
+                <i class="fas fa-info-circle"></i>
+                Solo se mostrarán pacientes pendientes de esta ARS
+            </small>
+        </div>
+
+        <!-- NCF -->
+        <div class="form-group mb-4">
+            <label for="ncf_id">
+                <i class="fas fa-file-invoice"></i>
+                NCF (Número de Comprobante Fiscal)
+                <span class="required">*</span>
+            </label>
+            <div class="select-wrapper">
+                <i class="fas fa-hashtag select-icon"></i>
+                <select class="form-select with-icon" id="ncf_id" name="ncf_id" required onchange="checkForm()">
+                    <option value="">-- Seleccione un NCF --</option>
+                    {% for ncf in ncf_list %}
+                    <option value="{{ ncf['id'] }}" 
+                            data-prefijo="{{ ncf['prefijo'] }}" 
+                            data-ultimo="{{ ncf['ultimo_numero'] }}"
+                            data-proximo="{{ ncf['ultimo_numero'] + 1 }}"
+                            data-tipo="{{ ncf['tipo'] }}">
+                        {{ ncf['tipo'] }} - {{ ncf['prefijo'] }} (Próximo: {{ '{:0{}d}'.format(ncf['ultimo_numero'] + 1, ncf['tamaño']) }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+        </div>
+
+        <!-- Médico para Facturar -->
+        <div class="form-group mb-4">
+            <label for="medico_factura_id">
+                <i class="fas fa-user-md"></i>
+                Médico que Factura
+                <span class="required">*</span>
+            </label>
+            <div class="select-wrapper">
+                <i class="fas fa-stethoscope select-icon"></i>
+                <select class="form-select with-icon" id="medico_factura_id" name="medico_factura_id" required onchange="checkForm()">
+                    {% if medicos_habilitados|length != 1 %}
+                    <option value="">-- Seleccione el médico --</option>
+                    {% endif %}
+                    {% for medico in medicos_habilitados %}
+                    <option value="{{ medico['id'] }}" {% if medicos_habilitados|length == 1 %}selected{% endif %}>{{ medico['nombre'] }} - {{ medico['especialidad'] }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <small class="text-muted">
+                <i class="fas fa-info-circle"></i>
+                {% if medicos_habilitados|length == 0 %}
+                <span style="color: #dc3545; font-weight: 600;">⚠️ No hay médicos habilitados. Configure uno en Maestras > Médicos</span>
+                {% else %}
+                Solo médicos habilitados para facturar
+                {% endif %}
+            </small>
+        </div>
+
+        <!-- Fecha de Facturación -->
+        <div class="form-group mb-4">
+            <label for="fecha_factura">
+                <i class="fas fa-calendar-alt"></i>
+                Fecha de Facturación
+                <span class="required">*</span>
+            </label>
+            <input type="date" class="form-control" id="fecha_factura" name="fecha_factura" 
+                   value="{{ fecha_actual }}" required onchange="checkForm()" max="{{ fecha_actual }}">
+            <small class="text-muted">
+                <i class="fas fa-info-circle"></i>
+                Por defecto: fecha actual (puede modificarla si es necesario)
+            </small>
+        </div>
+
+        <!-- Botones -->
+        <div class="row g-3">
+            <div class="col-md-6">
+                <a href="{{ url_for('facturacion_menu') }}" class="btn w-100" style="background: #ACACAD !important; color: white !important; padding: 1rem; border-radius: 15px; font-weight: 700; font-size: 1.2rem; text-decoration: none; display: block; text-align: center; border: none;">
+                    <i class="fas fa-arrow-left me-2" style="color: white !important;"></i><span style="color: white !important;">Volver al Menú</span>
+                </a>
+            </div>
+            <div class="col-md-6">
+                <button type="submit" id="btnContinuar" class="btn-continuar w-100" disabled>
+                    <i class="fas fa-arrow-right me-2"></i>Continuar
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function checkForm() {
+    const ars = document.getElementById('ars_id').value;
+    const ncf = document.getElementById('ncf_id').value;
+    const medico = document.getElementById('medico_factura_id').value;
+    const fecha = document.getElementById('fecha_factura').value;
+    
+    const btnContinuar = document.getElementById('btnContinuar');
+    if (ars && ncf && medico && fecha) {
+        btnContinuar.disabled = false;
+    } else {
+        btnContinuar.disabled = true;
+    }
+}
+
+// Función updateNCFInfo() eliminada - ya no es necesaria
+
+function seleccionarNCFporARS() {
+    const arsSelect = document.getElementById('ars_id');
+    const arsOption = arsSelect.options[arsSelect.selectedIndex];
+    const ncfSelect = document.getElementById('ncf_id');
+    
+    // Si no hay ARS seleccionada o es la opción por defecto, limpiar NCF
+    if (!arsSelect.value || !arsOption.dataset.nombre) {
+        ncfSelect.selectedIndex = 0;
+        checkForm();
+        return;
+    }
+    
+    const arsNombre = arsOption.dataset.nombre.toUpperCase();
+    
+    console.log('ARS seleccionada:', arsNombre);
+    
+    // Si es SENASA, seleccionar NCF GUBERNAMENTAL
+    if (arsNombre.includes('SENASA')) {
+        console.log('Buscando NCF GUBERNAMENTAL...');
+        // Buscar la opción con tipo GUBERNAMENTAL
+        for (let i = 0; i < ncfSelect.options.length; i++) {
+            const option = ncfSelect.options[i];
+            if (option.dataset.tipo) {
+                const tipo = option.dataset.tipo.toUpperCase();
+                console.log('Tipo encontrado:', tipo);
+                if (tipo.includes('GUBERNAMENTAL')) {
+                    ncfSelect.selectedIndex = i;
+                    console.log('NCF GUBERNAMENTAL seleccionado');
+                    checkForm();
+                    return;
+                }
+            }
+        }
+    } else {
+        console.log('Buscando NCF CRÉDITO FISCAL...');
+        // Para todas las demás ARS, seleccionar NCF CRÉDITO FISCAL
+        for (let i = 0; i < ncfSelect.options.length; i++) {
+            const option = ncfSelect.options[i];
+            if (option.dataset.tipo) {
+                const tipo = option.dataset.tipo.toUpperCase();
+                console.log('Tipo encontrado:', tipo);
+                if (tipo.includes('CRÉDITO') || tipo.includes('CREDITO')) {
+                    ncfSelect.selectedIndex = i;
+                    console.log('NCF CRÉDITO FISCAL seleccionado');
+                    checkForm();
+                    return;
+                }
+            }
+        }
+    }
+    
+    console.log('No se encontró NCF apropiado');
+}
+
+// Verificar al cargar la página
+document.addEventListener('DOMContentLoaded', function() {
+    checkForm();
+    
+    // Si solo hay un médico habilitado, actualizar info visual
+    const medicoSelect = document.getElementById('medico_factura_id');
+    if (medicoSelect && medicoSelect.value) {
+        console.log('Médico seleccionado automáticamente:', medicoSelect.options[medicoSelect.selectedIndex].text);
+    }
+});
+</script>
+{% endblock %}

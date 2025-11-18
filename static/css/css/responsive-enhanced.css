@@ -1,0 +1,438 @@
+/* ====================================================
+   MEJORAS AGRESIVAS DE RESPONSIVIDAD MÓVIL
+   ==================================================== */
+
+/* VARIABLES RESPONSIVE */
+:root {
+  --mobile-padding: 1rem;
+  --tablet-padding: 1.5rem;
+  --desktop-padding: 2rem;
+  --mobile-font: 14px;
+  --tablet-font: 15px;
+  --desktop-font: 16px;
+}
+
+/* BASE RESPONSIVE */
+@media (max-width: 576px) {
+  /* Extra small devices (phones, less than 576px) */
+  body {
+    font-size: var(--mobile-font);
+    padding: 0;
+    margin: 0;
+  }
+  
+  .container {
+    padding-left: var(--mobile-padding);
+    padding-right: var(--mobile-padding);
+  }
+  
+  h1 { font-size: 1.75rem; line-height: 1.2; }
+  h2 { font-size: 1.5rem; line-height: 1.3; }
+  h3 { font-size: 1.25rem; line-height: 1.4; }
+  h4 { font-size: 1.1rem; line-height: 1.4; }
+  h5 { font-size: 1rem; line-height: 1.4; }
+  
+  /* Botones móviles más grandes */
+  .btn {
+    min-height: 44px; /* Mínimo recomendado por Apple */
+    padding: 12px 20px;
+    font-size: 1rem;
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .btn-sm {
+    min-height: 38px;
+    padding: 8px 16px;
+  }
+  
+  /* Inputs táctiles */
+  input, select, textarea, .form-control {
+    min-height: 44px;
+    font-size: 16px !important; /* Prevenir zoom en iOS */
+    padding: 12px;
+  }
+  
+  /* Navbar móvil mejorado */
+  .navbar {
+    padding: 0.5rem 1rem;
+  }
+  
+  .navbar-brand img {
+    max-height: 40px;
+  }
+  
+  .navbar-toggler {
+    padding: 8px 12px;
+    border: none;
+    background: var(--primary-color);
+    color: white;
+  }
+  
+  .navbar-collapse {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+  
+  .nav-link {
+    padding: 12px 16px !important;
+    font-size: 1.1rem;
+    border-bottom: 1px solid #eee;
+  }
+  
+  /* Hero móvil */
+  .hero {
+    min-height: 300px;
+    padding: 2rem 0;
+  }
+  
+  .hero h1 {
+    font-size: 1.75rem;
+    margin-bottom: 1rem;
+  }
+  
+  .hero p {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Cards responsive */
+  .service-card, .testimonial-card, .card {
+    margin-bottom: 1rem;
+    padding: 1.25rem;
+  }
+  
+  .service-icon {
+    width: 60px;
+    height: 60px;
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  /* Tablas móviles */
+  .table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  table {
+    font-size: 0.875rem;
+  }
+  
+  table td, table th {
+    padding: 8px;
+    white-space: nowrap;
+  }
+  
+  /* Formularios móviles */
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  label {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+  
+  /* Modales móviles */
+  .modal-dialog {
+    margin: 0.5rem;
+  }
+  
+  .modal-content {
+    border-radius: 15px;
+  }
+  
+  /* Footer móvil */
+  footer {
+    padding: 2rem 1rem;
+    text-align: center;
+  }
+  
+  footer .col-md-4, footer .col-md-3 {
+    margin-bottom: 1.5rem;
+  }
+  
+  /* Espaciado móvil */
+  .mb-5, .my-5 {
+    margin-bottom: 2rem !important;
+  }
+  
+  .mt-5, .my-5 {
+    margin-top: 2rem !important;
+  }
+  
+  .py-5 {
+    padding-top: 2rem !important;
+    padding-bottom: 2rem !important;
+  }
+  
+  /* Ocultar elementos en móvil */
+  .hide-mobile {
+    display: none !important;
+  }
+}
+
+/* TABLET */
+@media (min-width: 577px) and (max-width: 991px) {
+  body {
+    font-size: var(--tablet-font);
+  }
+  
+  .container {
+    padding-left: var(--tablet-padding);
+    padding-right: var(--tablet-padding);
+  }
+  
+  h1 { font-size: 2.25rem; }
+  h2 { font-size: 2rem; }
+  h3 { font-size: 1.75rem; }
+  
+  .btn {
+    min-height: 40px;
+  }
+  
+  .hero {
+    min-height: 400px;
+  }
+  
+  .hide-tablet {
+    display: none !important;
+  }
+}
+
+/* DESKTOP */
+@media (min-width: 992px) {
+  body {
+    font-size: var(--desktop-font);
+  }
+  
+  .container {
+    padding-left: var(--desktop-padding);
+    padding-right: var(--desktop-padding);
+  }
+  
+  /* Hover effects solo en desktop */
+  .service-card:hover {
+    transform: translateY(-10px);
+  }
+  
+  .btn:hover {
+    transform: translateY(-2px);
+  }
+  
+  .hide-desktop {
+    display: none !important;
+  }
+}
+
+/* ORIENTACIÓN */
+@media (orientation: landscape) and (max-height: 500px) {
+  /* Optimizar para móviles en landscape */
+  .hero {
+    min-height: 250px;
+    padding: 1rem 0;
+  }
+  
+  .navbar {
+    padding: 0.25rem 1rem;
+  }
+  
+  h1 { font-size: 1.5rem; }
+  h2 { font-size: 1.25rem; }
+}
+
+/* TOUCH OPTIMIZATIONS */
+@media (hover: none) and (pointer: coarse) {
+  /* Dispositivos táctiles */
+  a, button, .btn, .nav-link {
+    -webkit-tap-highlight-color: rgba(206, 176, 183, 0.3);
+  }
+  
+  /* Eliminar hover effects en touch */
+  .service-card:hover {
+    transform: none;
+  }
+  
+  .btn:hover {
+    transform: none;
+  }
+}
+
+/* HIGH DPI SCREENS (Retina) */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Optimizaciones para pantallas Retina */
+  body {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+/* DARK MODE (opcional) */
+@media (prefers-color-scheme: dark) {
+  /* Implementar si se desea soporte dark mode */
+  body {
+    background: #1a1a1a;
+    color: #e0e0e0;
+  }
+  
+  .card, .service-card {
+    background: #2a2a2a;
+    color: #e0e0e0;
+  }
+}
+
+/* REDUCED MOTION */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* PRINT STYLES */
+@media print {
+  .navbar, .footer, .btn, .no-print {
+    display: none !important;
+  }
+  
+  body {
+    background: white;
+    color: black;
+  }
+  
+  a {
+    text-decoration: underline;
+  }
+  
+  .container {
+    max-width: 100%;
+  }
+}
+
+/* MEJORAS ESPECÍFICAS PARA FORMULARIOS DE FACTURACIÓN */
+@media (max-width: 768px) {
+  .tabla-lineas {
+    font-size: 0.8rem;
+  }
+  
+  .tabla-lineas th,
+  .tabla-lineas td {
+    padding: 0.5rem 0.25rem;
+  }
+  
+  .form-control-sm {
+    font-size: 0.85rem;
+    padding: 0.4rem;
+  }
+  
+  .btn-agregar-linea,
+  .btn-guardar-factura {
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+  
+  .total-factura {
+    padding: 1rem;
+    font-size: 1.25rem;
+  }
+}
+
+/* MEJORAS PARA TABLAS PENDIENTES */
+@media (max-width: 992px) {
+  .tabla-pendientes {
+    font-size: 0.85rem;
+  }
+  
+  .tabla-pendientes .btn-accion {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+  }
+  
+  .badge {
+    font-size: 0.7rem;
+    padding: 0.25em 0.5em;
+  }
+}
+
+/* MEJORAS PARA ADMIN PANEL */
+@media (max-width: 768px) {
+  .stat-card {
+    margin-bottom: 1rem;
+  }
+  
+  .quick-action-btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+  
+  .admin-section-card .card-body {
+    max-height: 300px;
+    overflow-y: auto;
+  }
+}
+
+/* ACCESIBILIDAD */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0,0,0,0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* SKELETON LOADERS PARA MEJOR UX */
+.skeleton {
+  animation: skeleton-loading 1s linear infinite alternate;
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* MEJORAS DE RENDIMIENTO */
+* {
+  /* Optimizar rendering */
+  will-change: auto;
+}
+
+img {
+  /* Mejorar carga de imágenes */
+  content-visibility: auto;
+  loading: lazy;
+}
+
+/* UTILITIES RESPONSIVE */
+.d-mobile { display: none !important; }
+.d-tablet { display: none !important; }
+.d-desktop { display: none !important; }
+
+@media (max-width: 576px) {
+  .d-mobile { display: block !important; }
+}
+
+@media (min-width: 577px) and (max-width: 991px) {
+  .d-tablet { display: block !important; }
+}
+
+@media (min-width: 992px) {
+  .d-desktop { display: block !important; }
+}
+
+

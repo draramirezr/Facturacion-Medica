@@ -1,0 +1,169 @@
+﻿{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if codigo else 'Nuevo' }} Código ARS - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/facturacion-responsive.css') }}">
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+        padding: 2.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 2px solid rgba(206, 176, 183, 0.3);
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(206, 176, 183, 0.25);
+    }
+    
+    .btn-guardar {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-guardar:hover {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(206, 176, 183, 0.3);
+    }
+    
+    .btn-cancelar {
+        background: white;
+        border: 2px solid var(--text-muted);
+        color: var(--text-muted);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cancelar:hover {
+        background: var(--text-muted);
+        color: white;
+    }
+    
+    .alert-info-custom {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.2) 100%);
+        border-left: 4px solid var(--primary-color);
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="form-container">
+        <div class="mb-4">
+            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
+                <i class="fas fa-barcode me-2"></i>
+                {{ 'Editar Código ARS' if codigo else 'Nuevo Código ARS' }}
+            </h1>
+            <p class="text-muted">Asigna un código ARS a un médico específico</p>
+        </div>
+
+        <div class="alert-info-custom">
+            <i class="fas fa-info-circle me-2" style="color: var(--primary-color);"></i>
+            <strong>Nota:</strong> Cada médico debe tener un código único por cada ARS con la que trabaje.
+        </div>
+
+        <div class="form-card">
+            <form method="POST">
+                <div class="mb-4">
+                    <label for="medico_id" class="form-label">
+                        <i class="fas fa-user-md me-2 text-primary"></i>Médico *
+                    </label>
+                    <select class="form-select" id="medico_id" name="medico_id" required>
+                        <option value="">-- Seleccione un médico --</option>
+                        {% for medico in medicos %}
+                        <option value="{{ medico['id'] }}" {% if codigo and codigo['medico_id'] == medico['id'] %}selected{% endif %}>
+                            {{ medico['nombre'] }} ({{ medico['especialidad'] }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if not medicos %}
+                    <small class="text-danger">
+                        <i class="fas fa-exclamation-circle me-1"></i>
+                        No hay médicos disponibles. <a href="{{ url_for('facturacion_medicos_nuevo') }}">Crear uno aquí</a>
+                    </small>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label for="ars_id" class="form-label">
+                        <i class="fas fa-hospital me-2 text-primary"></i>ARS *
+                    </label>
+                    <select class="form-select" id="ars_id" name="ars_id" required>
+                        <option value="">-- Seleccione un ARS --</option>
+                        {% for ars in ars_list %}
+                        <option value="{{ ars['id'] }}" {% if codigo and codigo['ars_id'] == ars['id'] %}selected{% endif %}>
+                            {{ ars['nombre_ars'] }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    {% if not ars_list %}
+                    <small class="text-danger">
+                        <i class="fas fa-exclamation-circle me-1"></i>
+                        No hay ARS disponibles. <a href="{{ url_for('facturacion_ars_nuevo') }}">Crear uno aquí</a>
+                    </small>
+                    {% endif %}
+                </div>
+
+                <div class="mb-4">
+                    <label for="codigo_ars" class="form-label">
+                        <i class="fas fa-barcode me-2 text-primary"></i>Código ARS *
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="codigo_ars" 
+                           name="codigo_ars" 
+                           value="{{ codigo['codigo_ars'] if codigo else '' }}" 
+                           required 
+                           placeholder="Ej: 10240"
+                           maxlength="50"
+                           style="font-family: 'Courier New', monospace; font-size: 1.1rem; font-weight: bold;">
+                    <small class="text-muted">
+                        <i class="fas fa-lightbulb me-1"></i>
+                        El código único que identifica al médico en este ARS
+                    </small>
+                </div>
+
+                <div class="d-flex justify-content-between gap-3 mt-5">
+                    <a href="{{ url_for('facturacion_codigo_ars') }}" class="btn btn-cancelar">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-guardar" {% if not medicos or not ars_list %}disabled{% endif %}>
+                        <i class="fas fa-save me-2"></i>{{ 'Actualizar' if codigo else 'Guardar' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

@@ -1,0 +1,1082 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Nueva Factura - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    /* Ocultar flechas de incremento/decremento en campos number */
+    input[type="number"].no-spinner::-webkit-outer-spin-button,
+    input[type="number"].no-spinner::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    
+    input[type="number"].no-spinner {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+    
+    .form-container {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        margin: 2rem 0;
+        box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #282828;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 2px solid rgba(206, 176, 183, 0.3);
+        padding: 0.75rem;
+        text-transform: uppercase;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(206, 176, 183, 0.25);
+    }
+    
+    .tabla-lineas {
+        background: white;
+        border-radius: 15px;
+        overflow: hidden;
+        margin: 2rem 0;
+    }
+    
+    /* Contenedor con scroll para la tabla de pacientes */
+    .tabla-pacientes-scroll {
+        max-height: 500px;
+        overflow-y: auto;
+        overflow-x: auto;
+        position: relative;
+    }
+    
+    /* Barra de desplazamiento personalizada */
+    .tabla-pacientes-scroll::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .tabla-pacientes-scroll::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .tabla-pacientes-scroll::-webkit-scrollbar-thumb {
+        background: #AB9B9F;
+        border-radius: 10px;
+    }
+    
+    .tabla-pacientes-scroll::-webkit-scrollbar-thumb:hover {
+        background: #8A7A7F;
+    }
+    
+    .tabla-lineas th {
+        background: #AB9B9F !important;
+        background-color: #AB9B9F !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .tabla-lineas thead th {
+        color: #FFFFFF !important;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .tabla-lineas td {
+        padding: 0.5rem;
+        vertical-align: middle;
+        border-bottom: 1px solid rgba(206, 176, 183, 0.1);
+    }
+    
+    .tabla-lineas input {
+        font-size: 0.875rem;
+        padding: 0.5rem;
+    }
+    
+    .btn-agregar-linea {
+        background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%);
+        color: white;
+        border: none;
+        border-radius: 10px;
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-agregar-linea:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(206, 176, 183, 0.3);
+    }
+    
+    .btn-eliminar-linea {
+        background: white;
+        border: 2px solid #ACACAD;
+        color: #ACACAD;
+        border-radius: 5px;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.75rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-eliminar-linea:hover {
+        background: #ACACAD;
+        color: white;
+    }
+    
+    .btn-agregar-linea-mini {
+        background: white;
+        border: 2px solid #CEB0B7;
+        color: #CEB0B7;
+        border-radius: 5px;
+        padding: 0.3rem 0.6rem;
+        font-size: 0.75rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-agregar-linea-mini:hover {
+        background: #CEB0B7;
+        color: white;
+        transform: translateY(-1px);
+    }
+    
+    /* Gap para espaciado entre botones */
+    .gap-2 {
+        gap: 0.5rem;
+    }
+    
+    .btn-guardar-factura {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-guardar-factura:hover {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(206, 176, 183, 0.3);
+    }
+    
+    .total-factura {
+        background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.2) 100%);
+        border: 2px solid #CEB0B7;
+        border-radius: 15px;
+        padding: 1.5rem;
+        text-align: center;
+        margin: 2rem 0;
+    }
+    
+    .total-factura-valor {
+        font-size: 2.5rem;
+        font-weight: 800;
+        color: #000000;
+        margin: 0;
+    }
+    
+    .autocomplete-sugerencia {
+        background: #e7f3ff;
+        border-left: 3px solid #0066cc;
+        padding: 0.5rem;
+        margin-top: 0.25rem;
+        border-radius: 5px;
+        font-size: 0.85rem;
+    }
+    
+    /* 📱 RESPONSIVIDAD */
+    @media (max-width: 768px) {
+        .form-container {
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .tabla-lineas th {
+            font-size: 0.7rem;
+            padding: 0.5rem 0.25rem;
+        }
+        
+        .tabla-lineas td {
+            font-size: 0.75rem;
+            padding: 0.5rem 0.25rem;
+        }
+        
+        .tabla-lineas input,
+        .tabla-lineas select {
+            font-size: 0.75rem;
+            padding: 0.4rem;
+        }
+        
+        .btn-agregar-linea {
+            font-size: 0.9rem;
+            padding: 0.75rem 1rem;
+        }
+        
+        .total-factura {
+            font-size: 1.2rem;
+            padding: 1rem;
+        }
+        
+        .table-responsive {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .tabla-lineas th,
+        .tabla-lineas td {
+            font-size: 0.65rem;
+            padding: 0.4rem 0.15rem;
+        }
+        
+        .tabla-lineas input,
+        .tabla-lineas select {
+            font-size: 0.7rem;
+            padding: 0.3rem;
+        }
+        
+        .btn-icon {
+            padding: 0.3rem 0.5rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+
+<div class="container">
+    <div class="mb-4 d-flex justify-content-between align-items-center">
+        <div>
+            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-users me-2"></i>
+                Pacientes a Facturar
+            </h1>
+            <p style="color: #666; margin: 0;">Agregue todos los pacientes que formarán parte de la factura</p>
+        </div>
+        <a href="{{ url_for('facturacion_menu') }}" class="btn" style="background: #ACACAD !important; color: white !important; padding: 0.75rem 1.5rem; border-radius: 15px; text-decoration: none;">
+            <i class="fas fa-arrow-left me-2" style="color: white !important;"></i>Volver al Menú
+        </a>
+    </div>
+
+    <form id="formFactura" method="POST">
+        <!-- Encabezado de Factura -->
+        <div class="form-container">
+            <h4 style="color: var(--primary-color); margin-bottom: 1.5rem;">
+                <i class="fas fa-info-circle me-2"></i>Información General
+            </h4>
+            
+            <div class="alert alert-info" style="border-left: 4px solid #CEB0B7; background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.2) 100%); color: #666;">
+                <i class="fas fa-info-circle me-2"></i>
+                Los pacientes se agregarán con estado <strong>"PENDIENTE DE FACTURACIÓN"</strong>. 
+                Luego podrás generar la factura seleccionando los pacientes pendientes.
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="medico_id">
+                        Médico <span class="text-danger">*</span>
+                    </label>
+                    <select class="form-select" id="medico_id" name="medico_id" required>
+                        <option value="">Seleccione un médico</option>
+                        {% for medico in medicos %}
+                        <option value="{{ medico['id'] }}">{{ medico['nombre'] }} - {{ medico['especialidad'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="ars_id">
+                        ARS <span class="text-danger">*</span>
+                    </label>
+                    <select class="form-select" id="ars_id" name="ars_id" required>
+                        <option value="">Seleccione un ARS</option>
+                        {% for ars in ars_list %}
+                        <option value="{{ ars['id'] }}">{{ ars['nombre_ars'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="centro_medico_id">
+                        Centro Médico
+                    </label>
+                    <select class="form-select" id="centro_medico_id" name="centro_medico_id">
+                        <option value="">Seleccione primero un médico...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Carga Masiva desde Excel -->
+            <div class="alert" style="background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.2) 100%); border-left: 4px solid #CEB0B7; border-radius: 10px; margin-top: 1.5rem;">
+                <h6 style="color: #CEB0B7; font-weight: 700; margin-bottom: 1rem;">
+                    <i class="fas fa-file-excel me-2"></i>Carga Masiva desde Excel
+                </h6>
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <a href="{{ url_for('descargar_plantilla_excel') }}" class="btn btn-excel-download w-100" style="background: white; border: 2px solid #CEB0B7; color: #CEB0B7; border-radius: 10px; font-weight: 600;">
+                            <i class="fas fa-download me-2"></i>Descargar Plantilla Excel
+                        </a>
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label for="archivo_excel" class="btn btn-excel-upload w-100" style="background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%); color: white; border: none; border-radius: 10px; font-weight: 600; margin: 0; cursor: pointer;">
+                            <i class="fas fa-upload me-2"></i>Cargar Excel con Pacientes
+                        </label>
+                        <input type="file" id="archivo_excel" accept=".xlsx,.xls" style="display: none;" onchange="procesarExcel(this)">
+                    </div>
+                </div>
+                <small style="color: #666; display: block; margin-top: 0.5rem;">
+                    <i class="fas fa-info-circle me-1"></i>
+                    Primero seleccione <strong>Médico y ARS</strong>, luego cargue el Excel. Los pacientes se agregarán automáticamente a la tabla.
+                </small>
+            </div>
+        </div>
+
+        <!-- Botón para agregar línea manual -->
+        <div class="text-center my-3">
+            <button type="button" class="btn btn-agregar-linea" onclick="agregarLinea()">
+                <i class="fas fa-plus-circle me-2"></i>Agregar Paciente Manualmente
+            </button>
+        </div>
+
+        <!-- Tabla de Pacientes -->
+        <div class="form-container">
+            <h4 style="color: var(--primary-color); margin-bottom: 1rem;">
+                <i class="fas fa-users me-2"></i>Pacientes en la Factura
+            </h4>
+            
+            <div class="tabla-lineas">
+                <div class="tabla-pacientes-scroll">
+                    <table class="table mb-0">
+                        <thead>
+                            <tr>
+                                <th style="width: 5%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">No</th>
+                                <th style="width: 10%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">NSS</th>
+                                <th style="width: 15%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Nombre</th>
+                                <th style="width: 10%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Fecha de Consulta</th>
+                                <th style="width: 10%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Autorización</th>
+                                <th style="width: 20%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Servicio</th>
+                                <th style="width: 10%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Monto</th>
+                                <th style="width: 5%; background: #AB9B9F !important; background-color: #AB9B9F !important; color: white !important;">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbody-lineas">
+                            <tr>
+                                <td colspan="8" class="text-center text-muted">
+                                    No hay pacientes agregados. Click en "Agregar Paciente" para empezar.
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Total -->
+        <div class="total-factura">
+            <p style="color: #666; margin: 0; font-size: 1.1rem; font-weight: 600;">TOTAL PENDIENTE</p>
+            <p class="total-factura-valor"> <span id="total-valor">0.00</span></p>
+            <p style="color: #999; margin: 0; font-size: 0.85rem;"><i class="fas fa-clock me-1"></i>Estos pacientes quedarán pendientes hasta generar la factura</p>
+        </div>
+
+        <!-- Campo oculto con JSON de líneas -->
+        <input type="hidden" id="lineas_json" name="lineas_json">
+
+        <!-- Datalist de servicios disponibles -->
+        <datalist id="servicios-list">
+            {% for servicio in servicios_list %}
+            <option value="{{ servicio['descripcion'] }}">
+                {% if servicio['precio_base'] and servicio['precio_base'] > 0 %}
+ {{ "{:,.2f}".format(servicio['precio_base']) }}
+                {% endif %}
+            </option>
+            {% endfor %}
+        </datalist>
+
+        <!-- Botones -->
+        <div class="d-flex justify-content-between">
+            <a href="{{ url_for('facturacion_menu') }}" class="btn" style="background: #ACACAD !important; color: white !important; border-radius: 15px; padding: 0.8rem 2rem; text-decoration: none;">
+                <i class="fas fa-times me-2" style="color: white !important;"></i>Cancelar
+            </a>
+            <button type="submit" class="btn btn-guardar-factura">
+                <i class="fas fa-clock me-2"></i>Agregar como Pendientes
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Datos de centros médicos por médico (del backend)
+const centrosPorMedico = {};
+
+// Llenar el objeto con los datos
+{% for centro in centros_medicos %}
+if (!centrosPorMedico[{{ centro['medico_id'] }}]) {
+    centrosPorMedico[{{ centro['medico_id'] }}] = [];
+}
+centrosPorMedico[{{ centro['medico_id'] }}].push({
+    id: {{ centro['centro_id'] }},
+    nombre: "{{ centro['centro_nombre'] }}",
+    es_defecto: {{ centro['es_defecto'] }}
+});
+{% endfor %}
+
+console.log('📍 Centros por médico cargados:', centrosPorMedico);
+
+// Event listener para cambio de médico
+document.getElementById('medico_id').addEventListener('change', function() {
+    const medicoId = parseInt(this.value);
+    const centroSelect = document.getElementById('centro_medico_id');
+    
+    console.log('🔍 Médico seleccionado:', medicoId);
+    console.log('📋 Centros disponibles:', centrosPorMedico[medicoId]);
+    
+    // Limpiar opciones
+    centroSelect.innerHTML = '<option value="">Seleccione un centro médico...</option>';
+    
+    if (medicoId && centrosPorMedico[medicoId]) {
+        const centros = centrosPorMedico[medicoId];
+        let centroDefectoId = null;
+        
+        centros.forEach(centro => {
+            const option = document.createElement('option');
+            option.value = centro.id;
+            option.textContent = centro.nombre;
+            
+            if (centro.es_defecto == 1) {
+                option.textContent += ' ⭐';
+                centroDefectoId = centro.id;
+            }
+            
+            centroSelect.appendChild(option);
+        });
+        
+        // Preseleccionar el centro por defecto
+        if (centroDefectoId) {
+            centroSelect.value = centroDefectoId;
+            console.log('✅ Centro por defecto preseleccionado:', centroDefectoId);
+        }
+    } else {
+        centroSelect.innerHTML = '<option value="">No hay centros médicos asociados</option>';
+        console.log('⚠️ No hay centros para este médico');
+    }
+});
+
+let numeroLinea = 0;
+let lineas = [];
+
+// La fecha se establece automáticamente al generar la factura
+
+function agregarLinea() {
+    numeroLinea++;
+    const tbody = document.getElementById('tbody-lineas');
+    
+    // Eliminar mensaje de "no hay pacientes" si existe
+    if (tbody.querySelector('tr td[colspan="8"]')) {
+        tbody.innerHTML = '';
+    }
+    
+    const tr = document.createElement('tr');
+    tr.id = `linea-${numeroLinea}`;
+    tr.dataset.numero = numeroLinea;
+    
+    tr.innerHTML = `
+        <td class="text-center"><strong>${numeroLinea}</strong></td>
+        <td>
+            <input type="text" class="form-control form-control-sm" data-campo="nss" 
+                   placeholder="NSS" 
+                   onblur="buscarPaciente(this, ${numeroLinea})"
+                   oninput="this.value = this.value.replace(/[^0-9-]/g, '')"
+                   maxlength="20">
+            <div id="sugerencia-${numeroLinea}"></div>
+        </td>
+        <td><input type="text" class="form-control form-control-sm" data-campo="nombre" placeholder="NOMBRE COMPLETO"></td>
+        <td><input type="date" class="form-control form-control-sm" data-campo="fecha" value="${new Date().toISOString().split('T')[0]}" max="${new Date().toISOString().split('T')[0]}"></td>
+        <td>
+            <input type="text" 
+                   class="form-control form-control-sm" 
+                   data-campo="autorizacion" 
+                   placeholder="AUTORIZACIÓN" 
+                   maxlength="50"
+                   onblur="validarAutorizacionUnica(this)"
+                   style="text-transform: uppercase;">
+            <small class="error-autorizacion" style="display: none; color: #dc3545; font-size: 0.75rem; margin-top: 0.25rem;"></small>
+        </td>
+        <td>
+            <input type="text" 
+                   class="form-control form-control-sm" 
+                   data-campo="servicio" 
+                   placeholder="BUSCAR O ESCRIBIR NUEVO" 
+                   value="CONSULTA"
+                   list="servicios-list"
+                   autocomplete="off"
+                   oninput="this.value = this.value.replace(/[0-9]/g, '');">
+        </td>
+        <td>
+            <input type="number" 
+                   class="form-control form-control-sm no-spinner" 
+                   data-campo="monto" 
+                   placeholder="0.00" 
+                   step="0.01" 
+                   onchange="calcularTotal()">
+        </td>
+        <td class="text-center">
+            <div class="d-flex justify-content-center gap-2">
+                <button type="button" class="btn btn-agregar-linea-mini" onclick="agregarLinea()" title="Agregar línea nueva (Ctrl+Enter)">
+                    <i class="fas fa-plus"></i>
+                </button>
+                <button type="button" class="btn btn-eliminar-linea" onclick="eliminarLinea(${numeroLinea})" title="Eliminar línea">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </td>
+    `;
+    
+    tbody.appendChild(tr);
+}
+
+function eliminarLinea(numero) {
+    const tr = document.getElementById(`linea-${numero}`);
+    if (tr) {
+        tr.remove();
+        calcularTotal();
+        
+        // Si no quedan líneas, mostrar mensaje
+        const tbody = document.getElementById('tbody-lineas');
+        if (tbody.children.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted">No hay pacientes agregados.</td></tr>';
+        }
+    }
+}
+
+async function buscarPaciente(input, numero) {
+    const nss = input.value.trim().toUpperCase();
+    input.value = nss; // Actualizar el campo con mayúsculas
+    
+    if (!nss) return;
+    
+    // Obtener el ARS seleccionado del formulario
+    const arsSelect = document.getElementById('ars_id');
+    const arsId = arsSelect ? arsSelect.value : null;
+    
+    const sugerenciaDiv = document.getElementById(`sugerencia-${numero}`);
+    
+    if (!arsId) {
+        sugerenciaDiv.innerHTML = `
+            <div class="autocomplete-sugerencia" style="background: rgba(242, 226, 230, 0.3); border-left-color: #CEB0B7;">
+                ⚠️ Seleccione primero un ARS para buscar el paciente
+            </div>
+        `;
+        setTimeout(() => sugerenciaDiv.innerHTML = '', 3000);
+        return;
+    }
+    
+    try {
+        // Buscar por NSS + ARS (llave única)
+        const response = await fetch(`/api/facturacion/buscar-paciente/${nss}/${arsId}`);
+        const data = await response.json();
+        
+        if (data.encontrado) {
+            // Autocompletar nombre en MAYÚSCULAS
+            const tr = input.closest('tr');
+            tr.querySelector('[data-campo="nombre"]').value = data.nombre.toUpperCase();
+            
+            // Mostrar sugerencia
+            sugerenciaDiv.innerHTML = `
+                <div class="autocomplete-sugerencia">
+                    ✓ Paciente encontrado: ${data.nombre.toUpperCase()} - ${data.ars_nombre || 'Sin ARS'}
+                </div>
+            `;
+            
+            setTimeout(() => {
+                sugerenciaDiv.innerHTML = '';
+            }, 3000);
+        } else {
+            // Buscar si existe con otro ARS
+            const responseOtroArs = await fetch(`/api/facturacion/buscar-paciente/${nss}`);
+            const dataOtroArs = await responseOtroArs.json();
+            
+            if (dataOtroArs.encontrado) {
+                sugerenciaDiv.innerHTML = `
+                    <div class="autocomplete-sugerencia" style="background: rgba(242, 226, 230, 0.3); border-left-color: #CEB0B7;">
+                        ⚠️ Este NSS existe con otro ARS (${dataOtroArs.ars_nombre}). Se creará un nuevo registro.
+                    </div>
+                `;
+                setTimeout(() => {
+                    sugerenciaDiv.innerHTML = '';
+                }, 4000);
+            } else {
+                sugerenciaDiv.innerHTML = '';
+            }
+        }
+    } catch (error) {
+        console.error('Error al buscar paciente:', error);
+    }
+}
+
+function calcularTotal() {
+    let total = 0;
+    document.querySelectorAll('[data-campo="monto"]').forEach(input => {
+        const valor = parseFloat(input.value) || 0;
+        total += valor;
+    });
+    // Formatear con separadores de miles
+    const totalFormateado = total.toLocaleString('en-US', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
+    document.getElementById('total-valor').textContent = totalFormateado;
+}
+
+// Convertir a mayúsculas mientras se escribe
+document.addEventListener('input', function(e) {
+    if (e.target.matches('.form-control[type="text"]')) {
+        e.target.value = e.target.value.toUpperCase();
+    }
+});
+
+// Procesar archivo Excel cargado
+async function procesarExcel(input) {
+    const medicoId = document.getElementById('medico_id').value;
+    const arsId = document.getElementById('ars_id').value;
+    
+    // Validar que se haya seleccionado médico y ARS
+    if (!medicoId || !arsId) {
+        // Mostrar modal de advertencia grande y visible
+        const alertaHTML = `
+            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                        background: white; padding: 3rem; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
+                        z-index: 9999; max-width: 500px; text-align: center; border: 3px solid #CEB0B7;">
+                <div style="background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%); 
+                            width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1.5rem; 
+                            display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: white;"></i>
+                </div>
+                <h3 style="color: #B89BA3; font-weight: 800; margin-bottom: 1rem; font-size: 1.5rem;">
+                    ¡Atención!
+                </h3>
+                <p style="color: #666; font-size: 1.1rem; line-height: 1.6; margin-bottom: 1.5rem;">
+                    Por favor, seleccione primero el <strong>Médico</strong> y <strong>ARS</strong> antes de cargar el Excel.
+                </p>
+                <div style="background: rgba(242, 226, 230, 0.4); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid #F2E2E6;">
+                    <p style="margin: 0; color: #666; font-size: 0.9rem;">
+                        <i class="fas fa-info-circle me-2" style="color: #CEB0B7;"></i>
+                        Estos campos son <strong>obligatorios</strong> para procesar el archivo correctamente.
+                    </p>
+                </div>
+                <button onclick="cerrarAlerta()" 
+                        style="background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%); 
+                               color: white; border: none; padding: 1rem 3rem; border-radius: 15px; 
+                               font-weight: 700; cursor: pointer; font-size: 1.1rem; width: 100%;
+                               box-shadow: 0 4px 15px rgba(206, 176, 183, 0.4);">
+                    <i class="fas fa-check me-2"></i>Entendido
+                </button>
+            </div>
+            <div onclick="cerrarAlerta()" 
+                 style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                        background: rgba(0,0,0,0.7); z-index: 9998;"></div>
+        `;
+        
+        const alertaDiv = document.createElement('div');
+        alertaDiv.id = 'alerta-medico-ars';
+        alertaDiv.innerHTML = alertaHTML;
+        document.body.appendChild(alertaDiv);
+        
+        window.cerrarAlerta = function() {
+            const alerta = document.getElementById('alerta-medico-ars');
+            if (alerta) alerta.remove();
+        };
+        
+        input.value = ''; // Limpiar input
+        return;
+    }
+    
+    const file = input.files[0];
+    if (!file) return;
+    
+    // Mostrar indicador de carga
+    const loading = document.createElement('div');
+    loading.id = 'loading-excel';
+    loading.innerHTML = `
+        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                    background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 9999;">
+            <div style="text-align: center;">
+                <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: #CEB0B7;"></i>
+                <p style="margin-top: 1rem; color: #666; font-weight: 600;">Procesando Excel...</p>
+            </div>
+        </div>
+        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998;"></div>
+    `;
+    document.body.appendChild(loading);
+    
+    // Preparar FormData
+    const formData = new FormData();
+    formData.append('archivo_excel', file);
+    
+    try {
+        const response = await fetch('/facturacion/procesar-excel', {
+            method: 'POST',
+            body: formData
+        });
+        
+        const data = await response.json();
+        
+        // Si hay errores, NO cargar nada y mostrar modal de error
+        if (data.error) {
+            document.getElementById('loading-excel').remove();
+            
+            let errorHTML = `
+                <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                            background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); 
+                            z-index: 9999; max-width: 700px; max-height: 85vh; overflow-y: auto;">
+                    <div style="text-align: center; margin-bottom: 1.5rem;">
+                        <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
+                                    width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1rem; 
+                                    display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-times-circle" style="font-size: 3rem; color: white;"></i>
+                        </div>
+                        <h4 style="color: #dc3545; font-weight: 800; margin-bottom: 0.5rem;">
+                            ❌ No se Cargó Ningún Paciente
+                        </h4>
+                        <p style="color: #666; font-size: 1rem;">
+                            Debe corregir TODOS los errores en la plantilla Excel antes de cargar
+                        </p>
+                    </div>
+                    
+                    <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                        <h6 style="color: #721c24; font-weight: 700; margin-bottom: 1rem;">
+                            <i class="fas fa-exclamation-triangle me-2"></i>Errores Encontrados (${data.total_errores || data.errores.length})
+                        </h6>
+                        <div style="max-height: 300px; overflow-y: auto; font-size: 0.9rem;">
+            `;
+            
+            data.errores.forEach(error => {
+                errorHTML += `<p style="margin: 0.5rem 0; color: #721c24; font-weight: 500;">${error}</p>`;
+            });
+            
+            errorHTML += `
+                        </div>
+                    </div>
+                    
+                    <div style="background: rgba(242, 226, 230, 0.4); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid #F2E2E6;">
+                        <p style="margin: 0; color: #666; font-size: 0.9rem; line-height: 1.6;">
+                            <i class="fas fa-info-circle me-2" style="color: #CEB0B7;"></i>
+                            <strong>Instrucciones:</strong> Abra nuevamente su archivo Excel, corrija los errores indicados arriba, guarde el archivo y vuelva a cargarlo.
+                        </p>
+                    </div>
+                    
+                    <button onclick="cerrarModalError()" 
+                            style="background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%); 
+                                   color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; 
+                                   font-weight: 600; cursor: pointer; width: 100%;">
+                        <i class="fas fa-check me-2"></i>Entendido, Voy a Corregir
+                    </button>
+                </div>
+                <div onclick="cerrarModalError()" 
+                     style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                            background: rgba(0,0,0,0.7); z-index: 9998;"></div>
+            `;
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'modal-error-excel';
+            errorDiv.innerHTML = errorHTML;
+            document.body.appendChild(errorDiv);
+            
+            window.cerrarModalError = function() {
+                const modal = document.getElementById('modal-error-excel');
+                if (modal) modal.remove();
+            };
+            
+            input.value = '';
+            return;
+        }
+        
+        // Si NO hay errores, cargar los pacientes
+        // Limpiar tabla actual
+        const tbody = document.getElementById('tbody-lineas');
+        tbody.innerHTML = '';
+        
+        // Agregar cada paciente del Excel
+        let pacientesAgregados = 0;
+        for (const paciente of data.pacientes) {
+            numeroLinea++;
+            const tr = document.createElement('tr');
+            tr.id = `linea-${numeroLinea}`;
+            tr.dataset.numero = numeroLinea;
+            
+            tr.innerHTML = `
+                <td class="text-center"><strong>${numeroLinea}</strong></td>
+                <td>
+                    <input type="text" class="form-control form-control-sm" data-campo="nss" 
+                           placeholder="NSS" 
+                           value="${paciente.nss}"
+                           onblur="buscarPaciente(this, ${numeroLinea})"
+                           oninput="this.value = this.value.replace(/[^0-9-]/g, '')"
+                           maxlength="20">
+                    <div id="sugerencia-${numeroLinea}"></div>
+                </td>
+                <td><input type="text" class="form-control form-control-sm" data-campo="nombre" placeholder="NOMBRE COMPLETO" value="${paciente.nombre}"></td>
+                <td><input type="date" class="form-control form-control-sm" data-campo="fecha" value="${paciente.fecha}" max="${new Date().toISOString().split('T')[0]}"></td>
+                <td>
+                    <input type="text" 
+                           class="form-control form-control-sm" 
+                           data-campo="autorizacion" 
+                           placeholder="AUTORIZACIÓN" 
+                           value="${paciente.autorizacion}"
+                           maxlength="50"
+                           onblur="validarAutorizacionUnica(this)"
+                           style="text-transform: uppercase;">
+                    <small class="error-autorizacion" style="display: none; color: #dc3545; font-size: 0.75rem; margin-top: 0.25rem;"></small>
+                </td>
+                <td>
+                    <input type="text" 
+                           class="form-control form-control-sm" 
+                           data-campo="servicio" 
+                           placeholder="BUSCAR O ESCRIBIR NUEVO" 
+                           value="${paciente.servicio}"
+                           list="servicios-list"
+                           autocomplete="off"
+                           oninput="this.value = this.value.replace(/[0-9]/g, '');">
+                </td>
+                <td>
+                    <input type="number" 
+                           class="form-control form-control-sm no-spinner" 
+                           data-campo="monto" 
+                           placeholder="0.00" 
+                           value="${paciente.monto}" 
+                           step="0.01" 
+                           onchange="calcularTotal()">
+                </td>
+                <td class="text-center">
+                    <div class="d-flex justify-content-center gap-2">
+                        <button type="button" class="btn btn-agregar-linea-mini" onclick="agregarLinea()" title="Agregar línea nueva (Ctrl+Enter)">
+                            <i class="fas fa-plus"></i>
+                        </button>
+                        <button type="button" class="btn btn-eliminar-linea" onclick="eliminarLinea(${numeroLinea})" title="Eliminar línea">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            `;
+            
+            tbody.appendChild(tr);
+            pacientesAgregados++;
+        }
+        
+        // Recalcular total
+        calcularTotal();
+        
+        // Mostrar mensaje de éxito (solo si NO hay errores)
+        document.getElementById('loading-excel').remove();
+        
+        // Crear modal de éxito
+        let mensajeHTML = `
+            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                        background: white; padding: 2.5rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); 
+                        z-index: 9999; max-width: 500px; text-align: center;">
+                <div style="background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%); 
+                            width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1.5rem; 
+                            display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-check-circle" style="font-size: 3rem; color: white;"></i>
+                </div>
+                <h4 style="color: #CEB0B7; margin-bottom: 1rem; font-weight: 800;">
+                    ✅ ¡Carga Exitosa!
+                </h4>
+                <div style="background: linear-gradient(135deg, rgba(206, 176, 183, 0.1) 0%, rgba(242, 226, 230, 0.2) 100%); 
+                            padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem;">
+                    <p style="color: #CEB0B7; font-weight: 700; font-size: 1.3rem; margin: 0;">
+                        <i class="fas fa-users me-2"></i>${pacientesAgregados} paciente(s)
+                    </p>
+                    <p style="color: #666; font-size: 0.9rem; margin: 0.5rem 0 0 0;">
+                        Cargados correctamente en la tabla
+                    </p>
+                </div>
+                <p style="color: #666; font-size: 0.9rem; margin-bottom: 1.5rem;">
+                    Los pacientes están listos para ser agregados como pendientes de facturación.
+                </p>
+                <button onclick="cerrarModal()" 
+                        style="background: linear-gradient(135deg, #CEB0B7 0%, #B89BA3 100%); 
+                               color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; 
+                               font-weight: 600; cursor: pointer; width: 100%; font-size: 1rem;">
+                    <i class="fas fa-check me-2"></i>Entendido
+                </button>
+            </div>
+            <div onclick="cerrarModal()" 
+                 style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                        background: rgba(0,0,0,0.5); z-index: 9998;"></div>
+        `;
+        
+        const modalDiv = document.createElement('div');
+        modalDiv.id = 'modal-resultado';
+        modalDiv.innerHTML = mensajeHTML;
+        document.body.appendChild(modalDiv);
+        
+        window.cerrarModal = function() {
+            document.getElementById('modal-resultado').remove();
+        };
+        
+        // Limpiar input file
+        input.value = '';
+        
+    } catch (error) {
+        console.error('Error al procesar Excel:', error);
+        alert('❌ Error al procesar el archivo Excel: ' + error.message);
+        document.getElementById('loading-excel').remove();
+        input.value = '';
+    }
+}
+
+// Validar que la autorización sea única en toda la factura
+function validarAutorizacionUnica(input) {
+    const autorizacion = input.value.trim();
+    
+    // Si está vacío, no validar
+    if (!autorizacion) {
+        return;
+    }
+    
+    const filaActual = input.closest('tr');
+    const errorElement = filaActual.querySelector('.error-autorizacion');
+    
+    // Buscar si existe otra fila con la misma autorización
+    let autorizacionDuplicada = false;
+    
+    document.querySelectorAll('#tbody-lineas tr[id^="linea-"]').forEach(tr => {
+        // No comparar con la misma fila
+        if (tr === filaActual) return;
+        
+        const otraAutorizacion = tr.querySelector('[data-campo="autorizacion"]').value.trim();
+        
+        if (otraAutorizacion === autorizacion) {
+            autorizacionDuplicada = true;
+        }
+    });
+    
+    if (autorizacionDuplicada) {
+        // Mostrar error
+        input.style.borderColor = '#dc3545';
+        input.style.backgroundColor = '#ffe6e6';
+        errorElement.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Esta autorización ya existe. Debe ser única.';
+        errorElement.style.display = 'block';
+        
+        // Limpiar el campo después de 2 segundos
+        setTimeout(() => {
+            input.value = '';
+            input.style.borderColor = '';
+            input.style.backgroundColor = '';
+            errorElement.style.display = 'none';
+        }, 3000);
+    } else {
+        // Limpiar cualquier error previo
+        input.style.borderColor = '';
+        input.style.backgroundColor = '';
+        errorElement.style.display = 'none';
+    }
+}
+
+document.getElementById('formFactura').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Recolectar todas las líneas
+    lineas = [];
+    document.querySelectorAll('#tbody-lineas tr[id^="linea-"]').forEach(tr => {
+        const linea = {
+            nss: tr.querySelector('[data-campo="nss"]').value,
+            nombre: tr.querySelector('[data-campo="nombre"]').value.toUpperCase(),
+            fecha: tr.querySelector('[data-campo="fecha"]').value,
+            autorizacion: tr.querySelector('[data-campo="autorizacion"]').value,
+            servicio: tr.querySelector('[data-campo="servicio"]').value.toUpperCase(),
+            monto: parseFloat(tr.querySelector('[data-campo="monto"]').value) || 0
+        };
+        lineas.push(linea);
+    });
+    
+    if (lineas.length === 0) {
+        alert('Debe agregar al menos un paciente');
+        return false;
+    }
+    
+    // Validar que todas las líneas tengan datos mínimos
+    for (let i = 0; i < lineas.length; i++) {
+        if (!lineas[i].nss || !lineas[i].nombre || !lineas[i].servicio || !lineas[i].monto) {
+            alert(`La línea ${i + 1} tiene campos vacíos. Complete NSS, Nombre, Servicio y Monto.`);
+            return false;
+        }
+    }
+    
+    // Guardar JSON en campo oculto
+    document.getElementById('lineas_json').value = JSON.stringify(lineas);
+    
+    // Enviar formulario
+    this.submit();
+});
+
+// Descargar PDF automáticamente si se acaba de agregar pacientes
+{% if descargar_pdf %}
+window.addEventListener('DOMContentLoaded', function() {
+    // Esperar un momento para que se muestre el flash message
+    setTimeout(function() {
+        window.location.href = "{{ url_for('facturacion_pacientes_agregados_pdf') }}";
+    }, 500);
+});
+{% endif %}
+
+// ========== PREVENIR ENTER NORMAL, PERMITIR CTRL+ENTER ==========
+document.addEventListener('keydown', function(e) {
+    // Si es Enter dentro de la tabla de pacientes
+    if (e.key === 'Enter' && e.target.closest('#tbody-lineas')) {
+        // Si es SOLO Enter (sin Ctrl/Cmd) -> PREVENIR envío del formulario
+        if (!e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            return false;
+        }
+        
+        // Si es Ctrl+Enter o Cmd+Enter -> Agregar línea
+        if (e.ctrlKey || e.metaKey) {
+            e.preventDefault();
+            agregarLinea();
+            
+            // Mostrar feedback visual
+            const btnAgregar = document.querySelector('.btn-agregar-linea');
+            if (btnAgregar) {
+                btnAgregar.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    btnAgregar.style.transform = '';
+                }, 150);
+            }
+            return false;
+        }
+    }
+});
+
+// Prevenir que Enter en campos del formulario envíe el formulario
+document.querySelectorAll('#formFactura input, #formFactura select').forEach(input => {
+    input.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+            e.preventDefault();
+            return false;
+        }
+    });
+});
+
+// Agregar primera línea al cargar la página
+window.addEventListener('DOMContentLoaded', agregarLinea);
+</script>
+{% endblock %}
+

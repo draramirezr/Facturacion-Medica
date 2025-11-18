@@ -1,0 +1,11 @@
+Flask==3.0.0
+Flask-Login==0.6.3
+Werkzeug==3.0.1
+pymysql==1.1.0
+python-dotenv==1.0.0
+sendgrid==6.11.0
+reportlab==4.0.7
+openpyxl==3.1.2
+Flask-Compress==1.14
+markupsafe==2.1.3
+

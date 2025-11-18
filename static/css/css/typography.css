@@ -1,0 +1,395 @@
+/* Tipografías personalizadas según la línea gráfica de Dra. Shirley Ramírez */
+
+/* Importar fuentes de Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
+
+/* BLANKERS no está disponible en Google Fonts, así que usaremos una alternativa elegante y similar */
+/* Como alternativa profesional a BLANKERS, usaremos Montserrat que tiene características similares */
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+
+/* Si tienes los archivos de la fuente BLANKERS, descomenta y configura esto: */
+/*
+@font-face {
+    font-family: 'Blankers Regular';
+    src: url('../fonts/Blankers-Regular.woff2') format('woff2'),
+         url('../fonts/Blankers-Regular.woff') format('woff'),
+         url('../fonts/Blankers-Regular.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Blankers Light';
+    src: url('../fonts/Blankers-Light.woff2') format('woff2'),
+         url('../fonts/Blankers-Light.woff') format('woff'),
+         url('../fonts/Blankers-Light.ttf') format('truetype');
+    font-weight: 300;
+    font-style: normal;
+    font-display: swap;
+}
+*/
+
+/* Variables de tipografía */
+:root {
+    /* Tipografía para títulos - BLANKERS (alternativa: Montserrat) */
+    --font-titles: 'Montserrat', 'Blankers Regular', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-titles-light: 'Montserrat', 'Blankers Light', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    
+    /* Tipografía para cuerpo de texto - BE VIETNAM */
+    --font-body: 'Be Vietnam Pro', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    
+    /* Pesos de fuente */
+    --font-weight-light: 300;
+    --font-weight-regular: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --font-weight-extrabold: 800;
+    
+    /* Tamaños de fuente */
+    --font-size-xs: 0.75rem;      /* 12px */
+    --font-size-sm: 0.875rem;     /* 14px */
+    --font-size-base: 1rem;       /* 16px */
+    --font-size-lg: 1.125rem;     /* 18px */
+    --font-size-xl: 1.25rem;      /* 20px */
+    --font-size-2xl: 1.5rem;      /* 24px */
+    --font-size-3xl: 1.875rem;    /* 30px */
+    --font-size-4xl: 2.25rem;     /* 36px */
+    --font-size-5xl: 3rem;        /* 48px */
+    --font-size-6xl: 3.75rem;     /* 60px */
+    
+    /* Alturas de línea */
+    --line-height-tight: 1.25;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.75;
+    
+    /* Espaciado de letras */
+    --letter-spacing-tight: -0.025em;
+    --letter-spacing-normal: 0;
+    --letter-spacing-wide: 0.025em;
+    --letter-spacing-wider: 0.05em;
+    --letter-spacing-widest: 0.1em;
+}
+
+/* Aplicar tipografía base al body - BE VIETNAM para texto */
+body {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+    font-size: var(--font-size-base) !important;
+    line-height: var(--line-height-normal) !important;
+    letter-spacing: var(--letter-spacing-normal) !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Aplicar BLANKERS a todos los títulos */
+h1, h2, h3, h4, h5, h6,
+.h1, .h2, .h3, .h4, .h5, .h6 {
+    font-family: var(--font-titles) !important;
+    font-weight: var(--font-weight-bold) !important;
+    line-height: var(--line-height-tight) !important;
+    letter-spacing: var(--letter-spacing-tight) !important;
+    color: var(--title-color, #ACACAD) !important;
+}
+
+/* Tamaños de títulos con BLANKERS */
+h1, .h1 {
+    font-size: var(--font-size-5xl) !important;
+    font-weight: var(--font-weight-extrabold) !important;
+    margin-bottom: 1.5rem !important;
+}
+
+h2, .h2 {
+    font-size: var(--font-size-4xl) !important;
+    font-weight: var(--font-weight-bold) !important;
+    margin-bottom: 1.25rem !important;
+}
+
+h3, .h3 {
+    font-size: var(--font-size-3xl) !important;
+    font-weight: var(--font-weight-bold) !important;
+    margin-bottom: 1rem !important;
+}
+
+h4, .h4 {
+    font-size: var(--font-size-2xl) !important;
+    font-weight: var(--font-weight-semibold) !important;
+    margin-bottom: 0.875rem !important;
+}
+
+h5, .h5 {
+    font-size: var(--font-size-xl) !important;
+    font-weight: var(--font-weight-semibold) !important;
+    margin-bottom: 0.75rem !important;
+}
+
+h6, .h6 {
+    font-size: var(--font-size-lg) !important;
+    font-weight: var(--font-weight-semibold) !important;
+    margin-bottom: 0.625rem !important;
+}
+
+/* Aplicar BLANKERS al navbar brand */
+.navbar-brand {
+    font-family: var(--font-titles) !important;
+    font-weight: var(--font-weight-bold) !important;
+    font-size: var(--font-size-2xl) !important;
+    letter-spacing: var(--letter-spacing-tight) !important;
+}
+
+/* Aplicar BLANKERS a los enlaces del menú */
+.navbar-nav .nav-link {
+    font-family: var(--font-titles) !important;
+    font-weight: var(--font-weight-semibold) !important;
+    font-size: var(--font-size-base) !important;
+    letter-spacing: var(--letter-spacing-wide) !important;
+    text-transform: uppercase !important;
+}
+
+/* Aplicar BLANKERS a los botones */
+.btn {
+    font-family: var(--font-titles) !important;
+    font-weight: var(--font-weight-semibold) !important;
+    letter-spacing: var(--letter-spacing-wider) !important;
+    text-transform: uppercase !important;
+}
+
+.btn-primary,
+.btn-outline-primary {
+    font-weight: var(--font-weight-bold) !important;
+}
+
+/* Aplicar BE VIETNAM al cuerpo de texto */
+p, .text, .description {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+    font-size: var(--font-size-base) !important;
+    line-height: var(--line-height-relaxed) !important;
+}
+
+/* Aplicar BE VIETNAM a textos pequeños */
+small, .small, .text-sm {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+    font-size: var(--font-size-sm) !important;
+}
+
+/* Aplicar BE VIETNAM a los labels */
+label, .form-label {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-medium) !important;
+    font-size: var(--font-size-base) !important;
+}
+
+/* Aplicar BE VIETNAM a los inputs */
+.form-control,
+.form-select,
+textarea {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+    font-size: var(--font-size-base) !important;
+}
+
+/* Aplicar BLANKERS a títulos de tarjetas */
+.card-title,
+.service-card h5,
+.testimonial-card h5 {
+    font-family: var(--font-titles) !important;
+    font-weight: var(--font-weight-bold) !important;
+}
+
+/* Aplicar BE VIETNAM al texto de tarjetas */
+.card-text,
+.card-body p,
+.service-card p,
+.testimonial-card p {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+}
+
+/* Aplicar BLANKERS a los títulos del hero */
+.hero h1,
+.hero h2 {
+    font-family: var(--font-titles) !important;
+    font-weight: var(--font-weight-extrabold) !important;
+    letter-spacing: var(--letter-spacing-tight) !important;
+}
+
+/* Aplicar BE VIETNAM al texto del hero */
+.hero p {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+    line-height: var(--line-height-relaxed) !important;
+}
+
+/* Aplicar BLANKERS a los títulos del footer */
+.footer h5,
+.footer h6 {
+    font-family: var(--font-titles) !important;
+    font-weight: var(--font-weight-bold) !important;
+}
+
+/* Aplicar BE VIETNAM al texto del footer */
+.footer p,
+.footer a,
+.footer li {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+}
+
+/* Aplicar BLANKERS a títulos de sección */
+.section-title {
+    font-family: var(--font-titles) !important;
+    font-weight: var(--font-weight-extrabold) !important;
+    font-size: var(--font-size-4xl) !important;
+    letter-spacing: var(--letter-spacing-tight) !important;
+}
+
+/* Aplicar tipografía a elementos de Bootstrap */
+.alert {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+}
+
+.badge {
+    font-family: var(--font-titles) !important;
+    font-weight: var(--font-weight-semibold) !important;
+    letter-spacing: var(--letter-spacing-wider) !important;
+}
+
+.breadcrumb {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+}
+
+.dropdown-item {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+}
+
+.modal-title {
+    font-family: var(--font-titles) !important;
+    font-weight: var(--font-weight-bold) !important;
+}
+
+.modal-body {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+}
+
+.table th {
+    font-family: var(--font-titles) !important;
+    font-weight: var(--font-weight-semibold) !important;
+}
+
+.table td {
+    font-family: var(--font-body) !important;
+    font-weight: var(--font-weight-regular) !important;
+}
+
+/* Clases de utilidad para tipografía */
+.font-titles {
+    font-family: var(--font-titles) !important;
+}
+
+.font-body {
+    font-family: var(--font-body) !important;
+}
+
+.font-light {
+    font-weight: var(--font-weight-light) !important;
+}
+
+.font-regular {
+    font-weight: var(--font-weight-regular) !important;
+}
+
+.font-medium {
+    font-weight: var(--font-weight-medium) !important;
+}
+
+.font-semibold {
+    font-weight: var(--font-weight-semibold) !important;
+}
+
+.font-bold {
+    font-weight: var(--font-weight-bold) !important;
+}
+
+.font-extrabold {
+    font-weight: var(--font-weight-extrabold) !important;
+}
+
+/* Responsive - ajustes de tamaño para móviles */
+@media (max-width: 768px) {
+    :root {
+        --font-size-5xl: 2.5rem;      /* 40px */
+        --font-size-4xl: 2rem;        /* 32px */
+        --font-size-3xl: 1.625rem;    /* 26px */
+        --font-size-2xl: 1.375rem;    /* 22px */
+    }
+    
+    h1, .h1 {
+        font-size: var(--font-size-4xl) !important;
+    }
+    
+    h2, .h2 {
+        font-size: var(--font-size-3xl) !important;
+    }
+    
+    h3, .h3 {
+        font-size: var(--font-size-2xl) !important;
+    }
+    
+    .navbar-brand {
+        font-size: var(--font-size-xl) !important;
+    }
+    
+    .navbar-nav .nav-link {
+        font-size: var(--font-size-sm) !important;
+    }
+}
+
+@media (max-width: 576px) {
+    :root {
+        --font-size-5xl: 2rem;        /* 32px */
+        --font-size-4xl: 1.75rem;     /* 28px */
+        --font-size-3xl: 1.5rem;      /* 24px */
+        --font-size-2xl: 1.25rem;     /* 20px */
+    }
+    
+    body {
+        font-size: var(--font-size-sm) !important;
+    }
+    
+    h1, .h1 {
+        font-size: var(--font-size-3xl) !important;
+    }
+    
+    h2, .h2 {
+        font-size: var(--font-size-2xl) !important;
+    }
+    
+    h3, .h3 {
+        font-size: var(--font-size-xl) !important;
+    }
+}
+
+/* Mejoras de legibilidad */
+* {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+}
+
+/* Selección de texto personalizada */
+::selection {
+    background-color: rgba(206, 176, 183, 0.3);
+    color: var(--text-dark);
+}
+
+::-moz-selection {
+    background-color: rgba(206, 176, 183, 0.3);
+    color: var(--text-dark);
+}
