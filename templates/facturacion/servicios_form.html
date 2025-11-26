@@ -1,0 +1,172 @@
+﻿{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if servicio else 'Nuevo' }} Servicio - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/facturacion-responsive.css') }}">
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        padding: 2.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        border-radius: 10px;
+        border: 2px solid {{ tema.primary }}50;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem {{ tema.primary }}40;
+    }
+    
+    .btn-guardar {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-guardar:hover {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px {{ tema.primary }}50;
+    }
+    
+    .btn-cancelar {
+        background: white;
+        border: 2px solid var(--text-muted);
+        color: var(--text-muted);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cancelar:hover {
+        background: var(--text-muted);
+        color: white;
+    }
+    
+    .input-group-text {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        border: none;
+        font-weight: 700;
+        border-radius: 10px 0 0 10px;
+    }
+    
+    .input-group .form-control {
+        border-radius: 0 10px 10px 0;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="form-container">
+        <div class="mb-4">
+            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
+                <i class="fas fa-clipboard-list me-2"></i>
+                {{ 'Editar Servicio' if servicio else 'Nuevo Servicio' }}
+            </h1>
+            <p class="text-muted">Complete la información del tipo de servicio</p>
+        </div>
+
+        <div class="form-card">
+            <form method="POST">
+                <div class="mb-4">
+                    <label for="descripcion" class="form-label">
+                        <i class="fas fa-pen me-2 text-primary"></i>Descripción del Servicio *
+                    </label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="descripcion" 
+                           name="descripcion" 
+                           value="{{ servicio['descripcion'] if servicio else '' }}" 
+                           required 
+                           placeholder="Ej: Consulta"
+                           maxlength="15">
+                    <small class="text-muted">
+                        <i class="fas fa-lightbulb me-1"></i>
+                        Nombre del servicio que aparecerá en las facturas
+                    </small>
+                </div>
+
+                <div class="mb-4">
+                    <label for="precio_base" class="form-label">
+                        <i class="fas fa-dollar-sign me-2 text-primary"></i>Precio Base (Opcional)
+                    </label>
+                    <div class="input-group">
+                        <span class="input-group-text">$</span>
+                        <input type="number" 
+                               class="form-control" 
+                               id="precio_base" 
+                               name="precio_base" 
+                               value="{{ servicio['precio_base'] if servicio else '0' }}" 
+                               step="0.01"
+                               min="0"
+                               placeholder="0.00"
+                               pattern="[0-9]*\.?[0-9]*"
+                               inputmode="numeric"
+                               onkeypress="return (event.charCode >= 48 && event.charCode <= 57) || event.charCode == 46"
+                               style="font-weight: 700; font-size: 1.1rem;">
+                    </div>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Precio de referencia (puede variar por ARS o paciente)
+                    </small>
+                </div>
+
+                <!-- Activar/Desactivar Servicio -->
+                <div class="mb-4">
+                    <div class="form-check" style="padding: 1rem; background: {{ tema.primary }}10; border-radius: 10px; border-left: 4px solid {{ tema.primary }};">
+                        <input class="form-check-input" 
+                               type="checkbox" 
+                               id="activo" 
+                               name="activo" 
+                               value="1"
+                               {% if not servicio or servicio['activo'] %}checked{% endif %}
+                               style="width: 20px; height: 20px; margin-top: 0.25rem; cursor: pointer; accent-color: {{ tema.primary }};">
+                        <label class="form-check-label" for="activo" style="margin-left: 10px; cursor: pointer; font-weight: 600; color: {{ tema.primary_dark }};">
+                            <i class="fas fa-toggle-on me-2"></i>Servicio Activo
+                        </label>
+                        <small class="d-block text-muted mt-2" style="margin-left: 30px;">
+                            <i class="fas fa-info-circle me-1"></i>
+                            Si está desactivado, el servicio no aparecerá en los formularios ni reportes del sistema
+                        </small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between gap-3 mt-5">
+                    <a href="{{ url_for('facturacion_servicios') }}" class="btn btn-cancelar">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-guardar">
+                        <i class="fas fa-save me-2"></i>{{ 'Actualizar' if servicio else 'Guardar' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

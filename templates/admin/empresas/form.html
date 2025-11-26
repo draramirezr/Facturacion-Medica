@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if empresa else 'Nueva' }} Empresa - Sistema Multi-Tenant{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .form-container {
+        max-width: 900px;
+        margin: 2rem auto;
+        background: white;
+        border-radius: 20px;
+        padding: 3rem;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+    }
+    
+    .form-header {
+        text-align: center;
+        margin-bottom: 2.5rem;
+    }
+    
+    .form-header h1 {
+        color: {{ tema.primary }};
+        font-weight: 800;
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #282828;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 2px solid {{ tema.primary }}50;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem {{ tema.primary }}40;
+    }
+    
+    .licencias-info-box {
+        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
+        border-left: 4px solid {{ tema.primary }};
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .btn-guardar {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.9rem 2.5rem;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-guardar:hover {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px {{ tema.primary }}50;
+    }
+    
+    .btn-cancelar {
+        background: white;
+        border: 2px solid var(--text-muted);
+        color: var(--text-muted);
+        padding: 0.9rem 2.5rem;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cancelar:hover {
+        background: var(--text-muted);
+        color: white;
+    }
+    
+    .required-asterisk {
+        color: var(--primary-color) !important;
+        font-weight: bold;
+    }
+</style>
+
+<div class="container py-4">
+    <div class="form-container">
+        <div class="form-header">
+            <h1>
+                <i class="fas fa-building me-2"></i>
+                {{ 'Editar Empresa' if empresa else 'Nueva Empresa' }}
+            </h1>
+            <p class="text-muted">Sistema Multi-Tenant</p>
+        </div>
+        
+        <form method="POST">
+            <!-- Información Básica -->
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label for="nombre" class="form-label">Nombre de la Empresa <span class="required-asterisk">*</span></label>
+                    <input type="text" class="form-control" id="nombre" name="nombre" 
+                           value="{{ empresa['nombre'] if empresa else '' }}" required maxlength="255">
+                </div>
+                
+                <div class="col-md-12 mb-3">
+                    <label for="razon_social" class="form-label">Razón Social <span class="required-asterisk">*</span></label>
+                    <input type="text" class="form-control" id="razon_social" name="razon_social" 
+                           value="{{ empresa['razon_social'] if empresa else '' }}" required maxlength="255">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="rnc" class="form-label">RNC</label>
+                    <input type="text" class="form-control" id="rnc" name="rnc" 
+                           value="{{ empresa['rnc'] if empresa else '' }}" maxlength="15"
+                           pattern="[0-9\-]*"
+                           inputmode="numeric"
+                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57) || event.charCode == 45"
+                           title="Solo se permiten números y guiones">
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="telefono" class="form-label">Teléfono</label>
+                    <input type="text" class="form-control" id="telefono" name="telefono" 
+                           value="{{ empresa['telefono'] if empresa else '' }}" maxlength="15"
+                           pattern="[0-9\(\)\-\s]*"
+                           inputmode="numeric"
+                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57) || event.charCode == 40 || event.charCode == 41 || event.charCode == 45 || event.charCode == 32"
+                           title="Solo se permiten números, paréntesis, espacios y guiones">
+                </div>
+                
+                <div class="col-md-12 mb-3">
+                    <label for="email" class="form-label">Email</label>
+                    <input type="email" class="form-control" id="email" name="email" 
+                           value="{{ empresa['email'] if empresa else '' }}" maxlength="255">
+                </div>
+                
+                <div class="col-md-12 mb-3">
+                    <label for="direccion" class="form-label">Dirección</label>
+                    <textarea class="form-control" id="direccion" name="direccion" rows="3">{{ empresa['direccion'] if empresa else '' }}</textarea>
+                </div>
+            </div>
+            
+            <hr class="my-4">
+            
+            <!-- Período de Suscripción -->
+            <h5 style="color: {{ tema.primary }}; font-weight: 700; margin-bottom: 1.5rem;">
+                <i class="fas fa-calendar-alt me-2"></i>
+                Período de Suscripción
+            </h5>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="fecha_inicio" class="form-label">
+                        Fecha de Inicio <span class="required-asterisk">*</span>
+                    </label>
+                    <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
+                           value="{{ empresa['fecha_inicio'] if empresa and empresa['fecha_inicio'] else '' }}" 
+                           required>
+                    <small class="text-muted">Inicio de la suscripción</small>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="fecha_fin" class="form-label">
+                        Fecha de Fin <span class="required-asterisk">*</span>
+                    </label>
+                    <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" 
+                           value="{{ empresa['fecha_fin'] if empresa and empresa['fecha_fin'] else '' }}" 
+                           required>
+                    <small class="text-muted">Al vencer, el estado cambiará a "Suspendido" automáticamente</small>
+                </div>
+            </div>
+            
+            {% if empresa and empresa['fecha_fin'] %}
+            <div class="alert" id="alertaVencimiento" style="margin-bottom: 1.5rem; border-radius: 10px;">
+                <!-- Se llenará con JavaScript -->
+            </div>
+            {% endif %}
+            
+            <hr class="my-4">
+            
+            <!-- Sistema de Licencias -->
+            <h5 style="color: {{ tema.primary }}; font-weight: 700; margin-bottom: 1.5rem;">
+                <i class="fas fa-key me-2"></i>
+                Sistema de Licencias
+            </h5>
+            
+            {% if empresa %}
+            <div class="licencias-info-box">
+                <strong><i class="fas fa-info-circle me-2"></i>Estado Actual:</strong><br>
+                <ul class="mb-0 mt-2">
+                    <li>Licencias Usadas: <strong>{{ empresa['licencias_usadas'] }}</strong></li>
+                    <li>Licencias Disponibles: <strong>{{ empresa['licencias_totales'] - empresa['licencias_usadas'] }}</strong></li>
+                </ul>
+            </div>
+            {% endif %}
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="licencias_totales" class="form-label">
+                        Licencias Totales <span class="required-asterisk">*</span>
+                    </label>
+                    <input type="number" class="form-control" id="licencias_totales" name="licencias_totales" 
+                           value="{{ empresa['licencias_totales'] if empresa else 5 }}" 
+                           required min="1" max="1000">
+                    <small class="text-muted">Número máximo de usuarios activos</small>
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="plan" class="form-label">Plan <span class="required-asterisk">*</span></label>
+                    <select class="form-select" id="plan" name="plan" required>
+                        <option value="basico" {{ 'selected' if empresa and empresa['plan'] == 'basico' else '' }}>
+                            Básico (1-5 usuarios)
+                        </option>
+                        <option value="profesional" {{ 'selected' if empresa and empresa['plan'] == 'profesional' else 'selected' }}>
+                            Profesional (6-20 usuarios)
+                        </option>
+                        <option value="empresarial" {{ 'selected' if empresa and empresa['plan'] == 'empresarial' else '' }}>
+                            Empresarial (20+ usuarios)
+                        </option>
+                    </select>
+                </div>
+                
+                {% if empresa %}
+                <div class="col-md-6 mb-3">
+                    <label for="estado" class="form-label">Estado <span class="required-asterisk">*</span></label>
+                    <select class="form-select" id="estado" name="estado" required>
+                        <option value="activo" {{ 'selected' if empresa['estado'] == 'activo' else '' }}>Activo</option>
+                        <option value="suspendido" {{ 'selected' if empresa['estado'] == 'suspendido' else '' }}>Suspendido</option>
+                        <option value="inactivo" {{ 'selected' if empresa['estado'] == 'inactivo' else '' }}>Inactivo</option>
+                    </select>
+                    <small class="text-muted">
+                        ⚠️ Suspender/Inactivar bloqueará el acceso a todos los usuarios
+                    </small>
+                </div>
+                {% endif %}
+            </div>
+            
+            <hr class="my-4">
+            
+            <!-- Botones -->
+            <div class="d-flex justify-content-between gap-3">
+                <a href="{{ url_for('admin_empresas') }}" class="btn btn-cancelar">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-guardar">
+                    <i class="fas fa-save me-2"></i>
+                    {{ 'Actualizar Empresa' if empresa else 'Crear Empresa' }}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validar que fecha_fin sea mayor que fecha_inicio
+    const fechaInicio = document.getElementById('fecha_inicio');
+    const fechaFin = document.getElementById('fecha_fin');
+    
+    function validarFechas() {
+        if (fechaInicio.value && fechaFin.value) {
+            const inicio = new Date(fechaInicio.value);
+            const fin = new Date(fechaFin.value);
+            
+            if (fin <= inicio) {
+                fechaFin.setCustomValidity('La fecha de fin debe ser posterior a la fecha de inicio');
+            } else {
+                fechaFin.setCustomValidity('');
+            }
+        }
+    }
+    
+    fechaInicio.addEventListener('change', validarFechas);
+    fechaFin.addEventListener('change', validarFechas);
+    
+    // Calcular días restantes
+    {% if empresa and empresa['fecha_fin'] %}
+    const fechaFinEmpresa = new Date('{{ empresa["fecha_fin"] }}');
+    const hoy = new Date();
+    const diasRestantes = Math.ceil((fechaFinEmpresa - hoy) / (1000 * 60 * 60 * 24));
+    const alerta = document.getElementById('alertaVencimiento');
+    
+    if (diasRestantes < 0) {
+        alerta.className = 'alert alert-danger';
+        alerta.innerHTML = `
+            <strong><i class="fas fa-exclamation-triangle me-2"></i>SUSCRIPCIÓN VENCIDA</strong><br>
+            La suscripción venció hace ${Math.abs(diasRestantes)} días.
+            El sistema suspenderá esta empresa automáticamente.
+        `;
+    } else if (diasRestantes <= 7) {
+        alerta.className = 'alert alert-danger';
+        alerta.innerHTML = `
+            <strong><i class="fas fa-exclamation-circle me-2"></i>URGENTE - Vence en ${diasRestantes} días</strong><br>
+            La suscripción está por vencer. Renueva cuanto antes.
+        `;
+    } else if (diasRestantes <= 30) {
+        alerta.className = 'alert alert-warning';
+        alerta.innerHTML = `
+            <strong><i class="fas fa-clock me-2"></i>ADVERTENCIA - Vence en ${diasRestantes} días</strong><br>
+            Considera renovar la suscripción pronto.
+        `;
+    } else {
+        alerta.className = 'alert alert-success';
+        alerta.innerHTML = `
+            <strong><i class="fas fa-check-circle me-2"></i>Suscripción activa</strong><br>
+            ${diasRestantes} días restantes hasta el vencimiento.
+        `;
+    }
+    {% endif %}
+});
+</script>
+
+{% endblock %}
+

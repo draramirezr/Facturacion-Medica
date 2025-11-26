@@ -16,7 +16,7 @@
     }
     
     .admin-header {
-        border-bottom: 3px solid #CEB0B7;
+        border-bottom: 3px solid {{ tema.primary }};
         padding-bottom: 20px;
         margin-bottom: 30px;
         display: flex;
@@ -53,15 +53,15 @@
     }
     
     .btn-primary {
-        background: #CEB0B7 !important;
+        background: {{ tema.primary }} !important;
         color: white !important;
     }
     
     .btn-primary:hover {
-        background: #B89BA3 !important;
+        background: {{ tema.primary_dark }} !important;
         color: white !important;
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(206, 176, 183, 0.4);
+        box-shadow: 0 4px 15px {{ tema.primary }}60;
     }
     
     .btn-secondary {
@@ -70,20 +70,20 @@
     }
     
     .btn-secondary:hover {
-        background: #9A9A9B !important;
+        background: {{ tema.primary_dark }} !important;
         color: white !important;
     }
     
     .btn-success {
-        background: #CEB0B7 !important;
+        background: {{ tema.primary }} !important;
         color: white !important;
     }
     
     .btn-success:hover {
-        background: #B89BA3 !important;
+        background: {{ tema.primary_dark }} !important;
         color: white !important;
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(206, 176, 183, 0.4);
+        box-shadow: 0 4px 15px {{ tema.primary }}60;
     }
     
     .btn-danger {
@@ -92,20 +92,20 @@
     }
     
     .btn-danger:hover {
-        background: #9A9A9B !important;
+        background: {{ tema.primary_dark }} !important;
         color: white !important;
     }
     
     .btn-warning {
-        background: #CEB0B7 !important;
+        background: {{ tema.primary }} !important;
         color: white !important;
     }
     
     .btn-warning:hover {
-        background: #B89BA3 !important;
+        background: {{ tema.primary_dark }} !important;
         color: white !important;
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(206, 176, 183, 0.4);
+        box-shadow: 0 4px 15px {{ tema.primary }}60;
     }
     
     .flash {
@@ -115,10 +115,10 @@
         font-weight: 500;
     }
     
-    .flash.success { background: #F2E2E6; color: #B89BA3; border-left: 4px solid #CEB0B7; }
-    .flash.error { background: #E6E6E6; color: #666666; border-left: 4px solid #ACACAD; }
-    .flash.warning { background: #F2E2E6; color: #B89BA3; border-left: 4px solid #CEB0B7; }
-    .flash.info { background: #F2E2E6; color: #B89BA3; border-left: 4px solid #CEB0B7; }
+    .flash.success { background: {{ tema.primary }}15; color: {{ tema.primary_dark }}; border-left: 4px solid {{ tema.primary }}; }
+    .flash.error { background: #FEE2E2; color: #991B1B; border-left: 4px solid #DC2626; }
+    .flash.warning { background: {{ tema.primary }}15; color: {{ tema.primary_dark }}; border-left: 4px solid {{ tema.primary }}; }
+    .flash.info { background: {{ tema.primary }}15; color: {{ tema.primary_dark }}; border-left: 4px solid {{ tema.primary }}; }
     
     .table-container {
         overflow-x: auto;
@@ -131,7 +131,7 @@
     }
     
     th {
-        background: #CEB0B7;
+        background: {{ tema.primary_dark }};
         color: white;
         padding: 15px;
         text-align: left;
@@ -161,17 +161,17 @@
     }
     
     .badge-danger {
-        background: #ACACAD;
+        background: {{ tema.primary }};
         color: white;
     }
     
     .badge-admin {
-        background: #ACACAD;
+        background: {{ tema.primary }};
         color: white;
     }
     
     .badge-user {
-        background: #F2E2E6;
+        background: {{ tema.background }};
         color: #666666;
     }
     
@@ -202,7 +202,7 @@
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        background: linear-gradient(135deg, #CEB0B7 0%, #ACACAD 100%);
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -237,9 +237,6 @@
         <div class="btn-container">
             <a href="{{ url_for('admin_usuarios_nuevo') }}" class="btn btn-success">
                 ➕ Nuevo Usuario
-            </a>
-            <a href="{{ url_for('admin') }}" class="btn btn-secondary">
-                ← Volver al Panel
             </a>
         </div>
     </div>
@@ -282,7 +279,7 @@
                             {% if usuario.perfil == 'Administrador' %}
                                 <span class="badge badge-admin">🔑 Administrador</span>
                             {% elif usuario.perfil == 'Nivel 2' %}
-                                <span class="badge badge-admin" style="background: #CEB0B7;">⭐ Nivel 2</span>
+                                <span class="badge badge-admin" style="background: {{ tema.primary }};">⭐ Nivel 2</span>
                             {% else %}
                                 <span class="badge badge-user">📝 {{ usuario.perfil }}</span>
                             {% endif %}

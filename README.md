@@ -274,3 +274,4 @@ Este proyecto es propiedad privada. Todos los derechos reservados.
 **Versión**: 1.0  
 **Última actualización**: Noviembre 2024
 
+

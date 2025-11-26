@@ -1,0 +1,179 @@
+{% extends "base.html" %}
+
+{% block title %}Centro x Médico - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .facturacion-hero {
+        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .search-box {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        margin-bottom: 2rem;
+    }
+    
+    .table-facturacion {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        overflow: hidden;
+    }
+    
+    .table-responsive-wrapper {
+        max-height: 400px; /* Altura aproximada para 5 registros */
+        overflow-x: auto;
+        overflow-y: auto;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb {
+        background: {{ tema.primary_dark }};
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+        background: {{ tema.primary }};
+    }
+    
+    .table-facturacion table {
+        min-width: 800px;
+    }
+    
+    .table-facturacion th {
+        background: {{ tema.primary_dark }} !important;
+        background-color: {{ tema.primary_dark }} !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .table-facturacion thead th {
+        color: #FFFFFF !important;
+    }
+    
+    .table-facturacion td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid {{ tema.primary }}15;
+    }
+    
+    .table-facturacion tbody tr:hover {
+        background-color: {{ tema.primary }}08;
+    }
+    
+    /* Los estilos de botones ahora están en botones-estandarizados.css */
+    /* Esto garantiza que todos los botones tengan el mismo tamaño y color */
+
+
+</style>
+
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="facturacion-hero">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 style="color: var(--primary-color); font-weight: 700; margin: 0;">
+                <i class="fas fa-link me-2"></i>
+                Centro x Médico
+            </h2>
+            <div>
+                <a href="{{ url_for('facturacion_medico_centro_nuevo') }}" class="btn btn-cancelar">
+                    <i class="fas fa-plus me-2"></i>Agregar Relación
+                </a>
+                <a href="{{ url_for('facturacion_menu') }}" class="btn btn-cancelar">
+                    <i class="fas fa-arrow-left me-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="search-box">
+        <form method="GET" class="row g-3 align-items-end">
+            <div class="col-md-10">
+                <input type="text" class="form-control" name="search" 
+                       placeholder="Buscar por nombre de médico o centro..." value="{{ search }}" style="height: 48px;">
+            </div>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-buscar w-100" style="height: 48px;">
+                    <i class="fas fa-search me-2"></i>Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla -->
+    {% if relaciones_list %}
+    <div class="table-facturacion">
+        <div class="table-responsive-wrapper">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Médico</th>
+                        <th>Especialidad</th>
+                        <th>Centro Médico</th>
+                        <th>Fecha Registro</th>
+                        <th style="width: 100px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for relacion in relaciones_list %}
+                    <tr>
+                        <td>{{ relacion['medico_nombre'] }}</td>
+                        <td>{{ relacion['especialidad'] }}</td>
+                        <td>
+                            {% if relacion['es_defecto'] == 1 %}
+                            <i class="fas fa-star me-2" style="color: #FFD700;" title="Centro por Defecto"></i>
+                            {% endif %}
+                            {{ relacion['centro_nombre'] }}
+                        </td>
+                        <td>{{ relacion['created_at'].strftime('%d/%m/%Y') if relacion['created_at'] else '-' }}</td>
+                        <td>
+                            <div class="d-flex justify-content-center gap-2">
+                                <a href="{{ url_for('facturacion_medico_centro_editar', relacion_id=relacion['id']) }}" 
+                                   class="btn btn-accion-editar" title="Editar">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                            <a href="#" 
+                               onclick="if(confirm('¿Está seguro de eliminar esta relación?')) { document.getElementById('delete-form-relacion-{{ relacion['id'] }}').submit(); } return false;"
+                               class="btn btn-accion-editar" title="Eliminar">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </a>
+                            <form id="delete-form-relacion-{{ relacion['id'] }}" method="POST" action="{{ url_for('facturacion_medico_centro_eliminar', relacion_id=relacion['id']) }}" style="display: none;">
+                            </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info" style="background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark);">
+        <i class="fas fa-info-circle me-2"></i>
+        No hay relaciones registradas entre médicos y centros médicos. Haz clic en "Agregar Relación" para comenzar.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,314 @@
+{% extends "base.html" %}
+
+{% block title %}Verificación Multi-Tenant{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .verificacion-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 2rem;
+    }
+    
+    .loading {
+        text-align: center;
+        padding: 3rem;
+    }
+    
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid {{ tema.primary }};
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto 1rem;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .resultado-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+    }
+    
+    .estado-badge {
+        padding: 1rem 2rem;
+        border-radius: 15px;
+        font-weight: 800;
+        font-size: 1.5rem;
+        display: inline-block;
+        margin-bottom: 1rem;
+    }
+    
+    .estado-perfecto {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: white;
+    }
+    
+    .estado-advertencias {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        color: white;
+    }
+    
+    .estado-error {
+        background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+        color: white;
+    }
+    
+    .detalle-item {
+        background: {{ tema.primary }}08;
+        padding: 1rem;
+        border-radius: 10px;
+        margin-bottom: 1rem;
+        border-left: 4px solid {{ tema.primary }};
+    }
+    
+    .check-icon {
+        color: #10B981;
+        font-size: 1.2rem;
+        margin-right: 0.5rem;
+    }
+    
+    .warning-icon {
+        color: #F59E0B;
+        font-size: 1.2rem;
+        margin-right: 0.5rem;
+    }
+    
+    .error-icon {
+        color: #EF4444;
+        font-size: 1.2rem;
+        margin-right: 0.5rem;
+    }
+    
+    .tabla-detalle {
+        background: white;
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid {{ tema.primary }}30;
+    }
+    
+    .tabla-detalle th {
+        background: {{ tema.primary_dark }};
+        color: white;
+        padding: 0.75rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+    
+    .tabla-detalle td {
+        padding: 0.75rem;
+        border-bottom: 1px solid {{ tema.primary }}15;
+    }
+</style>
+
+<div class="verificacion-container">
+    <div class="text-center mb-4">
+        <h1 style="color: {{ tema.primary }}; font-weight: 800;">
+            <i class="fas fa-check-circle me-2"></i>
+            Verificación del Sistema Multi-Tenant
+        </h1>
+        <p class="text-muted">Comprobando configuración y estado del sistema...</p>
+    </div>
+    
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <p class="text-muted">Verificando sistema...</p>
+    </div>
+    
+    <div id="resultados" style="display: none;">
+        <!-- Los resultados se cargarán aquí -->
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    fetch('{{ url_for("verificar_multitenant") }}')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('loading').style.display = 'none';
+            document.getElementById('resultados').style.display = 'block';
+            mostrarResultados(data);
+        })
+        .catch(error => {
+            document.getElementById('loading').innerHTML = `
+                <div class="alert alert-danger">
+                    <i class="fas fa-exclamation-triangle me-2"></i>
+                    Error al verificar: ${error.message}
+                </div>
+            `;
+        });
+});
+
+function mostrarResultados(data) {
+    let estadoClass = 'estado-perfecto';
+    if (data.estado_general.includes('ERROR')) estadoClass = 'estado-error';
+    else if (data.estado_general.includes('ADVERTENCIAS')) estadoClass = 'estado-advertencias';
+    
+    let html = `
+        <div class="resultado-card text-center">
+            <div class="estado-badge ${estadoClass}">
+                ${data.estado_general}
+            </div>
+            <p class="text-muted mb-0">${data.fecha}</p>
+        </div>
+    `;
+    
+    // Errores
+    if (data.errores && data.errores.length > 0) {
+        html += `
+            <div class="resultado-card">
+                <h3 style="color: #EF4444; font-weight: 700;">
+                    <i class="fas fa-times-circle me-2"></i>Errores Encontrados
+                </h3>
+                ${data.errores.map(e => `
+                    <div class="detalle-item" style="border-left-color: #EF4444; background: #FEE2E2;">
+                        <i class="error-icon fas fa-exclamation-circle"></i>${e}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    // Advertencias
+    if (data.advertencias && data.advertencias.length > 0) {
+        html += `
+            <div class="resultado-card">
+                <h3 style="color: #F59E0B; font-weight: 700;">
+                    <i class="fas fa-exclamation-triangle me-2"></i>Advertencias
+                </h3>
+                ${data.advertencias.map(a => `
+                    <div class="detalle-item" style="border-left-color: #F59E0B; background: #FEF3C7;">
+                        <i class="warning-icon fas fa-exclamation-triangle"></i>${a}
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    }
+    
+    // Detalles de verificación
+    if (data.detalles) {
+        // Tabla Empresas
+        if (data.detalles.tabla_empresas) {
+            html += `
+                <div class="resultado-card">
+                    <h4 style="color: {{ tema.primary }}; font-weight: 700; margin-bottom: 1rem;">
+                        <i class="check-icon fas fa-check-circle"></i>Tabla Empresas
+                    </h4>
+                    <p><strong>Total de empresas:</strong> ${data.detalles.tabla_empresas.total_empresas}</p>
+                </div>
+            `;
+        }
+        
+        // Empresa Default
+        if (data.detalles.empresa_default && data.detalles.empresa_default.existe) {
+            const empresa = data.detalles.empresa_default;
+            html += `
+                <div class="resultado-card">
+                    <h4 style="color: {{ tema.primary }}; font-weight: 700; margin-bottom: 1rem;">
+                        <i class="check-icon fas fa-building"></i>Empresa Por Defecto
+                    </h4>
+                    <div class="row">
+                        <div class="col-md-6"><strong>Nombre:</strong> ${empresa.nombre}</div>
+                        <div class="col-md-6"><strong>Plan:</strong> ${empresa.plan}</div>
+                        <div class="col-md-6"><strong>Estado:</strong> <span class="badge bg-success">${empresa.estado}</span></div>
+                        <div class="col-md-6"><strong>Licencias:</strong> ${empresa.licencias_usadas}/${empresa.licencias_totales}</div>
+                        <div class="col-md-12 mt-2">
+                            <strong>Licencias Disponibles:</strong> 
+                            <span style="color: {{ tema.primary }}; font-weight: 800; font-size: 1.2rem;">
+                                ${empresa.licencias_disponibles}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // Columnas tenant_id
+        if (data.detalles.columnas_tenant_id) {
+            const cols = data.detalles.columnas_tenant_id;
+            const porcentaje = (cols.tablas_ok / cols.total_tablas * 100).toFixed(0);
+            html += `
+                <div class="resultado-card">
+                    <h4 style="color: {{ tema.primary }}; font-weight: 700; margin-bottom: 1rem;">
+                        <i class="${cols.tablas_ok === cols.total_tablas ? 'check-icon' : 'warning-icon'} fas fa-database"></i>
+                        Columnas tenant_id
+                    </h4>
+                    <div class="progress mb-3" style="height: 30px;">
+                        <div class="progress-bar" style="width: ${porcentaje}%; background: {{ tema.primary }};">
+                            ${cols.tablas_ok}/${cols.total_tablas} tablas (${porcentaje}%)
+                        </div>
+                    </div>
+                    ${cols.lista_ok.length > 0 ? `
+                        <p><strong><i class="check-icon fas fa-check"></i>Tablas OK:</strong> ${cols.lista_ok.join(', ')}</p>
+                    ` : ''}
+                    ${cols.lista_faltantes.length > 0 ? `
+                        <p class="text-danger"><strong><i class="error-icon fas fa-times"></i>Tablas faltantes:</strong> ${cols.lista_faltantes.join(', ')}</p>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // Triggers
+        if (data.detalles.triggers) {
+            const t = data.detalles.triggers;
+            html += `
+                <div class="resultado-card">
+                    <h4 style="color: {{ tema.primary }}; font-weight: 700; margin-bottom: 1rem;">
+                        <i class="${t.ok ? 'check-icon' : 'warning-icon'} fas fa-bolt"></i>
+                        Triggers Automáticos
+                    </h4>
+                    <p><strong>Encontrados:</strong> ${t.total}/3</p>
+                    ${t.lista.length > 0 ? `<p><strong>Triggers:</strong> ${t.lista.join(', ')}</p>` : ''}
+                </div>
+            `;
+        }
+        
+        // Usuario Actual
+        if (data.detalles.usuario_actual) {
+            const u = data.detalles.usuario_actual;
+            html += `
+                <div class="resultado-card">
+                    <h4 style="color: {{ tema.primary }}; font-weight: 700; margin-bottom: 1rem;">
+                        <i class="fas fa-user me-2"></i>Tu Sesión Actual
+                    </h4>
+                    <div class="row">
+                        <div class="col-md-6"><strong>Usuario:</strong> ${u.nombre}</div>
+                        <div class="col-md-6"><strong>Email:</strong> ${u.email}</div>
+                        <div class="col-md-6"><strong>Tenant ID:</strong> <span class="badge bg-primary">${u.tenant_id}</span></div>
+                        <div class="col-md-6"><strong>Empresa:</strong> ${u.empresa_nombre}</div>
+                    </div>
+                </div>
+            `;
+        }
+    }
+    
+    html += `
+        <div class="text-center mt-4">
+            <a href="{{ url_for('admin_empresas') }}" class="btn btn-lg" 
+               style="background: {{ tema.primary }}; color: white; padding: 1rem 2rem; border-radius: 15px; text-decoration: none; font-weight: 700;">
+                <i class="fas fa-building me-2"></i>Ir a Gestión de Empresas
+            </a>
+        </div>
+    `;
+    
+    document.getElementById('resultados').innerHTML = html;
+}
+</script>
+{% endblock %}
+
+
+
+
+
+
+
+

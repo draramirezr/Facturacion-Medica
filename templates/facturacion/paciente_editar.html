@@ -1,0 +1,276 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Editar Paciente - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .edit-hero {
+        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
+        border: 2px solid {{ tema.primary }};
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .form-container {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 0 10px 40px {{ tema.primary }}25;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .form-group label {
+        color: {{ tema.primary }};
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .form-control {
+        border: 2px solid {{ tema.primary }}50;
+        border-radius: 10px;
+        padding: 0.75rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+    }
+    
+    .form-control:focus {
+        border-color: {{ tema.primary }};
+        box-shadow: 0 0 0 0.2rem {{ tema.primary }}40;
+        outline: none;
+    }
+    
+    .btn-guardar {
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%);
+        border: none;
+        color: white;
+        padding: 0.9rem 2.5rem;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-guardar:hover {
+        background: linear-gradient(135deg, {{ tema.primary_dark }} 0%, {{ tema.primary }} 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px {{ tema.primary }}60;
+    }
+    
+    .btn-cancelar {
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%);
+        border: none;
+        color: white;
+        padding: 0.9rem 2.5rem;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1.1rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-cancelar:hover {
+        background: linear-gradient(135deg, #9A9A9B 0%, #8A8A8B 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px #ACACAD60;
+    }
+    
+    .info-field {
+        background: {{ tema.primary }}15;
+        padding: 0.75rem;
+        border-radius: 10px;
+        color: #666;
+        font-weight: 600;
+    }
+</style>
+
+<div class="container mt-4">
+    <!-- Hero Section -->
+    <div class="edit-hero">
+        <div class="text-center">
+            <h1 style="color: {{ tema.primary }}; font-weight: 800; font-size: 2.5rem; margin-bottom: 0.5rem;">
+                <i class="fas fa-edit me-2"></i>
+                Editar Paciente
+            </h1>
+            <p style="color: {{ tema.primary_dark }}; margin: 0; font-size: 1.1rem; font-weight: 600;">
+                Modifica los datos del paciente pendiente de facturación
+            </p>
+        </div>
+    </div>
+
+    <!-- Formulario -->
+    <div class="form-container">
+        <form method="POST" autocomplete="off">
+            <div class="row">
+                <!-- NSS -->
+                <div class="col-md-6 mb-3">
+                    <div class="form-group">
+                        <label for="nss">
+                            <i class="fas fa-id-card me-1"></i>
+                            NSS *
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="nss" 
+                               name="nss" 
+                               value="{{ paciente['nss'] }}"
+                               pattern="[0-9\-]+"
+                               title="Solo números y guiones"
+                               required>
+                    </div>
+                </div>
+
+                <!-- Nombre -->
+                <div class="col-md-6 mb-3">
+                    <div class="form-group">
+                        <label for="nombre">
+                            <i class="fas fa-user me-1"></i>
+                            Nombre del Paciente *
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="nombre" 
+                               name="nombre" 
+                               value="{{ paciente['nombre_paciente'] }}"
+                               pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
+                               title="Solo letras y espacios"
+                               required>
+                    </div>
+                </div>
+
+                <!-- Fecha -->
+                <div class="col-md-6 mb-3">
+                    <div class="form-group">
+                        <label for="fecha">
+                            <i class="fas fa-calendar me-1"></i>
+                            Fecha de Consulta *
+                        </label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="fecha" 
+                               name="fecha" 
+                               value="{{ paciente['fecha_servicio'] }}"
+                               required>
+                    </div>
+                </div>
+
+                <!-- Autorización -->
+                <div class="col-md-6 mb-3">
+                    <div class="form-group">
+                        <label for="autorizacion">
+                            <i class="fas fa-check-circle me-1"></i>
+                            Autorización *
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="autorizacion" 
+                               name="autorizacion" 
+                               value="{{ paciente['autorizacion'] }}"
+                               pattern="[0-9]+"
+                               title="Solo números"
+                               required>
+                    </div>
+                </div>
+
+                <!-- Servicio -->
+                <div class="col-md-8 mb-3">
+                    <div class="form-group">
+                        <label for="servicio">
+                            <i class="fas fa-stethoscope me-1"></i>
+                            Servicio *
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="servicio" 
+                               name="servicio" 
+                               value="{{ paciente['descripcion_servicio'] }}"
+                               pattern="[A-Za-zÁÉÍÓÚáéíóúÑñ\s]+"
+                               title="Solo letras y espacios"
+                               required>
+                    </div>
+                </div>
+
+                <!-- Monto -->
+                <div class="col-md-4 mb-3">
+                    <div class="form-group">
+                        <label for="monto">
+                            <i class="fas fa-dollar-sign me-1"></i>
+                            Monto () *
+                        </label>
+                        <input type="number" 
+                               class="form-control" 
+                               id="monto" 
+                               name="monto" 
+                               value="{{ paciente['monto'] }}"
+                               step="0.01"
+                               min="0"
+                               required>
+                    </div>
+                </div>
+
+                <!-- Información no editable -->
+                <div class="col-md-6 mb-3">
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-user-md me-1"></i>
+                            Médico (no editable)
+                        </label>
+                        <div class="info-field">
+                            {{ paciente['medico_id'] }} - ID Médico
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 mb-3">
+                    <div class="form-group">
+                        <label>
+                            <i class="fas fa-hospital me-1"></i>
+                            ARS (no editable)
+                        </label>
+                        <div class="info-field">
+                            {{ paciente['ars_id'] }} - ID ARS
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones -->
+            <div class="row mt-4">
+                <div class="col-md-6 mb-3">
+                    <a href="{{ url_for('facturacion_pacientes_pendientes') }}" class="btn-cancelar w-100 text-center">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <button type="submit" class="btn-guardar w-100">
+                        <i class="fas fa-save me-2"></i>Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Convertir a mayúsculas automáticamente
+document.getElementById('nss').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+});
+
+document.getElementById('nombre').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+});
+
+document.getElementById('servicio').addEventListener('input', function() {
+    this.value = this.value.toUpperCase();
+});
+</script>
+{% endblock %}
+

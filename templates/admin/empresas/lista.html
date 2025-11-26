@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+
+{% block title %}Gestión de Empresas - Sistema Multi-Tenant{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .empresas-hero {
+        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .search-box {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        margin-bottom: 2rem;
+    }
+    
+    .table-empresas {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        overflow: hidden;
+    }
+    
+    .table-empresas th {
+        background: {{ tema.primary_dark }} !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+    }
+    
+    .table-empresas td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid {{ tema.primary }}15;
+    }
+    
+    .table-empresas tbody tr:hover {
+        background-color: {{ tema.primary }}08;
+    }
+    
+    .badge-plan {
+        padding: 0.4rem 0.8rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .badge-basico {
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        color: white;
+    }
+    
+    .badge-profesional {
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%);
+        color: white;
+    }
+    
+    .badge-empresarial {
+        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
+        color: white;
+    }
+    
+    .badge-estado {
+        padding: 0.4rem 0.8rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-size: 0.85rem;
+    }
+    
+    .badge-activo {
+        background: #D4EDDA;
+        color: #155724;
+    }
+    
+    .badge-suspendido {
+        background: #FFF3CD;
+        color: #856404;
+    }
+    
+    .badge-inactivo {
+        background: #F8D7DA;
+        color: #721C24;
+    }
+    
+    .licencias-info {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .licencias-bar {
+        width: 100px;
+        height: 8px;
+        background: #E0E0E0;
+        border-radius: 10px;
+        overflow: hidden;
+    }
+    
+    .licencias-fill {
+        height: 100%;
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%);
+        transition: width 0.3s ease;
+    }
+    
+    .btn-nuevo {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.7rem 1.5rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-nuevo:hover {
+        background: {{ tema.primary }};
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px {{ tema.primary }}50;
+    }
+    
+    .btn-editar {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.4rem 0.8rem;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-editar:hover {
+        background: var(--primary-color);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 10px {{ tema.primary }}50;
+    }
+</style>
+
+<div class="container py-5">
+    <!-- Hero -->
+    <div class="empresas-hero">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-building me-2"></i>
+                    Gestión de Empresas
+                </h1>
+                <p class="text-muted mb-0">Sistema Multi-Tenant - Administración de empresas</p>
+            </div>
+            <div>
+                <a href="{{ url_for('admin_empresas_nueva') }}" class="btn btn-nuevo">
+                    <i class="fas fa-plus me-2"></i>Nueva Empresa
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-empresas">
+        {% if empresas %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">ID</th>
+                        <th style="width: 20%;">Nombre</th>
+                        <th style="width: 15%;">Razón Social</th>
+                        <th style="width: 10%;">RNC</th>
+                        <th style="width: 12%;">Licencias</th>
+                        <th style="width: 8%;">Usuarios</th>
+                        <th style="width: 12%;">Suscripción</th>
+                        <th style="width: 8%;">Plan</th>
+                        <th style="width: 8%;">Estado</th>
+                        <th style="width: 12%;" class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in empresas %}
+                    <tr>
+                        <td><strong>{{ empresa['id'] }}</strong></td>
+                        <td><strong>{{ empresa['nombre'] }}</strong></td>
+                        <td>{{ empresa['razon_social'] }}</td>
+                        <td>{{ empresa['rnc'] or 'N/A' }}</td>
+                        <td>
+                            <div class="licencias-info">
+                                <span style="font-size: 0.85rem; font-weight: 600;">
+                                    {{ empresa['licencias_usadas'] }}/{{ empresa['licencias_totales'] }}
+                                </span>
+                                <div class="licencias-bar">
+                                    <div class="licencias-fill" 
+                                         style="width: {{ (empresa['licencias_usadas'] / empresa['licencias_totales'] * 100) if empresa['licencias_totales'] > 0 else 0 }}%;"></div>
+                                </div>
+                            </div>
+                        </td>
+                        <td class="text-center">
+                            <strong>{{ empresa['total_usuarios'] }}</strong>
+                        </td>
+                        <td>
+                            {% if empresa.get('fecha_fin') %}
+                                <span class="badge bg-{{ empresa['estado_clase'] }}" style="font-size: 0.75rem;">
+                                    <i class="fas fa-{{ empresa['estado_icono'] }}"></i> {{ empresa['estado_texto'] }}
+                                </span><br>
+                                <small class="text-muted">Vence: {{ empresa['fecha_fin'] }}</small>
+                            {% else %}
+                                <span class="badge bg-secondary" style="font-size: 0.75rem;">
+                                    <i class="fas fa-calendar"></i> Sin fecha
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge-plan badge-{{ empresa['plan'] }}">
+                                {{ empresa['plan']|title }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge-estado badge-{{ empresa['estado'] }}">
+                                {{ empresa['estado']|title }}
+                            </span>
+                        </td>
+                        <td class="text-center">
+                            <a href="{{ url_for('admin_empresas_editar', empresa_id=empresa['id']) }}" 
+                               class="btn btn-editar">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-inbox" style="font-size: 3rem; color: var(--text-muted); opacity: 0.5;"></i>
+            <p class="text-muted mt-3">No hay empresas registradas</p>
+            <a href="{{ url_for('admin_empresas_nueva') }}" class="btn btn-nuevo mt-2">
+                <i class="fas fa-plus me-2"></i>Crear primera empresa
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+

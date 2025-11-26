@@ -151,58 +151,23 @@
     <!-- CSS local - Carga directa para prevenir FOUC -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}?v=2.1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-colors.css') }}?v=2.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-design.css') }}?v=2.2">
+    <!-- Archivos eliminados para permitir temas dinámicos:
     <link rel="stylesheet" href="{{ url_for('static', filename='css/piggy-pink-background.css') }}?v=2.1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/silver-pink-elements.css') }}?v=2.1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/silver-chalice-titles.css') }}?v=2.1">
+    -->
     
     <!-- Responsive Enhanced CSS (CRÍTICO para móvil) - Versión Minificada -->
     <link href="{{ url_for('static', filename='css/responsive-enhanced.min.css') }}?v=3.0" rel="stylesheet">
     
+    <!-- Botones Estandarizados - Todos los botones con tamaño consistente -->
+    <link href="{{ url_for('static', filename='css/botones-estandarizados.min.css') }}?v=1.4" rel="stylesheet">
+    
     <!-- Estilos Críticos Inline - Prevenir FOUC (Flash of Unstyled Content) -->
     <style>
         /* ===== PREVENIR FOUC - ESTILOS CRÍTICOS ===== */
-        /* Ocultar contenido hasta que esté listo */
-        body {
-            opacity: 0;
-            transition: opacity 0.3s ease-in;
-        }
-        body.loaded {
-            opacity: 1;
-        }
-        
-        /* Loader mientras carga */
-        #page-loader {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #F2E2E6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 99999;
-            transition: opacity 0.3s ease-out, visibility 0.3s ease-out;
-        }
-        #page-loader.hidden {
-            opacity: 0;
-            visibility: hidden;
-        }
-        
-        /* Spinner del loader */
-        .loader-spinner {
-            width: 50px;
-            height: 50px;
-            border: 4px solid #DBC4CA;
-            border-top: 4px solid #CEB0B7;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        /* Loader deshabilitado para carga instantánea */
         
         /* Estilos base críticos para prevenir layout shift */
         * {
@@ -258,36 +223,41 @@
     </style>
     <style>
         :root {
-            /* Paleta de colores optimizada Dra. Shirley Ramírez */
-            --primary-color: #CEB0B7;        /* SILVER PINK - Color principal para botones y elementos */
-            --primary-dark: #B89CA3;          /* SILVER PINK más oscuro para hover */
-            --secondary-color: #CEB0B7;      /* SILVER PINK - Color secundario */
-            --secondary-light: #DBC4CA;      /* SILVER PINK más claro para fondos */
-            --accent-color: #DDC3C8;         /* DUST STORM - Color de acento sutil */
-            --accent-light: #F2E2E6;         /* PIGGY PINK - Color de fondo muy claro */
-            --title-color: #ACACAD;          /* SILVER CHALICE - Color para títulos de menús y botones */
-            --title-dark: #949495;           /* SILVER CHALICE más oscuro para hover */
-            --text-dark: #282828;            /* RAISIN BLACK - Texto principal */
-            --text-medium: #4A4A4A;          /* Texto medio */
-            --text-light: #6B6B6B;          /* Texto secundario */
-            --text-muted: #8B8B8B;          /* Texto suave */
-            --background-white: #FFFFFF;     /* Fondo blanco puro */
-            --background-light: #FAFAFA;    /* Fondo muy claro */
-            --background-soft: #F5F5F5;     /* Fondo suave */
-            --border-light: #E0E0E0;        /* Bordes suaves */
-            --shadow-light: rgba(206, 176, 183, 0.08);  /* Sombras suaves SILVER PINK */
-            --shadow-medium: rgba(206, 176, 183, 0.15); /* Sombras medias SILVER PINK */
-            --shadow-strong: rgba(206, 176, 183, 0.25); /* Sombras fuertes SILVER PINK */
-            --gradient-primary: linear-gradient(135deg, #CEB0B7 0%, #B89CA3 50%, #DDC3C8 100%);
-            --gradient-secondary: linear-gradient(135deg, #F2E2E6 0%, #DBC4CA 100%);
-            --gradient-accent: linear-gradient(135deg, #CEB0B7 0%, #DDC3C8 100%);
-            --gradient-hero: linear-gradient(135deg, #CEB0B7 0%, #B89CA3 100%);
-            --gradient-title: linear-gradient(135deg, #ACACAD 0%, #949495 100%);
+            /* Paleta de colores dinámica basada en el tema del usuario */
+            {% if current_user.is_authenticated %}
+            --primary-color: {{ tema.primary }};
+            --primary-dark: {{ tema.primary_dark }};
+            --primary-light: {{ tema.primary_light }};
+            --background-theme: {{ tema.background }};
+            --gradient-primary: linear-gradient(135deg, {{ tema.gradient_start }} 0%, {{ tema.gradient_end }} 100%);
+            {% else %}
+            --primary-color: #CEB0B7;
+            --primary-dark: #B89CA3;
+            --primary-light: #DDC3C8;
+            --background-theme: #F2E2E6;
+            --gradient-primary: linear-gradient(135deg, #CEB0B7 0%, #B89CA3 100%);
+            {% endif %}
+            
+            /* Colores de texto universales */
+            --text-dark: #282828;
+            --text-medium: #4A4A4A;
+            --text-light: #6B6B6B;
+            --text-muted: #8B8B8B;
+            
+            /* Fondos universales */
+            --background-white: #FFFFFF;
+            --background-light: #FAFAFA;
+            --background-soft: #F5F5F5;
+            --border-light: #E0E0E0;
         }
         
         body {
             color: var(--text-dark);
-            background-color: #F2E2E6; /* PIGGY PINK - Color de fondo principal */
+            {% if current_user.is_authenticated %}
+            background-color: {{ tema.background }};
+            {% else %}
+            background-color: #F2E2E6;
+            {% endif %}
         }
         
         .hero {
@@ -372,33 +342,98 @@
         
         .navbar-brand {
             font-weight: 700;
-            font-size: 1.5rem;
+            font-size: 0.85rem;
             color: var(--primary-color) !important;
         }
         
         .navbar-nav .nav-link {
-            font-weight: 700;
-            font-size: 1.5rem;
+            font-weight: 600 !important;
+            font-size: 0.8rem !important;
             color: var(--text-dark) !important;
-            transition: all 0.3s ease;
-            position: relative;
-            padding: 0.5rem 1rem !important;
-            border-radius: 25px;
-            margin: 0.2rem;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            position: relative !important;
+            padding: 0.25rem 0.5rem !important;
+            border-radius: 25px !important;
+            margin: 0.1rem !important;
+            background: transparent !important;
+            border: none !important;
+            overflow: hidden !important;
+        }
+        
+        /* Efecto de brillo que pasa por encima */
+        .navbar-nav .nav-link::before {
+            content: '' !important;
+            position: absolute !important;
+            top: 0 !important;
+            left: -100% !important;
+            width: 100% !important;
+            height: 100% !important;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent) !important;
+            transition: left 0.5s ease !important;
+            z-index: 1 !important;
+        }
+        
+        /* Línea animada debajo del enlace */
+        .navbar-nav .nav-link::after {
+            content: '' !important;
+            position: absolute !important;
+            bottom: 0 !important;
+            left: 50% !important;
+            width: 0 !important;
+            height: 2px !important;
+            background: var(--primary-color) !important;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1) !important;
+            transform: translateX(-50%) !important;
+            z-index: 2 !important;
         }
         
         .navbar-nav .nav-link:hover {
             color: var(--primary-color) !important;
-            background-color: rgba(206, 176, 183, 0.1);
-            transform: translateY(-2px);
+            background-color: rgba(206, 176, 183, 0.1) !important;
+            transform: translateY(-2px) scale(1.05) !important;
+            box-shadow: 0 4px 12px rgba(206, 176, 183, 0.2) !important;
+        }
+        
+        .navbar-nav .nav-link:hover::before {
+            left: 100% !important;
+        }
+        
+        .navbar-nav .nav-link:hover::after {
+            width: 100% !important;
         }
         
         .navbar-nav .nav-link.active {
             color: var(--primary-color) !important;
-            background-color: rgba(206, 176, 183, 0.15);
-            box-shadow: 0 4px 12px rgba(206, 176, 183, 0.3);
-            border: 2px solid rgba(206, 176, 183, 0.3);
+            background-color: rgba(206, 176, 183, 0.15) !important;
+            box-shadow: 0 4px 12px rgba(206, 176, 183, 0.3) !important;
+            border: 2px solid rgba(206, 176, 183, 0.3) !important;
+            transform: translateY(-1px) !important;
         }
+        
+        .navbar-nav .nav-link.active::after {
+            width: 100% !important;
+        }
+        
+        /* Animación de entrada para los enlaces */
+        @keyframes navLinkFadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .navbar-nav .nav-item {
+            animation: navLinkFadeIn 0.5s ease-out backwards;
+        }
+        
+        .navbar-nav .nav-item:nth-child(1) { animation-delay: 0.1s; }
+        .navbar-nav .nav-item:nth-child(2) { animation-delay: 0.2s; }
+        .navbar-nav .nav-item:nth-child(3) { animation-delay: 0.3s; }
+        .navbar-nav .nav-item:nth-child(4) { animation-delay: 0.4s; }
         
         /* Dropdown menu con bordes redondeados */
         .dropdown-menu {
@@ -426,8 +461,8 @@
         
         /* Menú colapsado en móvil - Sin recuadro de fondo */
         .navbar-collapse {
-            margin-top: 0.5rem;
-            padding: 0.5rem;
+            margin-top: 0.2rem;
+            padding: 0.2rem;
             transition: all 0.4s ease;
         }
         
@@ -484,6 +519,278 @@
             background-color: var(--primary-color);
             transform: translateY(-3px);
             box-shadow: 0 6px 20px rgba(206, 176, 183, 0.4);
+        }
+        
+        /* Estilos globales para botones de formularios */
+        .btn-cancelar, .btn-volver, .btn-limpiar, 
+        .btn-outline-secondary:not(.btn-accion-eliminar) {
+            background: white !important;
+            border: 2px solid var(--primary-color) !important;
+            color: var(--primary-color) !important;
+            padding: 0.8rem 2rem !important;
+            border-radius: 15px !important;
+            font-weight: 600 !important;
+            transition: all 0.3s ease !important;
+            text-decoration: none !important;
+            display: inline-block !important;
+        }
+        
+        .btn-cancelar:hover, .btn-volver:hover, .btn-limpiar:hover,
+        .btn-outline-secondary:not(.btn-accion-eliminar):hover {
+            background: var(--primary-color) !important;
+            color: white !important;
+            transform: translateY(-2px) !important;
+            box-shadow: 0 4px 15px {{ tema.primary }}50 !important;
+        }
+        
+        /* Botón secundario de Bootstrap con colores del tema */
+        .btn-secondary:not(.btn-eliminar):not(.btn-accion-eliminar) {
+            background: var(--primary-color) !important;
+            border-color: var(--primary-color) !important;
+            color: white !important;
+        }
+        
+        .btn-secondary:not(.btn-eliminar):not(.btn-accion-eliminar):hover {
+            background: var(--primary-dark) !important;
+            border-color: var(--primary-dark) !important;
+        }
+        
+        /* Estilos globales para SELECT/COMBOBOX - MÁXIMA COMPATIBILIDAD */
+        select, .form-select {
+            border: 2px solid {{ tema.primary }}50 !important;
+            border-radius: 10px !important;
+            padding: 0.75rem 1rem !important;
+            background-color: white !important;
+            color: #1E293B !important;
+            font-weight: 500 !important;
+            transition: all 0.3s ease !important;
+            /* Forzar apariencia nativa para mayor control */
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='{{ tema.primary | replace('#', '%23') }}' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 12px;
+            padding-right: 3rem !important;
+        }
+        
+        select:focus, .form-select:focus {
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 0.2rem {{ tema.primary }}25 !important;
+            outline: none !important;
+            background-color: #F0FDFA !important;
+        }
+        
+        select:hover, .form-select:hover {
+            border-color: var(--primary-color) !important;
+            background-color: {{ tema.primary }}08 !important;
+        }
+        
+        /* Opciones del dropdown - Estilos específicos por navegador */
+        select option, .form-select option {
+            background-color: white;
+            color: #1E293B;
+            padding: 12px 16px;
+            font-weight: 500;
+        }
+        
+        /* Firefox - Mayor control de opciones */
+        @-moz-document url-prefix() {
+            select option, .form-select option {
+                background-color: white !important;
+                color: #1E293B !important;
+            }
+            
+            select option:hover, .form-select option:hover {
+                background-color: {{ tema.primary }}15 !important;
+            }
+            
+            select option:checked, .form-select option:checked {
+                background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
+                color: white !important;
+            }
+        }
+        
+        /* Chrome/Safari - Forzar fondo blanco */
+        @supports (-webkit-appearance: none) {
+            select option {
+                background: white;
+                color: #1E293B;
+            }
+        }
+        
+        /* Placeholder del select */
+        select option[value=""],
+        select option[disabled],
+        .form-select option[value=""],
+        .form-select option[disabled] {
+            color: #94A3B8 !important;
+            font-style: italic !important;
+            background-color: #F8FAFC !important;
+        }
+        
+        /* Opción seleccionada actualmente */
+        select option:checked {
+            background: {{ tema.primary }} linear-gradient(0deg, {{ tema.primary }} 0%, {{ tema.primary }} 100%);
+            color: white;
+        }
+        
+        /* ICONOS GLOBALES - Aplicar color del tema a todos los iconos */
+        
+        /* Iconos en encabezados (h1, h2, h3, h4, h5) */
+        h1 i, h2 i, h3 i, h4 i, h5 i,
+        .facturacion-hero i, .maestra-hero i, .historico-hero i,
+        .config-header i, .admin-header i {
+            color: var(--primary-color) !important;
+        }
+        
+        /* Iconos en labels de formularios */
+        label i, .form-label i, .info-label i {
+            color: var(--primary-color) !important;
+        }
+        
+        /* Iconos en títulos de secciones */
+        .section-title i, .seccion-titulo i {
+            color: var(--primary-color) !important;
+        }
+        
+        /* Iconos en filtros y búsquedas */
+        .search-box i, .filtros-card i {
+            color: var(--primary-color) !important;
+        }
+        
+        /* Iconos en badges de estado (solo si no tienen color específico) */
+        .badge i:not(.fa-exclamation-triangle):not(.fa-times):not(.fa-check) {
+            color: inherit !important;
+        }
+        
+        /* IMPORTANTE: Los iconos en botones SIEMPRE heredan el color del texto del botón */
+        .btn i, .btn .fa, .btn .fas, .btn .far, .btn .fab, .btn svg {
+            color: inherit !important;
+        }
+        
+        /* Iconos en dropdowns */
+        .dropdown-item i {
+            color: var(--primary-color) !important;
+        }
+        
+        /* Iconos en info boxes */
+        .info-box i, .alert-info i, .info-field i {
+            color: var(--primary-color) !important;
+        }
+        
+        /* BOTONES GLOBALES - Forzar colores del tema */
+        
+        /* Todos los botones con clase btn que contengan "volver", "menu", "cancelar" */
+        a.btn[href*="menu"], 
+        a[class*="volver"],
+        button[class*="volver"],
+        .btn-menu,
+        a[style*="ACACAD"] {
+            background: white !important;
+            border: 2px solid var(--primary-color) !important;
+            color: var(--primary-color) !important;
+        }
+        
+        a.btn[href*="menu"]:hover, 
+        a[class*="volver"]:hover,
+        button[class*="volver"]:hover,
+        .btn-menu:hover,
+        a[style*="ACACAD"]:hover {
+            background: var(--primary-color) !important;
+            color: white !important;
+        }
+        
+        /* Forzar color de íconos en botones "Volver al Menú" */
+        a.btn[href*="menu"] i,
+        a.btn[href*="menu"] span {
+            color: var(--primary-color) !important;
+        }
+        
+        a.btn[href*="menu"]:hover i,
+        a.btn[href*="menu"]:hover span {
+            color: white !important;
+        }
+        
+        /* TEXTOS Y FUENTES GLOBALES */
+        
+        /* Títulos principales siempre con color del tema */
+        h1, .h1 {
+            color: var(--primary-color) !important;
+        }
+        
+        h2, .h2, h3, .h3 {
+            color: var(--primary-color) !important;
+        }
+        
+        /* Títulos en hero sections */
+        .facturacion-hero h1,
+        .maestra-hero h1,
+        .historico-hero h1,
+        .dashboard-header h1 {
+            color: var(--primary-color) !important;
+        }
+        
+        /* Textos en tarjetas del menú */
+        .maestra-card h4 {
+            color: var(--primary-color) !important;
+        }
+        
+        /* Links y enlaces */
+        a:not(.btn):not(.dropdown-item):not(.nav-link) {
+            color: var(--primary-color) !important;
+        }
+        
+        a:not(.btn):not(.dropdown-item):not(.nav-link):hover {
+            color: var(--primary-dark) !important;
+        }
+        
+        /* INPUTS GLOBALES - Aplicar estilos del tema */
+        
+        input[type="text"],
+        input[type="email"],
+        input[type="number"],
+        input[type="date"],
+        input[type="password"],
+        input[type="search"],
+        textarea,
+        .form-control {
+            border: 2px solid {{ tema.primary }}50 !important;
+            border-radius: 10px !important;
+            padding: 0.75rem 1rem !important;
+            transition: all 0.3s ease !important;
+            background-color: white !important;
+        }
+        
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        input[type="number"]:focus,
+        input[type="date"]:focus,
+        input[type="password"]:focus,
+        input[type="search"]:focus,
+        textarea:focus,
+        .form-control:focus {
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 0.2rem {{ tema.primary }}25 !important;
+            outline: none !important;
+        }
+        
+        input[type="text"]:hover,
+        input[type="email"]:hover,
+        input[type="number"]:hover,
+        input[type="date"]:hover,
+        input[type="password"]:hover,
+        input[type="search"]:hover,
+        textarea:hover,
+        .form-control:hover {
+            border-color: var(--primary-color) !important;
+        }
+        
+        /* Checkboxes y radios */
+        input[type="checkbox"],
+        input[type="radio"] {
+            accent-color: var(--primary-color) !important;
         }
         
         /* Floating Action Buttons Base Styles */
@@ -644,23 +951,23 @@
             
             /* Navbar responsive */
             .navbar-brand span:first-child {
-                font-size: 1.2rem !important;
+                font-size: 0.8rem !important;
             }
             
             .navbar-brand span:last-child {
-                font-size: 0.75rem !important;
+                font-size: 0.65rem !important;
             }
             
             /* Menú en móvil - más compacto */
             .navbar-nav .nav-link {
-                font-size: 1.1rem;
-                padding: 0.7rem 1rem !important;
-                margin: 0.3rem 0;
+                font-size: 0.75rem;
+                padding: 0.2rem 0.4rem !important;
+                margin: 0.1rem 0;
             }
             
             .navbar-collapse {
-                margin-top: 0.3rem;
-                padding: 0.5rem;
+                margin-top: 0.1rem;
+                padding: 0.2rem;
             }
         }
         
@@ -686,22 +993,22 @@
             
             /* Navbar más pequeño en móviles */
             .navbar-brand span:first-child {
-                font-size: 1.1rem !important;
+                font-size: 0.75rem !important;
             }
             
             .navbar-brand span:last-child {
-                font-size: 0.7rem !important;
+                font-size: 0.6rem !important;
             }
             
             /* Menú en móvil pequeño */
             .navbar-nav .nav-link {
-                font-size: 1rem;
-                padding: 0.6rem 0.8rem !important;
+                font-size: 0.7rem;
+                padding: 0.2rem 0.4rem !important;
             }
             
             .navbar-collapse {
-                margin-top: 0.2rem;
-                padding: 0.3rem;
+                margin-top: 0.1rem;
+                padding: 0.15rem;
             }
             
             .btn-cita-animated {
@@ -718,16 +1025,16 @@
         /* Extra pequeño - iPhone SE y similar */
         @media (max-width: 375px) {
             .navbar-brand span:first-child {
-                font-size: 1rem !important;
+                font-size: 0.7rem !important;
             }
             
             .navbar-brand span:last-child {
-                font-size: 0.65rem !important;
+                font-size: 0.55rem !important;
             }
             
             .navbar-nav .nav-link {
-                font-size: 0.95rem;
-                padding: 0.5rem 0.7rem !important;
+                font-size: 0.65rem;
+                padding: 0.2rem 0.35rem !important;
             }
             
             .btn-cita-animated {
@@ -758,11 +1065,11 @@
         /* Landscape mode para móviles - Navbar */
         @media (max-height: 500px) and (orientation: landscape) {
             .navbar {
-                padding: 0.3rem 0 !important;
+                padding: 0.15rem 0 !important;
             }
             
             .navbar-brand span:first-child {
-                font-size: 1rem !important;
+                font-size: 0.7rem !important;
             }
             
             .navbar-brand span:last-child {
@@ -770,8 +1077,8 @@
             }
             
             .navbar-nav .nav-link {
-                font-size: 0.9rem;
-                padding: 0.4rem 0.8rem !important;
+                font-size: 0.65rem;
+                padding: 0.2rem 0.4rem !important;
             }
             
             .btn-cita-animated {
@@ -785,53 +1092,76 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
-    <!-- Loader de página para prevenir FOUC -->
-    <div id="page-loader">
-        <div class="loader-spinner"></div>
-    </div>
-    
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TW8956LR"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
     
     <!-- Header -->
-    <nav class="navbar navbar-expand-lg navbar-light shadow-sm" style="background-color: rgba(255, 255, 255, 0.9); backdrop-filter: blur(15px);">
-        <div class="container">
-            <a class="navbar-brand d-flex flex-column" href="{{ url_for('index') }}" style="line-height: 1.2;">
-                <span style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">Dra. Shirley Ramírez</span>
-                <span style="font-size: 0.85rem; font-weight: 400; color: var(--title-color);">Ginecóloga-Obstetra</span>
+    {% if current_user.is_authenticated %}
+    <!-- Navbar para Sistema de Facturación -->
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background: linear-gradient(135deg, {{ tema.gradient_start }} 0%, {{ tema.gradient_end}} 100%); padding: 0.2rem 0;">
+        <div class="container-fluid px-3">
+            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('facturacion_menu') }}" style="font-weight: 700; font-size: 0.85rem;">
+                <i class="fas fa-file-invoice-dollar me-2" style="font-size: 0.8rem;"></i>
+                {% if empresa and empresa.empresa_nombre %}
+                    {{ empresa.empresa_nombre }}
+                {% else %}
+                    Sistema de Facturación
+                {% endif %}
             </a>
             
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation" aria-controls="navbarNav" aria-expanded="false">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation" style="padding: 0.2rem 0.4rem; font-size: 0.8rem;">
                 <span class="navbar-toggler-icon"></span>
             </button>
             
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto">
+                <ul class="navbar-nav ms-auto align-items-center" style="font-size: 0.8rem;">
                     <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'index' %}active{% endif %}" href="{{ url_for('index') }}">Inicio</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'services' %}active{% endif %}" href="{{ url_for('services') }}">Servicios</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'about' %}active{% endif %}" href="{{ url_for('about') }}">Sobre Mí</a>
-                    </li>
-                    <!-- Testimonios oculto del menú - solo accesible desde la página de inicio -->
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.endpoint == 'contact' %}active{% endif %}" href="{{ url_for('contact') }}">Contacto</a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="btn btn-primary btn-cita-animated ms-2" href="{{ url_for('request_appointment') }}" style="font-size: 1.5rem; padding: 0.5rem 1.5rem;">
-                            <i class="fas fa-calendar-plus me-2"></i>
-                            Solicitar Cita
+                        <a class="nav-link" href="{{ url_for('facturacion_menu') }}">
+                            <i class="fas fa-home me-1" style="font-size: 0.75rem;"></i> Inicio
                         </a>
+                    </li>
+                    {% if current_user.perfil == 'Administrador' %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_usuarios') }}">
+                            <i class="fas fa-users-cog me-1" style="font-size: 0.75rem;"></i> Usuarios
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_empresas') }}">
+                            <i class="fas fa-building me-1" style="font-size: 0.75rem;"></i> Empresas
+                        </a>
+                    </li>
+                    {% endif %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-user-circle me-1" style="font-size: 0.75rem;"></i> {{ current_user.nombre }}
+                        </a>
+                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                            <li><h6 class="dropdown-header">{{ current_user.email }}</h6></li>
+                            <li><span class="dropdown-item-text"><small>Perfil: {{ current_user.perfil }}</small></span></li>
+                            {% if empresa and empresa.empresa_nombre %}
+                            <li><span class="dropdown-item-text"><small><i class="fas fa-building me-1"></i>{{ empresa.empresa_nombre }}</small></span></li>
+                            {% endif %}
+                            <li><hr class="dropdown-divider"></li>
+                            <li>
+                                <a class="dropdown-item" href="{{ url_for('perfil_configuracion') }}">
+                                    <i class="fas fa-palette me-2"></i> Personalizar Tema
+                                </a>
+                            </li>
+                            <li>
+                                <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                                    <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 </ul>
             </div>
         </div>
     </nav>
+    {% endif %}
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
@@ -852,7 +1182,8 @@
         {% block content %}{% endblock %}
     </main>
 
-    <!-- Footer -->
+    <!-- Footer - Solo visible si NO está autenticado -->
+    {% if not current_user.is_authenticated %}
     <footer class="text-light py-4 mt-5" style="background-color: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); color: var(--text-dark);">
         <div class="container">
             <div class="row justify-content-center">
@@ -981,8 +1312,10 @@
             </div>
         </div>
     </footer>
+    {% endif %}
 
-    <!-- Floating Action Buttons -->
+    <!-- Floating Action Buttons - Solo visibles si NO está autenticado -->
+    {% if not current_user.is_authenticated %}
     <!-- WhatsApp Button -->
     <a href="https://wa.me/18297405073?text=Hola,%20me%20gustaría%20solicitar%20una%20cita" 
        class="float-button whatsapp-float" 
@@ -1007,6 +1340,7 @@
        title="Solicitar Cita">
         <i class="fas fa-calendar-plus"></i>
     </a>
+    {% endif %}
 
     <!-- JavaScript - Carga optimizada con defer para máxima velocidad -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
@@ -1014,37 +1348,22 @@
     <!-- Script de optimización de rendimiento -->
     <script src="{{ url_for('static', filename='js/performance.js') }}?v=2" defer></script>
     
-    <!-- Script para ocultar loader cuando la página está lista - Prevenir FOUC -->
+    <!-- Auto-hide flash messages después de 5 segundos -->
     <script>
-        // Ocultar loader cuando todo esté cargado
-        window.addEventListener('load', function() {
-            // Asegurar que el body tenga la clase loaded
-            document.body.classList.add('loaded');
+        document.addEventListener('DOMContentLoaded', function() {
+            // Obtener todos los mensajes flash (alertas)
+            const alerts = document.querySelectorAll('.alert.alert-dismissible');
             
-            // Ocultar el loader con un pequeño delay para suavidad
-            setTimeout(function() {
-                const loader = document.getElementById('page-loader');
-                if (loader) {
-                    loader.classList.add('hidden');
-                    // Remover completamente después de la transición
-                    setTimeout(function() {
-                        loader.style.display = 'none';
-                    }, 300);
-                }
-            }, 100);
-        });
-        
-        // Fallback: Si por alguna razón no se dispara load, forzar después de 3 segundos
-        setTimeout(function() {
-            document.body.classList.add('loaded');
-            const loader = document.getElementById('page-loader');
-            if (loader && !loader.classList.contains('hidden')) {
-                loader.classList.add('hidden');
+            alerts.forEach(function(alert) {
+                // Cerrar automáticamente después de 5 segundos
                 setTimeout(function() {
-                    loader.style.display = 'none';
-                }, 300);
-            }
-        }, 3000);
+                    const bsAlert = new bootstrap.Alert(alert);
+                    bsAlert.close();
+                }, 5000);
+            });
+        });
     </script>
+    
+    <!-- Loader removido para carga instantánea -->
 </body>
 </html>

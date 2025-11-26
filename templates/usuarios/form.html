@@ -16,7 +16,7 @@
     }
     
     .form-header {
-        border-bottom: 3px solid #CEB0B7;
+        border-bottom: 3px solid {{ tema.primary }};
         padding-bottom: 20px;
         margin-bottom: 30px;
     }
@@ -76,8 +76,8 @@
     .form-group input:focus,
     .form-group select:focus {
         outline: none;
-        border-color: #CEB0B7;
-        box-shadow: 0 0 0 3px rgba(206, 176, 183, 0.1);
+        border-color: {{ tema.primary }};
+        box-shadow: 0 0 0 3px {{ tema.primary }}15;
     }
     
     .form-group small {
@@ -97,7 +97,7 @@
         width: 20px;
         height: 20px;
         cursor: pointer;
-        accent-color: #CEB0B7;
+        accent-color: {{ tema.primary }};
     }
     
     .checkbox-group label {
@@ -288,9 +288,10 @@
         
         {% if usuario %}
             <div class="form-group">
-                <label>
+                <label style="display: block; color: #282828; font-weight: 600; margin-bottom: 8px; font-size: 15px;">
                     📊 Estado del Usuario
                 </label>
+                <div style="padding: 1rem; background: {{ tema.primary }}10; border-radius: 10px; border-left: 4px solid {{ tema.primary }};">
                 <div class="checkbox-group">
                     <input 
                         type="checkbox" 
@@ -298,8 +299,16 @@
                         name="activo" 
                         value="1"
                         {% if usuario.activo %}checked{% endif %}
+                            style="width: 20px; height: 20px; cursor: pointer; accent-color: {{ tema.primary }};"
                     >
-                    <label for="activo">Usuario activo (puede iniciar sesión)</label>
+                        <label for="activo" style="cursor: pointer; font-weight: 600; color: {{ tema.primary_dark }}; margin: 0;">
+                            <i class="fas fa-toggle-on me-2"></i>Usuario activo (puede iniciar sesión)
+                        </label>
+                    </div>
+                    <small class="d-block text-muted mt-2" style="margin-left: 30px;">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Si está desactivado, el usuario no podrá iniciar sesión en el sistema
+                    </small>
                 </div>
             </div>
             

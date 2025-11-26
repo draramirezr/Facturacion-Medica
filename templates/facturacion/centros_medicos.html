@@ -1,0 +1,186 @@
+{% extends "base.html" %}
+
+{% block title %}Centros Médicos - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .facturacion-hero {
+        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .search-box {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        margin-bottom: 2rem;
+    }
+    
+    .table-facturacion {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        overflow: hidden;
+    }
+    
+    .table-responsive-wrapper {
+        max-height: 400px; /* Altura aproximada para 5 registros */
+        overflow-x: auto;
+        overflow-y: auto;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb {
+        background: {{ tema.primary_dark }};
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+        background: {{ tema.primary }};
+    }
+    
+    .table-facturacion table {
+        min-width: 800px;
+    }
+    
+    .table-facturacion th {
+        background: {{ tema.primary_dark }} !important;
+        background-color: {{ tema.primary_dark }} !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .table-facturacion thead th {
+        color: #FFFFFF !important;
+    }
+    
+    .table-facturacion td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid {{ tema.primary }}15;
+    }
+    
+    .table-facturacion tbody tr:hover {
+        background-color: {{ tema.primary }}08;
+    }
+    
+    /* Los estilos de botones están en botones-estandarizados.css */
+
+    
+    /* Los estilos de botones ahora están en botones-estandarizados.css */
+    /* Esto garantiza que todos los botones tengan el mismo tamaño */
+</style>
+
+<div class="container py-5">
+    <!-- Hero Section -->
+    <div class="facturacion-hero">
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 style="color: var(--primary-color); font-weight: 700; margin: 0;">
+                <i class="fas fa-hospital-alt me-2"></i>
+                Centros Médicos
+            </h2>
+            <div>
+                <a href="{{ url_for('facturacion_centros_medicos_nuevo') }}" class="btn btn-volver">
+                    <i class="fas fa-plus me-2"></i>Agregar Centro
+                </a>
+                <a href="{{ url_for('facturacion_menu') }}" class="btn btn-volver">
+                    <i class="fas fa-arrow-left me-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="search-box">
+        <form method="GET">
+            <div class="row align-items-end">
+                <div class="col-md-10">
+                    <input type="text" class="form-control" name="search" 
+                           placeholder="Buscar por nombre o RNC..." value="{{ search or '' }}" style="border-radius: 10px; height: 48px;">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-buscar w-100" style="height: 48px;">
+                        <i class="fas fa-search me-2"></i>Buscar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla -->
+    {% if centros_list %}
+    <div class="table-facturacion">
+        <div class="table-responsive-wrapper">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Dirección</th>
+                        <th>RNC</th>
+                        <th>Teléfono</th>
+                        <th style="width: 100px;">Estado</th>
+                        <th style="width: 150px;">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for centro in centros_list %}
+                    <tr>
+                        <td>{{ centro['nombre'] }}</td>
+                        <td>{{ centro['direccion'] }}</td>
+                        <td>{{ centro['rnc'] if centro['rnc'] else '-' }}</td>
+                        <td>{{ centro['telefono'] if centro['telefono'] else '-' }}</td>
+                        <td class="text-center">
+                            {% if centro['activo'] %}
+                            <span class="badge bg-success">Activo</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactivo</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="d-flex justify-content-center gap-2">
+                                <a href="{{ url_for('facturacion_centros_medicos_editar', centro_id=centro['id']) }}" 
+                                   class="btn btn-accion-editar" title="Editar">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                                <a href="#" 
+                                   onclick="if(confirm('¿Está seguro de eliminar este centro médico?')) { document.getElementById('delete-form-{{ centro['id'] }}').submit(); } return false;"
+                                   class="btn btn-accion-editar" title="Eliminar">
+                                    <i class="fas fa-trash"></i> Eliminar
+                                </a>
+                                <form id="delete-form-{{ centro['id'] }}" method="POST" action="{{ url_for('facturacion_centros_medicos_eliminar', centro_id=centro['id']) }}" style="display: none;">
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="alert alert-info" style="background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 2rem;">
+        <i class="fas fa-info-circle me-2"></i>
+        No hay centros médicos registrados. Haz clic en "Agregar Centro" para comenzar.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+

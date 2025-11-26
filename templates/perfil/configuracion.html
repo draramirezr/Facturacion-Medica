@@ -1,0 +1,622 @@
+{% extends "base.html" %}
+
+{% block title %}Personalizar Tema - Sistema de Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    body {
+        background: linear-gradient(135deg, #F0FDFA 0%, #E0F2FE 50%, #F0F9FF 100%);
+        min-height: 100vh;
+    }
+    
+    .perfil-container {
+        max-width: 1400px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+    
+    /* Header moderno con glassmorphism */
+    .perfil-header {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 30px;
+        padding: 3rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 
+            0 20px 60px rgba(6, 182, 212, 0.15),
+            0 0 1px rgba(255, 255, 255, 0.8);
+        border: 1px solid rgba(255, 255, 255, 0.8);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .perfil-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+        0%, 100% { transform: translate(0, 0); }
+        50% { transform: translate(-30px, -30px); }
+    }
+    
+    .perfil-header h1 {
+        margin: 0;
+        font-weight: 800;
+        font-size: 2.5rem;
+        background: linear-gradient(135deg, #06B6D4 0%, #0EA5E9 50%, #14B8A6 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .perfil-header p {
+        margin: 1rem 0 0 0;
+        font-size: 1.1rem;
+        color: #64748B;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Info del usuario - Diseño card moderno */
+    .user-info-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 25px;
+        padding: 2.5rem;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 10px 40px rgba(6, 182, 212, 0.1);
+        border: 1px solid rgba(6, 182, 212, 0.2);
+    }
+    
+    .user-stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+    }
+    
+    .stat-item {
+        background: linear-gradient(135deg, #F0FDFA 0%, #CCFBF1 100%);
+        padding: 1.5rem;
+        border-radius: 20px;
+        border: 2px solid #99F6E4;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .stat-item::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(6, 182, 212, 0.1) 0%, transparent 70%);
+        transform: rotate(45deg);
+    }
+    
+    .stat-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 30px rgba(6, 182, 212, 0.2);
+        border-color: #5EEAD4;
+    }
+    
+    .stat-label {
+        font-size: 0.8rem;
+        color: #0D9488;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .stat-value {
+        font-size: 1.3rem;
+        color: #134E4A;
+        font-weight: 800;
+    }
+    
+    /* Sección de temas con diseño grid moderno */
+    .themes-section {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 25px;
+        padding: 2.5rem;
+        box-shadow: 0 10px 40px rgba(6, 182, 212, 0.1);
+        border: 1px solid rgba(6, 182, 212, 0.2);
+    }
+    
+    .category-header {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin: 2.5rem 0 1.5rem 0;
+        padding-bottom: 1rem;
+        border-bottom: 3px solid #E0F2FE;
+    }
+    
+    .category-header:first-child {
+        margin-top: 0;
+    }
+    
+    .category-icon {
+        width: 50px;
+        height: 50px;
+        border-radius: 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        color: white;
+    }
+    
+    .category-header h3 {
+        margin: 0;
+        font-size: 1.4rem;
+        font-weight: 800;
+        color: #0F172A;
+    }
+    
+    .themes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+    
+    /* Tarjetas de tema con efecto 3D */
+    .theme-card {
+        position: relative;
+        cursor: pointer;
+        border-radius: 20px;
+        overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        background: white;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    }
+    
+    .theme-card:hover {
+        transform: translateY(-10px) scale(1.02);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.15);
+    }
+    
+    .theme-card input[type="radio"] {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    
+    .theme-card input[type="radio"]:checked ~ .theme-preview {
+        border: 4px solid white;
+        box-shadow: 0 0 0 4px currentColor;
+    }
+    
+    .theme-card input[type="radio"]:checked ~ .theme-info .check-badge {
+        opacity: 1;
+        transform: scale(1) rotate(0deg);
+    }
+    
+    .theme-preview {
+        height: 140px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        overflow: hidden;
+        border: 4px solid transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .theme-preview::before {
+        content: '';
+        position: absolute;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(circle, rgba(255,255,255,0.2) 0%, transparent 70%);
+        animation: pulse-light 3s ease-in-out infinite;
+    }
+    
+    @keyframes pulse-light {
+        0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.5; }
+        50% { transform: scale(1.1) translate(10px, -10px); opacity: 0.8; }
+    }
+    
+    .theme-preview i {
+        font-size: 3rem;
+        color: white;
+        z-index: 1;
+        position: relative;
+        filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
+        animation: float-icon 3s ease-in-out infinite;
+    }
+    
+    @keyframes float-icon {
+        0%, 100% { transform: translateY(0px); }
+        50% { transform: translateY(-10px); }
+    }
+    
+    .theme-info {
+        padding: 1.2rem;
+        background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%);
+        position: relative;
+    }
+    
+    .theme-info h4 {
+        margin: 0 0 0.3rem 0;
+        font-size: 1rem;
+        font-weight: 800;
+        color: #0F172A;
+    }
+    
+    .theme-info p {
+        margin: 0;
+        font-size: 0.75rem;
+        color: #64748B;
+        font-weight: 600;
+    }
+    
+    .theme-info .color-code {
+        font-family: 'Courier New', monospace;
+        font-size: 0.7rem;
+        color: #94A3B8;
+        margin-top: 0.3rem;
+    }
+    
+    .check-badge {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        width: 35px;
+        height: 35px;
+        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transform: scale(0) rotate(-180deg);
+        transition: all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        box-shadow: 0 4px 12px rgba(16, 185, 129, 0.5);
+        z-index: 10;
+    }
+    
+    .check-badge i {
+        color: white;
+        font-size: 1.1rem;
+    }
+    
+    /* Botones con diseño moderno */
+    .action-buttons {
+        position: sticky;
+        bottom: 20px;
+        margin-top: 3rem;
+        display: flex;
+        gap: 1.5rem;
+        justify-content: center;
+        padding: 2rem;
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 25px;
+        box-shadow: 0 10px 40px rgba(6, 182, 212, 0.15);
+        border: 1px solid rgba(6, 182, 212, 0.2);
+        z-index: 100;
+    }
+    
+    .btn-modern {
+        padding: 1.2rem 3rem;
+        border-radius: 20px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.7rem;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .btn-modern::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.3);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+    }
+    
+    .btn-modern:hover::before {
+        width: 300px;
+        height: 300px;
+    }
+    
+    .btn-save-modern {
+        background: linear-gradient(135deg, #06B6D4 0%, #0EA5E9 50%, #14B8A6 100%);
+        color: white;
+        box-shadow: 0 10px 30px rgba(6, 182, 212, 0.4);
+    }
+    
+    .btn-save-modern:hover {
+        transform: translateY(-5px) scale(1.02);
+        box-shadow: 0 15px 40px rgba(6, 182, 212, 0.5);
+    }
+    
+    .btn-cancel-modern {
+        background: linear-gradient(135deg, #F1F5F9 0%, #E2E8F0 100%);
+        color: #475569;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-cancel-modern:hover {
+        background: linear-gradient(135deg, #E2E8F0 0%, #CBD5E1 100%);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+    }
+    
+    /* Flash messages modernas */
+    .alert-modern {
+        border-radius: 20px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border: none;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        animation: slideDown 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Responsive */
+    @media (max-width: 768px) {
+        .perfil-header h1 {
+            font-size: 1.8rem;
+        }
+        
+        .themes-grid {
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 1rem;
+        }
+        
+        .action-buttons {
+            flex-direction: column;
+            gap: 1rem;
+        }
+        
+        .btn-modern {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+
+<div class="perfil-container">
+    <!-- Header -->
+    <div class="perfil-header">
+        <h1><i class="fas fa-palette me-3"></i>Personaliza tu Experiencia</h1>
+        <p>Elige tu paleta de colores favorita y transforma la interfaz a tu estilo</p>
+    </div>
+    
+    <!-- Flash Messages -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else 'success' if category == 'success' else 'warning' }} alert-modern alert-dismissible fade show">
+                    <strong>
+                        <i class="fas fa-{{ 'check-circle' if category == 'success' else 'exclamation-circle' if category == 'error' else 'info-circle' }} me-2"></i>
+                        {{ message }}
+                    </strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <!-- Info del Usuario -->
+    <div class="user-info-card">
+        <div class="user-stats">
+            <div class="stat-item">
+                <div class="stat-label">
+                    <i class="fas fa-user"></i> Usuario
+                </div>
+                <div class="stat-value">{{ current_user.nombre }}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">
+                    <i class="fas fa-envelope"></i> Email
+                </div>
+                <div class="stat-value" style="font-size: 1rem;">{{ current_user.email }}</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">
+                    <i class="fas fa-shield-alt"></i> Perfil
+                </div>
+                <div class="stat-value">{{ current_user.perfil }}</div>
+            </div>
+            {% if empresa and empresa.empresa_nombre %}
+            <div class="stat-item">
+                <div class="stat-label">
+                    <i class="fas fa-building"></i> Empresa
+                </div>
+                <div class="stat-value" style="font-size: 1rem;">{{ empresa.empresa_nombre }}</div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Selección de Temas -->
+    <div class="themes-section">
+        <form method="POST" action="{{ url_for('perfil_configuracion') }}">
+            
+            <!-- Temas Frescos -->
+            <div class="category-header">
+                <div class="category-icon" style="background: linear-gradient(135deg, #06B6D4 0%, #14B8A6 100%);">
+                    <i class="fas fa-water"></i>
+                </div>
+                <h3>Colores Frescos & Vibrantes</h3>
+            </div>
+            <div class="themes-grid">
+                {% for key, tema_item in temas_disponibles.items() if tema_item.categoria == 'Fresco' %}
+                <div class="theme-card">
+                    <input type="radio" name="tema_color" value="{{ key }}" id="theme-{{ key }}" 
+                           {% if tema_nombre == key %}checked{% endif %}>
+                    <div class="theme-preview" style="background: linear-gradient(135deg, {{ tema_item.gradient_start }} 0%, {{ tema_item.gradient_end }} 100%); color: {{ tema_item.primary }};">
+                        <i class="fas fa-{{ 'tint' if key == 'cyan' else 'ship' if key == 'ocean' else 'gem' if key == 'emerald' else 'water' }}"></i>
+                    </div>
+                    <div class="theme-info">
+                        <div class="check-badge">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <h4>{{ tema_item.nombre }}</h4>
+                        <p class="color-code">{{ tema_item.primary }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Temas Cálidos -->
+            <div class="category-header">
+                <div class="category-icon" style="background: linear-gradient(135deg, #F59E0B 0%, #EF4444 100%);">
+                    <i class="fas fa-fire"></i>
+                </div>
+                <h3>Colores Cálidos & Energéticos</h3>
+            </div>
+            <div class="themes-grid">
+                {% for key, tema_item in temas_disponibles.items() if tema_item.categoria == 'Cálido' %}
+                <div class="theme-card">
+                    <input type="radio" name="tema_color" value="{{ key }}" id="theme-{{ key }}" 
+                           {% if tema_nombre == key %}checked{% endif %}>
+                    <div class="theme-preview" style="background: linear-gradient(135deg, {{ tema_item.gradient_start }} 0%, {{ tema_item.gradient_end }} 100%); color: {{ tema_item.primary }};">
+                        <i class="fas fa-{{ 'heart' if key == 'coral' or key == 'rose' else 'sun' if key == 'sunset' or key == 'amber' else 'fire' }}"></i>
+                    </div>
+                    <div class="theme-info">
+                        <div class="check-badge">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <h4>{{ tema_item.nombre }}</h4>
+                        <p class="color-code">{{ tema_item.primary }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Temas Profesionales -->
+            <div class="category-header">
+                <div class="category-icon" style="background: linear-gradient(135deg, #6366F1 0%, #8B5CF6 100%);">
+                    <i class="fas fa-crown"></i>
+                </div>
+                <h3>Colores Profesionales & Elegantes</h3>
+            </div>
+            <div class="themes-grid">
+                {% for key, tema_item in temas_disponibles.items() if tema_item.categoria == 'Profesional' %}
+                <div class="theme-card">
+                    <input type="radio" name="tema_color" value="{{ key }}" id="theme-{{ key }}" 
+                           {% if tema_nombre == key %}checked{% endif %}>
+                    <div class="theme-preview" style="background: linear-gradient(135deg, {{ tema_item.gradient_start }} 0%, {{ tema_item.gradient_end }} 100%); color: {{ tema_item.primary }};">
+                        <i class="fas fa-{{ 'star' if key == 'indigo' else 'gem' if key == 'purple' else 'chess-queen' if key == 'violet' else 'award' }}"></i>
+                    </div>
+                    <div class="theme-info">
+                        <div class="check-badge">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <h4>{{ tema_item.nombre }}</h4>
+                        <p class="color-code">{{ tema_item.primary }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Temas Especiales -->
+            <div class="category-header">
+                <div class="category-icon" style="background: linear-gradient(135deg, #64748B 0%, #475569 100%);">
+                    <i class="fas fa-magic"></i>
+                </div>
+                <h3>Colores Especiales & Únicos</h3>
+            </div>
+            <div class="themes-grid">
+                {% for key, tema_item in temas_disponibles.items() if tema_item.categoria in ['Neutral', 'Natural', 'Sofisticado'] %}
+                <div class="theme-card">
+                    <input type="radio" name="tema_color" value="{{ key }}" id="theme-{{ key }}" 
+                           {% if tema_nombre == key %}checked{% endif %}>
+                    <div class="theme-preview" style="background: linear-gradient(135deg, {{ tema_item.gradient_start }} 0%, {{ tema_item.gradient_end }} 100%); color: {{ tema_item.primary }};">
+                        <i class="fas fa-{{ 'mountain' if key == 'slate' else 'tree' if key == 'forest' else 'wine-glass' if key == 'wine' else 'medal' }}"></i>
+                    </div>
+                    <div class="theme-info">
+                        <div class="check-badge">
+                            <i class="fas fa-check"></i>
+                        </div>
+                        <h4>{{ tema_item.nombre }}</h4>
+                        <p class="color-code">{{ tema_item.primary }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <!-- Botones de acción -->
+            <div class="action-buttons">
+                <button type="submit" class="btn-modern btn-save-modern">
+                    <i class="fas fa-magic"></i>
+                    <span>Aplicar Tema</span>
+                </button>
+                <a href="{{ url_for('facturacion_menu') }}" class="btn-modern btn-cancel-modern">
+                    <i class="fas fa-arrow-left"></i>
+                    <span>Volver al Menú</span>
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Animación al seleccionar tema
+document.querySelectorAll('.theme-card').forEach(card => {
+    card.addEventListener('click', function() {
+        const radio = this.querySelector('input[type="radio"]');
+        radio.checked = true;
+        
+        // Efecto visual
+        this.style.transform = 'scale(0.95)';
+        setTimeout(() => {
+            this.style.transform = '';
+        }, 150);
+    });
+});
+
+// Auto-submit opcional (descomenta si quieres que cambie automáticamente)
+// document.querySelectorAll('input[name="tema_color"]').forEach(radio => {
+//     radio.addEventListener('change', function() {
+//         setTimeout(() => {
+//             document.querySelector('form').submit();
+//         }, 500);
+//     });
+// });
+</script>
+{% endblock %}

@@ -1,0 +1,1155 @@
+﻿{% extends "base.html" %}
+
+{% block title %}Dashboard de Facturación - Indicadores en Tiempo Real{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block description %}Dashboard administrativo con estadísticas e indicadores de facturación en tiempo real. Sistema de gestión médica profesional.{% endblock %}
+
+{% block content %}
+<style>
+    /* Las variables de color ya vienen de base.html via tema */
+    :root {
+        --success-color: #10B981;
+        --warning-color: #F59E0B;
+        --danger-color: #EF4444;
+        --text-dark: #1E293B;
+        --text-muted: #64748B;
+    }
+    
+    body {
+        background: linear-gradient(135deg, #f5f7fa 0%, #f8f9fc 100%);
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    }
+    
+    .dashboard-container {
+        max-width: 1400px;
+        margin: 30px auto;
+        padding: 20px;
+    }
+    
+    /* Header Moderno con Gradiente y Efectos */
+    .dashboard-header {
+        background: var(--gradient-primary);
+        border-radius: 25px;
+        padding: 2.5rem;
+        margin-bottom: 2rem;
+        color: white;
+        box-shadow: 
+            0 20px 60px {{ tema.primary }}50,
+            0 0 0 1px rgba(255, 255, 255, 0.1) inset;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .dashboard-header::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 400px;
+        height: 400px;
+        background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%);
+        border-radius: 50%;
+        animation: pulse 8s ease-in-out infinite;
+    }
+    
+    @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.5; }
+        50% { transform: scale(1.1); opacity: 0.8; }
+    }
+    
+    .dashboard-header h1 {
+        margin: 0;
+        font-weight: 800;
+        font-size: 2.2rem;
+        color: white;
+        position: relative;
+        z-index: 1;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    
+    .dashboard-header h1 i {
+        color: white;
+        margin-right: 0.5rem;
+    }
+    
+    .dashboard-header p {
+        margin: 0.5rem 0 0 0;
+        opacity: 0.95;
+        font-size: 1.05rem;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Filtros Modernos con Glassmorphism */
+    .filter-card {
+        background: rgba(255, 255, 255, 0.95);
+        backdrop-filter: blur(20px);
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 
+            0 8px 32px rgba(0, 0, 0, 0.08),
+            0 0 0 1px rgba(255, 255, 255, 0.5) inset;
+        margin-bottom: 2rem;
+        border: 1px solid {{ tema.primary }}15;
+        position: relative;
+        z-index: 100;
+    }
+    
+    .filter-card h3 {
+        color: var(--text-dark);
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        font-size: 1.2rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .filter-card h3 i {
+        color: var(--primary-color);
+        font-size: 1.3rem;
+    }
+    
+    .filter-form {
+        display: flex;
+        gap: 1rem;
+        align-items: end;
+        flex-wrap: wrap;
+    }
+    
+    .form-group {
+        flex: 1;
+        min-width: 200px;
+        position: relative;
+    }
+    
+    .form-group label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-muted);
+        font-weight: 600;
+        margin-bottom: 0.6rem;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .form-group input[type="date"] {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border: 2px solid {{ tema.primary }}30;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: white;
+        font-weight: 500;
+    }
+    
+    .form-group input[type="date"]:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 4px {{ tema.primary }}15;
+        transform: translateY(-2px);
+    }
+    
+    /* Estilo para el dropdown personalizado */
+    .custom-multiselect {
+        position: relative;
+        width: 100%;
+    }
+    
+    .multiselect-button {
+        width: 100%;
+        padding: 0.85rem 1rem;
+        border: 2px solid {{ tema.primary }}30;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background: white;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        color: #2c3e50;
+        text-align: left;
+    }
+    
+    .multiselect-button:hover {
+        border-color: var(--primary-color);
+    }
+    
+    .multiselect-button.open {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 4px {{ tema.primary }}15;
+    }
+    
+    .multiselect-arrow {
+        font-size: 0.8rem;
+        color: var(--primary-color);
+        transition: transform 0.3s ease;
+    }
+    
+    .multiselect-button.open .multiselect-arrow {
+        transform: rotate(180deg);
+    }
+    
+    .multiselect-dropdown {
+        position: absolute;
+        top: calc(100% + 5px);
+        left: 0;
+        right: 0;
+        background: white;
+        border: 2px solid var(--primary-color);
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+        max-height: 300px;
+        overflow-y: auto;
+        z-index: 9999;
+        display: none;
+    }
+    
+    .multiselect-dropdown.show {
+        display: block;
+        animation: slideDown 0.3s ease;
+    }
+    
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .multiselect-option {
+        padding: 0.8rem 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        cursor: pointer;
+        transition: background 0.2s ease;
+        border-bottom: 1px solid {{ tema.primary }}15;
+    }
+    
+    .multiselect-option:last-child {
+        border-bottom: none;
+    }
+    
+    .multiselect-option:hover {
+        background: {{ tema.primary }}08;
+    }
+    
+    .multiselect-option input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+        accent-color: var(--primary-color);
+    }
+    
+    .multiselect-option label {
+        cursor: pointer;
+        margin: 0;
+        flex: 1;
+        font-weight: 500;
+        color: #2c3e50;
+    }
+    
+    .multiselect-header {
+        padding: 0.8rem 1rem;
+        background: {{ tema.primary }}08;
+        border-bottom: 2px solid {{ tema.primary }}30;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .select-all-btn {
+        background: transparent;
+        border: 1px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.3rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+    
+    .select-all-btn:hover {
+        background: var(--primary-color);
+        color: white;
+    }
+    
+    .btn-filter {
+        background: var(--gradient-primary);
+        border: none;
+        color: white;
+        border-radius: 12px;
+        padding: 0.85rem 2rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 15px {{ tema.primary }}50;
+        font-size: 1rem;
+    }
+    
+    .btn-filter:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px {{ tema.primary }}60;
+    }
+    
+    .btn-filter:active {
+        transform: translateY(-1px);
+    }
+    
+    /* Tarjetas Estadísticas Ultra Modernas */
+    .stat-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2rem;
+        box-shadow: 
+            0 10px 40px rgba(0, 0, 0, 0.08),
+            0 0 0 1px {{ tema.primary }}08 inset;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 100%;
+        border-left: 5px solid;
+        position: relative;
+        overflow: hidden;
+        z-index: 1;
+    }
+    
+    .stat-card::after {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -50%;
+        width: 200px;
+        height: 200px;
+        background: radial-gradient(circle, currentColor 0%, transparent 70%);
+        opacity: 0.03;
+        border-radius: 50%;
+        transition: all 0.6s ease;
+    }
+    
+    .stat-card:hover {
+        transform: translateY(-8px) scale(1.02);
+        box-shadow: 
+            0 20px 60px rgba(0, 0, 0, 0.12),
+            0 0 0 1px {{ tema.primary }}15 inset;
+    }
+    
+    .stat-card:hover::after {
+        transform: scale(2);
+        opacity: 0.05;
+    }
+    
+    .stat-card.primary { 
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    
+    .stat-card.success { 
+        border-color: var(--success-color);
+        color: var(--success-color);
+    }
+    
+    .stat-card.warning { 
+        border-color: var(--warning-color);
+        color: var(--warning-color);
+    }
+    
+    .stat-card.danger { 
+        border-color: var(--danger-color);
+        color: var(--danger-color);
+    }
+    
+    .stat-icon {
+        width: 70px;
+        height: 70px;
+        border-radius: 18px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1.2rem;
+        font-size: 2rem;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .stat-icon.primary { 
+        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary }}30 100%);
+        color: var(--primary-color);
+    }
+    
+    .stat-icon.success { 
+        background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.2) 100%);
+        color: var(--success-color);
+    }
+    
+    .stat-icon.warning { 
+        background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.2) 100%);
+        color: var(--warning-color);
+    }
+    
+    .stat-icon.danger { 
+        background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.2) 100%);
+        color: var(--danger-color);
+    }
+    
+    .stat-value {
+        font-size: 2.8rem;
+        font-weight: 800;
+        color: var(--text-dark);
+        margin: 0.5rem 0;
+        line-height: 1;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .stat-label {
+        color: var(--text-muted);
+        font-size: 0.95rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin: 0;
+        position: relative;
+        z-index: 1;
+    }
+    
+    /* Gráficos Modernos */
+    .chart-card {
+        background: white;
+        border-radius: 20px;
+        padding: 2.5rem;
+        box-shadow: 
+            0 10px 40px rgba(0, 0, 0, 0.08),
+            0 0 0 1px {{ tema.primary }}08 inset;
+        margin-bottom: 2rem;
+        transition: all 0.3s ease;
+        border: 1px solid {{ tema.primary }}15;
+        position: relative;
+        z-index: 1;
+    }
+    
+    .chart-card:hover {
+        box-shadow: 
+            0 15px 50px rgba(0, 0, 0, 0.12),
+            0 0 0 1px {{ tema.primary }}15 inset;
+    }
+    
+    .chart-card h3 {
+        color: var(--text-dark);
+        font-weight: 700;
+        margin-bottom: 2rem;
+        font-size: 1.4rem;
+        display: flex;
+        align-items: center;
+        gap: 0.7rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid {{ tema.primary }}15;
+    }
+    
+    .chart-card h3 i {
+        color: var(--primary-color);
+        font-size: 1.5rem;
+    }
+    
+    /* Botón Volver Moderno */
+    .btn-volver {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        border-radius: 15px;
+        padding: 0.85rem 1.8rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        font-weight: 600;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .btn-volver:hover {
+        background: rgba(255, 255, 255, 0.3);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        color: white;
+    }
+    
+    /* Animaciones Suaves */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(40px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    .animate-card {
+        animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+    }
+    
+    /* Responsive Mejorado */
+    @media (max-width: 992px) {
+        .dashboard-header {
+            padding: 2rem;
+        }
+        
+        .filter-card {
+            padding: 1.5rem;
+        }
+        
+        .chart-card {
+            padding: 1.5rem;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 10px;
+        }
+        
+        .dashboard-header {
+            border-radius: 20px;
+            padding: 1.5rem;
+        }
+        
+        .dashboard-header h1 {
+            font-size: 1.5rem !important;
+        }
+        
+        .dashboard-header p {
+            font-size: 0.9rem !important;
+        }
+        
+        .stat-value {
+            font-size: 2rem;
+        }
+        
+        .stat-label {
+            font-size: 0.85rem;
+        }
+        
+        .filter-form {
+            flex-direction: column;
+        }
+        
+        .form-group {
+            width: 100%;
+            min-width: 100%;
+        }
+        
+        .btn-filter {
+            width: 100%;
+            padding: 1rem;
+        }
+        
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            font-size: 1.8rem;
+        }
+        
+        .chart-card h3 {
+            font-size: 1.1rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn-volver {
+            font-size: 0.9rem;
+            padding: 0.7rem 1.2rem;
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .dashboard-header h1 {
+            font-size: 1.3rem !important;
+        }
+        
+        .stat-value {
+            font-size: 1.8rem;
+        }
+        
+        .stat-card {
+            padding: 1.5rem;
+        }
+        
+        .form-group input,
+        .form-group select {
+            font-size: 0.95rem;
+        }
+    }
+    
+    /* Scrollbar Personalizado */
+    ::-webkit-scrollbar {
+        width: 10px;
+    }
+    
+    ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: var(--gradient-primary);
+        border-radius: 10px;
+    }
+    
+    ::-webkit-scrollbar-thumb:hover {
+        background: linear-gradient(135deg, {{ tema.primary_dark }} 0%, {{ tema.primary }} 100%);
+    }
+</style>
+
+<div class="dashboard-container">
+    <!-- Header -->
+    <div class="dashboard-header animate-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h1 style="color: white !important; margin: 0; font-weight: 800; font-size: 2.2rem; position: relative; z-index: 1; text-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);">
+                    <i class="fas fa-chart-line" style="color: white !important; margin-right: 0.5rem;"></i>
+                    <span style="color: white !important;">Dashboard de Facturación</span>
+                </h1>
+                <p style="color: white !important; margin: 0.5rem 0 0 0; opacity: 0.95; font-size: 1.05rem; position: relative; z-index: 1;">Indicadores y estadísticas en tiempo real</p>
+            </div>
+            <a href="{{ url_for('facturacion_menu') }}" class="btn-volver" style="color: white !important;">
+                <i class="fas fa-arrow-left" style="color: white !important;"></i><span style="color: white !important;">Volver al Menú</span>
+            </a>
+        </div>
+    </div>
+    
+    <!-- Filtros de Fecha -->
+    <div class="filter-card animate-card" style="animation-delay: 0.1s">
+        <h3><i class="fas fa-filter me-2"></i>Filtrar por Período y Categorías</h3>
+        <form method="GET" action="{{ url_for('facturacion_dashboard') }}" class="filter-form" id="filterForm">
+            <div class="form-group">
+                <label for="fecha_desde">Fecha Desde:</label>
+                <input type="date" id="fecha_desde" name="fecha_desde" value="{{ fecha_desde }}" required>
+            </div>
+            <div class="form-group">
+                <label for="fecha_hasta">Fecha Hasta:</label>
+                <input type="date" id="fecha_hasta" name="fecha_hasta" value="{{ fecha_hasta }}" required>
+            </div>
+            
+            <!-- Filtro ARS -->
+            <div class="form-group">
+                <label>ARS:</label>
+                <div class="custom-multiselect">
+                    <div class="multiselect-button" onclick="toggleDropdown('ars')">
+                        <span id="ars-selected-text">Todos</span>
+                        <i class="fas fa-chevron-down multiselect-arrow"></i>
+                    </div>
+                    <div class="multiselect-dropdown" id="ars-dropdown">
+                        <div class="multiselect-header">
+                            <span style="font-weight: 600; color: #2c3e50;">Seleccionar ARS</span>
+                            <button type="button" class="select-all-btn" onclick="toggleAllOptions('ars')">Todos</button>
+                        </div>
+                        {% for ars in ars_list %}
+                        <div class="multiselect-option" onclick="toggleOption(event, 'ars')">
+                            <input type="checkbox" 
+                                   name="ars_id" 
+                                   value="{{ ars.id }}" 
+                                   id="ars-{{ ars.id }}"
+                                   {% if not ars_ids_seleccionados or ars.id in ars_ids_seleccionados %}checked{% endif %}>
+                            <label for="ars-{{ ars.id }}">{{ ars.nombre }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Filtro Médico Factura (solo para administradores) -->
+            {% if es_administrador %}
+            <div class="form-group">
+                <label>Médico Factura:</label>
+                <div class="custom-multiselect">
+                    <div class="multiselect-button" onclick="toggleDropdown('medico_factura')">
+                        <span id="medico_factura-selected-text">Todos</span>
+                        <i class="fas fa-chevron-down multiselect-arrow"></i>
+                    </div>
+                    <div class="multiselect-dropdown" id="medico_factura-dropdown">
+                        <div class="multiselect-header">
+                            <span style="font-weight: 600; color: #2c3e50;">Seleccionar Médico</span>
+                            <button type="button" class="select-all-btn" onclick="toggleAllOptions('medico_factura')">Todos</button>
+                        </div>
+                        {% for medico in medicos_factura_list %}
+                        <div class="multiselect-option" onclick="toggleOption(event, 'medico_factura')">
+                            <input type="checkbox" 
+                                   name="medico_factura_id" 
+                                   value="{{ medico.id }}" 
+                                   id="medico_factura-{{ medico.id }}"
+                                   {% if not medico_factura_ids_seleccionados or medico.id in medico_factura_ids_seleccionados %}checked{% endif %}>
+                            <label for="medico_factura-{{ medico.id }}">{{ medico.nombre }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Filtro Médico Paciente -->
+            <div class="form-group">
+                <label>Médico Paciente:</label>
+                <div class="custom-multiselect">
+                    <div class="multiselect-button" onclick="toggleDropdown('medico_consulta')">
+                        <span id="medico_consulta-selected-text">Todos</span>
+                        <i class="fas fa-chevron-down multiselect-arrow"></i>
+                    </div>
+                    <div class="multiselect-dropdown" id="medico_consulta-dropdown">
+                        <div class="multiselect-header">
+                            <span style="font-weight: 600; color: #2c3e50;">Seleccionar Médico</span>
+                            <button type="button" class="select-all-btn" onclick="toggleAllOptions('medico_consulta')">Todos</button>
+                        </div>
+                        {% for medico in medicos_consulta_list %}
+                        <div class="multiselect-option" onclick="toggleOption(event, 'medico_consulta')">
+                            <input type="checkbox" 
+                                   name="medico_consulta_id" 
+                                   value="{{ medico.id }}" 
+                                   id="medico_consulta-{{ medico.id }}"
+                                   {% if not medico_consulta_ids_seleccionados or medico.id in medico_consulta_ids_seleccionados %}checked{% endif %}>
+                            <label for="medico_consulta-{{ medico.id }}">{{ medico.nombre }}</label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            
+            <button type="submit" class="btn-filter">
+                <i class="fas fa-search me-2"></i>Filtrar
+            </button>
+        </form>
+    </div>
+    
+    <!-- Tarjetas de Estadísticas Principales -->
+    <div class="row g-4 mb-4">
+        <!-- Facturas Generadas -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.2s">
+            <div class="stat-card primary">
+                <div class="stat-icon primary">
+                    <i class="fas fa-file-invoice"></i>
+                </div>
+                <p class="stat-value">{{ total_facturas }}</p>
+                <p class="stat-label">Facturas Generadas</p>
+            </div>
+        </div>
+        
+        <!-- Total Facturado -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.3s">
+            <div class="stat-card success">
+                <div class="stat-icon success">
+                    <i class="fas fa-dollar-sign"></i>
+                </div>
+                <p class="stat-value">${{ "{:,.2f}".format(total_facturado) }}</p>
+                <p class="stat-label">Total Facturado</p>
+            </div>
+        </div>
+        
+        <!-- Monto Pendiente por Facturar -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.35s">
+            <div class="stat-card danger">
+                <div class="stat-icon danger">
+                    <i class="fas fa-exclamation-circle"></i>
+                </div>
+                <p class="stat-value">${{ "{:,.2f}".format(monto_pendiente) }}</p>
+                <p class="stat-label">Monto Pendiente por Facturar</p>
+            </div>
+        </div>
+        
+        <!-- ARS Pendientes por Facturar -->
+        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.4s">
+            <div class="stat-card warning">
+                <div class="stat-icon warning">
+                    <i class="fas fa-building"></i>
+                </div>
+                {% if ars_pendientes_nombres|length > 0 %}
+                    <div style="position: relative; z-index: 1;">
+                        <p class="stat-label" style="margin-bottom: 0.8rem;">ARS Pendientes por Facturar</p>
+                        <div style="max-height: 150px; overflow-y: auto; padding-right: 5px;">
+                            {% for ars in ars_pendientes_nombres %}
+                                <span style="display: inline-block; background: rgba(255, 193, 7, 0.15); color: #856404; padding: 0.4rem 0.8rem; border-radius: 8px; margin: 0.2rem; font-size: 0.85rem; font-weight: 600; border: 1px solid rgba(255, 193, 7, 0.3);">
+                                    {{ ars }}
+                                </span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                {% else %}
+                    <p class="stat-value" style="font-size: 1.5rem;">✓</p>
+                    <p class="stat-label">Sin ARS Pendientes</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Gráficos -->
+    <div class="row g-4 mb-4">
+        <!-- Facturación por Mes -->
+        <div class="col-lg-12 animate-card" style="animation-delay: 0.6s">
+            <div class="chart-card">
+                <h3><i class="fas fa-chart-line"></i>Facturación por Mes</h3>
+                <canvas id="chartPorMes" height="80"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-4 mb-4">
+        <!-- Facturación por ARS y Mes (nuevo gráfico) -->
+        <div class="col-lg-12 animate-card" style="animation-delay: 0.65s">
+            <div class="chart-card">
+                <h3><i class="fas fa-calendar-alt"></i>Facturación por ARS y Mes</h3>
+                <canvas id="chartARSporMes" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Chart.js (carga diferida para mejor performance) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" defer></script>
+
+<script>
+    // ==================== FUNCIONES PARA DROPDOWNS MULTISELECT ====================
+    
+    // Cerrar dropdown al hacer clic fuera
+    document.addEventListener('click', function(event) {
+        if (!event.target.closest('.custom-multiselect')) {
+            document.querySelectorAll('.multiselect-dropdown').forEach(dropdown => {
+                dropdown.classList.remove('show');
+                const button = dropdown.previousElementSibling;
+                button.classList.remove('open');
+            });
+        }
+    });
+    
+    // Abrir/cerrar dropdown
+    function toggleDropdown(filterName) {
+        const dropdown = document.getElementById(filterName + '-dropdown');
+        const button = dropdown.previousElementSibling;
+        const isOpen = dropdown.classList.contains('show');
+        
+        // Cerrar todos los demás dropdowns
+        document.querySelectorAll('.multiselect-dropdown').forEach(d => {
+            d.classList.remove('show');
+            d.previousElementSibling.classList.remove('open');
+        });
+        
+        // Abrir/cerrar el actual
+        if (!isOpen) {
+            dropdown.classList.add('show');
+            button.classList.add('open');
+        }
+    }
+    
+    // Marcar/desmarcar opción
+    function toggleOption(event, filterName) {
+        // Si el clic fue directamente en el checkbox, el navegador ya lo manejó
+        if (event.target.type === 'checkbox') {
+            updateSelectedText(filterName);
+            return;
+        }
+        
+        // Si el clic fue en el label o el div contenedor
+        const option = event.currentTarget;
+        const checkbox = option.querySelector('input[type="checkbox"]');
+        checkbox.checked = !checkbox.checked;
+        
+        updateSelectedText(filterName);
+    }
+    
+    // Seleccionar/deseleccionar todos
+    function toggleAllOptions(filterName) {
+        const dropdown = document.getElementById(filterName + '-dropdown');
+        const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+        
+        // Verificar si todos están marcados
+        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+        
+        // Si todos están marcados, desmarcar todos; si no, marcar todos
+        checkboxes.forEach(cb => {
+            cb.checked = !allChecked;
+        });
+        
+        updateSelectedText(filterName);
+    }
+    
+    // Actualizar texto de selección
+    function updateSelectedText(filterName) {
+        const dropdown = document.getElementById(filterName + '-dropdown');
+        const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
+        const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
+        const totalCount = checkboxes.length;
+        const textElement = document.getElementById(filterName + '-selected-text');
+        
+        if (selectedCount === 0) {
+            textElement.textContent = 'Ninguno seleccionado';
+            textElement.style.color = '#dc3545';
+        } else if (selectedCount === totalCount) {
+            textElement.textContent = 'Todos';
+            textElement.style.color = '#2c3e50';
+        } else {
+            textElement.textContent = `${selectedCount} de ${totalCount} seleccionados`;
+            textElement.style.color = '#2c3e50';
+        }
+    }
+    
+    // Inicializar textos al cargar la página
+    document.addEventListener('DOMContentLoaded', function() {
+        updateSelectedText('ars');
+        {% if es_administrador %}
+        updateSelectedText('medico_factura');
+        {% endif %}
+        updateSelectedText('medico_consulta');
+    });
+    
+    // ==================== FUNCIONES PARA GRÁFICOS ====================
+    
+    // Esperar a que se cargue Chart.js antes de ejecutar
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof Chart === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
+            script.onload = initCharts;
+            document.head.appendChild(script);
+        } else {
+            initCharts();
+        }
+    });
+    
+    function initCharts() {
+    // ==================== GRÁFICO: FACTURACIÓN POR MES ====================
+    const ctxMes = document.getElementById('chartPorMes').getContext('2d');
+    const facturacionPorMes = {{ facturacion_por_mes | tojson }};
+    
+    const meses = facturacionPorMes.map(item => {
+        const [year, month] = item.mes.split('-');
+        const fecha = new Date(year, month - 1);
+        return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+    });
+    const montos = facturacionPorMes.map(item => item.total_monto);
+    
+    new Chart(ctxMes, {
+        type: 'bar',
+        data: {
+            labels: meses,
+            datasets: [{
+                label: 'Monto Facturado ($)',
+                data: montos,
+                backgroundColor: '{{ tema.primary }}CC',
+                borderColor: '{{ tema.primary }}',
+                borderWidth: 2,
+                borderRadius: 8,
+                hoverBackgroundColor: '{{ tema.primary }}',
+                hoverBorderColor: '{{ tema.primary_dark }}',
+                hoverBorderWidth: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#282828',
+                        font: {
+                            size: 14,
+                            weight: '600'
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#fff',
+                    titleColor: '#282828',
+                    bodyColor: '#666',
+                    borderColor: '{{ tema.primary }}',
+                    borderWidth: 2,
+                    padding: 12,
+                    bodyFont: {
+                        size: 14
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            return 'Monto: $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        color: '#666',
+                        font: {
+                            size: 12
+                        },
+                        callback: function(value) {
+                            return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0});
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#666',
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
+            }
+        }
+    });
+    
+    // ==================== GRÁFICO: FACTURACIÓN POR ARS Y MES ====================
+    const ctxARSMes = document.getElementById('chartARSporMes').getContext('2d');
+    const facturacionARSMes = {{ facturacion_ars_mes | tojson }};
+    
+    // Obtener lista única de meses
+    const mesesUnicos = [...new Set(facturacionARSMes.map(item => item.mes))].sort();
+    
+    // Obtener lista única de ARS (usar nombre_ars del backend)
+    const arsUnicos = [...new Set(facturacionARSMes.map(item => item.nombre_ars || item.nombre))];
+    
+    // Preparar meses con formato
+    const mesesFormateados = mesesUnicos.map(mes => {
+        const [year, month] = mes.split('-');
+        const fecha = new Date(year, month - 1);
+        return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+    });
+    
+    // Colores distintivos para cada ARS
+    const coloresARS = [
+        '{{ tema.primary }}', // Color principal del tema
+        '#3498db', // Azul brillante
+        '#e74c3c', // Rojo
+        '#2ecc71', // Verde
+        '#f39c12', // Naranja
+        '#9b59b6', // Morado
+        '#1abc9c', // Turquesa
+        '#e67e22', // Naranja oscuro
+        '#34495e', // Gris azulado
+        '#16a085', // Verde azulado
+        '#d35400', // Naranja quemado
+        '#8e44ad', // Púrpura
+        '#27ae60', // Verde oscuro
+        '#2980b9', // Azul oscuro
+        '#c0392b'  // Rojo oscuro
+    ];
+    
+    // Crear datasets (una línea por cada ARS)
+    const datasetsARS = arsUnicos.map((ars, index) => {
+        const datosARS = mesesUnicos.map(mes => {
+            const registro = facturacionARSMes.find(item => (item.nombre_ars || item.nombre) === ars && item.mes === mes);
+            return registro ? registro.total_monto : 0;
+        });
+        
+        return {
+            label: ars,
+            data: datosARS,
+            borderColor: coloresARS[index % coloresARS.length],
+            backgroundColor: coloresARS[index % coloresARS.length] + '20',
+            borderWidth: 3,
+            fill: false,
+            tension: 0.4,
+            pointBackgroundColor: coloresARS[index % coloresARS.length],
+            pointBorderColor: '#fff',
+            pointBorderWidth: 2,
+            pointRadius: 5,
+            pointHoverRadius: 7
+        };
+    });
+    
+    new Chart(ctxARSMes, {
+        type: 'line',
+        data: {
+            labels: mesesFormateados,
+            datasets: datasetsARS
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top',
+                    labels: {
+                        color: '#282828',
+                        font: {
+                            size: 13,
+                            weight: '600'
+                        },
+                        padding: 15,
+                        boxWidth: 15,
+                        boxHeight: 15,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#fff',
+                    titleColor: '#282828',
+                    bodyColor: '#666',
+                    borderColor: '{{ tema.primary }}',
+                    borderWidth: 2,
+                    padding: 12,
+                    bodyFont: {
+                        size: 14
+                    },
+                    callbacks: {
+                        label: function(context) {
+                            return context.dataset.label + ': $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                        }
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(0, 0, 0, 0.05)'
+                    },
+                    ticks: {
+                        color: '#666',
+                        font: {
+                            size: 12
+                        },
+                        callback: function(value) {
+                            return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0});
+                        }
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    },
+                    ticks: {
+                        color: '#666',
+                        font: {
+                            size: 12
+                        }
+                    }
+                }
+            }
+        }
+    });
+    } // Fin de initCharts()
+</script>
+
+{% endblock %}

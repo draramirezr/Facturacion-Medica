@@ -1,0 +1,343 @@
+/* Estilos de diseño y formato que respetan el tema dinámico del usuario */
+
+/* Badges de estado personalizados con colores del tema */
+.badge.bg-success {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(206, 176, 183, 0.4) !important;
+}
+
+.badge.bg-secondary {
+    background: #9E9E9E !important;
+    color: white !important;
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(158, 158, 158, 0.4) !important;
+}
+
+/* Checkbox personalizado con colores del tema - SUPER ESPECÍFICO */
+input[type="checkbox"].form-check-input,
+.form-check-input[type="checkbox"],
+input.form-check-input,
+.form-check input[type="checkbox"] {
+    border: 2px solid var(--primary-color) !important;
+    cursor: pointer !important;
+    accent-color: var(--primary-color) !important;
+}
+
+input[type="checkbox"].form-check-input:checked,
+.form-check-input[type="checkbox"]:checked,
+input.form-check-input:checked,
+.form-check input[type="checkbox"]:checked {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    accent-color: var(--primary-color) !important;
+}
+
+input[type="checkbox"].form-check-input:focus,
+.form-check-input[type="checkbox"]:focus,
+input.form-check-input:focus,
+.form-check input[type="checkbox"]:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.25rem rgba(0, 0, 0, 0.1) !important;
+    outline: none !important;
+}
+
+input[type="checkbox"].form-check-input:hover,
+.form-check-input[type="checkbox"]:hover,
+input.form-check-input:hover,
+.form-check input[type="checkbox"]:hover {
+    border-color: var(--primary-dark) !important;
+}
+
+/* Navbar / Barra superior */
+.navbar,
+.header {
+    background-color: rgba(255, 255, 255, 0.95) !important;
+    backdrop-filter: blur(15px);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+}
+
+.navbar-brand {
+    font-weight: 700 !important;
+    font-size: 1.3rem !important;
+}
+
+/* Proteger enlaces de navegación - NO deben verse afectados por estilos de botones */
+/* Los estilos originales con animación están en custom-colors.css y deben mantenerse */
+
+/* Botones principales */
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    border: none !important;
+    color: white !important;
+    padding: 0.6rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+    transition: all 0.3s ease !important;
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%) !important;
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2) !important;
+    color: white !important;
+}
+
+.btn-primary:focus,
+.btn-primary:active {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary-color) 100%) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Botones secundarios / outline */
+.btn-outline-primary {
+    border: 2px solid var(--primary-color) !important;
+    color: var(--primary-color) !important;
+    background: white !important;
+    padding: 0.6rem 1.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    transition: all 0.3s ease !important;
+}
+
+.btn-outline-primary:hover {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+    border-color: var(--primary-color) !important;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Tarjetas de servicio */
+.service-card {
+    background: white;
+    border-radius: 15px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+    transition: all 0.3s ease;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.service-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    border-color: var(--primary-color);
+}
+
+/* Íconos de servicio */
+.service-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+}
+
+.service-card:hover .service-icon {
+    transform: scale(1.1) rotate(5deg);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Menús dropdown */
+.dropdown-menu {
+    background-color: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+    border-radius: 10px;
+}
+
+.dropdown-item:hover {
+    background-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+/* Formularios */
+.form-control {
+    background-color: white !important;
+    border: 2px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 8px;
+}
+
+.form-control:focus {
+    background-color: white !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Select / Dropdown */
+.form-select {
+    background-color: white !important;
+    border: 2px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 8px;
+}
+
+.form-select:focus {
+    background-color: white !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.05) !important;
+}
+
+/* Asegurar que las opciones de select no tengan negrita ni íconos */
+.form-select option {
+    font-weight: normal !important;
+    background-color: white !important;
+    color: #333 !important;
+}
+
+select option {
+    font-weight: normal !important;
+    background-color: white !important;
+    color: #333 !important;
+}
+
+/* Tarjetas generales */
+.card {
+    background-color: white !important;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+}
+
+/* Modales */
+.modal-content {
+    background-color: white !important;
+    backdrop-filter: blur(15px);
+    border: 1px solid rgba(0, 0, 0, 0.1) !important;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Tablas */
+.table {
+    background-color: white !important;
+}
+
+.table thead th {
+    border-bottom: 2px solid var(--primary-color) !important;
+}
+
+/* Alertas */
+.alert {
+    background-color: white !important;
+    backdrop-filter: blur(10px);
+    border: 2px solid !important;
+    border-radius: 15px !important;
+    padding: 1rem 1.5rem !important;
+    margin-bottom: 1rem !important;
+}
+
+.alert-success {
+    border-color: #10B981 !important;
+    color: #065F46 !important;
+    background-color: #F0FDF4 !important;
+}
+
+.alert-warning {
+    border-color: #F59E0B !important;
+    color: #92400E !important;
+    background-color: #FFFBEB !important;
+}
+
+.alert-danger,
+.alert-error {
+    border-color: #EF4444 !important;
+    color: #991B1B !important;
+    background-color: #FEF2F2 !important;
+}
+
+/* Alert info usa los colores del tema dinámico */
+.alert-info {
+    border-color: var(--primary-color) !important;
+    color: var(--text-dark) !important;
+    background: linear-gradient(135deg, var(--primary-color)10, var(--primary-color)05) !important;
+    font-weight: 500;
+    border-radius: 15px !important;
+    padding: 1rem 1.5rem !important;
+}
+
+.alert-info i {
+    color: var(--primary-color) !important;
+}
+
+/* Footer */
+.footer {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Asegurar elementos blancos sobre fondos temáticos */
+.page-wrapper,
+.main-content {
+    background-color: transparent;
+}
+
+/* Enlaces */
+a {
+    color: var(--primary-color);
+    transition: color 0.3s ease;
+}
+
+a:hover {
+    color: var(--primary-dark);
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.05);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--primary-color);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-dark);
+}
+
+/* Mejoras responsivas */
+@media (max-width: 768px) {
+    .service-card {
+        padding: 1.5rem;
+    }
+    
+    .service-icon {
+        width: 60px;
+        height: 60px;
+        font-size: 1.5rem;
+    }
+    
+    .btn-primary,
+    .btn-outline-primary {
+        padding: 0.5rem 1rem;
+        font-size: 0.9rem;
+    }
+}
+
+/* Estilos de navegación - Los estilos originales están en base.html como estilos inline */
+/* No agregar estilos aquí para evitar conflictos con los estilos inline */
+

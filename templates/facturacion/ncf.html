@@ -1,0 +1,214 @@
+﻿{% extends "base.html" %}
+
+{% block title %}NCF - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .facturacion-hero {
+        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .search-box {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        margin-bottom: 2rem;
+    }
+    
+    .table-facturacion {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        overflow: hidden;
+    }
+    
+    /* Contenedor con scroll horizontal para responsive */
+    .table-responsive-wrapper {
+        max-height: 400px; /* Altura aproximada para 5 registros */
+        overflow-x: auto;
+        overflow-y: auto;
+    }
+    
+    /* Barra de desplazamiento personalizada */
+    .table-responsive-wrapper::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb {
+        background: {{ tema.primary_dark }};
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+        background: {{ tema.primary }};
+    }
+    
+    .table-facturacion table {
+        min-width: 1100px; /* Ancho mínimo para NCF (muchas columnas) */
+    }
+    
+    .table-facturacion th {
+        background: {{ tema.primary_dark }} !important;
+        background-color: {{ tema.primary_dark }} !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .table-facturacion thead th {
+        color: #FFFFFF !important;
+    }
+    
+    .table-facturacion td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid {{ tema.primary }}15;
+    }
+    
+    .table-facturacion tbody tr:hover {
+        background-color: {{ tema.primary }}08;
+        transition: all 0.3s ease;
+    }
+    
+    /* Los estilos de botones ahora están en botones-estandarizados.css */
+    /* Esto garantiza que todos los botones tengan el mismo tamaño y color */
+    
+    .badge-numero {
+        background: {{ tema.primary_dark }};
+        color: white;
+        padding: 0.5rem 1rem;
+        border-radius: 10px;
+        font-weight: 600;
+        font-family: 'Courier New', monospace;
+    }
+</style>
+
+<div class="container mt-4">
+    <div class="facturacion-hero">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-file-invoice me-2"></i>
+                    NCF
+                </h1>
+                <p style="color: #666; margin: 0;">Números de Comprobante Fiscal (DGII)</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('facturacion_ncf_nuevo') }}" class="btn btn-cancelar">
+                    <i class="fas fa-plus me-2"></i>Nuevo NCF
+                </a>
+                <a href="{{ url_for('facturacion_menu') }}" class="btn btn-cancelar">
+                    <i class="fas fa-arrow-left me-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Buscador -->
+    <div class="search-box">
+        <form method="GET" action="{{ url_for('facturacion_ncf') }}">
+            <div class="row align-items-end g-3">
+                <div class="col-md-10">
+                    <input type="text" name="search" class="form-control" placeholder="Buscar por tipo o prefijo..." value="{{ search }}" style="border-radius: 10px; height: 48px;">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-buscar w-100" style="height: 48px;">
+                        <i class="fas fa-search me-2"></i>Buscar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-facturacion">
+        <div class="table-responsive-wrapper">
+            <table class="table mb-0">
+            <thead>
+                <tr>
+                    <th style="width: 6%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ID</th>
+                    <th style="width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Tipo</th>
+                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Prefijo</th>
+                    <th style="width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Tamaño</th>
+                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Ult Num</th>
+                    <th style="width: 11%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Pox Num</th>
+                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Fecha Fin</th>
+                    <th style="width: 9%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Estado</th>
+                    <th style="width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ncf in ncf_list %}
+                <tr>
+                    <td><strong>{{ ncf['id'] }}</strong></td>
+                    <td>{{ ncf['tipo'] }}</td>
+                    <td><span class="badge bg-info">{{ ncf['prefijo'] }}</span></td>
+                    <td class="text-center">{{ ncf['tamaño'] }}</td>
+                    <td class="text-center">{{ ncf['ultimo_numero'] }}</td>
+                    <td class="text-center">
+                        <span class="badge-numero">{{ ncf['proximo_numero'] }}</span>
+                    </td>
+                    <td class="text-center">
+                        {% if ncf['fecha_fin'] %}
+                            <small>{{ ncf['fecha_fin'] }}</small>
+                        {% else %}
+                            <span class="text-muted"><i class="fas fa-minus"></i></span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        {% if ncf['activo'] %}
+                        <span class="badge bg-success">Activo</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{{ url_for('facturacion_ncf_editar', ncf_id=ncf['id']) }}" class="btn btn-accion-editar">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+                            <a href="#" 
+                               onclick="if(confirm('¿Está seguro de eliminar este NCF?')) { document.getElementById('delete-form-ncf-{{ ncf['id'] }}').submit(); } return false;"
+                               class="btn btn-accion-editar">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </a>
+                            <form id="delete-form-ncf-{{ ncf['id'] }}" method="POST" action="{{ url_for('facturacion_ncf_eliminar', ncf_id=ncf['id']) }}" style="display: none;">
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="9" class="text-center" style="padding: 2rem;">
+                        <div class="alert alert-info" style="background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 1.5rem; margin: 0; display: inline-block;">
+                            <i class="fas fa-info-circle me-2"></i>
+                            No hay NCF registrados. Haz clic en "Nuevo NCF" para comenzar.
+                            {% if search %}
+                            <br><small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">Intenta con otros términos de búsqueda</small>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

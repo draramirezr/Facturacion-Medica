@@ -1,0 +1,189 @@
+﻿{% extends "base.html" %}
+
+{% block title %}ARS - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .facturacion-hero {
+        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    
+    .search-box {
+        background: white;
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        margin-bottom: 2rem;
+    }
+    
+    .table-facturacion {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        overflow: hidden;
+    }
+    
+    /* Contenedor con scroll horizontal para responsive */
+    .table-responsive-wrapper {
+        max-height: 400px; /* Altura aproximada para 5 registros */
+        overflow-x: auto;
+        overflow-y: auto;
+    }
+    
+    /* Barra de desplazamiento personalizada */
+    .table-responsive-wrapper::-webkit-scrollbar {
+        width: 10px;
+        height: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb {
+        background: {{ tema.primary_dark }};
+        border-radius: 10px;
+    }
+    
+    .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
+        background: {{ tema.primary }};
+    }
+    
+    .table-facturacion table {
+        min-width: 800px; /* Ancho mínimo para evitar aplastamiento */
+    }
+    
+    .table-facturacion th {
+        background: {{ tema.primary_dark }} !important;
+        background-color: {{ tema.primary_dark }} !important;
+        color: #FFFFFF !important;
+        font-weight: 600;
+        padding: 1rem;
+        border: none;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+    
+    .table-facturacion thead th {
+        color: #FFFFFF !important;
+    }
+    
+    .table-facturacion td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid {{ tema.primary }}15;
+    }
+    
+    .table-facturacion tbody tr:hover {
+        background-color: {{ tema.primary }}08;
+    }
+    
+    /* Los estilos de botones ahora están en botones-estandarizados.css */
+    /* Esto garantiza que todos los botones tengan el mismo tamaño y color */
+
+    
+    /* Los estilos de botones ahora están en botones-estandarizados.css */
+    /* Esto garantiza que todos los botones tengan el mismo tamaño */
+
+</style>
+
+<div class="container py-5">
+    <!-- Hero -->
+    <div class="facturacion-hero">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                    <i class="fas fa-hospital me-2"></i>
+                    ARS
+                </h1>
+                <p class="text-muted mb-0">Administradoras de Riesgos de Salud</p>
+            </div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('facturacion_ars_nuevo') }}" class="btn btn-cancelar">
+                    <i class="fas fa-plus me-2"></i>Nuevo ARS
+                </a>
+                <a href="{{ url_for('facturacion_menu') }}" class="btn btn-cancelar">
+                    <i class="fas fa-arrow-left me-2"></i>Volver
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Búsqueda -->
+    <div class="search-box">
+        <form method="GET" action="{{ url_for('facturacion_ars') }}">
+            <div class="row align-items-end">
+                <div class="col-md-10">
+                    <input type="text" name="search" class="form-control" placeholder="Buscar por nombre o RNC..." value="{{ search }}" style="border-radius: 10px; height: 48px;">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-buscar w-100" style="height: 48px;">
+                        <i class="fas fa-search me-2"></i>Buscar
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-facturacion">
+        {% if ars_list %}
+        <div class="table-responsive-wrapper">
+            <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ID</th>
+                    <th style="width: 40%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Nombre ARS</th>
+                    <th style="width: 15%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">RNC</th>
+                    <th style="width: 12%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Estado</th>
+                    <th style="width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ars in ars_list %}
+                <tr>
+                    <td><strong>{{ ars['id'] }}</strong></td>
+                    <td>{{ ars['nombre'] }}</td>
+                    <td>{{ ars['rnc'] or '-' }}</td>
+                    <td class="text-center">
+                        {% if ars['activo'] %}
+                        <span class="badge bg-success">Activo</span>
+                        {% else %}
+                        <span class="badge bg-secondary">Inactivo</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-center">
+                        <div class="d-flex justify-content-center gap-2">
+                            <a href="{{ url_for('facturacion_ars_editar', ars_id=ars['id']) }}" class="btn btn-accion-editar">
+                                <i class="fas fa-edit"></i> Editar
+                            </a>
+                            <a href="#" 
+                               onclick="if(confirm('¿Estás segura de eliminar este ARS?')) { document.getElementById('delete-form-ars-{{ ars['id'] }}').submit(); } return false;"
+                               class="btn btn-accion-editar">
+                                <i class="fas fa-trash"></i> Eliminar
+                            </a>
+                            <form id="delete-form-ars-{{ ars['id'] }}" method="POST" action="{{ url_for('facturacion_ars_eliminar', ars_id=ars['id']) }}" style="display: none;">
+                            </form>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info" style="background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 2rem;">
+            <i class="fas fa-info-circle me-2"></i>
+            No hay ARS registradas. Haz clic en "Nuevo ARS" para comenzar.
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
