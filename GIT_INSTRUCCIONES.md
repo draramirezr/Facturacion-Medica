@@ -107,3 +107,5 @@ git push -u origin main
 El archivo `config_mysql.env` está en `.gitignore` para proteger información sensible (contraseñas, etc.). 
 **NUNCA** hagas commit de archivos con información sensible.
 
+
+

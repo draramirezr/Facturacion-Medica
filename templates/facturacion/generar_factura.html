@@ -240,7 +240,7 @@
                             data-ultimo="{{ ncf['ultimo_numero'] }}"
                             data-proximo="{{ ncf['ultimo_numero'] + 1 }}"
                             data-tipo="{{ ncf['tipo'] }}">
-                        {{ ncf['tipo'] }} - {{ ncf['prefijo'] }} (Próximo: {{ '{:0{}d}'.format(ncf['ultimo_numero'] + 1, ncf['tamaño']) }})
+                        {{ ncf['tipo'] }} - {{ ncf['prefijo'] }} (Próximo: {{ '{:0{}d}'.format(ncf['ultimo_numero'] + 1, ncf['tamano_secuencia']) }})
                     </option>
                     {% endfor %}
                 </select>

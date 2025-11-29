@@ -1,0 +1,199 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Reclamación - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/facturacion-responsive.css') }}">
+<style>
+    .form-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        padding: 2.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control, .form-select {
+        border-radius: 10px;
+        border: 2px solid {{ tema.primary }}50;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem {{ tema.primary }}40;
+    }
+    
+    .btn-guardar {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-guardar:hover {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px {{ tema.primary }}50;
+    }
+    
+    .btn-cancelar {
+        background: white;
+        border: 2px solid var(--text-muted);
+        color: var(--text-muted);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cancelar:hover {
+        background: var(--text-muted);
+        color: white;
+    }
+    
+    .required-asterisk {
+        color: var(--primary-color) !important;
+        font-weight: bold;
+    }
+    
+    .factura-info {
+        background: {{ tema.primary }}10;
+        border-left: 4px solid {{ tema.primary }};
+        border-radius: 10px;
+        padding: 1rem;
+        margin-top: 0.5rem;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="form-container">
+        <div class="mb-4">
+            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Nueva Reclamación
+            </h1>
+            <p class="text-muted">Seleccione la factura y el monto a reclamar</p>
+        </div>
+
+        <div class="form-card">
+            <form method="POST" id="reclamacionForm">
+                <div class="mb-4">
+                    <label for="factura_id" class="form-label">
+                        <i class="fas fa-file-invoice me-2 text-primary"></i>Factura <span class="required-asterisk">*</span>
+                    </label>
+                    <select class="form-select" id="factura_id" name="factura_id" required onchange="cargarDatosFactura()">
+                        <option value="">Seleccione una factura...</option>
+                        {% for factura in facturas_list %}
+                        <option value="{{ factura['id'] }}" 
+                                data-total="{{ factura['total'] }}"
+                                data-paciente="{{ factura['nombre_paciente'] }}"
+                                data-ars="{{ factura['nombre_ars'] or 'Sin ARS' }}"
+                                data-numero="{{ factura['numero_factura'] }}">
+                            {{ factura['numero_factura'] }} - {{ factura['nombre_paciente'] }} ({{ factura['nombre_ars'] or 'Sin ARS' }}) - ${{ "{:,.2f}".format(factura['total']) }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div id="factura-info" class="factura-info" style="display: none;">
+                        <strong>Total de la factura:</strong> <span id="factura-total">$0.00</span>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="monto_reclamado" class="form-label">
+                            <i class="fas fa-dollar-sign me-2 text-primary"></i>Monto a Reclamar <span class="required-asterisk">*</span>
+                        </label>
+                        <input type="number" 
+                               class="form-control" 
+                               id="monto_reclamado" 
+                               name="monto_reclamado" 
+                               step="0.01"
+                               min="0.01"
+                               required
+                               placeholder="0.00">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="fecha_reclamacion" class="form-label">
+                            <i class="fas fa-calendar me-2 text-primary"></i>Fecha de Reclamación <span class="required-asterisk">*</span>
+                        </label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="fecha_reclamacion" 
+                               name="fecha_reclamacion" 
+                               value="{{ fecha_actual }}"
+                               required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="observaciones" class="form-label">
+                        <i class="fas fa-comment me-2 text-primary"></i>Observaciones
+                    </label>
+                    <textarea class="form-control" 
+                              id="observaciones" 
+                              name="observaciones" 
+                              rows="3" 
+                              placeholder="Observaciones sobre la reclamación..."></textarea>
+                </div>
+
+                <div class="d-flex justify-content-between gap-3 mt-4">
+                    <a href="{{ url_for('facturacion_reclamaciones') }}" class="btn btn-cancelar">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-guardar">
+                        <i class="fas fa-save me-2"></i>Guardar Reclamación
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function cargarDatosFactura() {
+    const select = document.getElementById('factura_id');
+    const option = select.options[select.selectedIndex];
+    const infoDiv = document.getElementById('factura-info');
+    const totalSpan = document.getElementById('factura-total');
+    
+    if (select.value) {
+        const total = parseFloat(option.getAttribute('data-total'));
+        totalSpan.textContent = '$' + total.toLocaleString('es-DO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        infoDiv.style.display = 'block';
+        
+        // Establecer el monto máximo como sugerencia
+        document.getElementById('monto_reclamado').max = total;
+    } else {
+        infoDiv.style.display = 'none';
+    }
+}
+
+// Establecer fecha actual por defecto
+document.addEventListener('DOMContentLoaded', function() {
+    const fechaInput = document.getElementById('fecha_reclamacion');
+    if (!fechaInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        fechaInput.value = today;
+    }
+});
+</script>
+{% endblock %}
+

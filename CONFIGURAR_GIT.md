@@ -84,3 +84,5 @@ El archivo `config_mysql.env` está en `.gitignore` para proteger tus credencial
 
 Lee el archivo `GIT_INSTRUCCIONES.md` para más detalles y comandos avanzados.
 
+
+

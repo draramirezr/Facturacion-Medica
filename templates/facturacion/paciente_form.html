@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Paciente - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/facturacion-responsive.css') }}">
+<style>
+    .form-container {
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    
+    .form-card {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        padding: 2.5rem;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: var(--text-dark);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        border-radius: 10px;
+        border: 2px solid {{ tema.primary }}50;
+        padding: 0.75rem 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem {{ tema.primary }}40;
+    }
+    
+    .btn-guardar {
+        background: white;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-guardar:hover {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: white;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px {{ tema.primary }}50;
+    }
+    
+    .btn-cancelar {
+        background: white;
+        border: 2px solid var(--text-muted);
+        color: var(--text-muted);
+        padding: 0.8rem 2rem;
+        border-radius: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-cancelar:hover {
+        background: var(--text-muted);
+        color: white;
+    }
+    
+    .required-asterisk {
+        color: var(--primary-color) !important;
+        font-weight: bold;
+    }
+</style>
+
+<div class="container py-5">
+    <div class="form-container">
+        <div class="mb-4">
+            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
+                <i class="fas fa-user me-2"></i>
+                Editar Paciente
+            </h1>
+            <p class="text-muted">Modifica los datos del paciente</p>
+        </div>
+
+        <div class="form-card">
+            <form method="POST">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="nombre" class="form-label">
+                            <i class="fas fa-user me-2 text-primary"></i>Nombre Completo <span class="required-asterisk">*</span>
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="nombre" 
+                               name="nombre" 
+                               value="{{ paciente['nombre'] }}" 
+                               required 
+                               placeholder="Ej: Juan Pérez"
+                               maxlength="200">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="cedula" class="form-label">
+                            <i class="fas fa-id-card me-2 text-primary"></i>Cédula
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="cedula" 
+                               name="cedula" 
+                               value="{{ paciente['cedula'] or '' }}" 
+                               placeholder="Ej: 001-1234567-8"
+                               pattern="[0-9\-]+"
+                               inputmode="numeric"
+                               maxlength="20">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="nss" class="form-label">
+                            <i class="fas fa-id-badge me-2 text-primary"></i>NSS
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="nss" 
+                               name="nss" 
+                               value="{{ paciente['nss'] or '' }}" 
+                               placeholder="Número de Seguridad Social"
+                               maxlength="50">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="telefono" class="form-label">
+                            <i class="fas fa-phone me-2 text-primary"></i>Teléfono
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="telefono" 
+                               name="telefono" 
+                               value="{{ paciente['telefono'] or '' }}" 
+                               placeholder="Ej: 809-123-4567"
+                               maxlength="20">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope me-2 text-primary"></i>Correo Electrónico
+                        </label>
+                        <input type="email" 
+                               class="form-control" 
+                               id="email" 
+                               name="email" 
+                               value="{{ paciente['email'] or '' }}" 
+                               placeholder="Ej: juan@example.com"
+                               maxlength="100">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="fecha_nacimiento" class="form-label">
+                            <i class="fas fa-calendar me-2 text-primary"></i>Fecha de Nacimiento
+                        </label>
+                        <input type="date" 
+                               class="form-control" 
+                               id="fecha_nacimiento" 
+                               name="fecha_nacimiento" 
+                               value="{{ paciente['fecha_nacimiento'] or '' }}">
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="sexo" class="form-label">
+                            <i class="fas fa-venus-mars me-2 text-primary"></i>Sexo
+                        </label>
+                        <select class="form-control" id="sexo" name="sexo">
+                            <option value="">Seleccione...</option>
+                            <option value="M" {% if paciente['sexo'] == 'M' %}selected{% endif %}>Masculino</option>
+                            <option value="F" {% if paciente['sexo'] == 'F' %}selected{% endif %}>Femenino</option>
+                            <option value="Otro" {% if paciente['sexo'] == 'Otro' %}selected{% endif %}>Otro</option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="ars_id" class="form-label">
+                            <i class="fas fa-hospital me-2 text-primary"></i>ARS
+                        </label>
+                        <select class="form-control" id="ars_id" name="ars_id">
+                            <option value="">Sin ARS</option>
+                            {% for ars in ars_list %}
+                            <option value="{{ ars['id'] }}" {% if paciente['ars_id'] == ars['id'] %}selected{% endif %}>
+                                {{ ars['nombre'] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="tipo_afiliacion" class="form-label">
+                            <i class="fas fa-user-tag me-2 text-primary"></i>Tipo de Afiliación
+                        </label>
+                        <select class="form-control" id="tipo_afiliacion" name="tipo_afiliacion">
+                            <option value="">Seleccione...</option>
+                            <option value="Titular" {% if paciente['tipo_afiliacion'] == 'Titular' %}selected{% endif %}>Titular</option>
+                            <option value="Dependiente" {% if paciente['tipo_afiliacion'] == 'Dependiente' %}selected{% endif %}>Dependiente</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="direccion" class="form-label">
+                        <i class="fas fa-map-marker-alt me-2 text-primary"></i>Dirección
+                    </label>
+                    <textarea class="form-control" 
+                              id="direccion" 
+                              name="direccion" 
+                              rows="3" 
+                              placeholder="Dirección completa del paciente">{{ paciente['direccion'] or '' }}</textarea>
+                </div>
+
+                <div class="d-flex justify-content-between gap-3 mt-4">
+                    <a href="{{ url_for('facturacion_pacientes') }}" class="btn btn-cancelar">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-guardar">
+                        <i class="fas fa-save me-2"></i>Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

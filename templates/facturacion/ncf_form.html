@@ -87,13 +87,16 @@
                     <label class="form-label" for="tipo">
                         <i class="fas fa-tag me-2"></i>Tipo <span class="required-asterisk">*</span>
                     </label>
-                    <input type="text" 
-                           class="form-control" 
+                    <select class="form-control" 
                            id="tipo" 
                            name="tipo" 
-                           value="{{ ncf['tipo'] if ncf else '' }}" 
-                           required
-                           placeholder="Ej: Factura de Crédito Fiscal">
+                           required>
+                        <option value="">Seleccione un tipo</option>
+                        <option value="B01" {% if ncf and ncf['tipo'] == 'B01' %}selected{% endif %}>B01 - Factura de Crédito Fiscal</option>
+                        <option value="B02" {% if ncf and ncf['tipo'] == 'B02' %}selected{% endif %}>B02 - Factura de Consumo</option>
+                        <option value="B14" {% if ncf and ncf['tipo'] == 'B14' %}selected{% endif %}>B14 - Registro Único de Ingresos</option>
+                        <option value="B15" {% if ncf and ncf['tipo'] == 'B15' %}selected{% endif %}>B15 - Gastos Menores</option>
+                    </select>
                 </div>
 
                 <div class="col-md-6 mb-3">
@@ -113,14 +116,14 @@
 
             <div class="row">
                 <div class="col-md-4 mb-3">
-                    <label class="form-label" for="tamaño">
+                    <label class="form-label" for="tamano_secuencia">
                         <i class="fas fa-ruler-horizontal me-2"></i>Tamaño <span class="required-asterisk">*</span>
                     </label>
                     <input type="number" 
                            class="form-control" 
-                           id="tamaño" 
-                           name="tamaño" 
-                           value="{{ ncf['tamaño'] if ncf else '' }}" 
+                           id="tamano_secuencia" 
+                           name="tamano_secuencia" 
+                           value="{{ ncf['tamano_secuencia'] if ncf else '' }}" 
                            required
                            min="1"
                            placeholder="Ej: 8">

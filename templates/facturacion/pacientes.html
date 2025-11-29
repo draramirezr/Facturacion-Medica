@@ -163,7 +163,10 @@
                 </h1>
                 <p style="color: #666; margin: 0;">Registro de pacientes</p>
             </div>
-            <div>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('facturacion_pacientes_exportar_excel', search=search) }}" class="btn btn-volver" style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); border: none; color: white;">
+                    <i class="fas fa-file-excel me-2"></i>Descargar Excel
+                </a>
                 <a href="{{ url_for('facturacion_menu') }}" class="btn btn-volver">
                     <i class="fas fa-arrow-left me-2"></i>Volver al Menú
                 </a>
@@ -174,12 +177,7 @@
     <!-- Información -->
     <div class="info-card">
         <i class="fas fa-info-circle me-2" style="color: var(--primary-color);"></i>
-        <strong>Nota:</strong> Esta maestra se alimenta automáticamente cuando agregas pacientes en "Agregar Pacientes". 
-        <br>
-        <small style="color: #666; margin-top: 0.5rem; display: block;">
-            <i class="fas fa-key me-1"></i>
-            <strong>Llave Única: NSS + ARS</strong> - Un mismo paciente puede aparecer múltiples veces si tiene diferentes ARS asignadas.
-        </small>
+        <strong>Nota:</strong> Esta maestra se alimenta automáticamente cuando agregas pacientes en "Agregar Pacientes".
     </div>
 
     <!-- Estadísticas -->
@@ -230,16 +228,15 @@
             <table class="table mb-0">
                 <thead>
                     <tr>
-                        <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ID</th>
-                        <th style="width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">NSS</th>
-                        <th style="width: 45%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Nombre Completo</th>
-                        <th style="width: 25%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ARS</th>
+                        <th style="width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">NSS</th>
+                        <th style="width: 38%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Nombre Completo</th>
+                        <th style="width: 22%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ARS</th>
+                        <th style="width: 22%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for paciente in pacientes_list %}
                     <tr>
-                        <td><strong>{{ paciente['id'] }}</strong></td>
                         <td>
                             <span class="badge-unico">
                                 <i class="fas fa-id-card me-1"></i>{{ paciente['nss'] }}
@@ -254,6 +251,20 @@
                             {% else %}
                                 <span style="color: #999; font-style: italic;">Sin ARS</span>
                             {% endif %}
+                        </td>
+                        <td class="text-center">
+                            <div class="d-flex justify-content-center gap-2">
+                                <a href="{{ url_for('facturacion_pacientes_editar', paciente_id=paciente['id']) }}" class="btn btn-accion-editar">
+                                    <i class="fas fa-edit"></i> Editar
+                                </a>
+                                <a href="#" 
+                                   onclick="if(confirm('¿Está seguro de eliminar este paciente?')) { document.getElementById('delete-form-paciente-{{ paciente['id'] }}').submit(); } return false;"
+                                   class="btn btn-accion-editar">
+                                    <i class="fas fa-trash"></i> Eliminar
+                                </a>
+                                <form id="delete-form-paciente-{{ paciente['id'] }}" method="POST" action="{{ url_for('facturacion_pacientes_eliminar', paciente_id=paciente['id']) }}" style="display: none;">
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

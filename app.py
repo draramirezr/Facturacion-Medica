@@ -42,6 +42,16 @@ except ImportError:
     REPORTLAB_AVAILABLE = False
     print("AVISO: ReportLab no disponible")
 
+try:
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, Alignment, PatternFill, Protection
+    from openpyxl.worksheet.datavalidation import DataValidation
+    from openpyxl.utils import get_column_letter
+    OPENPYXL_AVAILABLE = True
+except ImportError:
+    OPENPYXL_AVAILABLE = False
+    print("AVISO: OpenPyXL no disponible")
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -2088,7 +2098,8 @@ def facturacion_ncf():
         return redirect(url_for('facturacion_menu'))
     
     tenant_id = get_current_tenant_id()
-    ncf_list = execute_query('SELECT * FROM ncf WHERE tenant_id = %s ORDER BY tipo, id DESC', (tenant_id,), fetch='all') or []
+    # Incluir registros con el tenant_id actual o sin tenant_id (registros antiguos)
+    ncf_list = execute_query('SELECT * FROM ncf WHERE tenant_id = %s OR tenant_id IS NULL ORDER BY tipo, id DESC', (tenant_id,), fetch='all') or []
     return render_template('facturacion/ncf.html', ncf_list=ncf_list)
 
 @app.route('/facturacion/ncf/nuevo', methods=['GET', 'POST'])
@@ -2101,12 +2112,13 @@ def facturacion_ncf_nuevo():
     
     if request.method == 'POST':
         tipo = request.form.get('tipo')
-        secuencia_inicial = sanitize_input(request.form.get('secuencia_inicial', ''), 20)
-        secuencia_final = sanitize_input(request.form.get('secuencia_final', ''), 20)
-        fecha_vencimiento = request.form.get('fecha_vencimiento')
+        prefijo = sanitize_input(request.form.get('prefijo', ''), 20)
+        tamano_secuencia = request.form.get('tamano_secuencia', '8')
+        ultimo_numero = request.form.get('ultimo_numero', '0')
+        fecha_fin = request.form.get('fecha_fin')
         
-        if not all([tipo, secuencia_inicial, secuencia_final, fecha_vencimiento]):
-            flash('Todos los campos son obligatorios', 'error')
+        if not all([tipo, prefijo, tamano_secuencia]):
+            flash('Tipo, Prefijo y Tamaño son obligatorios', 'error')
             return redirect(url_for('facturacion_ncf_nuevo'))
         
         if tipo not in ['B01', 'B02', 'B14', 'B15']:
@@ -2114,10 +2126,11 @@ def facturacion_ncf_nuevo():
             return redirect(url_for('facturacion_ncf_nuevo'))
         
         tenant_id = get_current_tenant_id()
+        proximo_numero = int(ultimo_numero or 0) + 1
         execute_update('''
             INSERT INTO ncf (tenant_id, tipo, prefijo, ultimo_numero, proximo_numero, tamano_secuencia, fecha_fin, activo)
-            VALUES (%s, %s, %s, 0, 1, 8, %s, 1)
-        ''', (tenant_id, tipo, secuencia_inicial, fecha_vencimiento))
+            VALUES (%s, %s, %s, %s, %s, %s, %s, 1)
+        ''', (tenant_id, tipo, prefijo, int(ultimo_numero or 0), proximo_numero, int(tamano_secuencia or 8), fecha_fin))
         
         flash(f'NCF {tipo} creado exitosamente', 'success')
         return redirect(url_for('facturacion_ncf'))
@@ -2133,21 +2146,22 @@ def facturacion_ncf_editar(ncf_id):
         return redirect(url_for('facturacion_menu'))
     
     tenant_id = get_current_tenant_id()
-    ncf = execute_query('SELECT * FROM ncf WHERE id = %s AND tenant_id = %s', (ncf_id, tenant_id))
+    # Incluir registros con el tenant_id actual o sin tenant_id (registros antiguos)
+    ncf = execute_query('SELECT * FROM ncf WHERE id = %s AND (tenant_id = %s OR tenant_id IS NULL)', (ncf_id, tenant_id))
     if not ncf:
         flash('NCF no encontrado', 'error')
         return redirect(url_for('facturacion_ncf'))
     
     if request.method == 'POST':
         tipo = request.form.get('tipo')
-        secuencia_inicial = sanitize_input(request.form.get('secuencia_inicial', ''), 20)
-        secuencia_final = sanitize_input(request.form.get('secuencia_final', ''), 20)
-        secuencia_actual = sanitize_input(request.form.get('secuencia_actual', ''), 20)
-        fecha_vencimiento = request.form.get('fecha_vencimiento')
+        prefijo = sanitize_input(request.form.get('prefijo', ''), 20)
+        tamano_secuencia = request.form.get('tamano_secuencia', '8')
+        ultimo_numero = request.form.get('ultimo_numero', '0')
+        fecha_fin = request.form.get('fecha_fin')
         activo = 1 if request.form.get('activo') == '1' else 0
         
-        if not all([tipo, secuencia_inicial, secuencia_final, secuencia_actual, fecha_vencimiento]):
-            flash('Todos los campos son obligatorios', 'error')
+        if not all([tipo, prefijo, tamano_secuencia]):
+            flash('Tipo, Prefijo y Tamaño son obligatorios', 'error')
             return redirect(url_for('facturacion_ncf_editar', ncf_id=ncf_id))
         
         if tipo not in ['B01', 'B02', 'B14', 'B15']:
@@ -2155,11 +2169,12 @@ def facturacion_ncf_editar(ncf_id):
             return redirect(url_for('facturacion_ncf_editar', ncf_id=ncf_id))
         
         tenant_id = get_current_tenant_id()
+        proximo_numero = int(ultimo_numero or 0) + 1
         execute_update('''
             UPDATE ncf 
-            SET tipo = %s, prefijo = %s, proximo_numero = %s, fecha_fin = %s, activo = %s
+            SET tipo = %s, prefijo = %s, ultimo_numero = %s, proximo_numero = %s, tamano_secuencia = %s, fecha_fin = %s, activo = %s
             WHERE id = %s AND tenant_id = %s
-        ''', (tipo, secuencia_inicial, int(secuencia_actual or 1), fecha_vencimiento, activo, ncf_id, tenant_id))
+        ''', (tipo, prefijo, int(ultimo_numero or 0), proximo_numero, int(tamano_secuencia or 8), fecha_fin, activo, ncf_id, tenant_id))
         
         flash(f'NCF actualizado exitosamente', 'success')
         return redirect(url_for('facturacion_ncf'))
@@ -2188,14 +2203,343 @@ def facturacion_ncf_eliminar(ncf_id):
 def facturacion_pacientes():
     """Lista de pacientes - Filtrado por tenant"""
     tenant_id = get_current_tenant_id()
-    pacientes_list = execute_query('''
+    search = request.args.get('search', '').strip()
+    
+    query = '''
         SELECT p.*, a.nombre as ars_nombre 
         FROM pacientes p 
         LEFT JOIN ars a ON p.ars_id = a.id 
         WHERE p.tenant_id = %s
-        ORDER BY p.nombre
+    '''
+    params = [tenant_id]
+    
+    if search:
+        query += ' AND (p.nombre LIKE %s OR p.nss LIKE %s OR p.cedula LIKE %s)'
+        search_pattern = f'%{search}%'
+        params.extend([search_pattern, search_pattern, search_pattern])
+    
+    query += ' ORDER BY p.nombre'
+    
+    pacientes_list = execute_query(query, tuple(params), fetch='all') or []
+    return render_template('facturacion/pacientes.html', pacientes_list=pacientes_list, search=search)
+
+@app.route('/facturacion/pacientes/<int:paciente_id>/editar', methods=['GET', 'POST'])
+@login_required
+def facturacion_pacientes_editar(paciente_id):
+    """Editar paciente"""
+    tenant_id = get_current_tenant_id()
+    paciente = execute_query('''
+        SELECT p.*, a.nombre as ars_nombre 
+        FROM pacientes p 
+        LEFT JOIN ars a ON p.ars_id = a.id 
+        WHERE p.id = %s AND p.tenant_id = %s
+    ''', (paciente_id, tenant_id))
+    
+    if not paciente:
+        flash('Paciente no encontrado', 'error')
+        return redirect(url_for('facturacion_pacientes'))
+    
+    if request.method == 'POST':
+        nombre = sanitize_input(request.form.get('nombre', ''), 200)
+        cedula = sanitize_input(request.form.get('cedula', ''), 20)
+        nss = sanitize_input(request.form.get('nss', ''), 50)
+        telefono = sanitize_input(request.form.get('telefono', ''), 20)
+        email = request.form.get('email', '').strip().lower()
+        direccion = request.form.get('direccion', '').strip()
+        fecha_nacimiento = request.form.get('fecha_nacimiento') or None
+        sexo = request.form.get('sexo') or None
+        ars_id = request.form.get('ars_id') or None
+        tipo_afiliacion = request.form.get('tipo_afiliacion') or None
+        
+        if not nombre:
+            flash('El nombre es obligatorio', 'error')
+            return redirect(url_for('facturacion_pacientes_editar', paciente_id=paciente_id))
+        
+        if ars_id:
+            ars_id = int(ars_id)
+        else:
+            ars_id = None
+        
+        execute_update('''
+            UPDATE pacientes 
+            SET nombre = %s, cedula = %s, nss = %s, telefono = %s, email = %s, 
+                direccion = %s, fecha_nacimiento = %s, sexo = %s, ars_id = %s, tipo_afiliacion = %s
+            WHERE id = %s AND tenant_id = %s
+        ''', (nombre, cedula or None, nss or None, telefono or None, email or None, 
+              direccion or None, fecha_nacimiento, sexo, ars_id, tipo_afiliacion, paciente_id, tenant_id))
+        
+        flash('Paciente actualizado exitosamente', 'success')
+        return redirect(url_for('facturacion_pacientes'))
+    
+    # Obtener lista de ARS para el dropdown
+    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    
+    return render_template('facturacion/paciente_form.html', paciente=paciente, ars_list=ars_list)
+
+@app.route('/facturacion/pacientes/<int:paciente_id>/eliminar', methods=['POST'])
+@login_required
+def facturacion_pacientes_eliminar(paciente_id):
+    """Eliminar paciente"""
+    tenant_id = get_current_tenant_id()
+    
+    # Verificar que el paciente existe y pertenece al tenant
+    paciente = execute_query('SELECT id FROM pacientes WHERE id = %s AND tenant_id = %s', (paciente_id, tenant_id))
+    if not paciente:
+        flash('Paciente no encontrado', 'error')
+        return redirect(url_for('facturacion_pacientes'))
+    
+    # Eliminar el paciente
+    execute_update('DELETE FROM pacientes WHERE id = %s AND tenant_id = %s', (paciente_id, tenant_id))
+    
+    flash('Paciente eliminado exitosamente', 'success')
+    return redirect(url_for('facturacion_pacientes'))
+
+@app.route('/facturacion/reclamaciones')
+@login_required
+def facturacion_reclamaciones():
+    """Lista de reclamaciones - Filtrado por tenant"""
+    tenant_id = get_current_tenant_id()
+    reclamaciones_list = execute_query('''
+        SELECT r.*, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total as total_factura
+        FROM reclamaciones r
+        JOIN facturas f ON r.factura_id = f.id
+        WHERE r.tenant_id = %s
+        ORDER BY r.fecha_reclamacion DESC, r.id DESC
     ''', (tenant_id,), fetch='all') or []
-    return render_template('facturacion/pacientes.html', pacientes_list=pacientes_list)
+    return render_template('facturacion/reclamaciones.html', reclamaciones_list=reclamaciones_list)
+
+@app.route('/facturacion/reclamaciones/nueva', methods=['GET', 'POST'])
+@login_required
+def facturacion_reclamaciones_nueva():
+    """Crear nueva reclamación"""
+    tenant_id = get_current_tenant_id()
+    
+    if request.method == 'POST':
+        factura_id = request.form.get('factura_id')
+        monto_reclamado = request.form.get('monto_reclamado')
+        fecha_reclamacion = request.form.get('fecha_reclamacion')
+        observaciones = request.form.get('observaciones', '').strip()
+        
+        if not all([factura_id, monto_reclamado, fecha_reclamacion]):
+            flash('Factura, monto y fecha son obligatorios', 'error')
+            return redirect(url_for('facturacion_reclamaciones_nueva'))
+        
+        # Verificar que la factura existe y pertenece al tenant
+        factura = execute_query('SELECT id, total FROM facturas WHERE id = %s AND tenant_id = %s', (factura_id, tenant_id))
+        if not factura:
+            flash('Factura no encontrada', 'error')
+            return redirect(url_for('facturacion_reclamaciones_nueva'))
+        
+        try:
+            monto_reclamado = float(monto_reclamado)
+            if monto_reclamado <= 0:
+                flash('El monto debe ser mayor a cero', 'error')
+                return redirect(url_for('facturacion_reclamaciones_nueva'))
+        except ValueError:
+            flash('Monto inválido', 'error')
+            return redirect(url_for('facturacion_reclamaciones_nueva'))
+        
+        execute_update('''
+            INSERT INTO reclamaciones (factura_id, monto_reclamado, fecha_reclamacion, observaciones, tenant_id, created_by, estado)
+            VALUES (%s, %s, %s, %s, %s, %s, 'Pendiente')
+        ''', (factura_id, monto_reclamado, fecha_reclamacion, observaciones or None, tenant_id, current_user.id))
+        
+        flash('Reclamación creada exitosamente', 'success')
+        return redirect(url_for('facturacion_reclamaciones'))
+    
+    # Obtener facturas disponibles para reclamar
+    facturas_list = execute_query('''
+        SELECT f.id, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total, f.fecha_emision, f.estado
+        FROM facturas f
+        WHERE f.tenant_id = %s AND f.estado != 'Anulada'
+        ORDER BY f.fecha_emision DESC, f.numero_factura DESC
+        LIMIT 100
+    ''', (tenant_id,), fetch='all') or []
+    
+    fecha_actual = datetime.now().strftime('%Y-%m-%d')
+    return render_template('facturacion/reclamacion_form.html', facturas_list=facturas_list, fecha_actual=fecha_actual)
+
+@app.route('/facturacion/pagos')
+@login_required
+def facturacion_pagos():
+    """Lista de pagos - Filtrado por tenant"""
+    tenant_id = get_current_tenant_id()
+    pagos_list = execute_query('''
+        SELECT p.*, 
+               COUNT(pf.id) as cantidad_facturas,
+               GROUP_CONCAT(f.numero_factura SEPARATOR ', ') as facturas_numeros
+        FROM pagos p
+        LEFT JOIN pago_facturas pf ON p.id = pf.pago_id
+        LEFT JOIN facturas f ON pf.factura_id = f.id
+        WHERE p.tenant_id = %s
+        GROUP BY p.id
+        ORDER BY p.fecha_pago DESC, p.id DESC
+    ''', (tenant_id,), fetch='all') or []
+    return render_template('facturacion/pagos.html', pagos_list=pagos_list)
+
+@app.route('/facturacion/pagos/nuevo', methods=['GET', 'POST'])
+@login_required
+def facturacion_pagos_nuevo():
+    """Crear nuevo pago"""
+    tenant_id = get_current_tenant_id()
+    
+    if request.method == 'POST':
+        fecha_pago = request.form.get('fecha_pago')
+        metodo_pago = request.form.get('metodo_pago')
+        referencia = request.form.get('referencia', '').strip()
+        observaciones = request.form.get('observaciones', '').strip()
+        facturas_ids = request.form.getlist('facturas_ids[]')
+        montos = request.form.getlist('montos[]')
+        
+        if not all([fecha_pago, metodo_pago]):
+            flash('Fecha y método de pago son obligatorios', 'error')
+            return redirect(url_for('facturacion_pagos_nuevo'))
+        
+        if not facturas_ids or not montos:
+            flash('Debe seleccionar al menos una factura', 'error')
+            return redirect(url_for('facturacion_pagos_nuevo'))
+        
+        # Validar y calcular monto total
+        monto_total = 0.0
+        facturas_data = []
+        for i, factura_id in enumerate(facturas_ids):
+            if i < len(montos) and montos[i]:
+                try:
+                    monto = float(montos[i])
+                    if monto > 0:
+                        # Verificar que la factura existe y pertenece al tenant
+                        factura = execute_query('SELECT id, total FROM facturas WHERE id = %s AND tenant_id = %s', (factura_id, tenant_id))
+                        if factura:
+                            monto_total += monto
+                            facturas_data.append((factura_id, monto))
+                except ValueError:
+                    continue
+        
+        if monto_total <= 0:
+            flash('El monto total debe ser mayor a cero', 'error')
+            return redirect(url_for('facturacion_pagos_nuevo'))
+        
+        # Generar número de pago
+        numero_pago = f"PAGO-{datetime.now().strftime('%Y%m%d')}-{secrets.token_hex(4).upper()}"
+        
+        # Crear el pago
+        pago_id = execute_update('''
+            INSERT INTO pagos (numero_pago, monto_total, fecha_pago, metodo_pago, referencia, observaciones, tenant_id, created_by)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        ''', (numero_pago, monto_total, fecha_pago, metodo_pago, referencia or None, observaciones or None, tenant_id, current_user.id))
+        
+        # Crear relaciones pago-facturas
+        for factura_id, monto in facturas_data:
+            execute_update('''
+                INSERT INTO pago_facturas (pago_id, factura_id, monto_aplicado)
+                VALUES (%s, %s, %s)
+            ''', (pago_id, factura_id, monto))
+            
+            # Actualizar estado de la factura a Pagada si el monto aplicado es igual o mayor al total
+            factura = execute_query('SELECT total FROM facturas WHERE id = %s', (factura_id,))
+            if factura and monto >= float(factura['total']):
+                execute_update('UPDATE facturas SET estado = "Pagada" WHERE id = %s', (factura_id,))
+        
+        flash('Pago registrado exitosamente', 'success')
+        return redirect(url_for('facturacion_pagos'))
+    
+    # Obtener facturas disponibles para pagar
+    facturas_list = execute_query('''
+        SELECT f.id, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total, f.fecha_emision, f.estado,
+               COALESCE(SUM(pf.monto_aplicado), 0) as monto_pagado
+        FROM facturas f
+        LEFT JOIN pago_facturas pf ON f.id = pf.factura_id
+        WHERE f.tenant_id = %s AND f.estado != 'Anulada'
+        GROUP BY f.id
+        HAVING (f.total - COALESCE(SUM(pf.monto_aplicado), 0)) > 0
+        ORDER BY f.fecha_emision DESC, f.numero_factura DESC
+        LIMIT 100
+    ''', (tenant_id,), fetch='all') or []
+    
+    fecha_actual = datetime.now().strftime('%Y-%m-%d')
+    return render_template('facturacion/pago_form.html', facturas_list=facturas_list, fecha_actual=fecha_actual)
+
+@app.route('/facturacion/pacientes/exportar-excel')
+@login_required
+def facturacion_pacientes_exportar_excel():
+    """Exportar lista de pacientes a Excel"""
+    if not OPENPYXL_AVAILABLE:
+        flash('La funcionalidad de Excel no está disponible', 'error')
+        return redirect(url_for('facturacion_pacientes'))
+    
+    tenant_id = get_current_tenant_id()
+    search = request.args.get('search', '').strip()
+    
+    # Obtener pacientes con el mismo filtro que la vista
+    query = '''
+        SELECT p.*, a.nombre as ars_nombre 
+        FROM pacientes p 
+        LEFT JOIN ars a ON p.ars_id = a.id 
+        WHERE p.tenant_id = %s
+    '''
+    params = [tenant_id]
+    
+    if search:
+        query += ' AND (p.nombre LIKE %s OR p.nss LIKE %s OR p.cedula LIKE %s)'
+        search_pattern = f'%{search}%'
+        params.extend([search_pattern, search_pattern, search_pattern])
+    
+    query += ' ORDER BY p.nombre'
+    
+    pacientes_list = execute_query(query, tuple(params), fetch='all') or []
+    
+    # Crear workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Pacientes"
+    
+    # Estilos para encabezados
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF", size=12)
+    header_alignment = Alignment(horizontal="center", vertical="center")
+    
+    # Encabezados
+    headers = ['NSS', 'Nombre Completo', 'Cédula', 'Teléfono', 'Email', 'Fecha de Nacimiento', 
+               'Sexo', 'ARS', 'Tipo de Afiliación', 'Dirección']
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=1, column=col_num, value=header)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+    
+    # Datos
+    for row_num, paciente in enumerate(pacientes_list, 2):
+        ws.cell(row=row_num, column=1, value=paciente.get('nss') or '')
+        ws.cell(row=row_num, column=2, value=paciente.get('nombre') or '')
+        ws.cell(row=row_num, column=3, value=paciente.get('cedula') or '')
+        ws.cell(row=row_num, column=4, value=paciente.get('telefono') or '')
+        ws.cell(row=row_num, column=5, value=paciente.get('email') or '')
+        ws.cell(row=row_num, column=6, value=paciente.get('fecha_nacimiento') or '')
+        ws.cell(row=row_num, column=7, value=paciente.get('sexo') or '')
+        ws.cell(row=row_num, column=8, value=paciente.get('ars_nombre') or 'Sin ARS')
+        ws.cell(row=row_num, column=9, value=paciente.get('tipo_afiliacion') or '')
+        ws.cell(row=row_num, column=10, value=paciente.get('direccion') or '')
+    
+    # Ajustar ancho de columnas
+    column_widths = [15, 30, 15, 15, 25, 15, 10, 20, 15, 40]
+    for col_num, width in enumerate(column_widths, 1):
+        ws.column_dimensions[get_column_letter(col_num)].width = width
+    
+    # Guardar en BytesIO
+    output = BytesIO()
+    wb.save(output)
+    output.seek(0)
+    
+    # Nombre del archivo con fecha
+    fecha_actual = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename = f'pacientes_{fecha_actual}.xlsx'
+    
+    return send_file(
+        output,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=filename
+    )
 
 @app.route('/facturacion/historico')
 @login_required
@@ -2323,14 +2667,151 @@ def facturacion_dashboard():
                           medico_factura_ids_seleccionados=[],
                           medico_consulta_ids_seleccionados=[])
 
-@app.route('/facturacion/facturas/nueva')
+@app.route('/facturacion/facturas/nueva', methods=['GET', 'POST'])
 @login_required
 def facturacion_facturas_nueva():
     """Agregar pacientes para facturar"""
     tenant_id = get_current_tenant_id()
+    
+    if request.method == 'POST':
+        # Obtener datos del formulario
+        medico_id = request.form.get('medico_id')
+        ars_id = request.form.get('ars_id')
+        centro_medico_id = request.form.get('centro_medico_id') or None
+        lineas_json = request.form.get('lineas_json')
+        
+        if not medico_id or not ars_id or not lineas_json:
+            flash('Faltan datos obligatorios (Médico, ARS o pacientes)', 'error')
+            return redirect(url_for('facturacion_facturas_nueva'))
+        
+        try:
+            import json
+            lineas = json.loads(lineas_json)
+        except json.JSONDecodeError:
+            flash('Error al procesar los datos de los pacientes', 'error')
+            return redirect(url_for('facturacion_facturas_nueva'))
+        
+        if not lineas or len(lineas) == 0:
+            flash('Debe agregar al menos un paciente', 'error')
+            return redirect(url_for('facturacion_facturas_nueva'))
+        
+        # Procesar cada línea (paciente)
+        pacientes_agregados = 0
+        for linea in lineas:
+            nss = sanitize_input(linea.get('nss', ''), 50)
+            nombre = sanitize_input(linea.get('nombre', ''), 200)
+            fecha = linea.get('fecha')
+            autorizacion = sanitize_input(linea.get('autorizacion', ''), 50)
+            servicio = sanitize_input(linea.get('servicio', ''), 200)
+            monto = float(linea.get('monto', 0))
+            
+            if not nss or not nombre:
+                continue
+            
+            # Buscar si el paciente ya existe (por NSS + ARS)
+            paciente_existente = execute_query('''
+                SELECT id FROM pacientes 
+                WHERE nss = %s AND ars_id = %s AND tenant_id = %s
+            ''', (nss, ars_id, tenant_id))
+            
+            paciente_id = None
+            if paciente_existente:
+                paciente_id = paciente_existente['id']
+                # Actualizar datos del paciente si es necesario
+                execute_update('''
+                    UPDATE pacientes 
+                    SET nombre = %s, updated_at = NOW()
+                    WHERE id = %s
+                ''', (nombre, paciente_id))
+            else:
+                # Crear nuevo paciente
+                paciente_id = execute_update('''
+                    INSERT INTO pacientes (tenant_id, nombre, nss, ars_id, created_by)
+                    VALUES (%s, %s, %s, %s, %s)
+                ''', (tenant_id, nombre, nss, ars_id, current_user.id))
+            
+            # Crear registro en pacientes_pendientes
+            servicios_realizados = f"{servicio} - Autorización: {autorizacion}" if autorizacion else servicio
+            
+            # Intentar insertar con todas las columnas, si falla intentar sin las opcionales
+            try:
+                # Intentar insertar con tenant_id y created_by
+                execute_update('''
+                    INSERT INTO pacientes_pendientes 
+                    (tenant_id, paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
+                     servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id, created_by)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s, %s)
+                ''', (tenant_id, paciente_id, nombre, nss, ars_id, fecha, servicios_realizados, monto, medico_id, centro_medico_id, current_user.id))
+            except Exception as e:
+                error_msg = str(e).lower()
+                # Si falla por columnas desconocidas, intentar sin ellas
+                if 'unknown column' in error_msg:
+                    if 'created_by' in error_msg:
+                        # Intentar sin created_by
+                        try:
+                            execute_update('''
+                                INSERT INTO pacientes_pendientes 
+                                (tenant_id, paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
+                                 servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id)
+                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s)
+                            ''', (tenant_id, paciente_id, nombre, nss, ars_id, fecha, servicios_realizados, monto, medico_id, centro_medico_id))
+                        except Exception as e2:
+                            # Si también falla tenant_id, intentar sin ambos
+                            if 'tenant_id' in str(e2).lower():
+                                execute_update('''
+                                    INSERT INTO pacientes_pendientes 
+                                    (paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
+                                     servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id)
+                                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s)
+                                ''', (paciente_id, nombre, nss, ars_id, fecha, servicios_realizados, monto, medico_id, centro_medico_id))
+                            else:
+                                raise
+                    elif 'tenant_id' in error_msg:
+                        # Intentar sin tenant_id
+                        execute_update('''
+                            INSERT INTO pacientes_pendientes 
+                            (paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
+                             servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id, created_by)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s, %s)
+                        ''', (paciente_id, nombre, nss, ars_id, fecha, servicios_realizados, monto, medico_id, centro_medico_id, current_user.id))
+                else:
+                    raise  # Re-lanzar si es otro error
+            
+            pacientes_agregados += 1
+        
+        flash(f'{pacientes_agregados} paciente(s) agregado(s) como pendientes de facturación', 'success')
+        return redirect(url_for('facturacion_pacientes_pendientes'))
+    
+    # GET: Mostrar formulario
     ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
     medicos = execute_query('SELECT * FROM medicos WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
-    return render_template('facturacion/facturas_form.html', ars_list=ars_list, medicos=medicos)
+    
+    # Obtener relaciones médico-centro para poblar el dropdown de centros médicos
+    centros_medicos = execute_query('''
+        SELECT 
+            mc.medico_id,
+            mc.centro_medico_id as centro_id,
+            cm.nombre as centro_nombre,
+            mc.es_defecto
+        FROM medico_centro mc
+        INNER JOIN centros_medicos cm ON mc.centro_medico_id = cm.id
+        WHERE mc.tenant_id = %s AND cm.activo = 1
+        ORDER BY mc.medico_id, mc.es_defecto DESC, cm.nombre
+    ''', (tenant_id,), fetch='all') or []
+    
+    # Obtener servicios para el datalist
+    servicios_list = execute_query('''
+        SELECT descripcion, precio_base 
+        FROM servicios 
+        WHERE tenant_id = %s AND activo = 1 
+        ORDER BY descripcion
+    ''', (tenant_id,), fetch='all') or []
+    
+    return render_template('facturacion/facturas_form.html', 
+                         ars_list=ars_list, 
+                         medicos=medicos, 
+                         centros_medicos=centros_medicos,
+                         servicios_list=servicios_list)
 
 @app.route('/facturacion/pacientes-pendientes')
 @login_required
@@ -2382,8 +2863,390 @@ def facturacion_pacientes_pendientes_pdf():
 @login_required
 def descargar_plantilla_excel():
     """Descargar plantilla Excel para importar pacientes"""
-    flash('Funcionalidad de Excel en desarrollo', 'info')
-    return redirect(url_for('facturacion_facturas_nueva'))
+    try:
+        if not OPENPYXL_AVAILABLE:
+            flash('La funcionalidad de Excel no está disponible', 'error')
+            return redirect(url_for('facturacion_facturas_nueva'))
+        
+        tenant_id = get_current_tenant_id()
+        if tenant_id is None:
+            flash('Error al obtener el tenant', 'error')
+            return redirect(url_for('facturacion_facturas_nueva'))
+        
+        # Obtener tema del usuario
+        TEMAS = {
+            'cyan': {'primary': '#06B6D4', 'primary_dark': '#0891B2'},
+            'ocean': {'primary': '#0EA5E9', 'primary_dark': '#0284C7'},
+            'emerald': {'primary': '#10B981', 'primary_dark': '#059669'},
+            'teal': {'primary': '#14B8A6', 'primary_dark': '#0D9488'},
+            'coral': {'primary': '#FF6B6B', 'primary_dark': '#EE5A52'},
+            'sunset': {'primary': '#F59E0B', 'primary_dark': '#D97706'},
+            'rose': {'primary': '#F43F5E', 'primary_dark': '#E11D48'},
+            'amber': {'primary': '#F59E0B', 'primary_dark': '#D97706'},
+            'indigo': {'primary': '#6366F1', 'primary_dark': '#4F46E5'},
+            'purple': {'primary': '#A855F7', 'primary_dark': '#9333EA'},
+            'violet': {'primary': '#8B5CF6', 'primary_dark': '#7C3AED'},
+            'slate': {'primary': '#64748B', 'primary_dark': '#475569'},
+            'navy': {'primary': '#1E3A8A', 'primary_dark': '#1E40AF'},
+            'forest': {'primary': '#166534', 'primary_dark': '#14532D'},
+            'wine': {'primary': '#7F1D1D', 'primary_dark': '#991B1B'},
+            'bronze': {'primary': '#92400E', 'primary_dark': '#78350F'}
+        }
+        
+        tema_actual = 'cyan'  # Default
+        if current_user.is_authenticated and hasattr(current_user, 'tema_color') and current_user.tema_color:
+            tema_actual = current_user.tema_color
+        
+        # Asegurar que tema_actual sea válido
+        if tema_actual not in TEMAS:
+            tema_actual = 'cyan'
+        
+        tema = TEMAS.get(tema_actual, TEMAS['cyan'])
+        if not tema or 'primary' not in tema:
+            tema = TEMAS['cyan']
+        
+        color_primary = tema.get('primary', '#06B6D4')
+        if not color_primary:
+            color_primary = '#06B6D4'
+        
+        # Convertir color hexadecimal a formato de openpyxl (sin #)
+        color_hex_clean = color_primary.lstrip('#')
+        if not color_hex_clean:
+            color_hex_clean = '06B6D4'
+        
+        # Convertir color hexadecimal a RGB
+        def hex_to_rgb(hex_color):
+            if not hex_color:
+                hex_color = '#06B6D4'
+            hex_color = hex_color.lstrip('#')
+            if not hex_color or len(hex_color) < 6:
+                hex_color = '06B6D4'
+            try:
+                return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
+            except Exception:
+                return (6, 182, 212)  # Color cyan por defecto
+        
+        rgb_color = hex_to_rgb(color_primary)
+        
+        # Obtener servicios activos del tenant
+        try:
+            servicios_result = execute_query(
+                'SELECT descripcion FROM servicios WHERE tenant_id = %s AND activo = 1 ORDER BY descripcion', 
+                (tenant_id,), fetch='all'
+            )
+            if servicios_result is None:
+                servicios_list = []
+            elif isinstance(servicios_result, list):
+                servicios_list = [s for s in servicios_result if s and isinstance(s, dict)]
+            else:
+                servicios_list = []
+        except Exception as e:
+            servicios_list = []
+        
+        # Crear workbook
+        wb = Workbook()
+        
+        # Eliminar hoja por defecto (si existe)
+        if wb.active is not None:
+            try:
+                wb.remove(wb.active)
+            except Exception:
+                pass  # Si hay error al eliminar, continuar
+    
+        # ========== HOJA 1: INSTRUCCIONES ==========
+        ws_instrucciones = wb.create_sheet("Instrucciones", 0)
+        if ws_instrucciones is None:
+            raise ValueError("No se pudo crear la hoja de Instrucciones")
+        
+        # Título
+        title_cell = ws_instrucciones.cell(row=1, column=1, value="INSTRUCCIONES PARA CARGAR PACIENTES")
+        title_cell.font = Font(bold=True, size=16, color="8B5A9F")
+        ws_instrucciones.merge_cells('A1:D1')
+        
+        # Instrucciones numeradas
+        instrucciones = [
+            "Complete la hoja \"Pacientes\" con los datos de los pacientes",
+            "NSS: Solo números y guiones (ej: 001-234-5678)",
+            "NOMBRE: Nombre completo del paciente",
+            "FECHA: Formato AAAA-MM-DD (ej: 2025-10-16)",
+            "AUTORIZACIÓN: Solo números, debe ser única para cada paciente",
+            "SERVICIO: Seleccione de la lista desplegable (se alimenta de la hoja \"Servicios\")",
+            "MONTO: Cantidad en pesos (solo números)"
+        ]
+        
+        row = 3
+        if instrucciones and isinstance(instrucciones, list):
+            for i, instruccion in enumerate(instrucciones, 1):
+                if instruccion is not None:
+                    num_cell = ws_instrucciones.cell(row=row, column=1, value=f"{i}.")
+                    num_cell.font = Font(bold=True)
+                    text_cell = ws_instrucciones.cell(row=row, column=2, value=instruccion)
+                    ws_instrucciones.merge_cells(f'B{row}:D{row}')
+                    row += 1
+        
+        # Sección IMPORTANTE
+        row += 1
+        importante_cell = ws_instrucciones.cell(row=row, column=1, value="IMPORTANTE:")
+        importante_cell.font = Font(bold=True, size=12, color="8B5A9F")
+        row += 1
+        
+        importantes = [
+            "Los encabezados están protegidos y NO se pueden modificar",
+            "La columna SERVICIO tiene lista desplegable - haga clic en la flecha para seleccionar",
+            "Cada autorización debe ser única",
+            "Complete directamente desde la fila 2"
+        ]
+        
+        if importantes and isinstance(importantes, list):
+            for importante in importantes:
+                if importante is not None:
+                    bullet_cell = ws_instrucciones.cell(row=row, column=1, value="•")
+                    bullet_cell.font = Font(bold=True)
+                    text_cell = ws_instrucciones.cell(row=row, column=2, value=importante)
+                    ws_instrucciones.merge_cells(f'B{row}:D{row}')
+                    row += 1
+        
+        # Sección NOTA
+        row += 1
+        nota_title = ws_instrucciones.cell(row=row, column=1, value="NOTA:")
+        nota_title.font = Font(bold=True, size=12, color="8B5A9F")
+        row += 1
+        nota_text = ws_instrucciones.cell(row=row, column=1, value="Antes de cargar, debe seleccionar el Médico y ARS en la página web")
+        ws_instrucciones.merge_cells(f'A{row}:D{row}')
+        
+        # Ajustar ancho de columnas
+        ws_instrucciones.column_dimensions['A'].width = 5
+        ws_instrucciones.column_dimensions['B'].width = 80
+        ws_instrucciones.column_dimensions['C'].width = 10
+        ws_instrucciones.column_dimensions['D'].width = 10
+        
+        # Proteger hoja de instrucciones
+        try:
+            if ws_instrucciones is not None:
+                # Iterar sobre las filas que tienen datos
+                rows_iter = ws_instrucciones.iter_rows(min_row=1, max_row=100)
+                if rows_iter is not None:
+                    for row in rows_iter:
+                        if row is not None:
+                            for cell in row:
+                                if cell is not None:
+                                    cell.protection = Protection(locked=True)
+            if ws_instrucciones is not None:
+                ws_instrucciones.protection.sheet = True
+        except Exception as e:
+            # Si hay error, solo activar la protección sin bloquear celdas
+            try:
+                if ws_instrucciones is not None:
+                    ws_instrucciones.protection.sheet = True
+            except:
+                pass
+        
+        # ========== HOJA 2: SERVICIOS ==========
+        ws_servicios = wb.create_sheet("Servicios", 1)
+        if ws_servicios is None:
+            raise ValueError("No se pudo crear la hoja de Servicios")
+        
+        # Encabezado (usar color del tema del usuario)
+        header_cell = ws_servicios.cell(row=1, column=1, value="SERVICIOS DISPONIBLES")
+        header_cell.font = Font(bold=True, size=14, color="FFFFFF")
+        header_cell.fill = PatternFill(start_color=color_hex_clean, end_color=color_hex_clean, fill_type="solid")
+        header_cell.alignment = Alignment(horizontal="center", vertical="center")
+        ws_servicios.merge_cells('A1:B1')
+        
+        # Encabezados de tabla
+        ws_servicios.cell(row=2, column=1, value="Servicio").font = Font(bold=True)
+        ws_servicios.cell(row=2, column=1).fill = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
+        
+        # Agregar servicios
+        if servicios_list and isinstance(servicios_list, list) and len(servicios_list) > 0:
+            try:
+                for idx, servicio in enumerate(servicios_list, 3):
+                    if servicio and isinstance(servicio, dict):
+                        descripcion = servicio.get('descripcion', '')
+                        if descripcion:
+                            ws_servicios.cell(row=idx, column=1, value=descripcion)
+            except Exception as e:
+                ws_servicios.cell(row=3, column=1, value="Error al cargar servicios")
+        else:
+            ws_servicios.cell(row=3, column=1, value="No hay servicios disponibles")
+        
+        # Ajustar ancho
+        ws_servicios.column_dimensions['A'].width = 50
+        ws_servicios.column_dimensions['B'].width = 10
+        
+        # Proteger hoja de servicios
+        try:
+            if ws_servicios is not None:
+                # Iterar sobre las filas que tienen datos
+                rows_iter = ws_servicios.iter_rows(min_row=1, max_row=100)
+                if rows_iter is not None:
+                    for row in rows_iter:
+                        if row is not None:
+                            for cell in row:
+                                if cell is not None:
+                                    cell.protection = Protection(locked=True)
+            if ws_servicios is not None:
+                ws_servicios.protection.sheet = True
+        except Exception as e:
+            # Si hay error, solo activar la protección sin bloquear celdas
+            try:
+                if ws_servicios is not None:
+                    ws_servicios.protection.sheet = True
+            except:
+                pass
+        
+        # ========== HOJA 3: PACIENTES ==========
+        ws = wb.create_sheet("Pacientes", 2)
+        if ws is None:
+            raise ValueError("No se pudo crear la hoja de Pacientes")
+        
+        # Estilos para encabezados (usar color del tema del usuario)
+        header_fill = PatternFill(start_color=color_hex_clean, end_color=color_hex_clean, fill_type="solid")
+        header_font = Font(bold=True, color="FFFFFF", size=12)
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        
+        # Primero, desbloquear TODAS las celdas por defecto
+        # Luego bloquearemos solo la fila 1 (encabezado)
+        if ws is not None:
+            try:
+                # Desbloquear todas las celdas primero (fila 2 en adelante, hasta fila 1000)
+                for row_num in range(2, 1001):
+                    for col_num in range(1, 7):  # 6 columnas (A-F)
+                        try:
+                            cell = ws.cell(row=row_num, column=col_num)
+                            if cell is not None:
+                                cell.protection = Protection(locked=False)
+                        except Exception:
+                            pass
+            except Exception:
+                pass
+        
+        # Encabezados (bloqueados) - Solo la fila 1 estará protegida
+        headers = ['NSS', 'Nombre Completo', 'Fecha', 'Autorización', 'Servicio', 'Monto']
+        if headers and isinstance(headers, list):
+            for col_num, header in enumerate(headers, 1):
+                if header is not None:
+                    cell = ws.cell(row=1, column=col_num, value=header)
+                    cell.fill = header_fill
+                    cell.font = header_font
+                    cell.alignment = header_alignment
+                    cell.protection = Protection(locked=True)  # Bloquear solo el encabezado
+        
+        # No agregar fila de ejemplo - el usuario llenará desde la fila 2
+        
+        # Validación de datos: Lista desplegable para SERVICIO (columna E)
+        servicios_nombres = []
+        if servicios_list and isinstance(servicios_list, list) and len(servicios_list) > 0:
+            try:
+                # Validar cada elemento antes de procesarlo
+                for s in servicios_list:
+                    if s is not None and isinstance(s, dict):
+                        descripcion = s.get('descripcion', '')
+                        if descripcion:
+                            servicios_nombres.append(descripcion)
+            except Exception as e:
+                servicios_nombres = []
+            
+            if servicios_nombres and len(servicios_nombres) > 0:
+                # Crear referencia a la hoja Servicios
+                servicios_range = f"Servicios!$A$3:$A${2 + len(servicios_nombres)}"
+                dv_servicio = DataValidation(type="list", formula1=servicios_range, allow_blank=False)
+                dv_servicio.error = "Seleccione un servicio de la lista"
+                dv_servicio.errorTitle = "Servicio inválido"
+                dv_servicio.prompt = "Seleccione un servicio de la lista desplegable"
+                dv_servicio.promptTitle = "Seleccionar Servicio"
+                # Aplicar a toda la columna E (Servicio) desde la fila 2
+                ws.add_data_validation(dv_servicio)
+                dv_servicio.add(f"E2:E1048576")  # Aplicar a toda la columna E desde fila 2
+        
+        # Validación de datos: Autorización única (columna D)
+        # Usar fórmula personalizada para verificar que no haya duplicados
+        # COUNTIF($D:$D, D2) debe ser igual a 1 (solo una ocurrencia)
+        dv_autorizacion = DataValidation(
+            type="custom",
+            formula1="COUNTIF($D:$D,D2)=1",
+            allow_blank=False
+        )
+        dv_autorizacion.error = "Esta autorización ya existe. Cada autorización debe ser única."
+        dv_autorizacion.errorTitle = "Autorización duplicada"
+        dv_autorizacion.prompt = "Ingrese una autorización única (solo números)"
+        dv_autorizacion.promptTitle = "Autorización"
+        ws.add_data_validation(dv_autorizacion)
+        dv_autorizacion.add(f"D2:D1048576")  # Aplicar a toda la columna D desde fila 2
+        
+        # Validación de datos: Solo números para MONTO (columna F)
+        dv_monto = DataValidation(type="decimal", operator="greaterThan", formula1=0, allow_blank=False)
+        dv_monto.error = "El monto debe ser un número mayor a cero"
+        dv_monto.errorTitle = "Monto inválido"
+        dv_monto.prompt = "Ingrese solo números (ej: 500.00)"
+        dv_monto.promptTitle = "Monto"
+        ws.add_data_validation(dv_monto)
+        dv_monto.add(f"F2:F1048576")  # Aplicar a toda la columna F desde fila 2
+        
+        # Ajustar ancho de columnas
+        column_widths = [15, 35, 12, 15, 30, 12]
+        if column_widths and isinstance(column_widths, list):
+            for col_num, width in enumerate(column_widths, 1):
+                if width is not None:
+                    try:
+                        ws.column_dimensions[get_column_letter(col_num)].width = width
+                    except Exception:
+                        pass
+        
+        # Proteger la hoja - Solo el encabezado (fila 1) estará protegido
+        # Las celdas de datos (fila 2 en adelante) permanecerán desbloqueadas
+        try:
+            if ws is not None and hasattr(ws, 'protection') and ws.protection is not None:
+                ws.protection.sheet = True
+                ws.protection.password = None
+                ws.protection.formatCells = False
+                ws.protection.formatColumns = False
+                ws.protection.formatRows = False
+                ws.protection.insertColumns = True
+                ws.protection.insertRows = True
+                ws.protection.insertHyperlinks = True
+                ws.protection.deleteColumns = True
+                ws.protection.deleteRows = True
+                ws.protection.selectLockedCells = True
+                ws.protection.sort = True
+                ws.protection.autoFilter = True
+                ws.protection.pivotTables = True
+                ws.protection.selectUnlockedCells = True
+            elif ws is not None:
+                # Si protection no existe, solo activar la protección básica
+                ws.protection.sheet = True
+        except Exception as e:
+            # Si hay error con la protección, continuar sin ella (no es crítico)
+            try:
+                if ws is not None:
+                    ws.protection.sheet = True
+            except:
+                pass
+    
+        # Guardar en BytesIO
+        output = BytesIO()
+        wb.save(output)
+        output.seek(0)
+        
+        # Nombre del archivo
+        filename = 'plantilla_pacientes.xlsx'
+        
+        return send_file(
+            output,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            as_attachment=True,
+            download_name=filename
+        )
+    except TypeError as e:
+        import traceback
+        error_details = traceback.format_exc()
+        flash(f'Error al generar la plantilla: {str(e)}. Detalles: {error_details[:200]}', 'error')
+        return redirect(url_for('facturacion_facturas_nueva'))
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        flash(f'Error inesperado al generar la plantilla: {str(e)}. Detalles: {error_details[:200]}', 'error')
+        return redirect(url_for('facturacion_facturas_nueva'))
 
 @app.route('/facturacion/generar')
 @login_required

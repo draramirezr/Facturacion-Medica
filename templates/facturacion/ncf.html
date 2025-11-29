@@ -96,6 +96,47 @@
         font-weight: 600;
         font-family: 'Courier New', monospace;
     }
+    
+    /* Estilos para el badge del prefijo - mismo estilo que el estado */
+    .table-facturacion .badge.bg-info,
+    .table-facturacion td .badge.bg-info,
+    td .badge.bg-info {
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
+        background-color: {{ tema.primary }} !important;
+        color: white !important;
+        border: none !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    /* Estilos para el badge del estado - mismo estilo que el prefijo */
+    .table-facturacion .badge.bg-success,
+    .table-facturacion td .badge.bg-success,
+    td .badge.bg-success {
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
+        background-color: {{ tema.primary }} !important;
+        color: white !important;
+        border: none !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .table-facturacion .badge.bg-secondary,
+    .table-facturacion td .badge.bg-secondary,
+    td .badge.bg-secondary {
+        background: {{ tema.primary }} !important;
+        background-color: {{ tema.primary }} !important;
+        color: white !important;
+        border: 2px solid {{ tema.primary }} !important;
+        padding: 0.5rem 1rem !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+    }
 </style>
 
 <div class="container mt-4">
@@ -158,7 +199,7 @@
                     <td><strong>{{ ncf['id'] }}</strong></td>
                     <td>{{ ncf['tipo'] }}</td>
                     <td><span class="badge bg-info">{{ ncf['prefijo'] }}</span></td>
-                    <td class="text-center">{{ ncf['tamaño'] }}</td>
+                    <td class="text-center">{{ ncf['tamano_secuencia'] }}</td>
                     <td class="text-center">{{ ncf['ultimo_numero'] }}</td>
                     <td class="text-center">
                         <span class="badge-numero">{{ ncf['proximo_numero'] }}</span>

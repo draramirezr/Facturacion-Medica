@@ -253,6 +253,28 @@
             </a>
         </div>
         {% endif %}
+
+        <!-- 11. Reclamaciones -->
+        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 1.1s">
+            <a href="{{ url_for('facturacion_reclamaciones') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h4>Reclamaciones</h4>
+                    <p>Gestión de reclamaciones</p>
+                </div>
+            </a>
+        </div>
+
+        <!-- 12. Pagos -->
+        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 1.2s">
+            <a href="{{ url_for('facturacion_pagos') }}" style="text-decoration: none;">
+                <div class="maestra-card">
+                    <i class="fas fa-money-check-alt"></i>
+                    <h4>Pagos</h4>
+                    <p>Registro y cotejo</p>
+                </div>
+            </a>
+        </div>
     </div>
     {% endif %}
 
