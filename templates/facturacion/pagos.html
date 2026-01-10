@@ -89,7 +89,8 @@
                 <tbody>
                     {% for pago in pagos_list %}
                     <tr>
-                        <td><strong>{{ pago['numero_pago'] }}</strong></td>
+                        {% set numero_pago = pago.get('numero_pago') or ('PAGO-' + "%06d"|format(pago.get('id', 0))) %}
+                        <td><strong>{{ numero_pago }}</strong></td>
                         <td>{{ pago['fecha_pago'] }}</td>
                         <td>{{ pago['metodo_pago'] }}</td>
                         <td>
@@ -99,7 +100,8 @@
                             <span class="badge bg-info">{{ pago['cantidad_facturas'] or 0 }}</span>
                         </td>
                         <td class="text-end">
-                            <strong>${{ "{:,.2f}".format(pago['monto_total']) }}</strong>
+                            {% set monto_display = pago.get('monto_total') or pago.get('monto') or 0 %}
+                            <strong>${{ "{:,.2f}".format(monto_display) }}</strong>
                         </td>
                         <td class="text-center">
                             <a href="#" class="btn btn-sm btn-outline-primary" title="Ver detalles">
@@ -122,4 +124,6 @@
     </div>
 </div>
 {% endblock %}
+
+
 

@@ -147,6 +147,22 @@
                     <label for="direccion" class="form-label">Dirección</label>
                     <textarea class="form-control" id="direccion" name="direccion" rows="3">{{ empresa['direccion'] if empresa else '' }}</textarea>
                 </div>
+                
+                <div class="col-md-12 mb-3">
+                    <label for="tipo_empresa" class="form-label">
+                        Tipo de Empresa <span class="required-asterisk">*</span>
+                    </label>
+                    <select class="form-select" id="tipo_empresa" name="tipo_empresa" required>
+                        <option value="">-- Seleccione un tipo --</option>
+                        <option value="medico" {{ 'selected' if empresa and empresa.get('tipo_empresa') == 'medico' else '' }}>
+                            Médico
+                        </option>
+                        <option value="centro_salud" {{ 'selected' if empresa and empresa.get('tipo_empresa') == 'centro_salud' else '' }}>
+                            Centro de Salud
+                        </option>
+                    </select>
+                    <small class="text-muted">Este campo determina las funcionalidades disponibles para la empresa</small>
+                </div>
             </div>
             
             <hr class="my-4">

@@ -1,4 +1,4 @@
-# Sistema de Facturación Médica
+# ARSFLOW Gestion de Factras Medicas
 
 from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response, send_file, session
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
@@ -17,6 +17,8 @@ import time
 from collections import defaultdict
 from threading import Lock
 from functools import wraps
+import logging
+from logging.handlers import RotatingFileHandler
 
 import pymysql
 pymysql.install_as_MySQLdb()
@@ -53,6 +55,17 @@ except ImportError:
     print("AVISO: OpenPyXL no disponible")
 
 load_dotenv()
+
+# Configurar logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        RotatingFileHandler('app.log', maxBytes=10485760, backupCount=5),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
@@ -156,50 +169,201 @@ else:
 
 print(f"[OK] Configurado para MySQL: {DATABASE_CONFIG['database']}")
 
+# Cache de conexiones para mejor rendimiento (pymysql no tiene pool nativo)
+# Usaremos conexiones reutilizables con contexto de aplicación Flask
+from flask import g
+
 def get_db_connection():
-    """Obtener conexión a la base de datos"""
-    config = DATABASE_CONFIG.copy()
-    config['cursorclass'] = pymysql.cursors.DictCursor
-    conn = pymysql.connect(**config)
-    return conn
+    """
+    Obtener conexión a la base de datos
+    Reutiliza conexión en el contexto de la request si existe
+    """
+    if 'db_conn' not in g:
+        config = DATABASE_CONFIG.copy()
+        config['cursorclass'] = pymysql.cursors.DictCursor
+        # Configuraciones de rendimiento
+        config['autocommit'] = False
+        g.db_conn = pymysql.connect(**config)
+        logger.debug("Nueva conexión a BD creada")
+    
+    return g.db_conn
+
+@app.teardown_appcontext
+def close_db(error):
+    """Cerrar conexión al finalizar request"""
+    db_conn = g.pop('db_conn', None)
+    if db_conn is not None:
+        try:
+            db_conn.close()
+            logger.debug("Conexión a BD cerrada")
+        except Exception as e:
+            logger.error(f"Error al cerrar conexión: {e}")
 
 def execute_query(query, params=None, fetch='one'):
-    """Ejecutar query y retornar resultados"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    """
+    Ejecutar query y retornar resultados
+    Con manejo mejorado de errores, logging y reutilización de conexiones
+    """
+    cursor = None
     try:
+        # Validar que la query no esté vacía
+        if not query or not query.strip():
+            logger.error("Intento de ejecutar query vacía")
+            return None
+        
+        # Validar que params sea tupla o lista si se proporciona
+        if params is not None and not isinstance(params, (tuple, list)):
+            logger.warning(f"Params debe ser tupla o lista, recibido: {type(params)}")
+            params = (params,)
+        
+        # Validar que no haya SQL injection básico (solo advertencia)
+        if params and any(isinstance(p, str) and (';' in p or '--' in p or '/*' in p) for p in params):
+            logger.warning("Posible intento de SQL injection detectado en params")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
         cursor.execute(query, params or ())
+        
         if fetch == 'one':
             result = cursor.fetchone()
         elif fetch == 'all':
             result = cursor.fetchall()
         else:
             result = None
+        
         conn.commit()
         return result
+    except pymysql.Error as e:
+        conn = get_db_connection()
+        try:
+            conn.rollback()
+        except:
+            pass
+        logger.error(f"Error SQL en execute_query: {e} - Query: {query[:100]}...")
+        # No exponer detalles del error al usuario en producción
+        if os.getenv('FLASK_ENV') == 'development':
+            raise
+        return None
+    except Exception as e:
+        conn = get_db_connection()
+        try:
+            conn.rollback()
+        except:
+            pass
+        logger.error(f"Error inesperado en execute_query: {e}", exc_info=True)
+        if os.getenv('FLASK_ENV') == 'development':
+            raise
+        return None
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        # No cerramos la conexión aquí, se cierra al finalizar la request
 
 def execute_update(query, params=None):
-    """Ejecutar UPDATE/INSERT/DELETE"""
-    conn = get_db_connection()
-    cursor = conn.cursor()
+    """
+    Ejecutar UPDATE/INSERT/DELETE
+    Con manejo mejorado de errores, logging y reutilización de conexiones
+    """
+    cursor = None
     try:
+        # Validar que la query no esté vacía
+        if not query or not query.strip():
+            logger.error("Intento de ejecutar update con query vacía")
+            return None
+        
+        # Validar que params sea tupla o lista si se proporciona
+        if params is not None and not isinstance(params, (tuple, list)):
+            logger.warning(f"Params debe ser tupla o lista, recibido: {type(params)}")
+            params = (params,)
+        
+        # Validar que no haya SQL injection básico (solo advertencia)
+        if params and any(isinstance(p, str) and (';' in p or '--' in p or '/*' in p) for p in params):
+            logger.warning("Posible intento de SQL injection detectado en params")
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
         cursor.execute(query, params or ())
         conn.commit()
         return cursor.lastrowid
+    except pymysql.Error as e:
+        conn = get_db_connection()
+        try:
+            conn.rollback()
+        except:
+            pass
+        logger.error(f"Error SQL en execute_update: {e} - Query: {query[:100]}...")
+        # No exponer detalles del error al usuario en producción
+        if os.getenv('FLASK_ENV') == 'development':
+            raise
+        return None
+    except Exception as e:
+        conn = get_db_connection()
+        try:
+            conn.rollback()
+        except:
+            pass
+        logger.error(f"Error inesperado en execute_update: {e}", exc_info=True)
+        if os.getenv('FLASK_ENV') == 'development':
+            raise
+        return None
     finally:
-        cursor.close()
-        conn.close()
+        if cursor:
+            cursor.close()
+        # No cerramos la conexión aquí, se cierra al finalizar la request
 
-def sanitize_input(text, max_length=500):
-    """Sanitizar entrada de texto"""
+def sanitize_input(text, max_length=500, allow_html=False):
+    """
+    Sanitizar entrada de texto para prevenir XSS y otros ataques
+    
+    Args:
+        text: Texto a sanitizar
+        max_length: Longitud máxima permitida
+        allow_html: Si True, permite HTML (usar con escape en templates)
+    
+    Returns: Texto sanitizado
+    """
     if not text:
         return ""
+    
     text = str(text).strip()
-    text = re.sub(r'<[^>]*>', '', text)
-    return text[:max_length]
+    
+    # Remover HTML/scripts a menos que se permita explícitamente
+    if not allow_html:
+        text = re.sub(r'<[^>]*>', '', text)
+        # Remover caracteres peligrosos
+        text = text.replace('javascript:', '').replace('onerror=', '')
+        text = text.replace('onclick=', '').replace('onload=', '')
+    
+    # Limitar longitud
+    if max_length and len(text) > max_length:
+        text = text[:max_length]
+        logger.warning(f"Texto truncado por exceder longitud máxima: {max_length}")
+    
+    return text
+
+def validate_int(value, min_value=None, max_value=None, default=None):
+    """Validar y convertir a entero de forma segura"""
+    try:
+        int_value = int(value)
+        if min_value is not None and int_value < min_value:
+            return default
+        if max_value is not None and int_value > max_value:
+            return default
+        return int_value
+    except (ValueError, TypeError):
+        return default
+
+def validate_float(value, min_value=None, max_value=None, default=None):
+    """Validar y convertir a float de forma segura"""
+    try:
+        float_value = float(value)
+        if min_value is not None and float_value < min_value:
+            return default
+        if max_value is not None and float_value > max_value:
+            return default
+        return float_value
+    except (ValueError, TypeError):
+        return default
 
 def validate_email(email):
     """Validar formato de email"""
@@ -547,19 +711,52 @@ def add_tenant_filter(query, table_alias=''):
     
     return query
 
+# Whitelist de tablas permitidas para prevenir SQL injection
+_ALLOWED_TABLES = {
+    'usuarios', 'pacientes', 'medicos', 'ars', 'servicios', 'ncf', 
+    'facturas', 'factura_detalles', 'pacientes_pendientes', 
+    'centros_medicos', 'empresas'
+}
+
+_ALLOWED_ID_COLUMNS = {'id', 'paciente_id', 'medico_id', 'ars_id', 'factura_id'}
+
 def validate_tenant_access(table, record_id, id_column='id'):
     """
     Validar que un registro pertenece al Tenant del usuario actual.
     Previene acceso a datos de otras empresas.
     
+    Args:
+        table: Nombre de la tabla (debe estar en whitelist)
+        record_id: ID del registro a validar
+        id_column: Nombre de la columna ID (debe estar en whitelist)
+    
     Returns: True si el usuario tiene acceso, False si no.
     """
+    # Validación de seguridad: whitelist de tablas y columnas
+    if table not in _ALLOWED_TABLES:
+        logger.warning(f"Intento de acceso a tabla no permitida: {table}")
+        return False
+    
+    if id_column not in _ALLOWED_ID_COLUMNS:
+        logger.warning(f"Intento de acceso con columna ID no permitida: {id_column}")
+        return False
+    
+    # Validar que record_id sea un entero
+    try:
+        record_id = int(record_id)
+    except (ValueError, TypeError):
+        logger.warning(f"record_id inválido: {record_id}")
+        return False
+    
     tenant_id = get_current_tenant_id()
     if not tenant_id:
         return False
     
+    # Query segura usando parámetros
     result = execute_query(
-        f"SELECT COUNT(*) as count FROM {table} WHERE {id_column} = %s AND tenant_id = %s",
+        "SELECT COUNT(*) as count FROM {} WHERE {} = %s AND tenant_id = %s".format(
+            table, id_column
+        ),
         (record_id, tenant_id)
     )
     
@@ -921,7 +1118,7 @@ def solicitar_recuperacion():
                     message = Mail(
                         from_email=os.getenv('SENDGRID_FROM_EMAIL', 'noreply@facturacion.com'),
                         to_emails=email,
-                        subject='Recuperación de Contraseña - Sistema de Facturación',
+                        subject='Recuperación de Contraseña - ARSFLOW Gestion de Factras Medicas',
                         html_content=f'''
                         <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
                             <h2 style="color: #CEB0B7;">Recuperación de Contraseña</h2>
@@ -936,7 +1133,7 @@ def solicitar_recuperacion():
                             <p style="color: #666; font-size: 14px;">Este enlace expirará en 1 hora.</p>
                             <p style="color: #666; font-size: 14px;">Si no solicitaste este cambio, ignora este email.</p>
                             <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
-                            <p style="color: #999; font-size: 12px;">Sistema de Facturación Médica</p>
+                            <p style="color: #999; font-size: 12px;">ARSFLOW Gestion de Factras Medicas</p>
                         </div>
                         '''
                     )
@@ -1013,11 +1210,35 @@ def recuperar_password(token):
 @app.route('/admin/empresas')
 @login_required
 def admin_empresas():
-    """Listar todas las empresas (Solo Super Admin)"""
-    # TODO: Implementar perfil Super Admin
+    """Listar empresas - Super Admin ve todas, Administrador ve solo la suya"""
     if current_user.perfil != 'Administrador':
         flash('No tienes permisos para gestionar empresas', 'error')
         return redirect(url_for('facturacion_menu'))
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Si es Super Admin (sin tenant_id), ver todas las empresas
+    if tenant_id is None:
+        # Super Admin puede ver todas las empresas
+        empresas = execute_query('''
+            SELECT e.*, 
+                   COUNT(u.id) as total_usuarios
+            FROM empresas e
+            LEFT JOIN usuarios u ON e.id = u.tenant_id AND u.activo = 1
+            GROUP BY e.id
+            ORDER BY e.fecha_creacion DESC
+        ''', fetch='all')
+    else:
+        # Administrador de empresa solo ve su propia empresa
+        empresas = execute_query('''
+            SELECT e.*, 
+                   COUNT(u.id) as total_usuarios
+            FROM empresas e
+            LEFT JOIN usuarios u ON e.id = u.tenant_id AND u.activo = 1
+            WHERE e.id = %s
+            GROUP BY e.id
+            ORDER BY e.fecha_creacion DESC
+        ''', (tenant_id,), fetch='all') or []
     
     # Verificar y suspender empresas vencidas
     empresas_suspendidas = verificar_suscripciones_vencidas()
@@ -1085,7 +1306,14 @@ def admin_empresas():
 @app.route('/admin/empresas/nueva', methods=['GET', 'POST'])
 @login_required
 def admin_empresas_nueva():
-    """Crear nueva empresa"""
+    """Crear nueva empresa - Solo Super Admin (sin tenant_id)"""
+    # Solo usuarios sin tenant_id (Super Admin) pueden crear empresas
+    # Los administradores de una empresa solo gestionan usuarios dentro de su empresa
+    tenant_id = get_current_tenant_id()
+    if tenant_id is not None:
+        flash('No tienes permisos para crear empresas. Solo Super Administradores pueden crear nuevas empresas.', 'error')
+        return redirect(url_for('admin_empresas'))
+    
     if current_user.perfil != 'Administrador':
         flash('No tienes permisos', 'error')
         return redirect(url_for('facturacion_menu'))
@@ -1099,11 +1327,17 @@ def admin_empresas_nueva():
         direccion = sanitize_input(request.form.get('direccion', ''), 500)
         fecha_inicio = request.form.get('fecha_inicio')
         fecha_fin = request.form.get('fecha_fin')
-        licencias_totales = int(request.form.get('licencias_totales', 5))
+        licencias_totales = validate_int(request.form.get('licencias_totales', 5), min_value=1, max_value=1000, default=5)
         plan = request.form.get('plan', 'basico')
+        tipo_empresa = request.form.get('tipo_empresa', '').strip()
         
-        if not nombre or not razon_social or not fecha_inicio or not fecha_fin:
-            flash('Nombre, Razón Social y fechas son obligatorios', 'error')
+        # Validar tipo_empresa
+        if tipo_empresa not in ['medico', 'centro_salud']:
+            flash('Debe seleccionar un tipo de empresa válido', 'error')
+            return redirect(url_for('admin_empresas_nueva'))
+        
+        if not nombre or not razon_social or not fecha_inicio or not fecha_fin or not tipo_empresa:
+            flash('Nombre, Razón Social, Tipo de Empresa y fechas son obligatorios', 'error')
             return redirect(url_for('admin_empresas_nueva'))
         
         # Validar fechas
@@ -1124,16 +1358,35 @@ def admin_empresas_nueva():
             flash('Ya existe una empresa con ese nombre', 'error')
             return redirect(url_for('admin_empresas_nueva'))
         
-        # Crear empresa
-        execute_update('''
-            INSERT INTO empresas (
-                nombre, razon_social, rnc, telefono, email, direccion,
-                fecha_inicio, fecha_fin,
-                licencias_totales, licencias_usadas, plan, estado,
-                creado_por
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 0, %s, 'activo', %s)
-        ''', (nombre, razon_social, rnc, telefono, email, direccion, 
-              fecha_inicio, fecha_fin, licencias_totales, plan, current_user.id))
+        # Crear empresa - Verificar si existe columna tipo_empresa
+        try:
+            # Intentar insertar con tipo_empresa
+            execute_update('''
+                INSERT INTO empresas (
+                    nombre, razon_social, rnc, telefono, email, direccion,
+                    fecha_inicio, fecha_fin,
+                    licencias_totales, licencias_usadas, plan, estado, tipo_empresa,
+                    creado_por
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 0, %s, 'activo', %s, %s)
+            ''', (nombre, razon_social, rnc, telefono, email, direccion, 
+                  fecha_inicio, fecha_fin, licencias_totales, plan, tipo_empresa, current_user.id))
+        except Exception as e:
+            error_msg = str(e).lower()
+            if 'unknown column' in error_msg and 'tipo_empresa' in error_msg:
+                # Si no existe la columna, crear sin tipo_empresa y mostrar advertencia
+                logger.warning("Columna tipo_empresa no existe en tabla empresas. Ejecute el script de migración.")
+                execute_update('''
+                    INSERT INTO empresas (
+                        nombre, razon_social, rnc, telefono, email, direccion,
+                        fecha_inicio, fecha_fin,
+                        licencias_totales, licencias_usadas, plan, estado,
+                        creado_por
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 0, %s, 'activo', %s)
+                ''', (nombre, razon_social, rnc, telefono, email, direccion, 
+                      fecha_inicio, fecha_fin, licencias_totales, plan, current_user.id))
+                flash(f'Empresa {nombre} creada exitosamente. NOTA: Ejecute el script de migración para agregar el campo tipo_empresa.', 'warning')
+            else:
+                raise
         
         flash(f'Empresa "{nombre}" creada exitosamente', 'success')
         return redirect(url_for('admin_empresas'))
@@ -1143,15 +1396,22 @@ def admin_empresas_nueva():
 @app.route('/admin/empresas/editar/<int:empresa_id>', methods=['GET', 'POST'])
 @login_required
 def admin_empresas_editar(empresa_id):
-    """Editar empresa"""
+    """Editar empresa - Super Admin puede editar cualquier empresa, Administrador solo la suya"""
     if current_user.perfil != 'Administrador':
         flash('No tienes permisos', 'error')
         return redirect(url_for('facturacion_menu'))
+    
+    tenant_id = get_current_tenant_id()
     
     empresa = execute_query('SELECT * FROM empresas WHERE id = %s', (empresa_id,))
     
     if not empresa:
         flash('Empresa no encontrada', 'error')
+        return redirect(url_for('admin_empresas'))
+    
+    # Si el usuario tiene tenant_id (no es Super Admin), solo puede editar su propia empresa
+    if tenant_id is not None and empresa['id'] != tenant_id:
+        flash('No tienes permisos para editar esta empresa. Solo puedes editar tu propia empresa.', 'error')
         return redirect(url_for('admin_empresas'))
     
     if request.method == 'POST':
@@ -1163,9 +1423,20 @@ def admin_empresas_editar(empresa_id):
         direccion = sanitize_input(request.form.get('direccion', ''), 500)
         fecha_inicio = request.form.get('fecha_inicio')
         fecha_fin = request.form.get('fecha_fin')
-        licencias_totales = int(request.form.get('licencias_totales', 5))
+        licencias_totales = validate_int(request.form.get('licencias_totales', 5), min_value=1, max_value=1000, default=5)
         plan = request.form.get('plan', 'basico')
         estado = request.form.get('estado', 'activo')
+        tipo_empresa = request.form.get('tipo_empresa', '').strip()
+        
+        # Validar tipo_empresa - debe ser obligatorio
+        if not tipo_empresa:
+            flash('El tipo de empresa es obligatorio', 'error')
+            return redirect(url_for('admin_empresas_editar', empresa_id=empresa_id))
+        
+        # Validar que sea un valor válido
+        if tipo_empresa not in ['medico', 'centro_salud']:
+            flash('Tipo de empresa inválido', 'error')
+            return redirect(url_for('admin_empresas_editar', empresa_id=empresa_id))
         
         # Validar fechas
         if fecha_inicio and fecha_fin:
@@ -1186,16 +1457,36 @@ def admin_empresas_editar(empresa_id):
                 flash('Fechas inválidas', 'error')
                 return redirect(url_for('admin_empresas_editar', empresa_id=empresa_id))
         
-        # Actualizar empresa
-        execute_update('''
-            UPDATE empresas SET
-                nombre = %s, razon_social = %s, rnc = %s,
-                telefono = %s, email = %s, direccion = %s,
-                fecha_inicio = %s, fecha_fin = %s,
-                licencias_totales = %s, plan = %s, estado = %s
-            WHERE id = %s
-        ''', (nombre, razon_social, rnc, telefono, email, direccion,
-              fecha_inicio, fecha_fin, licencias_totales, plan, estado, empresa_id))
+        # Actualizar empresa - Verificar si existe columna tipo_empresa
+        try:
+            # Intentar actualizar con tipo_empresa (siempre incluir el campo, incluso si está vacío)
+            execute_update('''
+                UPDATE empresas SET
+                    nombre = %s, razon_social = %s, rnc = %s,
+                    telefono = %s, email = %s, direccion = %s,
+                    fecha_inicio = %s, fecha_fin = %s,
+                    licencias_totales = %s, plan = %s, estado = %s, tipo_empresa = %s
+                WHERE id = %s
+            ''', (nombre, razon_social, rnc, telefono, email, direccion,
+                  fecha_inicio, fecha_fin, licencias_totales, plan, estado, tipo_empresa or None, empresa_id))
+        except Exception as e:
+            error_msg = str(e).lower()
+            if 'unknown column' in error_msg and 'tipo_empresa' in error_msg:
+                # Si no existe la columna, actualizar sin tipo_empresa
+                logger.warning("Columna tipo_empresa no existe en tabla empresas. Ejecute el script de migración.")
+                execute_update('''
+                    UPDATE empresas SET
+                        nombre = %s, razon_social = %s, rnc = %s,
+                        telefono = %s, email = %s, direccion = %s,
+                        fecha_inicio = %s, fecha_fin = %s,
+                        licencias_totales = %s, plan = %s, estado = %s
+                    WHERE id = %s
+                ''', (nombre, razon_social, rnc, telefono, email, direccion,
+                      fecha_inicio, fecha_fin, licencias_totales, plan, estado, empresa_id))
+                flash(f'Empresa {nombre} actualizada exitosamente. NOTA: Ejecute el script de migración para agregar el campo tipo_empresa.', 'warning')
+            else:
+                logger.error(f"Error al actualizar empresa: {e}")
+                raise
         
         flash(f'Empresa "{nombre}" actualizada exitosamente', 'success')
         return redirect(url_for('admin_empresas'))
@@ -1258,6 +1549,10 @@ def verificar_multitenant():
         
         for tabla in tablas_verificar:
             try:
+
+
+
+                
                 result = execute_query(f"SHOW COLUMNS FROM {tabla} LIKE 'tenant_id'", fetch='one')
                 if result:
                     columnas_ok.append(tabla)
@@ -1514,6 +1809,11 @@ def facturacion_medicos_nuevo():
             flash('El nombre es obligatorio', 'error')
             return redirect(url_for('facturacion_medicos_nuevo'))
         
+        # Validar que el teléfono sea obligatorio si está habilitado para facturar
+        if factura == 1 and not telefono:
+            flash('El teléfono es obligatorio cuando el médico está habilitado para facturar', 'error')
+            return redirect(url_for('facturacion_medicos_nuevo'))
+        
         tenant_id = get_current_tenant_id()
         execute_update('''
             INSERT INTO medicos (tenant_id, nombre, exequatur, especialidad, telefono, email, cedula, activo, factura)
@@ -1551,6 +1851,11 @@ def facturacion_medicos_editar(medico_id):
         
         if not nombre:
             flash('El nombre es obligatorio', 'error')
+            return redirect(url_for('facturacion_medicos_editar', medico_id=medico_id))
+        
+        # Validar que el teléfono sea obligatorio si está habilitado para facturar
+        if factura == 1 and not telefono:
+            flash('El teléfono es obligatorio cuando el médico está habilitado para facturar', 'error')
             return redirect(url_for('facturacion_medicos_editar', medico_id=medico_id))
         
         tenant_id = get_current_tenant_id()
@@ -2294,6 +2599,244 @@ def facturacion_pacientes_eliminar(paciente_id):
     flash('Paciente eliminado exitosamente', 'success')
     return redirect(url_for('facturacion_pacientes'))
 
+@app.route('/facturacion/pacientes-pendientes/<int:paciente_id>/eliminar', methods=['POST'])
+@login_required
+def facturacion_pacientes_pendientes_eliminar(paciente_id):
+    """Eliminar paciente pendiente"""
+    tenant_id = get_current_tenant_id()
+    
+    # Verificar si existe la columna tenant_id en pacientes_pendientes
+    tiene_tenant_id = False
+    try:
+        check_tenant = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'pacientes_pendientes' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
+    except:
+        tiene_tenant_id = False
+    
+    # Verificar que el registro existe
+    if tiene_tenant_id:
+        paciente = execute_query('SELECT id FROM pacientes_pendientes WHERE id = %s AND tenant_id = %s', (paciente_id, tenant_id))
+        if not paciente:
+            flash('Registro no encontrado', 'error')
+            return redirect(url_for('facturacion_pacientes_pendientes'))
+        
+        # Eliminar el registro
+        execute_update('DELETE FROM pacientes_pendientes WHERE id = %s AND tenant_id = %s', (paciente_id, tenant_id))
+    else:
+        # Si no existe tenant_id, eliminar sin verificar tenant
+        paciente = execute_query('SELECT id FROM pacientes_pendientes WHERE id = %s', (paciente_id,))
+        if not paciente:
+            flash('Registro no encontrado', 'error')
+            return redirect(url_for('facturacion_pacientes_pendientes'))
+        
+        # Eliminar el registro
+        execute_update('DELETE FROM pacientes_pendientes WHERE id = %s', (paciente_id,))
+    
+    flash('Registro eliminado exitosamente', 'success')
+    return redirect(url_for('facturacion_pacientes_pendientes'))
+
+@app.route('/api/facturacion/pacientes-pendientes/<int:paciente_id>', methods=['GET'])
+@login_required
+def api_facturacion_pacientes_pendientes_get(paciente_id):
+    """Obtener datos de un paciente pendiente para editar"""
+    tenant_id = get_current_tenant_id()
+    
+    # Verificar si existe la columna tenant_id
+    tiene_tenant_id = False
+    try:
+        check_tenant = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'pacientes_pendientes' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
+    except:
+        tiene_tenant_id = False
+    
+    # Obtener el registro
+    if tiene_tenant_id:
+        paciente = execute_query('''
+            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a ON pp.ars_id = a.id
+            LEFT JOIN medicos m ON pp.medico_id = m.id
+            WHERE pp.id = %s AND pp.tenant_id = %s
+        ''', (paciente_id, tenant_id))
+    else:
+        paciente = execute_query('''
+            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a ON pp.ars_id = a.id
+            LEFT JOIN medicos m ON pp.medico_id = m.id
+            WHERE pp.id = %s
+        ''', (paciente_id,))
+    
+    if not paciente:
+        return jsonify({'error': 'Registro no encontrado'}), 404
+    
+    # Extraer solo el servicio sin la autorización
+    servicio_completo = paciente.get('servicios_realizados', '') or ''
+    servicio = servicio_completo.split(' - Autorización:')[0].strip() if ' - Autorización:' in servicio_completo else servicio_completo.strip()
+    autorizacion = ''
+    if ' - Autorización:' in servicio_completo:
+        partes = servicio_completo.split(' - Autorización:')
+        if len(partes) > 1:
+            autorizacion = partes[1].strip()
+    
+    # Formatear fecha para input type="date" (YYYY-MM-DD)
+    fecha_servicio = paciente.get('fecha_servicio', '')
+    if fecha_servicio:
+        if isinstance(fecha_servicio, str):
+            # Si es string, verificar formato y convertir si es necesario
+            if '/' in fecha_servicio:
+                # Formato MM/DD/YYYY o DD/MM/YYYY
+                partes = fecha_servicio.split('/')
+                if len(partes) == 3:
+                    fecha_servicio = f"{partes[2]}-{partes[0].zfill(2)}-{partes[1].zfill(2)}"
+            elif fecha_servicio.count('-') == 2 and len(fecha_servicio.split('-')[0]) == 2:
+                # Formato DD-MM-YYYY
+                partes = fecha_servicio.split('-')
+                fecha_servicio = f"{partes[2]}-{partes[1]}-{partes[0]}"
+        else:
+            # Si es objeto date/datetime, convertir a string YYYY-MM-DD
+            from datetime import date, datetime
+            if isinstance(fecha_servicio, (date, datetime)):
+                fecha_servicio = fecha_servicio.strftime('%Y-%m-%d')
+    
+    return jsonify({
+        'id': paciente['id'],
+        'nombre_paciente': paciente.get('nombre_paciente', ''),
+        'nss': paciente.get('nss', ''),
+        'fecha_servicio': fecha_servicio,
+        'servicio': servicio,
+        'autorizacion': autorizacion,
+        'monto_estimado': float(paciente.get('monto_estimado', 0)),
+        'ars_id': paciente.get('ars_id'),
+        'ars_nombre': paciente.get('ars_nombre', ''),
+        'medico_id': paciente.get('medico_id'),
+        'medico_nombre': paciente.get('medico_nombre', ''),
+        'centro_medico_id': paciente.get('centro_medico_id'),
+        'observaciones': paciente.get('observaciones', '')
+    })
+
+@app.route('/api/facturacion/pacientes-pendientes/<int:paciente_id>', methods=['PUT'])
+@login_required
+def api_facturacion_pacientes_pendientes_update(paciente_id):
+    """Actualizar un paciente pendiente"""
+    try:
+        tenant_id = get_current_tenant_id()
+        
+        if not request.is_json:
+            return jsonify({'error': 'Content-Type debe ser application/json'}), 400
+        
+        data = request.get_json()
+        if not data:
+            return jsonify({'error': 'No se recibieron datos'}), 400
+        
+        # Validar datos
+        nombre_paciente = sanitize_input(data.get('nombre_paciente', ''), 200)
+        nss = sanitize_input(data.get('nss', ''), 50)
+        fecha_servicio = data.get('fecha_servicio', '')
+        servicio_completo = sanitize_input(data.get('servicio', ''), 500)  # Ya viene con autorización si existe
+        
+        try:
+            monto_estimado = float(data.get('monto_estimado', 0))
+        except (ValueError, TypeError):
+            monto_estimado = 0.0
+        
+        ars_id = data.get('ars_id') or None
+        medico_id = data.get('medico_id') or None
+        centro_medico_id = data.get('centro_medico_id') or None
+        
+        # Manejar observaciones de forma segura
+        observaciones = data.get('observaciones')
+        if observaciones:
+            observaciones = str(observaciones).strip()
+            if not observaciones:
+                observaciones = None
+        else:
+            observaciones = None
+        
+        if not nombre_paciente:
+            return jsonify({'error': 'El nombre del paciente es obligatorio'}), 400
+        
+        if not fecha_servicio:
+            return jsonify({'error': 'La fecha de servicio es obligatoria'}), 400
+        
+        # El servicio ya viene completo con autorización desde el frontend
+        servicios_realizados = servicio_completo
+        
+        # Verificar si existe la columna tenant_id
+        tiene_tenant_id = False
+        try:
+            check_tenant = execute_query('''
+                SELECT COUNT(*) as count 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'pacientes_pendientes' 
+                AND COLUMN_NAME = 'tenant_id'
+            ''')
+            tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
+        except Exception as e:
+            print(f"Error al verificar tenant_id: {e}")
+            tiene_tenant_id = False
+        
+        # Convertir IDs a enteros si existen
+        try:
+            if ars_id:
+                ars_id = int(ars_id)
+        except (ValueError, TypeError):
+            ars_id = None
+            
+        try:
+            if medico_id:
+                medico_id = int(medico_id)
+        except (ValueError, TypeError):
+            medico_id = None
+            
+        try:
+            if centro_medico_id:
+                centro_medico_id = int(centro_medico_id)
+        except (ValueError, TypeError):
+            centro_medico_id = None
+        
+        # Actualizar
+        if tiene_tenant_id:
+            execute_update('''
+                UPDATE pacientes_pendientes 
+                SET nombre_paciente = %s, nss = %s, fecha_servicio = %s, 
+                    servicios_realizados = %s, monto_estimado = %s, 
+                    ars_id = %s, medico_id = %s, centro_medico_id = %s, observaciones = %s
+                WHERE id = %s AND tenant_id = %s
+            ''', (nombre_paciente, nss or None, fecha_servicio, servicios_realizados, monto_estimado,
+                  ars_id, medico_id, centro_medico_id, observaciones, paciente_id, tenant_id))
+        else:
+            execute_update('''
+                UPDATE pacientes_pendientes 
+                SET nombre_paciente = %s, nss = %s, fecha_servicio = %s, 
+                    servicios_realizados = %s, monto_estimado = %s, 
+                    ars_id = %s, medico_id = %s, centro_medico_id = %s, observaciones = %s
+                WHERE id = %s
+            ''', (nombre_paciente, nss or None, fecha_servicio, servicios_realizados, monto_estimado,
+                  ars_id, medico_id, centro_medico_id, observaciones, paciente_id))
+        
+        return jsonify({'success': True, 'message': 'Registro actualizado exitosamente'})
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error al actualizar paciente pendiente: {error_trace}")
+        return jsonify({'error': f'Error al actualizar: {str(e)}'}), 500
+    
+    return jsonify({'success': True, 'message': 'Registro actualizado exitosamente'})
+
 @app.route('/facturacion/reclamaciones')
 @login_required
 def facturacion_reclamaciones():
@@ -2307,6 +2850,26 @@ def facturacion_reclamaciones():
         ORDER BY r.fecha_reclamacion DESC, r.id DESC
     ''', (tenant_id,), fetch='all') or []
     return render_template('facturacion/reclamaciones.html', reclamaciones_list=reclamaciones_list)
+
+@app.route('/facturacion/reclamaciones/<int:reclamacion_id>')
+@login_required
+def facturacion_reclamacion_detalle(reclamacion_id: int):
+    """Detalle de una reclamación"""
+    tenant_id = get_current_tenant_id()
+    reclamacion = execute_query('''
+        SELECT r.*, 
+               f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total as total_factura,
+               f.fecha_emision, f.estado as estado_factura
+        FROM reclamaciones r
+        JOIN facturas f ON r.factura_id = f.id
+        WHERE r.id = %s AND r.tenant_id = %s
+    ''', (reclamacion_id, tenant_id))
+    
+    if not reclamacion:
+        flash('Reclamación no encontrada', 'error')
+        return redirect(url_for('facturacion_reclamaciones'))
+    
+    return render_template('facturacion/reclamacion_detalle.html', reclamacion=reclamacion)
 
 @app.route('/facturacion/reclamaciones/nueva', methods=['GET', 'POST'])
 @login_required
@@ -2365,9 +2928,14 @@ def facturacion_pagos():
     """Lista de pagos - Filtrado por tenant"""
     tenant_id = get_current_tenant_id()
     pagos_list = execute_query('''
-        SELECT p.*, 
-               COUNT(pf.id) as cantidad_facturas,
-               GROUP_CONCAT(f.numero_factura SEPARATOR ', ') as facturas_numeros
+        SELECT 
+               p.id,
+               CONCAT('PAGO-', LPAD(p.id, 6, '0')) AS numero_pago,
+               p.fecha_pago,
+               p.metodo_pago,
+               p.monto AS monto_total,
+               COUNT(pf.id) AS cantidad_facturas,
+               GROUP_CONCAT(f.numero_factura SEPARATOR ', ') AS facturas_numeros
         FROM pagos p
         LEFT JOIN pago_facturas pf ON p.id = pf.pago_id
         LEFT JOIN facturas f ON pf.factura_id = f.id
@@ -2419,14 +2987,14 @@ def facturacion_pagos_nuevo():
             flash('El monto total debe ser mayor a cero', 'error')
             return redirect(url_for('facturacion_pagos_nuevo'))
         
-        # Generar número de pago
-        numero_pago = f"PAGO-{datetime.now().strftime('%Y%m%d')}-{secrets.token_hex(4).upper()}"
+        # Seleccionar una factura principal para el registro legacy (tabla pagos requiere factura_id)
+        factura_principal_id = facturas_data[0][0]
         
-        # Crear el pago
+        # Crear el pago (schema actual: no tiene numero_pago ni monto_total)
         pago_id = execute_update('''
-            INSERT INTO pagos (numero_pago, monto_total, fecha_pago, metodo_pago, referencia, observaciones, tenant_id, created_by)
+            INSERT INTO pagos (tenant_id, factura_id, fecha_pago, monto, metodo_pago, referencia, observaciones, created_by)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (numero_pago, monto_total, fecha_pago, metodo_pago, referencia or None, observaciones or None, tenant_id, current_user.id))
+        ''', (tenant_id, factura_principal_id, fecha_pago, monto_total, metodo_pago, referencia or None, observaciones or None, current_user.id))
         
         # Crear relaciones pago-facturas
         for factura_id, monto in facturas_data:
@@ -2546,16 +3114,1254 @@ def facturacion_pacientes_exportar_excel():
 def facturacion_historico():
     """Histórico de facturas - Filtrado por tenant"""
     tenant_id = get_current_tenant_id()
-    facturas = execute_query('''
-        SELECT f.*, a.nombre as nombre_ars, m.nombre as medico_nombre
-        FROM facturas f 
-        LEFT JOIN ars a ON f.ars_id = a.id 
-        LEFT JOIN medicos m ON f.medico_id = m.id
-        WHERE f.tenant_id = %s
-        ORDER BY f.id DESC 
-        LIMIT 100
-    ''', (tenant_id,), fetch='all') or []
-    return render_template('facturacion/historico.html', facturas=facturas)
+    
+    # Verificar si existe tenant_id en facturas
+    tiene_tenant_id_facturas = False
+    try:
+        check_tenant_facturas = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'facturas' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
+    except:
+        tiene_tenant_id_facturas = False
+    
+    if tiene_tenant_id_facturas:
+        # Paginación para mejor rendimiento
+        page = validate_int(request.args.get('page', 1), min_value=1, default=1)
+        per_page = validate_int(request.args.get('per_page', 50), min_value=1, max_value=100, default=50)
+        offset = (page - 1) * per_page
+        
+        facturas = execute_query('''
+            SELECT f.*, f.fecha_emision as fecha_factura, a.nombre as nombre_ars, m.nombre as medico_nombre
+            FROM facturas f 
+            LEFT JOIN ars a ON f.ars_id = a.id 
+            LEFT JOIN medicos m ON f.medico_id = m.id
+            WHERE f.tenant_id = %s
+            ORDER BY f.id DESC 
+            LIMIT %s OFFSET %s
+        ''', (tenant_id, per_page, offset), fetch='all') or []
+        
+        # Obtener total para paginación
+        total_facturas = execute_query('''
+            SELECT COUNT(*) as total FROM facturas WHERE tenant_id = %s
+        ''', (tenant_id,))
+        total_pages = (total_facturas.get('total', 0) + per_page - 1) // per_page if total_facturas else 0
+    else:
+        facturas = execute_query('''
+            SELECT f.*, f.fecha_emision as fecha_factura, a.nombre as nombre_ars, m.nombre as medico_nombre
+            FROM facturas f 
+            LEFT JOIN ars a ON f.ars_id = a.id 
+            LEFT JOIN medicos m ON f.medico_id = m.id
+            ORDER BY f.id DESC 
+            LIMIT 100
+        ''', fetch='all') or []
+    
+    return render_template('facturacion/historico.html', 
+                         facturas=facturas,
+                         page=page,
+                         per_page=per_page,
+                         total_pages=total_pages,
+                         total_facturas=total_facturas.get('total', 0) if total_facturas else 0)
+
+@app.route('/facturacion/facturas/<int:factura_id>/ver')
+@login_required
+def facturacion_ver_factura(factura_id):
+    """Ver factura generada"""
+    # Validar que el ID sea válido
+    if not validate_int(factura_id, min_value=1):
+        flash('ID de factura inválido', 'error')
+        return redirect(url_for('facturacion_historico'))
+    
+    # Validar acceso al tenant
+    if not validate_tenant_access('facturas', factura_id):
+        flash('No tienes acceso a esta factura', 'error')
+        return redirect(url_for('facturacion_historico'))
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Verificar si existe tenant_id en facturas
+    tiene_tenant_id_facturas = False
+    try:
+        check_tenant_facturas = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'facturas' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
+    except:
+        tiene_tenant_id_facturas = False
+    
+    # Obtener factura
+    if tiene_tenant_id_facturas:
+        factura = execute_query('''
+            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
+                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+                   m.cedula as medico_cedula, m.exequatur as medico_exequatur
+            FROM facturas f
+            LEFT JOIN ars a ON f.ars_id = a.id
+            LEFT JOIN medicos m ON f.medico_id = m.id
+            WHERE f.id = %s AND f.tenant_id = %s
+        ''', (factura_id, tenant_id))
+    else:
+        factura = execute_query('''
+            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
+                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+                   m.cedula as medico_cedula, m.exequatur as medico_exequatur
+            FROM facturas f
+            LEFT JOIN ars a ON f.ars_id = a.id
+            LEFT JOIN medicos m ON f.medico_id = m.id
+            WHERE f.id = %s
+        ''', (factura_id,))
+    
+    if not factura:
+        flash('Factura no encontrada', 'error')
+        return redirect(url_for('facturacion_historico'))
+    
+    # Obtener detalles de la factura (pacientes/servicios)
+    detalles = execute_query('''
+        SELECT * FROM factura_detalles 
+        WHERE factura_id = %s
+        ORDER BY id
+    ''', (factura_id,), fetch='all') or []
+    
+    # Procesar detalles para mostrar como pacientes
+    pacientes = []
+    for detalle in detalles:
+        # Extraer información del detalle
+        descripcion = detalle.get('descripcion', '')
+        # Intentar extraer autorización de la descripción si está presente
+        autorizacion = ''
+        descripcion_servicio = descripcion
+        if ' - Autorización:' in descripcion:
+            partes = descripcion.split(' - Autorización:')
+            descripcion_servicio = partes[0].strip()
+            autorizacion = partes[1].strip() if len(partes) > 1 else ''
+        
+        paciente = {
+            'nombre_paciente': factura.get('nombre_paciente', 'N/A'),
+            'nss': factura.get('nss_paciente', ''),
+            'fecha_servicio': factura.get('fecha_emision', ''),
+            'autorizacion': autorizacion,
+            'descripcion_servicio': descripcion_servicio if descripcion_servicio else '',
+            'monto_estimado': float(detalle.get('precio_unitario', 0) or 0),
+            'monto': float(detalle.get('precio_unitario', 0) or 0)
+        }
+        pacientes.append(paciente)
+    
+    # Obtener centro médico
+    centro_medico = None
+    if factura.get('centro_medico_id'):
+        centro_medico = execute_query('SELECT * FROM centros_medicos WHERE id = %s AND tenant_id = %s', 
+                                     (factura['centro_medico_id'], tenant_id))
+    
+    if not centro_medico:
+        centro_medico = execute_query('SELECT * FROM centros_medicos WHERE tenant_id = %s LIMIT 1', (tenant_id,))
+    
+    if not centro_medico:
+        centro_medico = {
+            'nombre': 'Centro Médico',
+            'direccion': ''
+        }
+    
+    # Calcular totales
+    subtotal = float(factura.get('subtotal', 0) or 0)
+    total = float(factura.get('total', 0) or 0)
+    
+    # Obtener información de la empresa para determinar tipo
+    empresa_info = get_empresa_info(tenant_id)
+    tipo_empresa = empresa_info.get('tipo_empresa') if empresa_info else None
+    
+    # Obtener médico o empresa según tipo (igual que en vista_previa)
+    medico_factura = None
+    if tipo_empresa == 'centro_salud':
+        medico_factura = {
+            'id': empresa_info.get('id'),
+            'nombre': empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A')),
+            'especialidad': 'Centro de Salud',
+            'cedula': empresa_info.get('rnc', ''),
+            'telefono': empresa_info.get('telefono', ''),
+            'email': empresa_info.get('email', '')
+        }
+    else:
+        # Obtener datos completos del médico
+        medico_completo = execute_query('SELECT * FROM medicos WHERE id = %s', (factura.get('medico_id'),))
+        if medico_completo:
+            medico_factura = {
+                'id': medico_completo.get('id'),
+                'nombre': medico_completo.get('nombre', factura.get('medico_nombre', 'N/A')),
+                'especialidad': medico_completo.get('especialidad', factura.get('medico_especialidad', '')),
+                'cedula': medico_completo.get('cedula', factura.get('medico_cedula', '')),
+                'exequatur': medico_completo.get('exequatur', factura.get('medico_exequatur', '')),
+                'telefono': medico_completo.get('telefono', ''),
+                'email': medico_completo.get('email', '')
+            }
+        else:
+            medico_factura = {
+                'id': factura.get('medico_id'),
+                'nombre': factura.get('medico_nombre', 'N/A'),
+                'especialidad': factura.get('medico_especialidad', ''),
+                'cedula': factura.get('medico_cedula', ''),
+                'exequatur': factura.get('medico_exequatur', ''),
+                'telefono': '',
+                'email': ''
+            }
+    
+    # Obtener NCF completo y descripción
+    ncf_numero = factura.get('ncf', '')
+    ncf_prefijo = ncf_numero[:3] if len(ncf_numero) >= 3 else ''
+    ncf_obj = execute_query('SELECT * FROM ncf WHERE prefijo = %s AND tenant_id = %s LIMIT 1', (ncf_prefijo, tenant_id))
+    if not ncf_obj:
+        ncf_obj = execute_query('SELECT * FROM ncf WHERE prefijo = %s LIMIT 1', (ncf_prefijo,))
+    
+    ncf_tipos_descripciones = {
+        'B01': 'Factura de Crédito Fiscal',
+        'B02': 'Factura de Consumo',
+        'B14': 'Registro Único de Ingresos',
+        'B15': 'GUBERNAMENTAL'
+    }
+    ncf_tipo_descripcion = ncf_tipos_descripciones.get(ncf_obj.get('tipo', '') if ncf_obj else '', '') if ncf_obj else ''
+    ncf_fecha_fin = ncf_obj.get('fecha_fin', '') if ncf_obj else ''
+    ncf_completo = ncf_numero
+    
+    # Intentar obtener pacientes desde pacientes_pendientes que fueron facturados
+    fecha_factura = factura.get('fecha_emision', '')
+    pacientes_pendientes_facturados = []
+    try:
+        tiene_tenant_id_pp = False
+        try:
+            check_tenant_pp = execute_query('''
+                SELECT COUNT(*) as count 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'pacientes_pendientes' 
+                AND COLUMN_NAME = 'tenant_id'
+            ''')
+            tiene_tenant_id_pp = check_tenant_pp and check_tenant_pp.get('count', 0) > 0
+        except:
+            tiene_tenant_id_pp = False
+        
+        if tiene_tenant_id_pp:
+            pacientes_pendientes_facturados = execute_query('''
+                SELECT pp.*, a.nombre as ars_nombre
+                FROM pacientes_pendientes pp
+                LEFT JOIN ars a ON pp.ars_id = a.id
+                WHERE pp.estado = 'Facturado' 
+                AND pp.ars_id = %s 
+                AND DATE(pp.updated_at) = DATE(%s)
+                AND pp.tenant_id = %s
+                ORDER BY pp.id
+            ''', (factura.get('ars_id'), fecha_factura, tenant_id), fetch='all') or []
+        else:
+            pacientes_pendientes_facturados = execute_query('''
+                SELECT pp.*, a.nombre as ars_nombre
+                FROM pacientes_pendientes pp
+                LEFT JOIN ars a ON pp.ars_id = a.id
+                WHERE pp.estado = 'Facturado' 
+                AND pp.ars_id = %s 
+                AND DATE(pp.updated_at) = DATE(%s)
+                ORDER BY pp.id
+            ''', (factura.get('ars_id'), fecha_factura), fetch='all') or []
+    except Exception as e:
+        logger.error(f"Error al obtener pacientes_pendientes_facturados: {str(e)}")
+        pacientes_pendientes_facturados = []
+    
+    # Procesar pacientes desde detalles y pacientes_pendientes (igual que en vista_previa)
+    pacientes_procesados = []
+    if pacientes_pendientes_facturados and len(pacientes_pendientes_facturados) == len(detalles):
+        # Si encontramos pacientes_pendientes que coinciden, usarlos
+        for idx, (detalle, pp) in enumerate(zip(detalles, pacientes_pendientes_facturados), 1):
+            servicio_completo = pp.get('servicios_realizados', '') or ''
+            if ' - Autorización:' in servicio_completo:
+                partes = servicio_completo.split(' - Autorización:')
+                descripcion_servicio = partes[0].strip()
+                autorizacion = partes[1].strip() if len(partes) > 1 else ''
+            else:
+                descripcion_servicio = servicio_completo.strip()
+                autorizacion = ''
+            
+            paciente = {
+                'nombre_paciente': pp.get('nombre_paciente', factura.get('nombre_paciente', 'N/A')),
+                'nss': pp.get('nss', factura.get('nss_paciente', '')),
+                'fecha_servicio': pp.get('fecha_servicio', fecha_factura),
+                'autorizacion': autorizacion,
+                'descripcion_servicio': descripcion_servicio if descripcion_servicio else detalle.get('descripcion', ''),
+                'monto_estimado': float(detalle.get('precio_unitario', 0) or 0),
+                'monto': float(detalle.get('precio_unitario', 0) or 0)
+            }
+            pacientes_procesados.append(paciente)
+    else:
+        # Si no encontramos pacientes_pendientes, usar datos de la factura
+        for idx, detalle in enumerate(detalles, 1):
+            descripcion = detalle.get('descripcion', '')
+            # Intentar extraer autorización de la descripción si está presente
+            autorizacion = ''
+            descripcion_servicio = descripcion
+            if ' - Autorización:' in descripcion:
+                partes = descripcion.split(' - Autorización:')
+                descripcion_servicio = partes[0].strip()
+                autorizacion = partes[1].strip() if len(partes) > 1 else ''
+            
+            paciente = {
+                'nombre_paciente': factura.get('nombre_paciente', 'N/A'),
+                'nss': factura.get('nss_paciente', ''),
+                'fecha_servicio': fecha_factura,
+                'autorizacion': autorizacion,
+                'descripcion_servicio': descripcion_servicio if descripcion_servicio else '',
+                'monto_estimado': float(detalle.get('precio_unitario', 0) or 0),
+                'monto': float(detalle.get('precio_unitario', 0) or 0)
+            }
+            pacientes_procesados.append(paciente)
+    
+    # Preparar datos de ARS
+    ars = {
+        'id': factura.get('ars_id'),
+        'nombre': factura.get('nombre_ars', 'N/A'),
+        'rnc': factura.get('ars_rnc', '')
+    }
+    
+    # Preparar datos de NCF
+    ncf = {
+        'id': ncf_obj.get('id') if ncf_obj else None,
+        'prefijo': ncf_prefijo,
+        'tipo': ncf_obj.get('tipo', '') if ncf_obj else '',
+        'fecha_fin': ncf_fecha_fin
+    }
+    
+    return render_template('facturacion/ver_factura.html',
+                          factura=factura,
+                          pacientes=pacientes_procesados,
+                          centro_medico=centro_medico,
+                          subtotal=subtotal,
+                          total=total,
+                          ars=ars,
+                          ncf=ncf,
+                          ncf_completo=ncf_completo,
+                          ncf_tipo_descripcion=ncf_tipo_descripcion,
+                          medico=medico_factura,
+                          tipo_empresa=tipo_empresa,
+                          empresa_info=empresa_info,
+                          fecha_factura=fecha_factura)
+
+@app.route('/facturacion/facturas/<int:factura_id>/editar', methods=['GET', 'POST'])
+@login_required
+def facturacion_editar_factura(factura_id):
+    """Editar factura generada"""
+    tenant_id = get_current_tenant_id()
+    
+    # Verificar si existe tenant_id en facturas
+    tiene_tenant_id_facturas = False
+    try:
+        check_tenant_facturas = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'facturas' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
+    except:
+        tiene_tenant_id_facturas = False
+    
+    # Obtener factura
+    if tiene_tenant_id_facturas:
+        factura = execute_query('''
+            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
+                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+                   m.cedula as medico_cedula, m.exequatur as medico_exequatur
+            FROM facturas f
+            LEFT JOIN ars a ON f.ars_id = a.id
+            LEFT JOIN medicos m ON f.medico_id = m.id
+            WHERE f.id = %s AND f.tenant_id = %s
+        ''', (factura_id, tenant_id))
+    else:
+        factura = execute_query('''
+            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
+                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+                   m.cedula as medico_cedula, m.exequatur as medico_exequatur
+            FROM facturas f
+            LEFT JOIN ars a ON f.ars_id = a.id
+            LEFT JOIN medicos m ON f.medico_id = m.id
+            WHERE f.id = %s
+        ''', (factura_id,))
+    
+    if not factura:
+        flash('Factura no encontrada', 'error')
+        return redirect(url_for('facturacion_historico'))
+    
+    # Calcular días transcurridos desde la creación
+    from datetime import datetime, date
+    fecha_creacion = factura.get('created_at')
+    if isinstance(fecha_creacion, str):
+        try:
+            fecha_creacion = datetime.strptime(fecha_creacion, '%Y-%m-%d %H:%M:%S').date()
+        except:
+            fecha_creacion = date.today()
+    elif isinstance(fecha_creacion, datetime):
+        fecha_creacion = fecha_creacion.date()
+    elif isinstance(fecha_creacion, date):
+        pass
+    else:
+        fecha_creacion = date.today()
+    
+    fecha_actual = date.today()
+    dias_transcurridos = (fecha_actual - fecha_creacion).days
+    dias_restantes = 30 - dias_transcurridos
+    
+    # Verificar si se puede editar (menos de 30 días)
+    if dias_transcurridos >= 30:
+        flash('Esta factura no se puede editar. Han pasado más de 30 días desde su creación.', 'error')
+        return redirect(url_for('facturacion_historico'))
+    
+    # Si es POST, procesar la actualización
+    if request.method == 'POST':
+        # Aquí se procesaría la actualización de la factura
+        # Por ahora, solo redirigir
+        flash('Funcionalidad de edición en desarrollo', 'info')
+        return redirect(url_for('facturacion_historico'))
+    
+    # Obtener detalles de la factura (pacientes/servicios)
+    detalles = execute_query('''
+        SELECT * FROM factura_detalles 
+        WHERE factura_id = %s
+        ORDER BY id
+    ''', (factura_id,), fetch='all') or []
+    
+    # Procesar detalles para mostrar como pacientes
+    pacientes = []
+    for detalle in detalles:
+        # Extraer información del servicio desde la descripción
+        descripcion_servicio = detalle.get('descripcion', '')
+        servicio_nombre = descripcion_servicio
+        if ' - Autorización:' in descripcion_servicio:
+            servicio_nombre = descripcion_servicio.split(' - Autorización:')[0].strip()
+        
+        paciente = {
+            'id': detalle.get('id'),
+            'nombre_paciente': factura.get('nombre_paciente', 'N/A'),
+            'nss': factura.get('nss_paciente', ''),
+            'fecha_servicio': factura.get('fecha_emision', ''),
+            'autorizacion': '',
+            'descripcion_servicio': descripcion_servicio,
+            'servicio_nombre': servicio_nombre,
+            'medico_nombre': factura.get('medico_nombre', 'N/A'),
+            'monto_estimado': float(detalle.get('precio_unitario', 0) or 0),
+            'monto': float(detalle.get('precio_unitario', 0) or 0)
+        }
+        pacientes.append(paciente)
+    
+    # Agregar campos adicionales a factura para el template
+    factura['fecha_factura'] = factura.get('fecha_emision', '')
+    factura['ncf_numero'] = factura.get('ncf', '')
+    
+    return render_template('facturacion/editar_factura.html',
+                          factura=factura,
+                          pacientes_factura=pacientes,  # Cambiado de pacientes a pacientes_factura
+                          pacientes_disponibles=[],  # Lista vacía por ahora, se puede poblar después
+                          dias_transcurridos=dias_transcurridos,
+                          dias_restantes=dias_restantes)
+
+def generar_pdf_factura_vista_previa(factura_id, tenant_id=None):
+    """Generar PDF de factura con el mismo formato que la vista previa"""
+    if not REPORTLAB_AVAILABLE:
+        return None
+    
+    if tenant_id is None:
+        tenant_id = get_current_tenant_id()
+    
+    # Verificar si existe tenant_id en facturas
+    tiene_tenant_id_facturas = False
+    try:
+        check_tenant_facturas = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'facturas' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
+    except:
+        tiene_tenant_id_facturas = False
+    
+    # Obtener factura
+    if tiene_tenant_id_facturas:
+        factura = execute_query('''
+            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
+                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+                   m.cedula as medico_cedula, m.exequatur as medico_exequatur, m.id as medico_id
+            FROM facturas f
+            LEFT JOIN ars a ON f.ars_id = a.id
+            LEFT JOIN medicos m ON f.medico_id = m.id
+            WHERE f.id = %s AND f.tenant_id = %s
+        ''', (factura_id, tenant_id))
+    else:
+        factura = execute_query('''
+            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
+                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+                   m.cedula as medico_cedula, m.exequatur as medico_exequatur, m.id as medico_id
+            FROM facturas f
+            LEFT JOIN ars a ON f.ars_id = a.id
+            LEFT JOIN medicos m ON f.medico_id = m.id
+            WHERE f.id = %s
+        ''', (factura_id,))
+    
+    if not factura:
+        logger.error(f"Factura {factura_id} no encontrada para tenant {tenant_id}")
+        print(f"ERROR: Factura {factura_id} no encontrada para tenant {tenant_id}")
+        return None
+    
+    logger.info(f"Iniciando generación de PDF para factura {factura_id}")
+    print(f"INFO: Factura {factura_id} encontrada. Datos básicos: ncf={factura.get('ncf')}, fecha_emision={factura.get('fecha_emision')}, ars_id={factura.get('ars_id')}")
+    
+    # Obtener información de la empresa para determinar tipo
+    empresa_info = get_empresa_info(tenant_id)
+    tipo_empresa = empresa_info.get('tipo_empresa') if empresa_info else None
+    
+    # Obtener médico o empresa según tipo
+    medico_factura = None
+    if tipo_empresa == 'centro_salud':
+        medico_factura = {
+            'id': empresa_info.get('id'),
+            'nombre': empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A')),
+            'especialidad': 'Centro de Salud',
+            'cedula': empresa_info.get('rnc', '')
+        }
+    else:
+        medico_factura = {
+            'id': factura.get('medico_id'),
+            'nombre': factura.get('medico_nombre', 'N/A'),
+            'especialidad': factura.get('medico_especialidad', ''),
+            'cedula': factura.get('medico_cedula', '')
+        }
+    
+    # Obtener ARS
+    ars = {
+        'id': factura.get('ars_id'),
+        'nombre': factura.get('nombre_ars', 'N/A'),
+        'rnc': factura.get('ars_rnc', '')
+    }
+    
+    # Obtener NCF
+    ncf_numero = factura.get('ncf', '')
+    ncf_prefijo = ncf_numero[:3] if len(ncf_numero) >= 3 else ''
+    ncf_obj = execute_query('SELECT * FROM ncf WHERE prefijo = %s AND tenant_id = %s LIMIT 1', (ncf_prefijo, tenant_id))
+    if not ncf_obj:
+        ncf_obj = execute_query('SELECT * FROM ncf WHERE prefijo = %s LIMIT 1', (ncf_prefijo,))
+    
+    ncf_tipos_descripciones = {
+        'B01': 'Factura de Crédito Fiscal',
+        'B02': 'Factura de Consumo',
+        'B14': 'Registro Único de Ingresos',
+        'B15': 'GUBERNAMENTAL'
+    }
+    ncf_tipo_descripcion = ncf_tipos_descripciones.get(ncf_obj.get('tipo', '') if ncf_obj else '', '') if ncf_obj else ''
+    ncf_fecha_fin = ncf_obj.get('fecha_fin', '') if ncf_obj else ''
+    
+    # Obtener fecha de factura para usar en consultas
+    fecha_factura = factura.get('fecha_emision', '')
+    
+    # Obtener detalles de la factura (pacientes/servicios)
+    detalles = execute_query('''
+        SELECT * FROM factura_detalles 
+        WHERE factura_id = %s
+        ORDER BY id
+    ''', (factura_id,), fetch='all') or []
+    
+    # Intentar obtener pacientes desde pacientes_pendientes que fueron facturados
+    # Buscar pacientes_pendientes con estado 'Facturado' que coincidan con esta factura
+    # Por fecha y ARS como aproximación
+    pacientes_pendientes_facturados = []
+    try:
+        # Verificar si existe tenant_id en pacientes_pendientes
+        tiene_tenant_id_pp = False
+        try:
+            check_tenant_pp = execute_query('''
+                SELECT COUNT(*) as count 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'pacientes_pendientes' 
+                AND COLUMN_NAME = 'tenant_id'
+            ''')
+            tiene_tenant_id_pp = check_tenant_pp and check_tenant_pp.get('count', 0) > 0
+        except:
+            tiene_tenant_id_pp = False
+        
+        # Buscar pacientes pendientes facturados en la misma fecha y ARS
+        if tiene_tenant_id_pp:
+            pacientes_pendientes_facturados = execute_query('''
+                SELECT pp.*, a.nombre as ars_nombre
+                FROM pacientes_pendientes pp
+                LEFT JOIN ars a ON pp.ars_id = a.id
+                WHERE pp.estado = 'Facturado' 
+                AND pp.ars_id = %s 
+                AND DATE(pp.updated_at) = DATE(%s)
+                AND pp.tenant_id = %s
+                ORDER BY pp.id
+            ''', (factura.get('ars_id'), fecha_factura, tenant_id), fetch='all') or []
+        else:
+            pacientes_pendientes_facturados = execute_query('''
+                SELECT pp.*, a.nombre as ars_nombre
+                FROM pacientes_pendientes pp
+                LEFT JOIN ars a ON pp.ars_id = a.id
+                WHERE pp.estado = 'Facturado' 
+                AND pp.ars_id = %s 
+                AND DATE(pp.updated_at) = DATE(%s)
+                ORDER BY pp.id
+            ''', (factura.get('ars_id'), fecha_factura), fetch='all') or []
+    except Exception as e:
+        logger.error(f"Error al obtener pacientes_pendientes_facturados: {str(e)}")
+        pacientes_pendientes_facturados = []
+    
+    # Validar que hay detalles antes de procesar
+    if not detalles:
+        logger.error(f"Factura {factura_id} no tiene detalles asociados. Query ejecutada: SELECT * FROM factura_detalles WHERE factura_id = {factura_id}")
+        return None
+    
+    logger.info(f"Factura {factura_id} tiene {len(detalles)} detalles. Primer detalle: {detalles[0] if detalles else 'N/A'}")
+    
+    # Procesar pacientes desde detalles y pacientes_pendientes
+    pacientes = []
+    if pacientes_pendientes_facturados and len(pacientes_pendientes_facturados) == len(detalles):
+        # Si encontramos pacientes_pendientes que coinciden, usarlos
+        for idx, (detalle, pp) in enumerate(zip(detalles, pacientes_pendientes_facturados), 1):
+            servicio_completo = pp.get('servicios_realizados', '') or ''
+            if ' - Autorización:' in servicio_completo:
+                partes = servicio_completo.split(' - Autorización:')
+                descripcion_servicio = partes[0].strip()
+                autorizacion = partes[1].strip() if len(partes) > 1 else ''
+            else:
+                descripcion_servicio = servicio_completo.strip()
+                autorizacion = ''
+            
+            paciente = {
+                'nombre_paciente': pp.get('nombre_paciente', factura.get('nombre_paciente', 'N/A')),
+                'nss': pp.get('nss', factura.get('nss_paciente', '')),
+                'fecha_servicio': pp.get('fecha_servicio', factura.get('fecha_emision', '')),
+                'autorizacion': autorizacion,
+                'descripcion_servicio': descripcion_servicio if descripcion_servicio else detalle.get('descripcion', ''),
+                'monto_estimado': float(detalle.get('precio_unitario', 0) or 0),
+                'monto': float(detalle.get('precio_unitario', 0) or 0)
+            }
+            pacientes.append(paciente)
+    else:
+        # Si no encontramos pacientes_pendientes, usar datos de la factura (como en ver_factura)
+        for idx, detalle in enumerate(detalles, 1):
+            descripcion = detalle.get('descripcion', '')
+            # Intentar extraer autorización de la descripción si está presente
+            autorizacion = ''
+            descripcion_servicio = descripcion
+            if ' - Autorización:' in descripcion:
+                partes = descripcion.split(' - Autorización:')
+                descripcion_servicio = partes[0].strip()
+                autorizacion = partes[1].strip() if len(partes) > 1 else ''
+            
+            paciente = {
+                'nombre_paciente': factura.get('nombre_paciente', 'N/A'),
+                'nss': factura.get('nss_paciente', ''),
+                'fecha_servicio': fecha_factura,
+                'autorizacion': autorizacion,
+                'descripcion_servicio': descripcion_servicio if descripcion_servicio else '',
+                'monto_estimado': float(detalle.get('precio_unitario', 0) or 0),
+                'monto': float(detalle.get('precio_unitario', 0) or 0)
+            }
+            pacientes.append(paciente)
+    
+    # Obtener centro médico
+    centro_medico = None
+    if factura.get('centro_medico_id'):
+        centro_medico = execute_query('SELECT * FROM centros_medicos WHERE id = %s AND tenant_id = %s', 
+                                     (factura['centro_medico_id'], tenant_id))
+    
+    if not centro_medico:
+        centro_medico = execute_query('SELECT * FROM centros_medicos WHERE tenant_id = %s LIMIT 1', (tenant_id,))
+    
+    if not centro_medico:
+        centro_medico = {
+            'nombre': 'Centro Médico',
+            'direccion': ''
+        }
+    
+    # Calcular totales
+    subtotal = float(factura.get('subtotal', 0) or 0)
+    total = float(factura.get('total', 0) or 0)
+    
+    # Obtener datos completos del médico para el footer y remitente (antes de generar PDF)
+    medico_completo = None
+    if tipo_empresa != 'centro_salud' and medico_factura.get('id'):
+        medico_completo = execute_query('SELECT * FROM medicos WHERE id = %s', (medico_factura.get('id'),))
+        # Actualizar medico_factura con datos completos si están disponibles
+        if medico_completo:
+            medico_factura['nombre'] = medico_completo.get('nombre', medico_factura.get('nombre', 'N/A'))
+            medico_factura['especialidad'] = medico_completo.get('especialidad', medico_factura.get('especialidad', ''))
+            medico_factura['cedula'] = medico_completo.get('cedula', medico_factura.get('cedula', ''))
+            medico_factura['exequatur'] = medico_completo.get('exequatur', '')
+    
+    # Validar datos mínimos necesarios antes de generar PDF
+    if not pacientes:
+        logger.error(f"Factura {factura_id} no tiene pacientes procesados después de procesar {len(detalles)} detalles")
+        logger.error(f"Detalles procesados: {detalles}")
+        logger.error(f"Pacientes pendientes encontrados: {len(pacientes_pendientes_facturados)}")
+        return None
+    
+    # Validar que tenemos datos esenciales
+    if not fecha_factura:
+        logger.error(f"Factura {factura_id} no tiene fecha_emision. factura['fecha_emision'] = {factura.get('fecha_emision')}")
+        return None
+    
+    if not ars.get('nombre'):
+        logger.error(f"Factura {factura_id} no tiene nombre de ARS. ars = {ars}, factura['nombre_ars'] = {factura.get('nombre_ars')}")
+        return None
+    
+    if not ncf_numero:
+        logger.error(f"Factura {factura_id} no tiene número de NCF. factura['ncf'] = {factura.get('ncf')}")
+        return None
+    
+    logger.info(f"Iniciando generación de PDF para factura {factura_id}: {len(pacientes)} pacientes, subtotal: {subtotal}, total: {total}")
+    logger.info(f"Datos validados: fecha_factura={fecha_factura}, ars={ars.get('nombre')}, ncf={ncf_numero}, tipo_empresa={tipo_empresa}")
+    
+    # Generar PDF
+    try:
+        buffer = BytesIO()
+        doc = SimpleDocTemplate(buffer, pagesize=letter, 
+                                leftMargin=0.5*inch, rightMargin=0.5*inch,
+                                topMargin=0.5*inch, bottomMargin=0.5*inch)
+        story = []
+        
+        styles = getSampleStyleSheet()
+        
+        # Color primario (puede obtenerse del tema, por defecto usamos un color)
+        primary_color_hex = '#CEB0B7'
+        primary_color = colors.HexColor(primary_color_hex)
+        primary_dark = colors.HexColor('#B89CA3')
+        
+        # Estilo para título
+        title_style = ParagraphStyle(
+            'FacturaTitle',
+            parent=styles['Heading1'],
+            fontSize=28,
+            textColor=primary_color,
+            spaceAfter=15,
+            alignment=TA_CENTER,
+            fontName='Helvetica-Bold'
+        )
+        
+        # Header: FACTURA centrado
+        story.append(Paragraph("FACTURA", title_style))
+        story.append(Spacer(1, 0.25*inch))
+        
+        # Información en 3 columnas (simuladas con tabla) - Formato como imagen
+        info_box_style = ParagraphStyle(
+            'InfoBox',
+            parent=styles['Normal'],
+            fontSize=8,
+            leading=11,
+            textColor=colors.black
+        )
+        
+        info_header_style = ParagraphStyle(
+            'InfoHeader',
+            parent=styles['Normal'],
+            fontSize=7,
+            textColor=colors.white,
+            fontName='Helvetica-Bold',
+            spaceAfter=4
+        )
+        
+        # Columna 1: Información de Factura
+        info_factura_data = [
+            [Paragraph('<b>Información de Factura</b>', info_header_style)],
+            [Paragraph(f"<b>Fecha:</b> {escape(str(fecha_factura))}", info_box_style)],
+            [Paragraph(f"<b>Cliente:</b> {escape(str(ars.get('nombre', 'N/A')))}", info_box_style)],
+        ]
+        if ars.get('rnc'):
+            info_factura_data.append([Paragraph(f"<b>RNC:</b> {escape(str(ars.get('rnc')))}", info_box_style)])
+        
+        info_factura_table = Table(info_factura_data, colWidths=[2.4*inch])
+        info_factura_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), primary_color),
+            ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
+            ('BACKGROUND', (0, 1), (0, -1), colors.white),
+            ('LEFTPADDING', (0, 0), (0, -1), 8),
+            ('RIGHTPADDING', (0, 0), (0, -1), 8),
+            ('TOPPADDING', (0, 0), (0, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (0, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, primary_color),  # Borde delgado
+            ('BOX', (0, 0), (-1, -1), 1, primary_color),  # Borde alrededor de toda la tabla
+        ]))
+        
+        # Columna 2: NCF
+        ncf_data = [
+            [Paragraph('<b>NCF</b>', info_header_style)],
+            [Paragraph(f"<font color='{primary_color_hex}'>{escape(str(ncf_numero))}</font>", ParagraphStyle('NCFNumber', parent=info_box_style, fontSize=10, textColor=primary_color))],
+        ]
+        if ncf_tipo_descripcion:
+            ncf_data.append([Paragraph(f"<b>Tipo:</b> {escape(str(ncf_tipo_descripcion))}", info_box_style)])
+        if ncf_fecha_fin:
+            ncf_data.append([Paragraph(f"<b>Válido hasta:</b> {escape(str(ncf_fecha_fin))}", info_box_style)])
+        
+        ncf_table = Table(ncf_data, colWidths=[2.4*inch])
+        ncf_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), primary_color),
+            ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
+            ('BACKGROUND', (0, 1), (0, -1), colors.white),
+            ('LEFTPADDING', (0, 0), (0, -1), 8),
+            ('RIGHTPADDING', (0, 0), (0, -1), 8),
+            ('TOPPADDING', (0, 0), (0, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (0, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, primary_color),  # Borde delgado
+            ('BOX', (0, 0), (-1, -1), 1, primary_color),  # Borde alrededor de toda la tabla
+        ]))
+        
+        # Columna 3: Remitente
+        remitente_data = [
+            [Paragraph('<b>Remitente</b>', info_header_style)],
+        ]
+        if tipo_empresa == 'centro_salud':
+            remitente_data.append([Paragraph(f"<b>{empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A'))}</b>", info_box_style)])
+            if empresa_info.get('rnc'):
+                remitente_data.append([Paragraph(f"<b>RNC:</b> {empresa_info.get('rnc')}", info_box_style)])
+        else:
+            # Nombre del médico sin label "Médico:" - en negrita
+            remitente_data.append([Paragraph(f"<b>{medico_factura.get('nombre', 'N/A')}</b>", info_box_style)])
+            if medico_factura.get('especialidad'):
+                especialidad_style = ParagraphStyle('Especialidad', parent=info_box_style, fontSize=7, textColor=colors.HexColor('#666'))
+                remitente_data.append([Paragraph(medico_factura.get('especialidad', ''), especialidad_style)])
+            if medico_factura.get('cedula'):
+                remitente_data.append([Paragraph(f"<b>Código:</b> {medico_factura.get('cedula', '')}", info_box_style)])
+            if medico_completo and medico_completo.get('exequatur'):
+                remitente_data.append([Paragraph(f"<b>Exequátur:</b> {medico_completo.get('exequatur', '')}", info_box_style)])
+        
+        remitente_table = Table(remitente_data, colWidths=[2.4*inch])
+        remitente_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, 0), primary_color),
+            ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
+            ('BACKGROUND', (0, 1), (0, -1), colors.white),
+            ('LEFTPADDING', (0, 0), (0, -1), 8),
+            ('RIGHTPADDING', (0, 0), (0, -1), 8),
+            ('TOPPADDING', (0, 0), (0, -1), 8),
+            ('BOTTOMPADDING', (0, 0), (0, -1), 8),
+            ('GRID', (0, 0), (-1, -1), 1, primary_color),  # Borde delgado
+            ('BOX', (0, 0), (-1, -1), 1, primary_color),  # Borde alrededor de toda la tabla
+        ]))
+        
+        # Combinar las 3 columnas en una tabla con espaciado entre columnas
+        info_combined = Table([[info_factura_table, ncf_table, remitente_table]], colWidths=[2.4*inch, 2.4*inch, 2.4*inch])
+        info_combined.setStyle(TableStyle([
+            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+            ('LEFTPADDING', (0, 0), (-1, -1), 0),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+            ('TOPPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+        ]))
+        story.append(info_combined)
+        story.append(Spacer(1, 0.25*inch))
+        
+        # Tabla de pacientes/servicios
+        if pacientes:
+            tabla_headers = ['No.', 'NOMBRES PACIENTE', 'NSS/CONTRATO', 'FECHA', 'AUTORIZACIÓN', 'SERVICIO', 'V/UNITARIO']
+            tabla_data = [tabla_headers]
+            
+            for idx, paciente in enumerate(pacientes, 1):
+                monto = float(paciente.get('monto') or paciente.get('monto_estimado', 0) or 0)
+                tabla_data.append([
+                    str(idx),
+                    Paragraph(f"<b>{escape(str(paciente.get('nombre_paciente', 'N/A')))}</b>", info_box_style),
+                    escape(str(paciente.get('nss', ''))),
+                    escape(str(paciente.get('fecha_servicio', ''))),
+                    escape(str(paciente.get('autorizacion', ''))),
+                    escape(str(paciente.get('descripcion_servicio', ''))),
+                    Paragraph(f"<b>{monto:,.2f}</b>", ParagraphStyle('Monto', parent=info_box_style, alignment=TA_RIGHT, fontName='Helvetica-Bold'))
+                ])
+            
+            # Ajustar anchos de columnas según la imagen: No. (4%), NOMBRES (30%), NSS (10%), FECHA (12%), AUTORIZACIÓN (12%), SERVICIO (20%), V/UNITARIO (12%)
+            # Ancho total disponible: ~7.5 inch (letter size - márgenes)
+            tabla = Table(tabla_data, colWidths=[0.3*inch, 2.25*inch, 0.75*inch, 0.9*inch, 0.9*inch, 1.5*inch, 0.9*inch])
+            tabla.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), primary_color),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 7),
+                ('ALIGN', (0, 0), (0, -1), 'CENTER'),  # No.
+                ('ALIGN', (3, 1), (3, -1), 'CENTER'),  # FECHA
+                ('ALIGN', (6, 1), (6, -1), 'RIGHT'),  # V/UNITARIO
+                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#DDD')),
+                ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                ('TOPPADDING', (0, 0), (-1, -1), 5),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
+                ('FONTSIZE', (0, 1), (-1, -1), 7),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ]))
+            story.append(tabla)
+        
+        story.append(Spacer(1, 0.25*inch))
+        
+        # Totales - alineados a la derecha
+        total_style = ParagraphStyle('Total', parent=styles['Normal'], fontSize=9, alignment=TA_RIGHT, fontName='Helvetica-Bold')
+        total_label_style = ParagraphStyle('TotalLabel', parent=styles['Normal'], fontSize=9, alignment=TA_RIGHT, fontName='Helvetica-Bold')
+        total_final_style = ParagraphStyle('TotalFinal', parent=styles['Normal'], fontSize=12, alignment=TA_RIGHT, fontName='Helvetica-Bold', textColor=primary_color)
+        
+        # Crear tabla de totales alineada a la derecha
+        totales_data = [
+            [Paragraph('SUB-TOTAL:', total_label_style), Paragraph(f"{subtotal:,.2f}", total_style)],
+            [Paragraph('ITBIS:', total_label_style), Paragraph('*E', total_style)],
+            [Paragraph('TOTAL:', total_label_style), Paragraph(f"{total:,.2f}", total_final_style)],
+        ]
+        
+        # Tabla de totales más ancha y alineada a la derecha
+        totales_table = Table(totales_data, colWidths=[1.2*inch, 1.2*inch])
+        totales_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('LINEABOVE', (0, -1), (-1, -1), 1, primary_color),
+            ('TOPPADDING', (0, -1), (-1, -1), 8),
+        ]))
+        
+        # Contenedor para alinear totales a la derecha
+        from reportlab.platypus import KeepTogether
+        totales_container = Table([[totales_table]], colWidths=[7.5*inch])
+        totales_container.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, 0), 'RIGHT'),
+            ('VALIGN', (0, 0), (0, 0), 'TOP'),
+        ]))
+        story.append(totales_container)
+        
+        story.append(Spacer(1, 0.4*inch))
+        
+        # Footer
+        footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER, textColor=colors.HexColor('#666'))
+        footer_bold_style = ParagraphStyle('FooterBold', parent=styles['Normal'], fontSize=9, alignment=TA_CENTER, textColor=primary_color, fontName='Helvetica-Bold')
+        
+        if tipo_empresa == 'centro_salud':
+            footer_data = [
+                [Paragraph(f"<b>{empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A'))}</b>", footer_bold_style)],
+            ]
+            if empresa_info.get('direccion'):
+                footer_data.append([Paragraph(empresa_info.get('direccion', ''), footer_style)])
+            footer_text = []
+            if empresa_info.get('rnc'):
+                footer_text.append(f"RNC: {empresa_info.get('rnc')}")
+            if empresa_info.get('telefono'):
+                footer_text.append(f"Tel: {empresa_info.get('telefono')}")
+            if empresa_info.get('email'):
+                footer_text.append(f"Email: {empresa_info.get('email')}")
+            if footer_text:
+                footer_data.append([Paragraph(' | '.join(footer_text), footer_style)])
+        else:
+            # Footer para médico - formato como ejemplo del PDF
+            footer_data = [
+                [Paragraph(f"<b>{medico_factura.get('nombre', 'N/A')}</b>", footer_bold_style)],
+            ]
+            
+            # Segunda línea: Especialidad | Cédula | EXEQUATUR (en mayúsculas)
+            footer_text_line1 = []
+            if medico_factura.get('especialidad'):
+                footer_text_line1.append(medico_factura.get('especialidad', ''))
+            if medico_factura.get('cedula'):
+                footer_text_line1.append(f"Cédula: {medico_factura.get('cedula', '')}")
+            if medico_completo and medico_completo.get('exequatur'):
+                footer_text_line1.append(f"EXEQUATUR: {medico_completo.get('exequatur', '')}")
+            if footer_text_line1:
+                footer_data.append([Paragraph(' | '.join(footer_text_line1), footer_style)])
+            
+            # Tercera línea: Dirección del centro médico (si está disponible)
+            if centro_medico and centro_medico.get('nombre'):
+                centro_text = centro_medico.get('nombre', '')
+                if centro_medico.get('direccion'):
+                    centro_text += f", {centro_medico.get('direccion', '')}"
+                footer_data.append([Paragraph(centro_text, footer_style)])
+        
+        footer_table = Table(footer_data, colWidths=[7*inch])
+        footer_table.setStyle(TableStyle([
+            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+            ('TOPPADDING', (0, 0), (0, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (0, -1), 4),
+        ]))
+        story.append(footer_table)
+        
+        # Construir PDF
+        try:
+            logger.info(f"Construyendo PDF para factura {factura_id} con {len(story)} elementos en story")
+            doc.build(story)
+            logger.info(f"PDF construido exitosamente para factura {factura_id}")
+            
+            # Obtener el contenido del buffer y crear un nuevo BytesIO para retornar
+            buffer.seek(0)
+            buffer_content = buffer.read()
+            
+            # Verificar que el buffer tiene contenido
+            buffer_size = len(buffer_content) if buffer_content else 0
+            if buffer_size == 0:
+                logger.error(f"PDF generado para factura {factura_id} está vacío (buffer_size=0)")
+                return None
+            
+            # Crear un nuevo BytesIO con el contenido del PDF para evitar problemas de lectura
+            pdf_buffer = BytesIO(buffer_content)
+            pdf_buffer.seek(0)
+            
+            logger.info(f"PDF generado exitosamente para factura {factura_id}, tamaño: {buffer_size} bytes")
+            return pdf_buffer
+        except Exception as build_error:
+            import traceback
+            error_trace = traceback.format_exc()
+            logger.error(f"Error al construir PDF para factura {factura_id}: {error_trace}")
+            print(f"Error al construir PDF para factura {factura_id}: {str(build_error)}")
+            print(f"Traceback: {error_trace}")
+            return None
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"Error al generar PDF para factura {factura_id}: {error_trace}")
+        logger.error(f"Tipo de error: {type(e).__name__}, Mensaje: {str(e)}")
+        print(f"ERROR CRÍTICO al generar PDF para factura {factura_id}: {str(e)}")
+        print(f"Traceback completo: {error_trace}")
+        # También imprimir información de debug
+        print(f"DEBUG - factura encontrada: {factura is not None}")
+        print(f"DEBUG - detalles encontrados: {len(detalles) if detalles else 0}")
+        print(f"DEBUG - pacientes procesados: {len(pacientes) if 'pacientes' in locals() else 'N/A'}")
+        return None
+
+@app.route('/facturacion/facturas/<int:factura_id>/pdf')
+@login_required
+def facturacion_descargar_pdf(factura_id):
+    """Descargar PDF de factura"""
+    if not REPORTLAB_AVAILABLE:
+        flash('ReportLab no está disponible. Por favor, instale la librería reportlab.', 'error')
+        return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
+    
+    tenant_id = get_current_tenant_id()
+    
+    try:
+        # Verificar que la factura existe
+        tiene_tenant_id_facturas = False
+        try:
+            check_tenant_facturas = execute_query('''
+                SELECT COUNT(*) as count 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'facturas' 
+                AND COLUMN_NAME = 'tenant_id'
+            ''')
+            tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
+        except:
+            tiene_tenant_id_facturas = False
+        
+        if tiene_tenant_id_facturas:
+            factura_check = execute_query('SELECT id FROM facturas WHERE id = %s AND tenant_id = %s', (factura_id, tenant_id))
+        else:
+            factura_check = execute_query('SELECT id FROM facturas WHERE id = %s', (factura_id,))
+        
+        if not factura_check:
+            flash('La factura no existe o no tiene permisos para acceder a ella.', 'error')
+            return redirect(url_for('facturacion_historico'))
+        
+        logger.info(f"Iniciando descarga de PDF para factura {factura_id}, tenant_id={tenant_id}")
+        print(f"=== INICIANDO DESCARGA PDF FACTURA {factura_id} ===")
+        
+        # Verificar datos de la factura antes de generar PDF
+        if tiene_tenant_id_facturas:
+            factura_data = execute_query('SELECT id, ncf, fecha_emision, ars_id, subtotal, total FROM facturas WHERE id = %s AND tenant_id = %s', (factura_id, tenant_id))
+        else:
+            factura_data = execute_query('SELECT id, ncf, fecha_emision, ars_id, subtotal, total FROM facturas WHERE id = %s', (factura_id,))
+        
+        if factura_data:
+            logger.info(f"Datos de factura {factura_id}: ncf={factura_data.get('ncf')}, fecha={factura_data.get('fecha_emision')}, ars_id={factura_data.get('ars_id')}")
+            print(f"Factura encontrada: ncf={factura_data.get('ncf')}, fecha={factura_data.get('fecha_emision')}, ars_id={factura_data.get('ars_id')}")
+        else:
+            logger.error(f"No se encontraron datos básicos de factura {factura_id}")
+            print(f"ERROR: No se encontraron datos básicos de factura {factura_id}")
+        
+        detalles_check = execute_query('SELECT COUNT(*) as count FROM factura_detalles WHERE factura_id = %s', (factura_id,))
+        detalles_count = detalles_check.get('count', 0) if detalles_check else 0
+        logger.info(f"Factura {factura_id} tiene {detalles_count} detalles")
+        print(f"Detalles encontrados: {detalles_count}")
+        
+        if detalles_count == 0:
+            logger.error(f"Factura {factura_id} no tiene detalles. No se puede generar PDF.")
+            print(f"ERROR: Factura {factura_id} no tiene detalles")
+            flash('Error: La factura no tiene detalles asociados. No se puede generar el PDF.', 'error')
+            return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
+        
+        print(f"Llamando a generar_pdf_factura_vista_previa para factura {factura_id}...")
+        buffer = generar_pdf_factura_vista_previa(factura_id, tenant_id)
+        
+        if buffer is None:
+            logger.error(f"No se pudo generar PDF para factura {factura_id}")
+            print(f"ERROR: generar_pdf_factura_vista_previa retornó None para factura {factura_id}")
+            flash('Error al generar PDF. Verifique que la factura tiene datos válidos y detalles asociados.', 'error')
+            return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
+        
+        print(f"PDF generado exitosamente. Buffer tipo: {type(buffer)}")
+        
+        # Verificar que el buffer tiene contenido y prepararlo para envío
+        try:
+            # Asegurarse de que el buffer esté al inicio
+            buffer.seek(0)
+            
+            # Verificar que el buffer tiene contenido sin leerlo (para no consumirlo)
+            buffer_size = len(buffer.getvalue()) if hasattr(buffer, 'getvalue') else 0
+            
+            if buffer_size == 0:
+                logger.error(f"PDF generado para factura {factura_id} está vacío en facturacion_descargar_pdf")
+                flash('Error: El PDF generado está vacío.', 'error')
+                return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
+            
+            logger.info(f"PDF listo para descarga: factura {factura_id}, tamaño: {buffer_size} bytes")
+            
+            # Asegurarse de que el buffer esté al inicio antes de enviarlo
+            buffer.seek(0)
+            
+            factura = execute_query('SELECT numero_factura FROM facturas WHERE id = %s', (factura_id,))
+            filename = f"factura_{factura_id}_{factura.get('numero_factura', '') if factura else ''}.pdf"
+            
+            logger.info(f"Enviando PDF: factura {factura_id}, filename={filename}")
+            return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
+        except Exception as buffer_error:
+            import traceback
+            error_trace = traceback.format_exc()
+            logger.error(f"Error al preparar/enviar buffer para factura {factura_id}: {str(buffer_error)}")
+            logger.error(f"Traceback: {error_trace}")
+            flash(f'Error al generar/enviar PDF: {str(buffer_error)}', 'error')
+            return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        logger.error(f"Error en facturacion_descargar_pdf para factura {factura_id}: {error_trace}")
+        flash(f'Error al generar PDF: {str(e)}', 'error')
+        return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
+
+@app.route('/facturacion/facturas/<int:factura_id>/enviar-email', methods=['POST'])
+@login_required
+def facturacion_enviar_email(factura_id):
+    """Enviar factura por email"""
+    tenant_id = get_current_tenant_id()
+    
+    # Obtener email del destinatario
+    destinatario = request.form.get('destinatario', '').strip()
+    if not destinatario:
+        flash('Debe especificar un email destinatario', 'error')
+        return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
+    
+    # Validar email
+    email_pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    if not re.match(email_pattern, destinatario):
+        flash('Email inválido', 'error')
+        return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
+    
+    # Verificar si existe tenant_id en facturas
+    tiene_tenant_id_facturas = False
+    try:
+        check_tenant_facturas = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'facturas' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
+    except:
+        tiene_tenant_id_facturas = False
+    
+    # Obtener factura
+    if tiene_tenant_id_facturas:
+        factura = execute_query('''
+            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
+                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+                   m.cedula as medico_cedula, m.exequatur as medico_exequatur, m.email as medico_email
+            FROM facturas f
+            LEFT JOIN ars a ON f.ars_id = a.id
+            LEFT JOIN medicos m ON f.medico_id = m.id
+            WHERE f.id = %s AND f.tenant_id = %s
+        ''', (factura_id, tenant_id))
+    else:
+        factura = execute_query('''
+            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
+                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+                   m.cedula as medico_cedula, m.exequatur as medico_exequatur, m.email as medico_email
+            FROM facturas f
+            LEFT JOIN ars a ON f.ars_id = a.id
+            LEFT JOIN medicos m ON f.medico_id = m.id
+            WHERE f.id = %s
+        ''', (factura_id,))
+    
+    if not factura:
+        flash('Factura no encontrada', 'error')
+        return redirect(url_for('facturacion_historico'))
+    
+    # Si SendGrid está disponible, enviar email
+    if SENDGRID_AVAILABLE and REPORTLAB_AVAILABLE:
+        try:
+            # Generar PDF usando la función auxiliar
+            buffer = generar_pdf_factura_vista_previa(factura_id, tenant_id)
+            
+            if not buffer:
+                flash('Error al generar PDF', 'error')
+                return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
+            
+            pdf_data = buffer.getvalue()
+            
+            # Enviar email con SendGrid
+            sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
+            sendgrid_from_email = os.getenv('SENDGRID_FROM_EMAIL', 'noreply@facturacion.com')
+            
+            if not sendgrid_api_key:
+                flash('Configuración de email no disponible. Contacte al administrador.', 'error')
+                return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
+            
+            message = Mail(
+                from_email=sendgrid_from_email,
+                to_emails=destinatario,
+                subject=f"Factura #{factura.get('numero_factura', factura_id)} - {factura.get('nombre_ars', 'N/A')}",
+                html_content=f"""
+                <html>
+                <body>
+                    <h2>Factura #{factura.get('numero_factura', factura_id)}</h2>
+                    <p><strong>Fecha:</strong> {factura.get('fecha_emision', '')}</p>
+                    <p><strong>NCF:</strong> {factura.get('ncf', '')}</p>
+                    <p><strong>Cliente:</strong> {factura.get('nombre_ars', 'N/A')}</p>
+                    <p><strong>Total:</strong> RD$ {factura.get('total', 0):,.2f}</p>
+                    <p>Se adjunta el PDF de la factura.</p>
+                </body>
+                </html>
+                """
+            )
+            
+            # Adjuntar PDF
+            encoded_pdf = base64.b64encode(pdf_data).decode()
+            attachment = {
+                'content': encoded_pdf,
+                'filename': f"factura_{factura_id}_{factura.get('numero_factura', '')}.pdf",
+                'type': 'application/pdf',
+                'disposition': 'attachment'
+            }
+            message.attachment = attachment
+            
+            sg = SendGridAPIClient(sendgrid_api_key)
+            response = sg.send(message)
+            
+            if response.status_code in [200, 202]:
+                flash(f'Factura enviada exitosamente a {destinatario}', 'success')
+            else:
+                flash(f'Error al enviar email. Código: {response.status_code}', 'error')
+            
+        except Exception as e:
+            import traceback
+            error_trace = traceback.format_exc()
+            print(f"Error al enviar email: {error_trace}")
+            flash(f'Error al enviar email: {str(e)}', 'error')
+    else:
+        flash('El servicio de envío de emails no está disponible. Contacte al administrador.', 'error')
+    
+    return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
 
 @app.route('/facturacion/dashboard')
 @login_required
@@ -2590,14 +4396,15 @@ def facturacion_dashboard():
         ''', (tenant_id,))
         total_facturado = float(result['total']) if result and result['total'] else 0.0
         
-        # Monto pendiente (si existe tabla pacientes con monto)
+        # Monto pendiente (usar monto estimado de pacientes_pendientes si existe)
         try:
             result = execute_query('''
-                SELECT COALESCE(SUM(monto), 0) as total FROM pacientes 
-                WHERE tenant_id = %s
-            ''', (tenant_id,))
+                SELECT COALESCE(SUM(monto_estimado), 0) as total 
+                FROM pacientes_pendientes
+                WHERE estado = 'Pendiente'
+            ''')
             monto_pendiente = float(result['total']) if result and result['total'] else 0.0
-        except:
+        except Exception:
             monto_pendiente = 0.0
         
         # ARS pendientes
@@ -2675,19 +4482,37 @@ def facturacion_facturas_nueva():
     
     if request.method == 'POST':
         # Obtener datos del formulario
-        medico_id = request.form.get('medico_id')
-        ars_id = request.form.get('ars_id')
-        centro_medico_id = request.form.get('centro_medico_id') or None
-        lineas_json = request.form.get('lineas_json')
+        # Validar y sanitizar entrada
+        medico_id = validate_int(request.form.get('medico_id'), min_value=1)
+        ars_id = validate_int(request.form.get('ars_id'), min_value=1)
+        centro_medico_id = validate_int(request.form.get('centro_medico_id'), min_value=1) if request.form.get('centro_medico_id') else None
+        lineas_json = request.form.get('lineas_json', '').strip()
         
         if not medico_id or not ars_id or not lineas_json:
             flash('Faltan datos obligatorios (Médico, ARS o pacientes)', 'error')
             return redirect(url_for('facturacion_facturas_nueva'))
         
+        # Validar que los IDs pertenezcan al tenant
+        tenant_id = get_current_tenant_id()
+        if not validate_tenant_access('medicos', medico_id) or \
+           not validate_tenant_access('ars', ars_id):
+            flash('No tienes acceso a uno o más de los recursos seleccionados', 'error')
+            return redirect(url_for('facturacion_facturas_nueva'))
+        
+        if centro_medico_id and not validate_tenant_access('centros_medicos', centro_medico_id):
+            flash('Centro médico no válido', 'error')
+            return redirect(url_for('facturacion_facturas_nueva'))
+        
+        # Validar JSON
         try:
             import json
             lineas = json.loads(lineas_json)
-        except json.JSONDecodeError:
+            # Limitar número de pacientes por request (prevenir DoS)
+            if len(lineas) > 1000:
+                flash('Demasiados pacientes en una sola operación (máximo 1000)', 'error')
+                return redirect(url_for('facturacion_facturas_nueva'))
+        except json.JSONDecodeError as e:
+            logger.error(f"Error al parsear JSON: {e}")
             flash('Error al procesar los datos de los pacientes', 'error')
             return redirect(url_for('facturacion_facturas_nueva'))
         
@@ -2725,10 +4550,52 @@ def facturacion_facturas_nueva():
                 ''', (nombre, paciente_id))
             else:
                 # Crear nuevo paciente
-                paciente_id = execute_update('''
-                    INSERT INTO pacientes (tenant_id, nombre, nss, ars_id, created_by)
-                    VALUES (%s, %s, %s, %s, %s)
-                ''', (tenant_id, nombre, nss, ars_id, current_user.id))
+                # Intentar insertar con tenant_id y created_by, si falla intentar sin ellas
+                try:
+                    paciente_id = execute_update('''
+                        INSERT INTO pacientes (tenant_id, nombre, nss, ars_id, created_by)
+                        VALUES (%s, %s, %s, %s, %s)
+                    ''', (tenant_id, nombre, nss, ars_id, current_user.id))
+                except Exception as e:
+                    error_msg = str(e).lower()
+                    # Si falla por columnas desconocidas, intentar sin ellas
+                    if 'unknown column' in error_msg:
+                        if 'tenant_id' in error_msg and 'created_by' in error_msg:
+                            # Intentar sin ambas columnas
+                            paciente_id = execute_update('''
+                                INSERT INTO pacientes (nombre, nss, ars_id)
+                                VALUES (%s, %s, %s)
+                            ''', (nombre, nss, ars_id))
+                        elif 'created_by' in error_msg:
+                            # Intentar sin created_by
+                            try:
+                                paciente_id = execute_update('''
+                                    INSERT INTO pacientes (tenant_id, nombre, nss, ars_id)
+                                    VALUES (%s, %s, %s, %s)
+                                ''', (tenant_id, nombre, nss, ars_id))
+                            except:
+                                # Si también falla tenant_id, intentar sin ambas
+                                paciente_id = execute_update('''
+                                    INSERT INTO pacientes (nombre, nss, ars_id)
+                                    VALUES (%s, %s, %s)
+                                ''', (nombre, nss, ars_id))
+                        elif 'tenant_id' in error_msg:
+                            # Intentar sin tenant_id
+                            try:
+                                paciente_id = execute_update('''
+                                    INSERT INTO pacientes (nombre, nss, ars_id, created_by)
+                                    VALUES (%s, %s, %s, %s)
+                                ''', (nombre, nss, ars_id, current_user.id))
+                            except:
+                                # Si también falla created_by, intentar sin ambas
+                                paciente_id = execute_update('''
+                                    INSERT INTO pacientes (nombre, nss, ars_id)
+                                    VALUES (%s, %s, %s)
+                                ''', (nombre, nss, ars_id))
+                        else:
+                            raise
+                    else:
+                        raise  # Re-lanzar si es otro error
             
             # Crear registro en pacientes_pendientes
             servicios_realizados = f"{servicio} - Autorización: {autorizacion}" if autorizacion else servicio
@@ -2820,23 +4687,71 @@ def facturacion_pacientes_pendientes():
     # Obtener filtros de la query string
     medico_id_filtro = request.args.get('medico_id', '')
     ars_id_filtro = request.args.get('ars_id', '')
-    estado_filtro = request.args.get('estado', '')
+    estado_filtro = request.args.get('estado', 'pendiente')  # Por defecto 'pendiente'
     
-    # Construir query con filtros
+    # Construir query con filtros - consultar tabla pacientes_pendientes
     tenant_id = get_current_tenant_id()
+    
+    # Verificar si existe la columna tenant_id en pacientes_pendientes
+    tiene_tenant_id = False
+    try:
+        check_tenant = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'pacientes_pendientes' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
+    except:
+        tiene_tenant_id = False
+    
+    # Construir query base
     query = '''
-        SELECT p.*, a.nombre as nombre_ars
-        FROM pacientes p
-        LEFT JOIN ars a ON p.ars_id = a.id
-        WHERE p.tenant_id = %s
+        SELECT pp.*, 
+               a.nombre as nombre_ars,
+               m.nombre as medico_nombre,
+               m.especialidad as medico_especialidad,
+               pp.servicios_realizados as descripcion_servicio,
+               pp.monto_estimado as monto
+        FROM pacientes_pendientes pp
+        LEFT JOIN ars a ON pp.ars_id = a.id
+        LEFT JOIN medicos m ON pp.medico_id = m.id
+        WHERE 1=1
     '''
-    params = [tenant_id]
+    params = []
     
+    # Filtro por tenant_id (solo si existe la columna)
+    if tiene_tenant_id:
+        query += ' AND pp.tenant_id = %s'
+        params.append(tenant_id)
+    else:
+        # Si no existe tenant_id, filtrar por médicos y ARS que pertenezcan al tenant
+        query += ' AND (m.tenant_id = %s OR m.tenant_id IS NULL)'
+        params.append(tenant_id)
+    
+    # Filtro por estado
+    if estado_filtro:
+        # Convertir 'pendiente' a 'Pendiente' y 'facturado' a 'Facturado'
+        estado_db = estado_filtro.capitalize()
+        if estado_db == 'Facturado':
+            query += ' AND pp.estado = %s'
+            params.append('Facturado')
+        elif estado_db == 'Pendiente':
+            query += ' AND pp.estado = %s'
+            params.append('Pendiente')
+    
+    # Filtro por médico
+    if medico_id_filtro:
+        query += ' AND pp.medico_id = %s'
+        params.append(int(medico_id_filtro))
+    
+    # Filtro por ARS
     if ars_id_filtro:
-        query += ' AND p.ars_id = %s'
-        params.append(ars_id_filtro)
+        query += ' AND pp.ars_id = %s'
+        params.append(int(ars_id_filtro))
     
-    query += ' ORDER BY p.id DESC'
+    query += ' ORDER BY pp.fecha_servicio DESC, pp.id DESC'
     
     pendientes = execute_query(query, tuple(params), fetch='all') or []
     
@@ -2844,13 +4759,37 @@ def facturacion_pacientes_pendientes():
     medicos = execute_query('SELECT * FROM medicos WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
     ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
     
+    # Obtener nombres para mostrar en los badges de filtros activos
+    medico_seleccionado = None
+    if medico_id_filtro:
+        medico = execute_query('SELECT nombre FROM medicos WHERE id = %s', (medico_id_filtro,))
+        if medico:
+            medico_seleccionado = medico['nombre']
+    
+    ars_seleccionada = None
+    if ars_id_filtro:
+        ars = execute_query('SELECT nombre FROM ars WHERE id = %s', (ars_id_filtro,))
+        if ars:
+            ars_seleccionada = ars['nombre']
+    
+    # Obtener servicios para el combobox
+    servicios_list = execute_query('''
+        SELECT descripcion, precio_base 
+        FROM servicios 
+        WHERE tenant_id = %s AND activo = 1 
+        ORDER BY descripcion
+    ''', (tenant_id,), fetch='all') or []
+    
     return render_template('facturacion/pacientes_pendientes.html', 
                           pendientes=pendientes,
                           medicos=medicos,
                           ars_list=ars_list,
+                          servicios_list=servicios_list,
                           medico_id_filtro=medico_id_filtro,
                           ars_id_filtro=ars_id_filtro,
-                          estado_filtro=estado_filtro)
+                          estado_filtro=estado_filtro,
+                          medico_seleccionado=medico_seleccionado,
+                          ars_seleccionada=ars_seleccionada)
 
 @app.route('/facturacion/pacientes-pendientes/pdf')
 @login_required
@@ -3248,7 +5187,258 @@ def descargar_plantilla_excel():
         flash(f'Error inesperado al generar la plantilla: {str(e)}. Detalles: {error_details[:200]}', 'error')
         return redirect(url_for('facturacion_facturas_nueva'))
 
-@app.route('/facturacion/generar')
+@app.route('/facturacion/procesar-excel', methods=['POST'])
+@login_required
+def facturacion_procesar_excel():
+    """Procesar archivo Excel y devolver pacientes en formato JSON"""
+    try:
+        if not OPENPYXL_AVAILABLE:
+            return jsonify({
+                'error': True,
+                'mensaje': 'La funcionalidad de Excel no está disponible',
+                'errores': ['OpenPyXL no está instalado'],
+                'total_errores': 1
+            }), 400
+        
+        # Verificar que se haya enviado un archivo
+        if 'archivo_excel' not in request.files:
+            return jsonify({
+                'error': True,
+                'mensaje': 'No se recibió ningún archivo',
+                'errores': ['Debe seleccionar un archivo Excel'],
+                'total_errores': 1
+            }), 400
+        
+        file = request.files['archivo_excel']
+        if file.filename == '':
+            return jsonify({
+                'error': True,
+                'mensaje': 'No se seleccionó ningún archivo',
+                'errores': ['Debe seleccionar un archivo Excel'],
+                'total_errores': 1
+            }), 400
+        
+        # Validar extensión
+        if not file.filename.lower().endswith(('.xlsx', '.xls')):
+            return jsonify({
+                'error': True,
+                'mensaje': 'Formato de archivo inválido',
+                'errores': ['El archivo debe ser .xlsx o .xls'],
+                'total_errores': 1
+            }), 400
+        
+        # Leer el archivo Excel
+        from openpyxl import load_workbook
+        wb = load_workbook(file, data_only=True)
+        
+        # Buscar la hoja "Pacientes"
+        if 'Pacientes' not in wb.sheetnames:
+            return jsonify({
+                'error': True,
+                'mensaje': 'Hoja "Pacientes" no encontrada',
+                'errores': ['El archivo Excel debe contener una hoja llamada "Pacientes"'],
+                'total_errores': 1
+            }), 400
+        
+        ws = wb['Pacientes']
+        
+        # Obtener tenant_id
+        tenant_id = get_current_tenant_id()
+        if not tenant_id:
+            return jsonify({
+                'error': True,
+                'mensaje': 'Error al obtener el tenant',
+                'errores': ['No se pudo identificar la empresa'],
+                'total_errores': 1
+            }), 400
+        
+        # Obtener servicios válidos del tenant
+        servicios_result = execute_query(
+            'SELECT descripcion FROM servicios WHERE tenant_id = %s AND activo = 1',
+            (tenant_id,), fetch='all'
+        ) or []
+        servicios_validos = [s['descripcion'].upper() for s in servicios_result if s and s.get('descripcion')]
+        
+        # Leer datos desde la fila 2 (la fila 1 es el encabezado)
+        pacientes = []
+        errores = []
+        autorizaciones_vistas = set()
+        numero_fila = 1
+        
+        for row in ws.iter_rows(min_row=2, values_only=False):
+            numero_fila += 1
+            
+            # Obtener valores de las celdas
+            nss = str(row[0].value).strip() if row[0].value else ''  # Columna A
+            nombre = str(row[1].value).strip() if row[1].value else ''  # Columna B
+            # Fecha puede venir como datetime de Excel o como string
+            fecha_raw = row[2].value if row[2].value else ''
+            if fecha_raw:
+                # Si es datetime de Excel, convertir a string primero
+                from datetime import datetime, date
+                if isinstance(fecha_raw, (datetime, date)):
+                    fecha = fecha_raw.strftime('%Y-%m-%d')
+                else:
+                    fecha = str(fecha_raw).strip()
+            else:
+                fecha = ''
+            autorizacion = str(row[3].value).strip() if row[3].value else ''  # Columna D
+            servicio = str(row[4].value).strip() if row[4].value else ''  # Columna E
+            monto = row[5].value if row[5].value else ''  # Columna F
+            
+            # Si la fila está vacía, saltarla
+            if not nss and not nombre and not fecha and not autorizacion and not servicio and not monto:
+                continue
+            
+            # Validaciones
+            errores_fila = []
+            
+            # Validar NSS
+            if not nss:
+                errores_fila.append(f'Fila {numero_fila}: NSS es obligatorio')
+            elif len(nss) > 50:
+                errores_fila.append(f'Fila {numero_fila}: NSS muy largo (máximo 50 caracteres)')
+            
+            # Validar Nombre
+            if not nombre:
+                errores_fila.append(f'Fila {numero_fila}: Nombre es obligatorio')
+            elif len(nombre) > 200:
+                errores_fila.append(f'Fila {numero_fila}: Nombre muy largo (máximo 200 caracteres)')
+            
+            # Validar y normalizar Fecha
+            if not fecha:
+                errores_fila.append(f'Fila {numero_fila}: Fecha es obligatoria')
+            else:
+                try:
+                    from datetime import datetime, date
+                    fecha_normalizada = None
+                    
+                    # Si ya está en formato AAAA-MM-DD, validar y usar directamente
+                    try:
+                        datetime.strptime(fecha, '%Y-%m-%d')
+                        fecha_normalizada = fecha  # Ya está en el formato correcto
+                    except ValueError:
+                        # Si no está en formato AAAA-MM-DD, intentar normalizar
+                        # Normalizar separadores: convertir "/" a "-"
+                        fecha_str = fecha.replace('/', '-').strip()
+                        
+                        # Intentar parsear diferentes formatos
+                        formatos_fecha = [
+                            '%Y-%m-%d',      # AAAA-MM-DD (formato estándar)
+                            '%d-%m-%Y',      # DD-MM-AAAA
+                            '%m-%d-%Y',      # MM-DD-AAAA
+                            '%Y/%m/%d',      # AAAA/MM/DD (por si acaso quedó algún /)
+                            '%d/%m/%Y',      # DD/MM/AAAA
+                            '%m/%d/%Y',      # MM/DD/AAAA
+                        ]
+                        
+                        fecha_obj = None
+                        for formato in formatos_fecha:
+                            try:
+                                fecha_obj = datetime.strptime(fecha_str, formato)
+                                break
+                            except ValueError:
+                                continue
+                        
+                        if fecha_obj:
+                            # Convertir a formato estándar AAAA-MM-DD
+                            fecha_normalizada = fecha_obj.strftime('%Y-%m-%d')
+                        else:
+                            # Si no se pudo parsear, intentar con el valor original
+                            raise ValueError(f'No se pudo parsear la fecha: {fecha}')
+                    
+                    if fecha_normalizada:
+                        # Validar que el formato sea correcto (AAAA-MM-DD)
+                        datetime.strptime(fecha_normalizada, '%Y-%m-%d')
+                        fecha = fecha_normalizada
+                    else:
+                        raise ValueError(f'Fecha no válida: {fecha}')
+                        
+                except Exception as e:
+                    errores_fila.append(f'Fila {numero_fila}: Fecha inválida "{fecha}" (formato esperado: AAAA-MM-DD o DD/MM/AAAA)')
+            
+            # Validar Autorización
+            if not autorizacion:
+                errores_fila.append(f'Fila {numero_fila}: Autorización es obligatoria')
+            elif len(autorizacion) > 50:
+                errores_fila.append(f'Fila {numero_fila}: Autorización muy larga (máximo 50 caracteres)')
+            elif autorizacion.upper() in autorizaciones_vistas:
+                errores_fila.append(f'Fila {numero_fila}: Autorización duplicada ({autorizacion})')
+            else:
+                autorizaciones_vistas.add(autorizacion.upper())
+            
+            # Validar Servicio
+            if not servicio:
+                errores_fila.append(f'Fila {numero_fila}: Servicio es obligatorio')
+            elif servicios_validos and servicio.upper() not in servicios_validos:
+                errores_fila.append(f'Fila {numero_fila}: Servicio "{servicio}" no existe. Servicios válidos: {", ".join(servicios_validos[:5])}...')
+            
+            # Validar Monto
+            try:
+                if monto == '' or monto is None:
+                    errores_fila.append(f'Fila {numero_fila}: Monto es obligatorio')
+                else:
+                    monto_float = float(monto)
+                    if monto_float <= 0:
+                        errores_fila.append(f'Fila {numero_fila}: Monto debe ser mayor a cero')
+            except (ValueError, TypeError):
+                errores_fila.append(f'Fila {numero_fila}: Monto inválido (debe ser un número)')
+            
+            # Si hay errores en esta fila, agregarlos y continuar
+            if errores_fila:
+                errores.extend(errores_fila)
+                continue
+            
+            # Si no hay errores, agregar el paciente
+            pacientes.append({
+                'nss': nss,
+                'nombre': nombre.upper(),
+                'fecha': fecha,
+                'autorizacion': autorizacion.upper(),
+                'servicio': servicio.upper(),
+                'monto': float(monto)
+            })
+        
+        # Si hay errores, devolverlos
+        if errores:
+            return jsonify({
+                'error': True,
+                'mensaje': f'Se encontraron {len(errores)} error(es) en el archivo',
+                'errores': errores,
+                'total_errores': len(errores),
+                'pacientes': []
+            }), 400
+        
+        # Si no hay pacientes, devolver error
+        if not pacientes:
+            return jsonify({
+                'error': True,
+                'mensaje': 'No se encontraron pacientes válidos en el archivo',
+                'errores': ['El archivo Excel no contiene datos válidos en la hoja "Pacientes"'],
+                'total_errores': 1,
+                'pacientes': []
+            }), 400
+        
+        # Si todo está bien, devolver los pacientes
+        return jsonify({
+            'error': False,
+            'mensaje': f'Se procesaron {len(pacientes)} paciente(s) correctamente',
+            'pacientes': pacientes,
+            'total': len(pacientes)
+        }), 200
+        
+    except Exception as e:
+        import traceback
+        error_details = traceback.format_exc()
+        return jsonify({
+            'error': True,
+            'mensaje': f'Error al procesar el archivo: {str(e)}',
+            'errores': [f'Error inesperado: {str(e)}'],
+            'total_errores': 1,
+            'detalles': error_details[:500] if 'FLASK_ENV' in os.environ and os.environ['FLASK_ENV'] == 'development' else None
+        }), 500
+
+@app.route('/facturacion/generar', methods=['GET', 'POST'])
 @login_required
 def facturacion_generar():
     """Generar factura"""
@@ -3256,14 +5446,681 @@ def facturacion_generar():
         flash('No tienes permisos para acceder a esta sección', 'error')
         return redirect(url_for('facturacion_menu'))
     
-    pendientes = execute_query('''
-        SELECT pp.*, a.nombre as ars_nombre 
-        FROM pacientes_pendientes pp
-        LEFT JOIN ars a ON pp.ars_id = a.id
-        WHERE pp.estado = 'Pendiente'
-        ORDER BY pp.created_at
-    ''', fetch='all') or []
-    return render_template('facturacion/generar_factura.html', pendientes=pendientes)
+    # Si es POST, redirigir al step 2
+    if request.method == 'POST':
+        # Validar y sanitizar entrada
+        ars_id = validate_int(request.form.get('ars_id'), min_value=1)
+        ncf_id = validate_int(request.form.get('ncf_id'), min_value=1)
+        medico_factura_id = validate_int(request.form.get('medico_factura_id'), min_value=1)
+        fecha_factura = request.form.get('fecha_factura', '').strip()
+        
+        # Validar fecha
+        if fecha_factura:
+            try:
+                datetime.strptime(fecha_factura, '%Y-%m-%d')
+            except ValueError:
+                flash('Fecha inválida', 'error')
+                return redirect(url_for('facturacion_generar'))
+        
+        if not all([ars_id, ncf_id, medico_factura_id, fecha_factura]):
+            flash('Todos los campos son obligatorios', 'error')
+            return redirect(url_for('facturacion_generar'))
+        
+        # Validar que los IDs pertenezcan al tenant
+        tenant_id = get_current_tenant_id()
+        if not validate_tenant_access('ars', ars_id) or \
+           not validate_tenant_access('ncf', ncf_id) or \
+           not validate_tenant_access('medicos', medico_factura_id):
+            flash('No tienes acceso a uno o más de los recursos seleccionados', 'error')
+            return redirect(url_for('facturacion_generar'))
+        
+        # Redirigir al step 2 con los parámetros
+        return redirect(url_for('facturacion_generar_step2', 
+                              ars_id=ars_id, 
+                              ncf_id=ncf_id, 
+                              medico_factura_id=medico_factura_id,
+                              fecha_factura=fecha_factura))
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Obtener ARS activas
+    ars_list = execute_query('''
+        SELECT * FROM ars 
+        WHERE activo = 1 AND tenant_id = %s 
+        ORDER BY nombre
+    ''', (tenant_id,), fetch='all') or []
+    
+    # Obtener NCF activos
+    ncf_list = execute_query('''
+        SELECT * FROM ncf 
+        WHERE activo = 1 AND tenant_id = %s 
+        ORDER BY tipo, prefijo
+    ''', (tenant_id,), fetch='all') or []
+    
+    # Obtener información de la empresa para determinar tipo
+    empresa_info = get_empresa_info(tenant_id)
+    tipo_empresa = empresa_info.get('tipo_empresa') if empresa_info else None
+    
+    # Obtener médicos activos o razón social según tipo de empresa
+    medicos_habilitados = []
+    if tipo_empresa == 'centro_salud':
+        # Si es centro de salud, usar la razón social de la empresa
+        if empresa_info and empresa_info.get('razon_social'):
+            medicos_habilitados = [{
+                'id': empresa_info.get('id'),
+                'nombre': empresa_info.get('razon_social'),
+                'especialidad': 'Centro de Salud'
+            }]
+    else:
+        # Si es médico o no tiene tipo definido, usar médicos
+        medicos_habilitados = execute_query('''
+            SELECT * FROM medicos 
+            WHERE activo = 1 AND tenant_id = %s 
+            ORDER BY nombre
+        ''', (tenant_id,), fetch='all') or []
+    
+    # Obtener pacientes pendientes
+    tiene_tenant_id = False
+    try:
+        check_tenant = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'pacientes_pendientes' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
+    except:
+        tiene_tenant_id = False
+    
+    if tiene_tenant_id:
+        pendientes = execute_query('''
+            SELECT pp.*, a.nombre as ars_nombre 
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a ON pp.ars_id = a.id
+            WHERE pp.estado = 'Pendiente' AND pp.tenant_id = %s
+            ORDER BY pp.created_at
+        ''', (tenant_id,), fetch='all') or []
+    else:
+        pendientes = execute_query('''
+            SELECT pp.*, a.nombre as ars_nombre 
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a ON pp.ars_id = a.id
+            WHERE pp.estado = 'Pendiente'
+            ORDER BY pp.created_at
+        ''', fetch='all') or []
+    
+    # Obtener fecha actual en formato YYYY-MM-DD
+    from datetime import date
+    fecha_actual = date.today().strftime('%Y-%m-%d')
+    
+    return render_template('facturacion/generar_factura.html', 
+                          pendientes=pendientes,
+                          ars_list=ars_list,
+                          ncf_list=ncf_list,
+                          medicos_habilitados=medicos_habilitados,
+                          fecha_actual=fecha_actual,
+                          tipo_empresa=tipo_empresa)
+
+@app.route('/facturacion/generar/step2', methods=['GET', 'POST'])
+@login_required
+def facturacion_generar_step2():
+    """Generar factura - Paso 2: Selección de pacientes"""
+    if current_user.perfil not in ['Administrador', 'Nivel 2']:
+        flash('No tienes permisos para acceder a esta sección', 'error')
+        return redirect(url_for('facturacion_menu'))
+    
+    # Si es POST, redirigir a vista previa
+    if request.method == 'POST':
+        pacientes_ids_json = request.form.get('pacientes_ids')
+        ars_id = request.form.get('ars_id')
+        ncf_id = request.form.get('ncf_id')
+        medico_factura_id = request.form.get('medico_factura_id')
+        fecha_factura = request.form.get('fecha_factura')
+        
+        if not all([pacientes_ids_json, ars_id, ncf_id, medico_factura_id, fecha_factura]):
+            flash('Faltan datos obligatorios', 'error')
+            return redirect(url_for('facturacion_generar'))
+        
+        try:
+            import json
+            pacientes_ids = json.loads(pacientes_ids_json)
+        except json.JSONDecodeError:
+            flash('Error al procesar los IDs de pacientes', 'error')
+            return redirect(url_for('facturacion_generar'))
+        
+        if not pacientes_ids or len(pacientes_ids) == 0:
+            flash('Debe seleccionar al menos un paciente', 'error')
+            return redirect(url_for('facturacion_generar_step2',
+                                  ars_id=ars_id,
+                                  ncf_id=ncf_id,
+                                  medico_factura_id=medico_factura_id,
+                                  fecha_factura=fecha_factura))
+        
+        # Redirigir a vista previa
+        return redirect(url_for('facturacion_vista_previa',
+                              pacientes_ids=','.join(map(str, pacientes_ids)),
+                              ars_id=ars_id,
+                              ncf_id=ncf_id,
+                              medico_factura_id=medico_factura_id,
+                              fecha_factura=fecha_factura))
+    
+    # Obtener parámetros de la URL (GET)
+    ars_id = request.args.get('ars_id')
+    ncf_id = request.args.get('ncf_id')
+    medico_factura_id = request.args.get('medico_factura_id')
+    fecha_factura = request.args.get('fecha_factura')
+    
+    if not all([ars_id, ncf_id, medico_factura_id, fecha_factura]):
+        flash('Faltan parámetros obligatorios', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Obtener ARS
+    ars = execute_query('SELECT * FROM ars WHERE id = %s AND tenant_id = %s', (ars_id, tenant_id))
+    if not ars:
+        flash('ARS no encontrada', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    # Obtener NCF
+    ncf = execute_query('SELECT * FROM ncf WHERE id = %s AND tenant_id = %s', (ncf_id, tenant_id))
+    if not ncf:
+        flash('NCF no encontrado', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    # Obtener información de la empresa para determinar tipo
+    empresa_info = get_empresa_info(tenant_id)
+    tipo_empresa = empresa_info.get('tipo_empresa') if empresa_info else None
+    
+    # Obtener médico o empresa según tipo
+    medico_factura = None
+    medico_factura_nombre = 'N/A'
+    
+    if tipo_empresa == 'centro_salud':
+        # Si es centro de salud, buscar en empresas
+        empresa_factura = execute_query('SELECT * FROM empresas WHERE id = %s', (medico_factura_id,))
+        if empresa_factura and empresa_factura.get('id') == tenant_id:
+            medico_factura = {
+                'id': empresa_factura.get('id'),
+                'nombre': empresa_factura.get('razon_social', empresa_factura.get('nombre', 'N/A')),
+                'especialidad': 'Centro de Salud'
+            }
+            medico_factura_nombre = empresa_factura.get('razon_social', empresa_factura.get('nombre', 'N/A'))
+        else:
+            flash('Empresa no encontrada', 'error')
+            return redirect(url_for('facturacion_generar'))
+    else:
+        # Si es médico, buscar en medicos
+        medico_factura = execute_query('SELECT * FROM medicos WHERE id = %s AND tenant_id = %s', (medico_factura_id, tenant_id))
+        if not medico_factura:
+            flash('Médico no encontrado', 'error')
+            return redirect(url_for('facturacion_generar'))
+        medico_factura_nombre = medico_factura.get('nombre', 'N/A')
+    
+    # Obtener pacientes pendientes filtrados por ARS
+    tiene_tenant_id = False
+    try:
+        check_tenant = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'pacientes_pendientes' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
+    except:
+        tiene_tenant_id = False
+    
+    if tiene_tenant_id:
+        pendientes_raw = execute_query('''
+            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a ON pp.ars_id = a.id
+            LEFT JOIN medicos m ON pp.medico_id = m.id
+            WHERE pp.estado = 'Pendiente' AND pp.ars_id = %s AND pp.tenant_id = %s
+            ORDER BY pp.created_at
+        ''', (ars_id, tenant_id), fetch='all') or []
+    else:
+        pendientes_raw = execute_query('''
+            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a ON pp.ars_id = a.id
+            LEFT JOIN medicos m ON pp.medico_id = m.id
+            WHERE pp.estado = 'Pendiente' AND pp.ars_id = %s
+            ORDER BY pp.created_at
+        ''', (ars_id,), fetch='all') or []
+    
+    # Procesar los datos para extraer autorización y servicio
+    pendientes = []
+    for p in pendientes_raw:
+        servicio_completo = p.get('servicios_realizados', '') or ''
+        # Extraer servicio y autorización
+        if ' - Autorización:' in servicio_completo:
+            partes = servicio_completo.split(' - Autorización:')
+            descripcion_servicio = partes[0].strip()
+            autorizacion = partes[1].strip() if len(partes) > 1 else ''
+        else:
+            descripcion_servicio = servicio_completo.strip()
+            autorizacion = ''
+        
+        p['descripcion_servicio'] = descripcion_servicio
+        p['autorizacion'] = autorizacion
+        p['paciente_nombre_completo'] = p.get('nombre_paciente', '')
+        pendientes.append(p)
+    
+    # Obtener todos los médicos para el filtro
+    medicos = execute_query('SELECT id, nombre FROM medicos WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    
+    return render_template('facturacion/generar_factura_step2.html',
+                          ars=ars,
+                          ncf=ncf,
+                          medico_factura_id=medico_factura_id,
+                          medico_factura_nombre=medico_factura_nombre,
+                          fecha_factura=fecha_factura,
+                          pendientes=pendientes,
+                          medicos=medicos)
+
+@app.route('/facturacion/vista-previa')
+@login_required
+def facturacion_vista_previa():
+    """Vista previa de factura antes de generar"""
+    if current_user.perfil not in ['Administrador', 'Nivel 2']:
+        flash('No tienes permisos para acceder a esta sección', 'error')
+        return redirect(url_for('facturacion_menu'))
+    
+    # Obtener parámetros
+    pacientes_ids_str = request.args.get('pacientes_ids', '')
+    ars_id = request.args.get('ars_id')
+    ncf_id = request.args.get('ncf_id')
+    medico_factura_id = request.args.get('medico_factura_id')
+    fecha_factura = request.args.get('fecha_factura')
+    
+    if not all([pacientes_ids_str, ars_id, ncf_id, medico_factura_id, fecha_factura]):
+        flash('Faltan parámetros obligatorios', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    # Convertir IDs de pacientes
+    try:
+        pacientes_ids = [int(id) for id in pacientes_ids_str.split(',') if id.strip()]
+    except ValueError:
+        flash('Error en los IDs de pacientes', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    if not pacientes_ids:
+        flash('Debe seleccionar al menos un paciente', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Obtener datos de ARS, NCF y Médico
+    ars = execute_query('SELECT * FROM ars WHERE id = %s AND tenant_id = %s', (ars_id, tenant_id))
+    if not ars:
+        flash('ARS no encontrada', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    ncf = execute_query('SELECT * FROM ncf WHERE id = %s AND tenant_id = %s', (ncf_id, tenant_id))
+    if not ncf:
+        flash('NCF no encontrado', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    # Obtener información de la empresa para determinar tipo
+    empresa_info = get_empresa_info(tenant_id)
+    tipo_empresa = empresa_info.get('tipo_empresa') if empresa_info else None
+    
+    # Obtener médico o empresa según tipo
+    medico_factura = None
+    empresa_factura = None
+    if tipo_empresa == 'centro_salud':
+        # Si es centro de salud, buscar en empresas
+        empresa_factura = execute_query('SELECT * FROM empresas WHERE id = %s', (medico_factura_id,))
+        if empresa_factura and empresa_factura.get('id') == tenant_id:
+            medico_factura = {
+                'id': empresa_factura.get('id'),
+                'nombre': empresa_factura.get('razon_social', empresa_factura.get('nombre', 'N/A')),
+                'especialidad': 'Centro de Salud',
+                'cedula': empresa_factura.get('rnc', '')
+            }
+        else:
+            flash('Empresa no encontrada', 'error')
+            return redirect(url_for('facturacion_generar'))
+    else:
+        # Si es médico, buscar en medicos
+        medico_factura = execute_query('SELECT * FROM medicos WHERE id = %s AND tenant_id = %s', (medico_factura_id, tenant_id))
+        if not medico_factura:
+            flash('Médico no encontrado', 'error')
+            return redirect(url_for('facturacion_generar'))
+    
+    # Obtener pacientes seleccionados
+    tiene_tenant_id = False
+    try:
+        check_tenant = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'pacientes_pendientes' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
+    except:
+        tiene_tenant_id = False
+    
+    placeholders = ','.join(['%s'] * len(pacientes_ids))
+    if tiene_tenant_id:
+        pacientes_query = f'''
+            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a ON pp.ars_id = a.id
+            LEFT JOIN medicos m ON pp.medico_id = m.id
+            WHERE pp.id IN ({placeholders}) AND pp.tenant_id = %s
+            ORDER BY pp.fecha_servicio
+        '''
+        pacientes_raw = execute_query(pacientes_query, tuple(pacientes_ids) + (tenant_id,), fetch='all') or []
+    else:
+        pacientes_query = f'''
+            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a ON pp.ars_id = a.id
+            LEFT JOIN medicos m ON pp.medico_id = m.id
+            WHERE pp.id IN ({placeholders})
+            ORDER BY pp.fecha_servicio
+        '''
+        pacientes_raw = execute_query(pacientes_query, tuple(pacientes_ids), fetch='all') or []
+    
+    # Procesar pacientes
+    pacientes = []
+    for p in pacientes_raw:
+        servicio_completo = p.get('servicios_realizados', '') or ''
+        if ' - Autorización:' in servicio_completo:
+            partes = servicio_completo.split(' - Autorización:')
+            descripcion_servicio = partes[0].strip()
+            autorizacion = partes[1].strip() if len(partes) > 1 else ''
+        else:
+            descripcion_servicio = servicio_completo.strip()
+            autorizacion = ''
+        
+        p['descripcion_servicio'] = descripcion_servicio
+        p['autorizacion'] = autorizacion
+        p['paciente_nombre_completo'] = p.get('nombre_paciente', '')
+        pacientes.append(p)
+    
+    # Obtener centro médico del médico (si tiene uno asociado)
+    centro_medico = None
+    if medico_factura.get('centro_medico_id'):
+        centro_medico = execute_query('SELECT * FROM centros_medicos WHERE id = %s AND tenant_id = %s', 
+                                     (medico_factura['centro_medico_id'], tenant_id))
+    
+    # Si no tiene centro médico asociado, obtener el primero del tenant
+    if not centro_medico:
+        centro_medico = execute_query('SELECT * FROM centros_medicos WHERE tenant_id = %s LIMIT 1', (tenant_id,))
+    
+    # Si aún no hay centro médico, crear uno por defecto
+    if not centro_medico:
+        centro_medico = {
+            'nombre': 'Centro Médico',
+            'direccion': ''
+        }
+    
+    # Calcular subtotal y total
+    subtotal = sum(float(p.get('monto_estimado', 0) or 0) for p in pacientes)
+    total = subtotal  # Por ahora el total es igual al subtotal (ITBIS es exento)
+    
+    # Generar número de NCF completo para mostrar en vista previa
+    proximo_numero = ncf.get('ultimo_numero', 0) + 1
+    tamano_secuencia = ncf.get('tamano_secuencia', 8)
+    ncf_completo = f"{ncf.get('prefijo', '')}{proximo_numero:0{tamano_secuencia}d}"
+    
+    # Mapeo de tipos de NCF a descripciones
+    ncf_tipos_descripciones = {
+        'B01': 'Factura de Crédito Fiscal',
+        'B02': 'Factura de Consumo',
+        'B14': 'Registro Único de Ingresos',
+        'B15': 'GUBERNAMENTAL'
+    }
+    ncf_tipo_descripcion = ncf_tipos_descripciones.get(ncf.get('tipo', ''), ncf.get('tipo', ''))
+    
+    return render_template('facturacion/vista_previa_factura.html',
+                          pacientes=pacientes,
+                          pacientes_ids=','.join(map(str, pacientes_ids)),
+                          ars=ars,
+                          ncf=ncf,
+                          ncf_completo=ncf_completo,  # Número completo del NCF
+                          ncf_tipo_descripcion=ncf_tipo_descripcion,  # Descripción del tipo de NCF
+                          medico=medico_factura,  # Cambiado de medico_factura a medico
+                          medico_factura=medico_factura,  # Mantener también por si acaso
+                          medico_factura_id=medico_factura_id,
+                          fecha_factura=fecha_factura,
+                          ars_id=ars_id,
+                          ncf_id=ncf_id,
+                          centro_medico=centro_medico,
+                          subtotal=subtotal,
+                          total=total,
+                          tipo_empresa=tipo_empresa,
+                          empresa_info=empresa_info)
+
+@app.route('/facturacion/generar/final', methods=['POST'])
+@login_required
+def facturacion_generar_final():
+    """Generar factura final en la base de datos"""
+    if current_user.perfil not in ['Administrador', 'Nivel 2']:
+        flash('No tienes permisos para acceder a esta sección', 'error')
+        return redirect(url_for('facturacion_menu'))
+    
+    tenant_id = get_current_tenant_id()
+    
+    # Obtener datos del formulario
+    pacientes_ids_str = request.form.get('pacientes_ids', '')
+    ars_id = request.form.get('ars_id')
+    ncf_id = request.form.get('ncf_id')
+    medico_factura_id = request.form.get('medico_factura_id')
+    fecha_factura = request.form.get('fecha_factura')
+    
+    if not all([pacientes_ids_str, ars_id, ncf_id, medico_factura_id, fecha_factura]):
+        flash('Faltan datos obligatorios', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    # Convertir IDs de pacientes
+    try:
+        pacientes_ids = [int(id) for id in pacientes_ids_str.split(',') if id.strip()]
+    except ValueError:
+        flash('Error en los IDs de pacientes', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    if not pacientes_ids:
+        flash('Debe seleccionar al menos un paciente', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    # Obtener datos de ARS, NCF y Médico
+    ars = execute_query('SELECT * FROM ars WHERE id = %s AND tenant_id = %s', (ars_id, tenant_id))
+    if not ars:
+        flash('ARS no encontrada', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    ncf = execute_query('SELECT * FROM ncf WHERE id = %s AND tenant_id = %s', (ncf_id, tenant_id))
+    if not ncf:
+        flash('NCF no encontrado', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    # Obtener información de la empresa para determinar tipo
+    empresa_info = get_empresa_info(tenant_id)
+    tipo_empresa = empresa_info.get('tipo_empresa') if empresa_info else None
+    
+    # Obtener médico o empresa según tipo
+    medico_factura = None
+    empresa_factura = None
+    if tipo_empresa == 'centro_salud':
+        # Si es centro de salud, buscar en empresas
+        empresa_factura = execute_query('SELECT * FROM empresas WHERE id = %s', (medico_factura_id,))
+        if empresa_factura and empresa_factura.get('id') == tenant_id:
+            medico_factura = {
+                'id': empresa_factura.get('id'),
+                'nombre': empresa_factura.get('razon_social', empresa_factura.get('nombre', 'N/A')),
+                'especialidad': 'Centro de Salud',
+                'cedula': empresa_factura.get('rnc', '')
+            }
+        else:
+            flash('Empresa no encontrada', 'error')
+            return redirect(url_for('facturacion_generar'))
+    else:
+        # Si es médico, buscar en medicos
+        medico_factura = execute_query('SELECT * FROM medicos WHERE id = %s AND tenant_id = %s', (medico_factura_id, tenant_id))
+        if not medico_factura:
+            flash('Médico no encontrado', 'error')
+            return redirect(url_for('facturacion_generar'))
+    
+    # Obtener pacientes seleccionados
+    tiene_tenant_id = False
+    try:
+        check_tenant = execute_query('''
+            SELECT COUNT(*) as count 
+            FROM information_schema.COLUMNS 
+            WHERE TABLE_SCHEMA = DATABASE()
+            AND TABLE_NAME = 'pacientes_pendientes' 
+            AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
+    except:
+        tiene_tenant_id = False
+    
+    placeholders = ','.join(['%s'] * len(pacientes_ids))
+    if tiene_tenant_id:
+        pacientes_raw = execute_query(f'''
+            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a ON pp.ars_id = a.id
+            LEFT JOIN medicos m ON pp.medico_id = m.id
+            WHERE pp.id IN ({placeholders}) AND pp.tenant_id = %s
+            ORDER BY pp.fecha_servicio
+        ''', tuple(pacientes_ids) + (tenant_id,), fetch='all') or []
+    else:
+        pacientes_raw = execute_query(f'''
+            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a ON pp.ars_id = a.id
+            LEFT JOIN medicos m ON pp.medico_id = m.id
+            WHERE pp.id IN ({placeholders})
+            ORDER BY pp.fecha_servicio
+        ''', tuple(pacientes_ids), fetch='all') or []
+    
+    if not pacientes_raw:
+        flash('No se encontraron los pacientes seleccionados', 'error')
+        return redirect(url_for('facturacion_generar'))
+    
+    # Calcular totales
+    subtotal = sum(float(p.get('monto_estimado', 0) or 0) for p in pacientes_raw)
+    total = subtotal
+    
+    # Generar número de NCF
+    # Obtener el próximo número del NCF
+    proximo_numero = ncf.get('ultimo_numero', 0) + 1
+    tamano_secuencia = ncf.get('tamano_secuencia', 8)
+    ncf_numero = f"{ncf['prefijo']}{proximo_numero:0{tamano_secuencia}d}"
+    
+    # Generar número de factura
+    from datetime import datetime
+    fecha_actual = datetime.now()
+    numero_factura = f"FAC-{fecha_actual.strftime('%Y%m%d')}-{proximo_numero:04d}"
+    
+    try:
+        # Obtener centro médico
+        centro_medico_id = None
+        centro_medico_nombre = None
+        if medico_factura.get('centro_medico_id'):
+            centro_medico = execute_query('SELECT * FROM centros_medicos WHERE id = %s AND tenant_id = %s', 
+                                         (medico_factura['centro_medico_id'], tenant_id))
+            if centro_medico:
+                centro_medico_id = centro_medico['id']
+                centro_medico_nombre = centro_medico.get('nombre', '')
+        
+        # Crear factura
+        # Verificar si existe tenant_id en facturas
+        tiene_tenant_id_facturas = False
+        try:
+            check_tenant_facturas = execute_query('''
+                SELECT COUNT(*) as count 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE()
+                AND TABLE_NAME = 'facturas' 
+                AND COLUMN_NAME = 'tenant_id'
+            ''')
+            tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
+        except:
+            tiene_tenant_id_facturas = False
+        
+        # Usar el primer paciente como referencia para datos generales
+        primer_paciente = pacientes_raw[0]
+        
+        if tiene_tenant_id_facturas:
+            factura_id = execute_update('''
+                INSERT INTO facturas 
+                (tenant_id, numero_factura, ncf, fecha_emision, paciente_id, nombre_paciente, 
+                 cedula_paciente, nss_paciente, ars_id, nombre_ars, medico_id, nombre_medico,
+                 centro_medico_id, nombre_centro_medico, subtotal, itbis, total, estado, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s)
+            ''', (tenant_id, numero_factura, ncf_numero, fecha_factura, 
+                  primer_paciente.get('paciente_id'), primer_paciente.get('nombre_paciente', ''),
+                  primer_paciente.get('cedula'), primer_paciente.get('nss'),
+                  ars_id, ars.get('nombre', ''), medico_factura_id, medico_factura.get('nombre', ''),
+                  centro_medico_id, centro_medico_nombre, subtotal, 0, total, current_user.id))
+        else:
+            factura_id = execute_update('''
+                INSERT INTO facturas 
+                (numero_factura, ncf, fecha_emision, paciente_id, nombre_paciente, 
+                 cedula_paciente, nss_paciente, ars_id, nombre_ars, medico_id, nombre_medico,
+                 centro_medico_id, nombre_centro_medico, subtotal, itbis, total, estado, created_by)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s)
+            ''', (numero_factura, ncf_numero, fecha_factura, 
+                  primer_paciente.get('paciente_id'), primer_paciente.get('nombre_paciente', ''),
+                  primer_paciente.get('cedula'), primer_paciente.get('nss'),
+                  ars_id, ars.get('nombre', ''), medico_factura_id, medico_factura.get('nombre', ''),
+                  centro_medico_id, centro_medico_nombre, subtotal, 0, total, current_user.id))
+        
+        # Crear detalles de factura para cada paciente
+        for paciente in pacientes_raw:
+            servicio_completo = paciente.get('servicios_realizados', '') or ''
+            if ' - Autorización:' in servicio_completo:
+                descripcion_servicio = servicio_completo.split(' - Autorización:')[0].strip()
+            else:
+                descripcion_servicio = servicio_completo.strip()
+            
+            monto = float(paciente.get('monto_estimado', 0) or 0)
+            
+            execute_update('''
+                INSERT INTO factura_detalles 
+                (factura_id, descripcion, cantidad, precio_unitario, subtotal)
+                VALUES (%s, %s, 1, %s, %s)
+            ''', (factura_id, descripcion_servicio, monto, monto))
+        
+        # Actualizar estado de pacientes_pendientes a 'Facturado'
+        if tiene_tenant_id:
+            execute_update(f'''
+                UPDATE pacientes_pendientes 
+                SET estado = 'Facturado' 
+                WHERE id IN ({placeholders}) AND tenant_id = %s
+            ''', tuple(pacientes_ids) + (tenant_id,))
+        else:
+            execute_update(f'''
+                UPDATE pacientes_pendientes 
+                SET estado = 'Facturado' 
+                WHERE id IN ({placeholders})
+            ''', tuple(pacientes_ids))
+        
+        # Actualizar número del NCF
+        execute_update('''
+            UPDATE ncf 
+            SET ultimo_numero = %s 
+            WHERE id = %s
+        ''', (proximo_numero, ncf_id))
+        
+        flash(f'Factura {numero_factura} generada exitosamente', 'success')
+        return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
+        
+    except Exception as e:
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error al generar factura: {error_trace}")
+        flash(f'Error al generar la factura: {str(e)}', 'error')
+        return redirect(url_for('facturacion_generar'))
 
 # Rutas alternativas del template base (redirigen al menú principal)
 @app.route('/services')
@@ -3475,7 +6332,7 @@ if __name__ == '__main__':
     debug = os.getenv('FLASK_ENV') != 'production'
     
     print("\n" + "="*60)
-    print(" SISTEMA DE FACTURACION MEDICA")
+    print(" ARSFLOW GESTION DE FACTRAS MEDICAS")
     print("="*60)
     print(f" Entorno: {'PRODUCCION' if not debug else 'DESARROLLO'}")
     print(f" Host: {host}:{port}")

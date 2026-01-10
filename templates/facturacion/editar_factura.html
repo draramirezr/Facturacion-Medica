@@ -586,14 +586,15 @@
                     </thead>
                     <tbody>
                         {% for paciente in pacientes_factura %}
-                        <tr id="row-factura-{{ paciente['id'] }}" data-paciente-id="{{ paciente['id'] }}" data-monto="{{ paciente['monto'] }}">
+                        {% set monto_paciente = paciente.get('monto') or paciente.get('monto_estimado', 0) %}
+                        <tr id="row-factura-{{ paciente['id'] }}" data-paciente-id="{{ paciente['id'] }}" data-monto="{{ monto_paciente }}">
                             <td class="text-center">{{ loop.index }}</td>
                             <td>{{ paciente['nombre_paciente'] }}</td>
                             <td>{{ paciente['nss'] }}</td>
                             <td>{{ paciente['fecha_servicio'] }}</td>
                             <td>{{ paciente['medico_nombre'] }}</td>
                             <td>{{ paciente['servicio_nombre'] or 'N/A' }}</td>
-                            <td class="text-end">RD$ {{ "{:,.2f}".format(paciente['monto']) }}</td>
+                            <td class="text-end">RD$ {{ "{:,.2f}".format(monto_paciente) }}</td>
                             <td class="text-center">
                                 <button type="button" class="btn-eliminar-paciente" onclick="marcarParaEliminar({{ paciente['id'] }})">
                                     <i class="fas fa-trash"></i> Eliminar
@@ -637,14 +638,15 @@
                     </thead>
                     <tbody>
                         {% for paciente in pacientes_pendientes %}
-                        <tr id="row-pendiente-{{ paciente['id'] }}" data-paciente-id="{{ paciente['id'] }}" data-monto="{{ paciente['monto'] }}">
+                        {% set monto_paciente = paciente.get('monto') or paciente.get('monto_estimado', 0) %}
+                        <tr id="row-pendiente-{{ paciente['id'] }}" data-paciente-id="{{ paciente['id'] }}" data-monto="{{ monto_paciente }}">
                             <td class="text-center">{{ loop.index }}</td>
                             <td>{{ paciente['paciente_nombre_completo'] or paciente['nombre_paciente'] }}</td>
                             <td>{{ paciente['nss'] }}</td>
                             <td>{{ paciente['fecha_servicio'] }}</td>
                             <td>{{ paciente['medico_nombre'] }}</td>
                             <td>{{ paciente['servicio_nombre'] or 'N/A' }}</td>
-                            <td class="text-end">RD$ {{ "{:,.2f}".format(paciente['monto']) }}</td>
+                            <td class="text-end">RD$ {{ "{:,.2f}".format(monto_paciente) }}</td>
                             <td class="text-center">
                                 <button type="button" class="btn-agregar-paciente" onclick="marcarParaAgregar({{ paciente['id'] }})">
                                     <i class="fas fa-plus"></i> Agregar

@@ -6,7 +6,7 @@
 {% block content %}
 <style>
     .facturacion-hero {
-        background: {{ tema.primary_light }}50;
+        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
         border-radius: 20px;
         padding: 2rem;
         margin-bottom: 2rem;
@@ -92,37 +92,111 @@
     
     .btn-accion-editar,
     .btn-accion-eliminar {
-        display: inline-block;
-        padding: 0.4rem 0.7rem;
-        border-radius: 8px;
-        text-decoration: none;
-        margin: 0 0.2rem;
-        transition: all 0.3s ease;
-        font-size: 0.9rem;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 0 !important;
+        border-radius: 4px !important;
+        text-decoration: none !important;
+        margin: 0 !important;
+        transition: all 0.2s ease !important;
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        min-height: 28px !important;
+        max-width: 28px !important;
+        max-height: 28px !important;
+        box-sizing: border-box !important;
+        flex-shrink: 0 !important;
     }
     
     .btn-accion-editar {
-        background: white;
-        border: 2px solid var(--primary-color);
-        color: var(--primary-color);
+        color: var(--primary-color) !important;
+        border: 1px solid #D3D3D3 !important;
+        background: white !important;
     }
     
     .btn-accion-editar:hover {
-        background: var(--primary-color);
-        color: white;
-        transform: scale(1.1);
+        background: #f8f8f8 !important;
+        border-color: var(--primary-color) !important;
+        transform: translateY(-1px) !important;
+    }
+    
+    .btn-accion-editar i {
+        font-size: 0.65rem !important;
+        line-height: 1 !important;
     }
     
     .btn-accion-eliminar {
-        background: white;
-        border: 2px solid #ACACAD;
-        color: #ACACAD;
+        color: white !important;
+        border: none !important;
+        background: var(--primary-color) !important;
+        min-width: 28px !important;
+        max-width: 28px !important;
+        width: 28px !important;
+        height: 28px !important;
+        min-height: 28px !important;
+        max-height: 28px !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
     
     .btn-accion-eliminar:hover {
-        background: #ACACAD;
-        color: white;
-        transform: scale(1.1);
+        background: var(--primary-dark) !important;
+        transform: translateY(-1px) !important;
+    }
+    
+    .btn-accion-eliminar i {
+        font-size: 0.65rem !important;
+        line-height: 1 !important;
+        color: white !important;
+    }
+    
+    form .btn-accion-eliminar,
+    .btn-accion-eliminar[type="submit"],
+    button.btn-accion-eliminar {
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        min-height: 28px !important;
+        max-width: 28px !important;
+        max-height: 28px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border: none !important;
+        background: var(--primary-color) !important;
+        color: white !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        cursor: pointer !important;
+        border-radius: 4px !important;
+        font-size: inherit !important;
+        box-sizing: border-box !important;
+    }
+    
+    form .btn-accion-eliminar:hover,
+    .btn-accion-eliminar[type="submit"]:hover,
+    button.btn-accion-eliminar:hover {
+        background: var(--primary-dark) !important;
+        color: white !important;
+        transform: translateY(-1px) !important;
+    }
+    
+    form .btn-accion-eliminar i,
+    .btn-accion-eliminar[type="submit"] i,
+    button.btn-accion-eliminar i {
+        color: white !important;
+        font-size: 0.65rem !important;
+        line-height: 1 !important;
+    }
+    
+    .btn-accion-eliminar form {
+        display: inline-block !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        width: 28px !important;
+        height: 28px !important;
     }
     
     .btn-action {
@@ -172,7 +246,8 @@
     }
 </style>
 
-<div class="container mt-4">
+<div class="container py-5">
+    <!-- Hero -->
     <div class="facturacion-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
@@ -180,15 +255,9 @@
                     <i class="fas fa-clipboard-list me-2"></i>
                     Estado de Facturación
                 </h1>
-                <p style="color: #666; margin: 0;">Gestión y seguimiento de pacientes pendientes y facturados</p>
+                <p class="text-muted mb-0">Gestión y seguimiento de pacientes pendientes y facturados</p>
             </div>
-            <div class="d-flex gap-2 flex-wrap">
-                <a href="{{ url_for('facturacion_facturas_nueva') }}" class="btn btn-cancelar" {% if estado_filtro == 'facturado' %}style="pointer-events: none; opacity: 0.4; cursor: not-allowed;" title="No disponible para registros facturados"{% endif %}>
-                    <i class="fas fa-user-plus me-2"></i>Agregar Pacientes
-                </a>
-                <a href="{{ url_for('facturacion_pacientes_pendientes_pdf', medico_id=medico_id_filtro or '', ars_id=ars_id_filtro or '', estado=estado_filtro or 'pendiente') }}" class="btn btn-pdf" {% if pendientes|length == 0 %}style="pointer-events: none; opacity: 0.5;"{% endif %}>
-                    <i class="fas fa-file-pdf me-2"></i>Descargar PDF
-                </a>
+            <div class="d-flex gap-2">
                 <a href="{{ url_for('facturacion_menu') }}" class="btn btn-cancelar">
                     <i class="fas fa-arrow-left me-2"></i>Volver
                 </a>
@@ -202,72 +271,58 @@
             <h5 style="color: var(--primary-color); font-weight: 700; margin-bottom: 1rem;">
                 <i class="fas fa-filter me-2"></i>Filtros
             </h5>
-            <form method="GET" action="{{ url_for('facturacion_pacientes_pendientes') }}" class="row g-3">
-                <div class="col-md-3">
-                    <label for="estado" class="form-label" style="font-weight: 600; color: #666;">
-                        <i class="fas fa-clipboard-check me-1" style="color: var(--primary-color);"></i>Estado
-                    </label>
-                    <select name="estado" id="estado" class="form-select" style="border: 2px solid var(--primary-color)33; border-radius: 10px; font-weight: 600;">
-                        <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>🕐 Pendientes</option>
-                        <option value="facturado" {% if estado_filtro == 'facturado' %}selected{% endif %}>✅ Facturadas</option>
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="medico_id" class="form-label" style="font-weight: 600; color: #666;">
-                        <i class="fas fa-user-md me-1" style="color: var(--primary-color);"></i>Médico
-                    </label>
-                    <select name="medico_id" id="medico_id" class="form-select" style="border: 2px solid var(--primary-color)33; border-radius: 10px;">
-                        <option value="">-- Todos --</option>
-                        {% for medico in medicos %}
-                        <option value="{{ medico['id'] }}" {% if medico_id_filtro == medico['id'] %}selected{% endif %}>
-                            {{ medico['nombre'] }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label for="ars_id" class="form-label" style="font-weight: 600; color: #666;">
-                        <i class="fas fa-hospital me-1" style="color: var(--primary-color);"></i>ARS
-                    </label>
-                    <select name="ars_id" id="ars_id" class="form-select" style="border: 2px solid var(--primary-color)33; border-radius: 10px;">
-                        <option value="">-- Todas --</option>
-                        {% for ars in ars_list %}
-                        <option value="{{ ars['id'] }}" {% if ars_id_filtro == ars['id'] %}selected{% endif %}>
-                            {{ ars['nombre'] }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3 d-flex align-items-end gap-2">
-                    <button type="submit" class="btn" style="background: var(--gradient-primary); color: white; border: none; border-radius: 10px; padding: 0.7rem 1.5rem; font-weight: 600;">
-                        <i class="fas fa-search me-2"></i>Aplicar Filtros
-                    </button>
-                    <a href="{{ url_for('facturacion_pacientes_pendientes') }}" class="btn btn-outline-secondary" style="border: 2px solid {{ tema.primary }}; color: {{ tema.primary }}; border-radius: 10px; padding: 0.7rem 1.5rem; font-weight: 600;">
-                        <i class="fas fa-times me-2"></i>Limpiar
-                    </a>
+            <form method="GET" action="{{ url_for('facturacion_pacientes_pendientes') }}">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label for="estado" class="form-label" style="font-weight: 600; color: #666;">
+                            <i class="fas fa-clipboard-check me-1" style="color: var(--primary-color);"></i>Estado
+                        </label>
+                        <select name="estado" id="estado" class="form-select" style="border: 2px solid var(--primary-color)33; border-radius: 10px; font-weight: 600;">
+                            <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>🕐 Pendientes</option>
+                            <option value="facturado" {% if estado_filtro == 'facturado' %}selected{% endif %}>✅ Facturadas</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="medico_id" class="form-label" style="font-weight: 600; color: #666;">
+                            <i class="fas fa-user-md me-1" style="color: var(--primary-color);"></i>Médico
+                        </label>
+                        <select name="medico_id" id="medico_id" class="form-select" style="border: 2px solid var(--primary-color)33; border-radius: 10px;">
+                            <option value="">-- Todos --</option>
+                            {% for medico in medicos %}
+                            <option value="{{ medico['id'] }}" {% if medico_id_filtro == medico['id'] %}selected{% endif %}>
+                                {{ medico['nombre'] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label for="ars_id" class="form-label" style="font-weight: 600; color: #666;">
+                            <i class="fas fa-hospital me-1" style="color: var(--primary-color);"></i>ARS
+                        </label>
+                        <select name="ars_id" id="ars_id" class="form-select" style="border: 2px solid var(--primary-color)33; border-radius: 10px;">
+                            <option value="">-- Todas --</option>
+                            {% for ars in ars_list %}
+                            <option value="{{ ars['id'] }}" {% if ars_id_filtro == ars['id'] %}selected{% endif %}>
+                                {{ ars['nombre'] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3 d-flex flex-column justify-content-end">
+                        <label class="form-label" style="font-weight: 600; color: #666; visibility: hidden;">
+                            <i class="fas fa-filter me-1"></i>Acciones
+                        </label>
+                        <div class="d-flex gap-2 w-100" style="flex-wrap: nowrap;">
+                            <a href="{{ url_for('facturacion_pacientes_pendientes') }}" class="btn btn-buscar flex-fill" style="min-width: 0 !important; width: 0; flex: 1 1 0; height: 48px; text-decoration: none; font-size: 0.75rem; padding: 0.4rem 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <i class="fas fa-times me-1"></i><span>Limpiar</span>
+                            </a>
+                            <button type="submit" class="btn btn-buscar flex-fill" style="min-width: 0 !important; width: 0; flex: 1 1 0; height: 48px; font-size: 0.75rem; padding: 0.4rem 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                                <i class="fas fa-search me-1"></i><span>Aplicar</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </form>
-            
-            {% if estado_filtro or medico_seleccionado or ars_seleccionada %}
-            <div class="mt-3 p-3" style="background: {{ tema.primary_light }}, 0.2); border-radius: 10px; border-left: 4px solid var(--primary-color);">
-                <strong style="color: var(--primary-color);">
-                    <i class="fas fa-info-circle me-2"></i>Filtros activos:
-                </strong>
-                <span class="badge" style="background: var(--primary-color); color: white; padding: 0.4rem 0.8rem; border-radius: 8px; margin-left: 0.5rem;">
-                    Estado: {{ 'Pendientes' if estado_filtro == 'pendiente' else 'Facturados' }}
-                </span>
-                {% if medico_seleccionado %}
-                <span class="badge" style="background: var(--primary-color); color: white; padding: 0.4rem 0.8rem; border-radius: 8px; margin-left: 0.5rem;">
-                    Médico: {{ medico_seleccionado }}
-                </span>
-                {% endif %}
-                {% if ars_seleccionada %}
-                <span class="badge" style="background: var(--primary-color); color: white; padding: 0.4rem 0.8rem; border-radius: 8px; margin-left: 0.5rem;">
-                    ARS: {{ ars_seleccionada }}
-                </span>
-                {% endif %}
-            </div>
-            {% endif %}
         </div>
     </div>
 
@@ -291,13 +346,21 @@
             </thead>
             <tbody>
                 {% for paciente in pendientes %}
+                {% set monto_paciente = paciente.get('monto') or paciente.get('monto_estimado', 0) %}
                 <tr>
                     <td><strong>{{ paciente['id'] }}</strong></td>
                     <td>{{ paciente['nss'] }}</td>
                     <td>{{ paciente['nombre_paciente'] }}</td>
                     <td>{{ paciente['fecha_servicio'] }}</td>
-                    <td>{{ paciente['descripcion_servicio'] }}</td>
-                    <td class="text-center"><strong> {{ paciente['monto']|formato_moneda }}</strong></td>
+                    <td>
+                        {% set servicio_completo = paciente.get('descripcion_servicio', '') %}
+                        {% if ' - Autorización:' in servicio_completo %}
+                            {{ servicio_completo.split(' - Autorización:')[0] }}
+                        {% else %}
+                            {{ servicio_completo }}
+                        {% endif %}
+                    </td>
+                    <td class="text-center"><strong> {{ monto_paciente|formato_moneda }}</strong></td>
                     <td><small>{{ paciente['medico_nombre'] }}</small></td>
                     <td><small>{{ paciente.get('nombre_ars') or paciente.get('ars_nombre', 'N/A') }}</small></td>
                     <td class="text-center">
@@ -312,22 +375,22 @@
                         {% endif %}
                     </td>
                     <td class="text-center">
-                        {% if paciente['estado'] == 'pendiente' %}
-                        <a href="{{ url_for('facturacion_paciente_editar', paciente_id=paciente['id']) }}" 
-                           class="btn-accion-editar" title="Editar">
-                            <i class="fas fa-edit"></i>
-                        </a>
-                        <a href="{{ url_for('facturacion_paciente_eliminar', paciente_id=paciente['id']) }}" 
-                           class="btn-accion-eliminar" 
-                           onclick="return confirm('¿Está seguro de eliminar este registro?')"
-                           title="Eliminar">
-                            <i class="fas fa-trash-alt"></i>
-                        </a>
-                        {% else %}
-                        <span style="color: #ccc;" title="No se puede modificar un registro facturado">
-                            <i class="fas fa-lock"></i>
-                        </span>
-                        {% endif %}
+                        <div class="d-flex flex-column justify-content-center align-items-center" style="gap: 4px; flex-wrap: nowrap;">
+                            <button type="button" 
+                                    class="btn-accion-editar" 
+                                    title="Modificar"
+                                    onclick="abrirModalEditar({{ paciente['id'] }})">
+                                <i class="fas fa-pencil-alt"></i>
+                            </button>
+                            <form method="POST" action="{{ url_for('facturacion_pacientes_pendientes_eliminar', paciente_id=paciente['id']) }}" 
+                                  style="display: inline-block; margin: 0; padding: 0; width: 28px; height: 28px;" 
+                                  onsubmit="return confirm('¿Está seguro de eliminar este registro?');">
+                                <button type="submit" class="btn-accion-eliminar" title="Eliminar" 
+                                        style="width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; max-width: 28px !important; max-height: 28px !important; padding: 0 !important; margin: 0 !important; border: none !important; background: var(--primary-color) !important; color: white !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; border-radius: 4px !important; box-sizing: border-box !important;">
+                                    <i class="fas fa-trash" style="font-size: 0.65rem !important; color: white !important; line-height: 1 !important;"></i>
+                                </button>
+                            </form>
+                        </div>
                     </td>
                 </tr>
                 {% else %}
@@ -344,5 +407,245 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para Editar Paciente Pendiente -->
+<div class="modal fade" id="modalEditarPaciente" tabindex="-1" aria-labelledby="modalEditarPacienteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header" style="background: white; border-bottom: 1px solid #dee2e6;">
+                <h5 class="modal-title" id="modalEditarPacienteLabel" style="color: black; font-weight: 600;">
+                    <i class="fas fa-edit me-2" style="color: black;"></i>Editar Paciente Pendiente
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="color: black; opacity: 1;"></button>
+            </div>
+            <div class="modal-body">
+                <form id="formEditarPaciente">
+                    <input type="hidden" id="edit_paciente_id" name="paciente_id">
+                    <div class="row">
+                        <!-- Columna Izquierda -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_nss" class="form-label">
+                                    <i class="fas fa-id-card me-1"></i>NSS <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="edit_nss" name="nss" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_fecha_servicio" class="form-label">
+                                    <i class="fas fa-calendar me-1"></i>Fecha de Consulta <span class="text-danger">*</span>
+                                </label>
+                                <input type="date" class="form-control" id="edit_fecha_servicio" name="fecha_servicio" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_servicio" class="form-label">
+                                    <i class="fas fa-stethoscope me-1"></i>Servicio <span class="text-danger">*</span>
+                                </label>
+                                <select class="form-select" id="edit_servicio" name="servicio" required>
+                                    <option value="">-- Seleccione un servicio --</option>
+                                    {% for servicio in servicios_list %}
+                                    <option value="{{ servicio['descripcion'] }}">{{ servicio['descripcion'] }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_medico_display" class="form-label">
+                                    <i class="fas fa-user-md me-1"></i>Médico (no editable)
+                                </label>
+                                <input type="text" class="form-control" id="edit_medico_display" readonly style="background-color: #e9ecef;">
+                                <input type="hidden" id="edit_medico_id" name="medico_id">
+                            </div>
+                        </div>
+                        <!-- Columna Derecha -->
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_nombre_paciente" class="form-label">
+                                    <i class="fas fa-user me-1"></i>Nombre del Paciente <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="edit_nombre_paciente" name="nombre_paciente" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_autorizacion" class="form-label">
+                                    <i class="fas fa-check-circle me-1"></i>Autorización <span class="text-danger">*</span>
+                                </label>
+                                <input type="text" class="form-control" id="edit_autorizacion" name="autorizacion" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_monto_estimado" class="form-label">
+                                    <i class="fas fa-dollar-sign me-1"></i>$ Monto <span class="text-danger">*</span>
+                                </label>
+                                <input type="number" class="form-control" id="edit_monto_estimado" name="monto_estimado" step="0.01" min="0" required>
+                            </div>
+                            <div class="mb-3">
+                                <label for="edit_ars_display" class="form-label">
+                                    <i class="fas fa-hospital me-1"></i>ARS (no editable)
+                                </label>
+                                <input type="text" class="form-control" id="edit_ars_display" readonly style="background-color: #e9ecef;">
+                                <input type="hidden" id="edit_ars_id" name="ars_id">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </button>
+                <button type="button" class="btn btn-primary" onclick="guardarEdicion()">
+                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let modalEditar = null;
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar modal de Bootstrap
+    modalEditar = new bootstrap.Modal(document.getElementById('modalEditarPaciente'));
+});
+
+async function abrirModalEditar(pacienteId) {
+    try {
+        // Cargar datos del paciente
+        const response = await fetch(`/api/facturacion/pacientes-pendientes/${pacienteId}`);
+        if (!response.ok) {
+            throw new Error('Error al cargar los datos');
+        }
+        
+        const data = await response.json();
+        
+        // Llenar el formulario
+        document.getElementById('edit_paciente_id').value = data.id;
+        document.getElementById('edit_nombre_paciente').value = data.nombre_paciente || '';
+        document.getElementById('edit_nss').value = data.nss || '';
+        
+        // Formatear fecha para input type="date" (YYYY-MM-DD)
+        let fechaServicio = data.fecha_servicio || '';
+        if (fechaServicio) {
+            // Si viene en formato diferente, convertir a YYYY-MM-DD
+            if (fechaServicio.includes('/')) {
+                const partes = fechaServicio.split('/');
+                if (partes.length === 3) {
+                    // Formato MM/DD/YYYY o DD/MM/YYYY
+                    fechaServicio = `${partes[2]}-${partes[0].padStart(2, '0')}-${partes[1].padStart(2, '0')}`;
+                }
+            } else if (fechaServicio.includes('-') && fechaServicio.split('-')[0].length === 2) {
+                // Formato DD-MM-YYYY
+                const partes = fechaServicio.split('-');
+                fechaServicio = `${partes[2]}-${partes[1]}-${partes[0]}`;
+            }
+            // Si ya está en formato YYYY-MM-DD, usar directamente
+        }
+        document.getElementById('edit_fecha_servicio').value = fechaServicio;
+        
+        // Establecer el servicio en el select
+        const servicioSelect = document.getElementById('edit_servicio');
+        const servicioValue = (data.servicio || '').trim().toUpperCase();
+        
+        console.log('Servicio del registro:', servicioValue);
+        console.log('Opciones disponibles:', Array.from(servicioSelect.options).map(opt => opt.value));
+        
+        // Buscar la opción que coincida con el servicio (comparación case-insensitive)
+        let servicioEncontrado = false;
+        for (let i = 0; i < servicioSelect.options.length; i++) {
+            const optionValue = (servicioSelect.options[i].value || '').trim().toUpperCase();
+            if (optionValue === servicioValue) {
+                servicioSelect.selectedIndex = i;
+                servicioEncontrado = true;
+                console.log('Servicio encontrado en opción:', i);
+                break;
+            }
+        }
+        
+        // Si no se encuentra en las opciones, intentar agregar como nueva opción o seleccionar la primera opción vacía
+        if (!servicioEncontrado && servicioValue) {
+            // Crear una nueva opción temporal si el servicio no está en la lista
+            const nuevaOpcion = document.createElement('option');
+            nuevaOpcion.value = servicioValue;
+            nuevaOpcion.textContent = servicioValue;
+            nuevaOpcion.selected = true;
+            servicioSelect.appendChild(nuevaOpcion);
+            console.log('Servicio agregado como nueva opción:', servicioValue);
+        } else if (!servicioEncontrado) {
+            // Si no hay servicio, dejar en la opción por defecto
+            servicioSelect.selectedIndex = 0;
+        }
+        
+        document.getElementById('edit_autorizacion').value = data.autorizacion || '';
+        document.getElementById('edit_monto_estimado').value = data.monto_estimado || 0;
+        
+        // Campos readonly
+        document.getElementById('edit_ars_id').value = data.ars_id || '';
+        document.getElementById('edit_ars_display').value = data.ars_nombre ? `${data.ars_id} - ${data.ars_nombre}` : (data.ars_id ? `${data.ars_id} - ID ARS` : 'None - ID ARS');
+        
+        document.getElementById('edit_medico_id').value = data.medico_id || '';
+        document.getElementById('edit_medico_display').value = data.medico_nombre ? `${data.medico_id} - ${data.medico_nombre}` : (data.medico_id ? `${data.medico_id} - ID Médico` : 'None - ID Médico');
+        
+        // Abrir modal
+        modalEditar.show();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al cargar los datos del paciente');
+    }
+}
+
+async function guardarEdicion() {
+    const form = document.getElementById('formEditarPaciente');
+    if (!form.checkValidity()) {
+        form.reportValidity();
+        return;
+    }
+    
+    const pacienteId = document.getElementById('edit_paciente_id').value;
+        const servicio = document.getElementById('edit_servicio').value;
+        const autorizacion = document.getElementById('edit_autorizacion').value;
+        const servicioCompleto = autorizacion ? `${servicio} - Autorización: ${autorizacion}` : servicio;
+        
+        const formData = {
+        nombre_paciente: document.getElementById('edit_nombre_paciente').value,
+        nss: document.getElementById('edit_nss').value,
+        fecha_servicio: document.getElementById('edit_fecha_servicio').value,
+        servicio: servicioCompleto,
+        monto_estimado: parseFloat(document.getElementById('edit_monto_estimado').value) || 0,
+        ars_id: document.getElementById('edit_ars_id').value || null,
+        medico_id: document.getElementById('edit_medico_id').value || null,
+        observaciones: null
+    };
+    
+    try {
+        const response = await fetch(`/api/facturacion/pacientes-pendientes/${pacienteId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(formData)
+        });
+        
+        // Verificar que la respuesta sea JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            const text = await response.text();
+            console.error('Respuesta no JSON:', text.substring(0, 200));
+            throw new Error(`Error del servidor (${response.status}). La respuesta no es JSON.`);
+        }
+        
+        const result = await response.json();
+        
+        if (!response.ok) {
+            throw new Error(result.error || 'Error al actualizar');
+        }
+        
+        // Cerrar modal y recargar página
+        modalEditar.hide();
+        location.reload();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al guardar los cambios: ' + error.message);
+    }
+}
+</script>
+
 {% endblock %}
 

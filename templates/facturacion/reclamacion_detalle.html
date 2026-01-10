@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle Reclamación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 1.6rem; margin: 0;">
+                <i class="fas fa-file-alt me-2"></i>
+                Reclamación #{{ reclamacion['id'] }}
+            </h1>
+            <p class="text-muted mb-0">Factura {{ reclamacion['numero_factura'] }}</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('facturacion_reclamaciones') }}" class="btn btn-volver">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <h6 class="text-uppercase text-muted mb-2">Factura</h6>
+                    <p class="mb-1"><strong>Número:</strong> {{ reclamacion['numero_factura'] }}</p>
+                    <p class="mb-1"><strong>Paciente:</strong> {{ reclamacion['nombre_paciente'] }}</p>
+                    <p class="mb-1"><strong>ARS:</strong> {{ reclamacion['nombre_ars'] or 'Sin ARS' }}</p>
+                    <p class="mb-1"><strong>Total factura:</strong> ${{ "{:,.2f}".format(reclamacion['total_factura']) }}</p>
+                    <p class="mb-0"><strong>Estado factura:</strong> {{ reclamacion['estado_factura'] }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h6 class="text-uppercase text-muted mb-2">Reclamación</h6>
+                    <p class="mb-1"><strong>Fecha:</strong> {{ reclamacion['fecha_reclamacion'] }}</p>
+                    <p class="mb-1"><strong>Monto reclamado:</strong> ${{ "{:,.2f}".format(reclamacion['monto_reclamado']) }}</p>
+                    <p class="mb-1"><strong>Estado:</strong> {{ reclamacion['estado'] }}</p>
+                    <p class="mb-0"><strong>Observaciones:</strong><br>{{ reclamacion['observaciones'] or 'Sin observaciones' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+

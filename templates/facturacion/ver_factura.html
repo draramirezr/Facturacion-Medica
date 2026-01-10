@@ -53,11 +53,6 @@
             border-bottom: 2px solid {{ tema.primary }};
         }
         
-        .factura-logo {
-            max-width: 100px !important;
-            height: auto;
-        }
-        
         .factura-title {
             font-size: 1.8rem !important;
             color: #000 !important;
@@ -242,11 +237,6 @@
         border-bottom: 2px solid {{ tema.primary }};
     }
     
-    .factura-logo {
-        max-width: 120px;
-        height: auto;
-    }
-    
     .factura-title-center {
         flex: 1;
         text-align: center;
@@ -397,6 +387,23 @@
     
     .footer-factura strong {
         color: {{ tema.primary }};
+        font-size: 1rem;
+    }
+    
+    .footer-factura .footer-info {
+        display: flex;
+        flex-direction: column;
+        gap: 0.2rem;
+    }
+    
+    .footer-factura .footer-info-item {
+        display: inline-block;
+        margin: 0 0.5rem;
+    }
+    
+    .footer-factura .footer-separator {
+        color: #ccc;
+        margin: 0 0.3rem;
     }
     
     .btn-accion {
@@ -532,10 +539,9 @@
     <div class="factura-container">
         <!-- Header Compacto -->
         <div class="factura-header">
-            <img src="{{ url_for('static', filename='img/logo.png') }}" alt="Logo" class="factura-logo">
+            <div style="width: 120px;"></div>
             <div class="factura-title-center">
                 <h1 class="factura-title">FACTURA</h1>
-                <div class="factura-title-small">CRÉDITO FISCAL #{{ factura['id'] }}</div>
             </div>
             <div style="width: 120px;"></div>
         </div>
@@ -543,30 +549,32 @@
         <!-- Información Principal en 3 Columnas -->
         <div class="factura-info">
             <div class="info-box">
-                <h6>Información de Factura</h6>
-                <p><strong>Fecha:</strong> {{ factura['fecha_factura'] }}</p>
-                <p><strong>Cliente (ARS):</strong> {{ factura.get('nombre_ars') or factura.get('ars_nombre', 'N/A') }}</p>
-                {% if factura['ars_rnc'] %}
-                <p><strong>RNC:</strong> {{ factura['ars_rnc'] }}</p>
+                <h6 style="white-space: nowrap;">Información de Factura</h6>
+                <p><strong>Fecha:</strong> {{ fecha_factura }}</p>
+                <p><strong>Cliente:</strong> {{ ars.get('nombre') or ars.get('nombre_ars', 'N/A') }}</p>
+                {% if ars['rnc'] %}
+                <p><strong>RNC:</strong> {{ ars['rnc'] }}</p>
                 {% endif %}
             </div>
             <div class="info-box">
                 <h6>NCF</h6>
-                <p class="highlight">{{ factura['ncf_numero'] if factura['ncf_numero'] else factura['ncf'] }}</p>
-                {% if factura['ncf_tipo'] %}
-                <p><strong>Tipo:</strong> {{ factura['ncf_tipo'] }}</p>
-                {% endif %}
-                {% if factura['ncf_fecha_fin'] %}
-                <p><strong>Válido hasta:</strong> {{ factura['ncf_fecha_fin'] }}</p>
+                <p class="highlight">{{ ncf_completo }}</p>
+                <p>{{ ncf_tipo_descripcion }}</p>
+                {% if ncf['fecha_fin'] %}
+                <p><strong>Válido hasta:</strong> {{ ncf['fecha_fin'] }}</p>
                 {% endif %}
             </div>
             <div class="info-box">
-                <h6>Información del Médico</h6>
-                <p style="margin-bottom: 0.1rem;"><strong>Médico:</strong> {{ factura['medico_nombre'] }}</p>
-                <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #666;">{{ factura['medico_especialidad'] }}</p>
-                <p><strong>Cédula:</strong> {{ factura['medico_cedula'] }}</p>
-                {% if factura['medico_exequatur'] %}
-                <p><strong>Exequátur:</strong> {{ factura['medico_exequatur'] }}</p>
+                <h6>Remitente</h6>
+                {% if tipo_empresa == 'centro_salud' %}
+                    <p style="margin-bottom: 0.1rem;"><strong>{{ empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A')) }}</strong></p>
+                    {% if empresa_info.get('rnc') %}
+                    <p><strong>RNC:</strong> {{ empresa_info.get('rnc') }}</p>
+                    {% endif %}
+                {% else %}
+                    <p style="margin-bottom: 0.1rem;"><strong>Médico:</strong> {{ medico['nombre'] }}</p>
+                    <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #666;">{{ medico['especialidad'] }}</p>
+                    <p><strong>Cédula:</strong> {{ medico['cedula'] }}</p>
                 {% endif %}
             </div>
         </div>
@@ -575,17 +583,18 @@
         <table class="tabla-factura">
             <thead>
                 <tr>
-                    <th style="width: 5%;">No.</th>
-                    <th style="width: 20%;">NOMBRES PACIENTE</th>
-                    <th style="width: 12%;">NSS/CONTRATO</th>
-                    <th style="width: 10%;">FECHA</th>
-                    <th style="width: 13%;">AUTORIZACIÓN</th>
-                    <th style="width: 25%;">SERVICIO</th>
-                    <th style="width: 15%;" class="text-right">V/UNITARIO</th>
+                    <th style="width: 4%;">No.</th>
+                    <th style="width: 30%;">NOMBRES PACIENTE</th>
+                    <th style="width: 10%;">NSS/CONTRATO</th>
+                    <th style="width: 12%; white-space: nowrap;">FECHA</th>
+                    <th style="width: 12%;">AUTORIZACIÓN</th>
+                    <th style="width: 20%;">SERVICIO</th>
+                    <th style="width: 12%;" class="text-right">V/UNITARIO</th>
                 </tr>
             </thead>
             <tbody>
                 {% for paciente in pacientes %}
+                {% set monto_paciente = paciente.get('monto') or paciente.get('monto_estimado', 0) %}
                 <tr>
                     <td class="text-center">{{ loop.index }}</td>
                     <td><strong>{{ paciente['nombre_paciente'] }}</strong></td>
@@ -593,7 +602,7 @@
                     <td>{{ paciente['fecha_servicio'] }}</td>
                     <td><code style="background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px;">{{ paciente['autorizacion'] }}</code></td>
                     <td>{{ paciente['descripcion_servicio'] }}</td>
-                    <td class="text-right"><strong>{{ paciente['monto']|formato_moneda }}</strong></td>
+                    <td class="text-right"><strong>{{ monto_paciente|formato_moneda }}</strong></td>
                 </tr>
                 {% endfor %}
             </tbody>
@@ -615,17 +624,58 @@
             </div>
         </div>
 
-        <!-- Firma (solo visible en impresión) -->
-        <div class="firma-section" style="display: none;">
-            <div class="firma-linea"></div>
-            <div class="firma-nombre">{{ empresa.nombre if empresa else 'Nombre del Médico' }}</div>
-        </div>
-
         <!-- Footer -->
         <div class="footer-factura">
-            <p><strong>{{ factura['medico_nombre'] }}</strong></p>
-            <p>{{ factura['medico_especialidad'] }}{% if factura['medico_cedula'] %} | Cédula: {{ factura['medico_cedula'] }}{% endif %}{% if factura['medico_exequatur'] %} | EXEQUATUR: {{ factura['medico_exequatur'] }}{% endif %}</p>
-            <p>{{ centro_medico['nombre'] }}, {{ centro_medico['direccion'] }}</p>
+            {% if tipo_empresa == 'centro_salud' %}
+                <p><strong>{{ empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A')) }}</strong></p>
+                <div class="footer-info">
+                    {% if empresa_info.get('direccion') %}
+                    <p class="footer-info-item">{{ empresa_info.get('direccion') }}</p>
+                    {% endif %}
+                    <p>
+                        {% if empresa_info.get('rnc') %}
+                        <span class="footer-info-item">RNC: <strong>{{ empresa_info.get('rnc') }}</strong></span>
+                        {% endif %}
+                        {% if empresa_info.get('telefono') %}
+                        <span class="footer-separator">|</span>
+                        <span class="footer-info-item">Tel: {{ empresa_info.get('telefono') }}</span>
+                        {% endif %}
+                        {% if empresa_info.get('email') %}
+                        <span class="footer-separator">|</span>
+                        <span class="footer-info-item">Email: {{ empresa_info.get('email') }}</span>
+                        {% endif %}
+                    </p>
+                </div>
+            {% else %}
+                <p><strong>{{ medico['nombre'] }}</strong></p>
+                <div class="footer-info">
+                    <p>
+                        <span class="footer-info-item">{{ medico['especialidad'] }}</span>
+                        {% if medico.get('cedula') %}
+                        <span class="footer-separator">|</span>
+                        <span class="footer-info-item">Cédula: {{ medico['cedula'] }}</span>
+                        {% endif %}
+                        {% if medico.get('exequatur') %}
+                        <span class="footer-separator">|</span>
+                        <span class="footer-info-item">Exequatur: {{ medico['exequatur'] }}</span>
+                        {% endif %}
+                    </p>
+                    <p>
+                        {% if medico.get('telefono') %}
+                        <span class="footer-info-item">Tel: {{ medico['telefono'] }}</span>
+                        {% endif %}
+                        {% if medico.get('email') %}
+                        {% if medico.get('telefono') %}
+                        <span class="footer-separator">|</span>
+                        {% endif %}
+                        <span class="footer-info-item">Email: {{ medico['email'] }}</span>
+                        {% endif %}
+                    </p>
+                    {% if centro_medico.get('nombre') %}
+                    <p class="footer-info-item">{{ centro_medico['nombre'] }}{% if centro_medico.get('direccion') %}, {{ centro_medico['direccion'] }}{% endif %}</p>
+                    {% endif %}
+                </div>
+            {% endif %}
         </div>
     </div>
 

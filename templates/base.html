@@ -1099,7 +1099,7 @@
     
     <!-- Header -->
     {% if current_user.is_authenticated %}
-    <!-- Navbar para Sistema de Facturación -->
+    <!-- Navbar para ARSFLOW Gestion de Factras Medicas -->
     <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background: linear-gradient(135deg, {{ tema.gradient_start }} 0%, {{ tema.gradient_end}} 100%); padding: 0.2rem 0;">
         <div class="container-fluid px-3">
             <a class="navbar-brand d-flex align-items-center" href="{{ url_for('facturacion_menu') }}" style="font-weight: 700; font-size: 0.85rem;">
@@ -1107,7 +1107,7 @@
                 {% if empresa and empresa.empresa_nombre %}
                     {{ empresa.empresa_nombre }}
                 {% else %}
-                    Sistema de Facturación
+                    ARSFLOW Gestion de Factras Medicas
                 {% endif %}
             </a>
             

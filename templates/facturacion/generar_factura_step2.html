@@ -355,13 +355,14 @@
                 </thead>
                 <tbody id="tablaBody">
                     {% for paciente in pendientes %}
-                    <tr data-medico="{{ paciente['medico_consulta'] }}" 
-                        data-medico-nombre="{{ paciente['medico_nombre'] }}"
+                    {% set monto_paciente = paciente.get('monto') or paciente.get('monto_estimado', 0) %}
+                    <tr data-medico="{{ paciente['medico_id'] or '' }}" 
+                        data-medico-nombre="{{ paciente['medico_nombre'] or '' }}"
                         data-fecha="{{ paciente['fecha_servicio'] }}">
                         <td>
                             <input type="checkbox" class="checkbox-custom paciente-check" 
                                    value="{{ paciente['id'] }}" 
-                                   data-monto="{{ paciente['monto'] }}"
+                                   data-monto="{{ monto_paciente }}"
                                    onchange="calcularTotal()">
                         </td>
                         <td>{{ paciente['nss'] }}</td>
@@ -369,7 +370,7 @@
                         <td>{{ paciente['fecha_servicio'] }}</td>
                         <td><code style="background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px;">{{ paciente['autorizacion'] }}</code></td>
                         <td>{{ paciente['descripcion_servicio'] }}</td>
-                        <td class="text-center"><strong> {{ "{:,.2f}".format(paciente['monto']) }}</strong></td>
+                        <td class="text-center"><strong> {{ "{:,.2f}".format(monto_paciente) }}</strong></td>
                         <td><small style="color: #666;">{{ paciente['medico_nombre'] }}</small></td>
                     </tr>
                     {% else %}
@@ -398,13 +399,12 @@
         <!-- Botones -->
         <div class="row">
             <div class="col-md-6 mb-3">
-                <a href="{{ url_for('facturacion_menu') }}" class="btn w-100" 
-                   style="background: var(--primary-color) !important; color: white !important; border-radius: 15px; padding: 1rem; font-weight: 700; font-size: 1.2rem; text-decoration: none; display: block; text-align: center; border: none;">
-                    <i class="fas fa-arrow-left me-2" style="color: white !important;"></i><span style="color: white !important;">Volver al Menú</span>
+                <a href="{{ url_for('facturacion_menu') }}" class="btn btn-cancelar w-100">
+                    <i class="fas fa-arrow-left me-2"></i>Volver al Menú
                 </a>
             </div>
             <div class="col-md-6 mb-3">
-                <button type="submit" class="btn btn-generar-final w-100" id="btnGenerar" disabled>
+                <button type="submit" class="btn btn-cancelar w-100" id="btnGenerar" disabled>
                     <i class="fas fa-eye me-2"></i>Ver Factura
                 </button>
             </div>

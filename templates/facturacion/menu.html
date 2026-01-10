@@ -1,6 +1,6 @@
 ﻿{% extends "base.html" %}
 
-{% block title %}Sistema de Facturación Médica{% endblock %}
+{% block title %}ARSFLOW Gestion de Factras Medicas{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
@@ -76,6 +76,13 @@
         margin: 1.5rem 0 1rem 0;
         text-align: center;
         font-size: 1.3rem;
+        border-bottom: none !important;
+        padding-bottom: 0 !important;
+    }
+    
+    .section-title::after {
+        display: none !important;
+        content: none !important;
     }
     
     @keyframes smoothSlideUp {
@@ -134,7 +141,7 @@
         <div class="text-center">
             <h1 style="color: {{ tema.primary }}; font-weight: 800;">
                 <i class="fas fa-file-invoice-dollar me-2" style="font-size: 1.2rem;"></i>
-                Sistema de Facturación
+                ARSFLOW Gestion de Factras Medicas
             </h1>
         </div>
     </div>

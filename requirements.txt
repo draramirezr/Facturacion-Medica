@@ -10,3 +10,4 @@ Flask-Compress==1.14
 markupsafe==2.1.3
 
 
+

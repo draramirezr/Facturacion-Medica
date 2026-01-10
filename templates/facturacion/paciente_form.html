@@ -37,9 +37,9 @@
     }
     
     .btn-guardar {
-        background: white;
-        border: 2px solid var(--primary-color);
-        color: var(--primary-color);
+        background: var(--primary-color) !important;
+        border: none;
+        color: white !important;
         padding: 0.8rem 2rem;
         border-radius: 15px;
         font-weight: 600;
@@ -47,25 +47,29 @@
     }
     
     .btn-guardar:hover {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-        color: white;
+        background: var(--primary-dark) !important;
+        color: white !important;
         transform: translateY(-2px);
         box-shadow: 0 6px 20px {{ tema.primary }}50;
     }
     
     .btn-cancelar {
-        background: white;
-        border: 2px solid var(--text-muted);
-        color: var(--text-muted);
+        background: var(--primary-color) !important;
+        border: none;
+        color: white !important;
         padding: 0.8rem 2rem;
         border-radius: 15px;
         font-weight: 600;
         transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
     }
     
     .btn-cancelar:hover {
-        background: var(--text-muted);
-        color: white;
+        background: var(--primary-dark) !important;
+        color: white !important;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px {{ tema.primary }}50;
     }
     
     .required-asterisk {
@@ -199,29 +203,6 @@
                     </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="tipo_afiliacion" class="form-label">
-                            <i class="fas fa-user-tag me-2 text-primary"></i>Tipo de Afiliación
-                        </label>
-                        <select class="form-control" id="tipo_afiliacion" name="tipo_afiliacion">
-                            <option value="">Seleccione...</option>
-                            <option value="Titular" {% if paciente['tipo_afiliacion'] == 'Titular' %}selected{% endif %}>Titular</option>
-                            <option value="Dependiente" {% if paciente['tipo_afiliacion'] == 'Dependiente' %}selected{% endif %}>Dependiente</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="mb-3">
-                    <label for="direccion" class="form-label">
-                        <i class="fas fa-map-marker-alt me-2 text-primary"></i>Dirección
-                    </label>
-                    <textarea class="form-control" 
-                              id="direccion" 
-                              name="direccion" 
-                              rows="3" 
-                              placeholder="Dirección completa del paciente">{{ paciente['direccion'] or '' }}</textarea>
-                </div>
 
                 <div class="d-flex justify-content-between gap-3 mt-4">
                     <a href="{{ url_for('facturacion_pacientes') }}" class="btn btn-cancelar">
@@ -236,4 +217,6 @@
     </div>
 </div>
 {% endblock %}
+
+
 

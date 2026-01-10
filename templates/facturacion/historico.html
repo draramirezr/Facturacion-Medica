@@ -85,63 +85,60 @@
         background-color: {{ tema.primary }}08;
     }
     
-    .btn-ver-factura {
-        background: white;
-        border: 2px solid var(--primary-color);
-        color: var(--primary-color);
-        padding: 0.5rem 1.2rem;
-        border-radius: 10px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 0.9rem;
-    }
-    
-    .btn-ver-factura:hover {
-        background: {{ tema.primary_dark }};
-        color: white;
-        transform: scale(1.05);
-    }
-    
+    /* Botones de acciones - Sobrescribir estilos globales */
+    .btn-ver-factura,
     .btn-editar-factura {
-        background: var(--gradient-primary);
-        border: none;
-        color: white;
-        padding: 0.5rem 1.2rem;
-        border-radius: 10px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-        font-size: 0.9rem;
-        margin: 0.2rem;
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
+        border: none !important;
+        color: #FFFFFF !important;
+        padding: 0.4rem 0.8rem !important;
+        border-radius: 8px !important;
+        font-weight: 600 !important;
+        transition: all 0.3s ease !important;
+        text-decoration: none !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 0.25rem !important;
+        font-size: 0.85rem !important;
+        min-width: auto !important;
+        min-height: auto !important;
+        width: auto !important;
+        height: auto !important;
+        line-height: 1.2 !important;
+        letter-spacing: normal !important;
+        box-sizing: border-box !important;
+        white-space: nowrap !important;
     }
     
-    .btn-editar-factura i {
-        color: white !important;
-    }
-    
+    .btn-ver-factura:hover,
     .btn-editar-factura:hover {
-        background: linear-gradient(135deg, {{ tema.primary_dark }} 0%, {{ tema.primary }} 100%);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px {{ tema.primary }}60;
+        background: linear-gradient(135deg, {{ tema.primary_dark }} 0%, {{ tema.primary }} 100%) !important;
+        color: #FFFFFF !important;
+        transform: translateY(-1px) !important;
+        box-shadow: 0 4px 12px {{ tema.primary }}60 !important;
+    }
+    
+    .btn-ver-factura i,
+    .btn-editar-factura i {
+        color: #FFFFFF !important;
+        margin-right: 0.3rem !important;
+        font-size: 0.85rem !important;
     }
     
     .btn-editar-factura:hover i {
-        color: white !important;
+        color: #FFFFFF !important;
     }
     
     .btn-editar-factura.disabled {
-        background: #cccccc;
-        cursor: not-allowed;
-        opacity: 0.6;
-        pointer-events: none;
+        background: #cccccc !important;
+        cursor: not-allowed !important;
+        opacity: 0.6 !important;
+        pointer-events: none !important;
     }
     
     .btn-editar-factura.disabled i {
-        color: white !important;
+        color: #FFFFFF !important;
     }
     
     .badge-ncf {
@@ -303,22 +300,26 @@
                     <td><small>{{ factura['medico_nombre'] }}</small></td>
                     <td class="text-center"><strong style="color: {{ tema.primary_dark }};"> {{ factura['total']|formato_moneda }}</strong></td>
                     <td class="text-center">
-                        <!-- Botón Ver Factura -->
-                        <a href="{{ url_for('facturacion_ver_factura', factura_id=factura['id']) }}" 
-                           class="btn-ver-factura"
-                           title="Ver factura">
-                            <i class="fas fa-eye"></i>
-                        </a>
-                        
-                        <!-- Botón Editar (solo si tiene menos de 30 días) -->
-                        <!-- La validación de fecha se hace en JavaScript al final del archivo -->
-                        <a href="{{ url_for('facturacion_editar_factura', factura_id=factura['id']) }}" 
-                           class="btn-editar-factura"
-                           id="btnEditar{{ factura['id'] }}"
-                           data-fecha="{{ factura['fecha_factura'] }}"
-                           title="Editar factura">
-                            <i class="fas fa-edit"></i>
-                        </a>
+                        <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
+                            <!-- Botón Ver Factura -->
+                            <a href="{{ url_for('facturacion_ver_factura', factura_id=factura['id']) }}" 
+                               class="btn-ver-factura"
+                               title="Ver factura">
+                                <i class="fas fa-eye me-2"></i>
+                                Ver
+                            </a>
+                            
+                            <!-- Botón Editar (solo si tiene menos de 30 días) -->
+                            <!-- La validación de fecha se hace en JavaScript al final del archivo -->
+                            <a href="{{ url_for('facturacion_editar_factura', factura_id=factura['id']) }}" 
+                               class="btn-editar-factura"
+                               id="btnEditar{{ factura['id'] }}"
+                               data-fecha="{{ factura['fecha_factura'] }}"
+                               title="Editar factura">
+                                <i class="fas fa-edit me-2"></i>
+                                Editar
+                            </a>
+                        </div>
                     </td>
                 </tr>
                 {% else %}

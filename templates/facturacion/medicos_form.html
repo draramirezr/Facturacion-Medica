@@ -145,6 +145,23 @@
                 </div>
 
                 <div class="mb-4">
+                    <label for="telefono" class="form-label">
+                        <i class="fas fa-phone me-2 text-primary"></i>Teléfono <span id="telefono-required" style="display: none; color: red;">*</span>
+                    </label>
+                    <input type="tel" 
+                           class="form-control" 
+                           id="telefono" 
+                           name="telefono" 
+                           value="{{ medico['telefono'] if medico and medico['telefono'] else '' }}" 
+                           placeholder="Ej: 809-555-1234"
+                           maxlength="20">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        <span id="telefono-help">Opcional</span>
+                    </small>
+                </div>
+
+                <div class="mb-4">
                     <label for="email" class="form-label">
                         <i class="fas fa-envelope me-2 text-primary"></i>Correo Electrónico
                     </label>
@@ -175,7 +192,7 @@
                         </label>
                         <small class="d-block text-muted mt-2" style="margin-left: 30px;">
                             <i class="fas fa-info-circle me-1"></i>
-                            Este médico podrá generar facturas en el sistema
+                            Este médico podrá generar facturas en el sistema. <strong>Si está habilitado, el teléfono es obligatorio.</strong>
                         </small>
                     </div>
                 </div>
@@ -212,5 +229,44 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const facturaCheckbox = document.getElementById('factura');
+    const telefonoInput = document.getElementById('telefono');
+    const telefonoRequired = document.getElementById('telefono-required');
+    const telefonoHelp = document.getElementById('telefono-help');
+    
+    function toggleTelefonoRequired() {
+        if (facturaCheckbox.checked) {
+            telefonoInput.required = true;
+            telefonoRequired.style.display = 'inline';
+            telefonoHelp.textContent = 'Obligatorio cuando el médico está habilitado para facturar';
+            telefonoHelp.style.color = '#dc3545';
+        } else {
+            telefonoInput.required = false;
+            telefonoRequired.style.display = 'none';
+            telefonoHelp.textContent = 'Opcional';
+            telefonoHelp.style.color = '';
+        }
+    }
+    
+    // Aplicar al cargar la página
+    toggleTelefonoRequired();
+    
+    // Aplicar cuando cambia el checkbox
+    facturaCheckbox.addEventListener('change', toggleTelefonoRequired);
+    
+    // Validar antes de enviar
+    document.querySelector('form').addEventListener('submit', function(e) {
+        if (facturaCheckbox.checked && !telefonoInput.value.trim()) {
+            e.preventDefault();
+            alert('El teléfono es obligatorio cuando el médico está habilitado para facturar.');
+            telefonoInput.focus();
+            return false;
+        }
+    });
+});
+</script>
 {% endblock %}
 

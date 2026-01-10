@@ -128,7 +128,7 @@
                             {% endif %}
                         </td>
                         <td class="text-center">
-                            <a href="#" class="btn btn-sm btn-outline-primary" title="Ver detalles">
+                            <a href="{{ url_for('facturacion_reclamacion_detalle', reclamacion_id=reclamacion['id']) }}" class="btn btn-sm btn-outline-primary" title="Ver detalles">
                                 <i class="fas fa-eye"></i>
                             </a>
                         </td>
@@ -148,4 +148,6 @@
     </div>
 </div>
 {% endblock %}
+
+
 

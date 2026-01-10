@@ -208,7 +208,7 @@
                                class="form-control" 
                                id="monto" 
                                name="monto" 
-                               value="{{ paciente['monto'] }}"
+                               value="{{ paciente.get('monto') or paciente.get('monto_estimado', '') }}"
                                step="0.01"
                                min="0"
                                required>

@@ -59,4 +59,7 @@ Thumbs.db
 *.bak
 *.cache
 
+# Local dumps / downloads
+__remote_master/
+
 

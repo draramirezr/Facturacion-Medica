@@ -48,6 +48,18 @@
         box-shadow: 0 0 0 0.2rem rgba(6, 182, 212, 0.25);
     }
     
+    .form-control-sm {
+        color: #333 !important;
+    }
+    
+    .form-control-sm::placeholder {
+        color: #999 !important;
+    }
+    
+    input[data-campo="autorizacion"] {
+        color: #333 !important;
+    }
+    
     .tabla-lineas {
         background: white;
         border-radius: 15px;
@@ -133,10 +145,17 @@
         background: white;
         border: 2px solid #ACACAD;
         color: #ACACAD;
-        border-radius: 5px;
-        padding: 0.3rem 0.6rem;
-        font-size: 0.75rem;
+        border-radius: 4px;
+        padding: 0;
+        font-size: 0.65rem;
+        min-width: 32px;
+        width: 32px;
+        height: 32px;
         transition: all 0.3s ease;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .btn-eliminar-linea:hover {
@@ -148,10 +167,17 @@
         background: white;
         border: 2px solid var(--primary-color);
         color: var(--primary-color);
-        border-radius: 5px;
-        padding: 0.3rem 0.6rem;
-        font-size: 0.75rem;
+        border-radius: 4px;
+        padding: 0;
+        font-size: 0.65rem;
+        min-width: 32px;
+        width: 32px;
+        height: 32px;
         transition: all 0.3s ease;
+        line-height: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .btn-agregar-linea-mini:hover {
@@ -166,18 +192,19 @@
     }
     
     .btn-guardar-factura {
-        background: white;
-        border: 2px solid var(--primary-color);
-        color: var(--primary-color);
+        background: var(--primary-color) !important;
+        color: white !important;
+        border: none;
         padding: 0.8rem 2rem;
         border-radius: 15px;
         font-weight: 600;
         transition: all 0.3s ease;
+        text-decoration: none;
     }
     
     .btn-guardar-factura:hover {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-        color: white;
+        background: var(--primary-color-dark) !important;
+        color: white !important;
         transform: translateY(-2px);
         box-shadow: 0 6px 20px rgba(6, 182, 212, 0.3);
     }
@@ -327,7 +354,7 @@
             <!-- Carga Masiva desde Excel -->
             <div class="alert" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(240, 253, 250, 0.5) 100%); border-left: 4px solid {{ tema.primary }}; border-radius: 10px; margin-top: 1.5rem;">
                 <h6 style="color: var(--primary-color); font-weight: 700; margin-bottom: 1rem;">
-                    <i class="fas fa-file-excel me-2"></i>Carga Masiva desde Excel
+                    <i class="fas fa-file-excel me-2"></i>Carga Masiva de Pacientes desde Excel
                 </h6>
                 <div class="row">
                     <div class="col-md-6 mb-2">
@@ -349,13 +376,6 @@
             </div>
         </div>
 
-        <!-- Botón para agregar línea manual -->
-        <div class="text-center my-3">
-            <button type="button" class="btn btn-agregar-linea" onclick="agregarLinea()">
-                <i class="fas fa-plus-circle me-2"></i>Agregar Paciente Manualmente
-            </button>
-        </div>
-
         <!-- Tabla de Pacientes -->
         <div class="form-container">
             <h4 style="color: var(--primary-color); margin-bottom: 1rem;">
@@ -367,14 +387,14 @@
                     <table class="table mb-0">
                         <thead>
                             <tr>
-                                <th style="width: 5%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">No</th>
+                                <th style="width: 4%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">No</th>
                                 <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">NSS</th>
-                                <th style="width: 15%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Nombre</th>
-                                <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Fecha de Consulta</th>
+                                <th style="width: 22%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Nombre</th>
+                                <th style="width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Fecha de Consulta</th>
                                 <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Autorización</th>
                                 <th style="width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Servicio</th>
                                 <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Monto</th>
-                                <th style="width: 5%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Acciones</th>
+                                <th style="width: 6%; min-width: 80px; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tbody-lineas">
@@ -415,8 +435,8 @@
             <a href="{{ url_for('facturacion_menu') }}" class="btn" style="background: var(--primary-color) !important; color: white !important; border-radius: 15px; padding: 0.8rem 2rem; text-decoration: none;">
                 <i class="fas fa-times me-2" style="color: white !important;"></i>Cancelar
             </a>
-            <button type="submit" class="btn btn-guardar-factura">
-                <i class="fas fa-clock me-2"></i>Agregar como Pendientes
+            <button type="submit" class="btn btn-guardar-factura" style="background: var(--primary-color) !important; color: white !important; border-radius: 15px; padding: 0.8rem 2rem; text-decoration: none; border: none;">
+                <i class="fas fa-clock me-2" style="color: white !important;"></i>Agregar como Pendientes
             </button>
         </div>
     </form>
@@ -516,7 +536,7 @@ function agregarLinea() {
                    placeholder="AUTORIZACIÓN" 
                    maxlength="50"
                    onblur="validarAutorizacionUnica(this)"
-                   style="text-transform: uppercase;">
+                   style="text-transform: uppercase; color: #333;">
             <small class="error-autorizacion" style="display: none; color: #dc3545; font-size: 0.75rem; margin-top: 0.25rem;"></small>
         </td>
         <td>
@@ -537,13 +557,13 @@ function agregarLinea() {
                    step="0.01" 
                    onchange="calcularTotal()">
         </td>
-        <td class="text-center">
-            <div class="d-flex justify-content-center gap-2">
-                <button type="button" class="btn btn-agregar-linea-mini" onclick="agregarLinea()" title="Agregar línea nueva (Ctrl+Enter)">
-                    <i class="fas fa-plus"></i>
+        <td class="text-center" style="width: 6%; min-width: 60px;">
+            <div class="d-flex flex-column justify-content-center align-items-center gap-1" style="flex-wrap: nowrap;">
+                <button type="button" class="btn btn-agregar-linea-mini" onclick="agregarLinea()" title="Agregar línea nueva (Ctrl+Enter)" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-pencil-alt" style="font-size: 0.7rem;"></i>
                 </button>
-                <button type="button" class="btn btn-eliminar-linea" onclick="eliminarLinea(${numeroLinea})" title="Eliminar línea">
-                    <i class="fas fa-trash"></i>
+                <button type="button" class="btn btn-eliminar-linea" onclick="eliminarLinea(${numeroLinea})" title="Eliminar línea" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                    <i class="fas fa-trash" style="font-size: 0.7rem;"></i>
                 </button>
             </div>
         </td>
@@ -736,6 +756,59 @@ async function procesarExcel(input) {
             body: formData
         });
         
+        // Verificar que la respuesta sea JSON
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            // Si no es JSON, probablemente es HTML (error 404, 500, etc.)
+            const text = await response.text();
+            document.getElementById('loading-excel').remove();
+            
+            let errorHTML = `
+                <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                            background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); 
+                            z-index: 9999; max-width: 700px; max-height: 85vh; overflow-y: auto;">
+                    <div style="text-align: center; margin-bottom: 1.5rem;">
+                        <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
+                                    width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1rem; 
+                                    display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-times-circle" style="font-size: 3rem; color: white;"></i>
+                        </div>
+                        <h4 style="color: #dc3545; font-weight: 800; margin-bottom: 0.5rem;">
+                            ❌ Error al Procesar el Archivo
+                        </h4>
+                        <p style="color: #666; font-size: 1rem;">
+                            El servidor respondió con un error. Por favor, intente nuevamente.
+                        </p>
+                        <p style="color: #999; font-size: 0.85rem; margin-top: 0.5rem;">
+                            Código de error: ${response.status}
+                        </p>
+                    </div>
+                    <button onclick="cerrarModalError()" 
+                            style="background: var(--gradient-primary); 
+                                   color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; 
+                                   font-weight: 600; cursor: pointer; width: 100%;">
+                        <i class="fas fa-check me-2"></i>Cerrar
+                    </button>
+                </div>
+                <div onclick="cerrarModalError()" 
+                     style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                            background: rgba(0,0,0,0.7); z-index: 9998;"></div>
+            `;
+            
+            const errorDiv = document.createElement('div');
+            errorDiv.id = 'modal-error-excel';
+            errorDiv.innerHTML = errorHTML;
+            document.body.appendChild(errorDiv);
+            
+            window.cerrarModalError = function() {
+                const modal = document.getElementById('modal-error-excel');
+                if (modal) modal.remove();
+            };
+            
+            input.value = '';
+            return;
+        }
+        
         const data = await response.json();
         
         // Si hay errores, NO cargar nada y mostrar modal de error
@@ -839,10 +912,10 @@ async function procesarExcel(input) {
                            class="form-control form-control-sm" 
                            data-campo="autorizacion" 
                            placeholder="AUTORIZACIÓN" 
-                           value="${paciente.autorizacion}"
+                           value="${paciente.autorizacion || ''}"
                            maxlength="50"
                            onblur="validarAutorizacionUnica(this)"
-                           style="text-transform: uppercase;">
+                           style="text-transform: uppercase; color: #333;">
                     <small class="error-autorizacion" style="display: none; color: #dc3545; font-size: 0.75rem; margin-top: 0.25rem;"></small>
                 </td>
                 <td>
@@ -864,13 +937,13 @@ async function procesarExcel(input) {
                            step="0.01" 
                            onchange="calcularTotal()">
                 </td>
-                <td class="text-center">
-                    <div class="d-flex justify-content-center gap-2">
-                        <button type="button" class="btn btn-agregar-linea-mini" onclick="agregarLinea()" title="Agregar línea nueva (Ctrl+Enter)">
-                            <i class="fas fa-plus"></i>
+                <td class="text-center" style="width: 6%; min-width: 60px;">
+                    <div class="d-flex flex-column justify-content-center align-items-center gap-1" style="flex-wrap: nowrap;">
+                        <button type="button" class="btn btn-agregar-linea-mini" onclick="agregarLinea()" title="Agregar línea nueva (Ctrl+Enter)" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-pencil-alt" style="font-size: 0.7rem;"></i>
                         </button>
-                        <button type="button" class="btn btn-eliminar-linea" onclick="eliminarLinea(${numeroLinea})" title="Eliminar línea">
-                            <i class="fas fa-trash"></i>
+                        <button type="button" class="btn btn-eliminar-linea" onclick="eliminarLinea(${numeroLinea})" title="Eliminar línea" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
+                            <i class="fas fa-trash" style="font-size: 0.7rem;"></i>
                         </button>
                     </div>
                 </td>
@@ -937,8 +1010,54 @@ async function procesarExcel(input) {
         
     } catch (error) {
         console.error('Error al procesar Excel:', error);
-        alert('❌ Error al procesar el archivo Excel: ' + error.message);
-        document.getElementById('loading-excel').remove();
+        
+        // Remover loading si existe
+        const loading = document.getElementById('loading-excel');
+        if (loading) loading.remove();
+        
+        // Mostrar modal de error
+        let errorHTML = `
+            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                        background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); 
+                        z-index: 9999; max-width: 600px;">
+                <div style="text-align: center; margin-bottom: 1.5rem;">
+                    <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
+                                width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1rem; 
+                                display: flex; align-items: center; justify-content: center;">
+                        <i class="fas fa-times-circle" style="font-size: 3rem; color: white;"></i>
+                    </div>
+                    <h4 style="color: #dc3545; font-weight: 800; margin-bottom: 0.5rem;">
+                        ❌ Error al Procesar el Archivo
+                    </h4>
+                    <p style="color: #666; font-size: 1rem; margin-bottom: 0.5rem;">
+                        ${error.message || 'Error desconocido al procesar el archivo Excel'}
+                    </p>
+                    <p style="color: #999; font-size: 0.85rem;">
+                        Por favor, verifique que el archivo sea válido e intente nuevamente.
+                    </p>
+                </div>
+                <button onclick="cerrarModalError()" 
+                        style="background: var(--gradient-primary); 
+                               color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; 
+                               font-weight: 600; cursor: pointer; width: 100%;">
+                    <i class="fas fa-check me-2"></i>Cerrar
+                </button>
+            </div>
+            <div onclick="cerrarModalError()" 
+                 style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                        background: rgba(0,0,0,0.7); z-index: 9998;"></div>
+        `;
+        
+        const errorDiv = document.createElement('div');
+        errorDiv.id = 'modal-error-excel';
+        errorDiv.innerHTML = errorHTML;
+        document.body.appendChild(errorDiv);
+        
+        window.cerrarModalError = function() {
+            const modal = document.getElementById('modal-error-excel');
+            if (modal) modal.remove();
+        };
+        
         input.value = '';
     }
 }
@@ -1052,15 +1171,6 @@ document.addEventListener('keydown', function(e) {
         if (e.ctrlKey || e.metaKey) {
             e.preventDefault();
             agregarLinea();
-            
-            // Mostrar feedback visual
-            const btnAgregar = document.querySelector('.btn-agregar-linea');
-            if (btnAgregar) {
-                btnAgregar.style.transform = 'scale(0.95)';
-                setTimeout(() => {
-                    btnAgregar.style.transform = '';
-                }, 150);
-            }
             return false;
         }
     }
