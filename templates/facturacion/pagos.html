@@ -70,6 +70,43 @@
         </div>
     </div>
 
+    <!-- Filtros -->
+    <div class="card mb-3 shadow-sm border-0">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label mb-1">ARS</label>
+                    <select name="ars_id" class="form-select">
+                        <option value="">Todas</option>
+                        {% for ars in ars_list %}
+                        <option value="{{ ars.id }}" {% if ars_id and ars_id|int == ars.id %}selected{% endif %}>
+                            {{ ars.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">NCF</label>
+                    <input type="text" name="ncf" value="{{ ncf or '' }}" class="form-control" placeholder="NCF">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Fecha desde</label>
+                    <input type="date" name="fecha_desde" value="{{ fecha_desde or '' }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Fecha hasta</label>
+                    <input type="date" name="fecha_hasta" value="{{ fecha_hasta or '' }}" class="form-control">
+                </div>
+                <div class="col-12 d-flex gap-2 mt-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Filtrar
+                    </button>
+                    <a href="{{ url_for('facturacion_pagos') }}" class="btn btn-outline-secondary">Limpiar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Tabla -->
     <div class="table-facturacion">
         {% if pagos_list %}

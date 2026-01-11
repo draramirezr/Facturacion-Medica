@@ -93,25 +93,62 @@
         </div>
 
         <div class="form-card">
+            <form method="GET" class="mb-3 d-flex gap-2 flex-wrap">
+                <div style="min-width: 220px;">
+                    <label class="form-label mb-1"><i class="fas fa-hospital text-primary me-1"></i>ARS (obligatorio)</label>
+                    <select name="ars_id" class="form-select" onchange="this.form.submit()" required>
+                        <option value="">Seleccione ARS...</option>
+                        {% for ars in ars_list %}
+                        <option value="{{ ars.id }}" {% if ars_id and ars_id|int == ars.id %}selected{% endif %}>{{ ars.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="min-width: 180px;">
+                    <label class="form-label mb-1">NCF</label>
+                    <input type="text" name="ncf" value="{{ ncf or '' }}" class="form-control" placeholder="NCF">
+                </div>
+                <div class="d-flex align-items-end">
+                    <button type="submit" class="btn btn-guardar" style="min-width: 140px;">
+                        <i class="fas fa-search me-2"></i>Filtrar
+                    </button>
+                </div>
+            </form>
+
             <form method="POST" id="reclamacionForm">
                 <div class="mb-4">
                     <label for="factura_id" class="form-label">
                         <i class="fas fa-file-invoice me-2 text-primary"></i>Factura <span class="required-asterisk">*</span>
                     </label>
-                    <select class="form-select" id="factura_id" name="factura_id" required onchange="cargarDatosFactura()">
+                    <select class="form-select" id="factura_id" name="factura_id" required onchange="cargarDatosFactura()" {% if not ars_id %}disabled{% endif %}>
                         <option value="">Seleccione una factura...</option>
                         {% for factura in facturas_list %}
                         <option value="{{ factura['id'] }}" 
                                 data-total="{{ factura['total'] }}"
+                                data-balance="{{ factura['balance_pendiente'] }}"
+                                data-reclamaciones="{{ factura['reclamaciones_count'] or 0 }}"
+                                data-ultima-id="{{ factura['ultima_reclamacion_id'] or '' }}"
+                                data-ultima-monto="{{ factura['ultima_reclamacion_monto'] or 0 }}"
+                                data-ultima-fecha="{{ factura['ultima_reclamacion_fecha'] or '' }}"
+                                data-ultima-url="{{ url_for('facturacion_reclamacion_detalle', reclamacion_id=factura['ultima_reclamacion_id']) if factura['ultima_reclamacion_id'] else '' }}"
                                 data-paciente="{{ factura['nombre_paciente'] }}"
                                 data-ars="{{ factura['nombre_ars'] or 'Sin ARS' }}"
                                 data-numero="{{ factura['numero_factura'] }}">
-                            {{ factura['numero_factura'] }} - {{ factura['nombre_paciente'] }} ({{ factura['nombre_ars'] or 'Sin ARS' }}) - ${{ "{:,.2f}".format(factura['total']) }}
+                            {{ factura['numero_factura'] }} - {{ factura['nombre_paciente'] }} ({{ factura['nombre_ars'] or 'Sin ARS' }}) - Balance: ${{ "{:,.2f}".format(factura['balance_pendiente'] or 0) }}
                         </option>
                         {% endfor %}
                     </select>
                     <div id="factura-info" class="factura-info" style="display: none;">
-                        <strong>Total de la factura:</strong> <span id="factura-total">$0.00</span>
+                        <div class="d-flex flex-column">
+                            <strong>Total de la factura:</strong> <span id="factura-total">$0.00</span>
+                            <strong>Balance pendiente:</strong> <span id="factura-balance">$0.00</span>
+                        </div>
+                        <div id="factura-reclamacion-alert" class="mt-2" style="display: none;">
+                            <div class="alert alert-warning mb-0" style="padding: 0.6rem 0.75rem;">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Esta factura ya tiene reclamaciones. Última: <span id="ultima-reclamacion-info"></span>
+                                <a id="link-ultima-reclamacion" href="#" class="ms-2">Ver</a>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -173,16 +210,36 @@ function cargarDatosFactura() {
     const option = select.options[select.selectedIndex];
     const infoDiv = document.getElementById('factura-info');
     const totalSpan = document.getElementById('factura-total');
+    const balanceSpan = document.getElementById('factura-balance');
+    const reclamacionAlert = document.getElementById('factura-reclamacion-alert');
+    const ultimaInfo = document.getElementById('ultima-reclamacion-info');
+    const linkUltima = document.getElementById('link-ultima-reclamacion');
     
     if (select.value) {
         const total = parseFloat(option.getAttribute('data-total'));
+        const balance = parseFloat(option.getAttribute('data-balance'));
+        const reclCount = parseInt(option.getAttribute('data-reclamaciones') || '0');
+        const ultimaId = option.getAttribute('data-ultima-id');
+        const ultimaMonto = parseFloat(option.getAttribute('data-ultima-monto') || '0');
+        const ultimaFecha = option.getAttribute('data-ultima-fecha') || '';
+        const ultimaUrl = option.getAttribute('data-ultima-url') || '';
         totalSpan.textContent = '$' + total.toLocaleString('es-DO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        balanceSpan.textContent = '$' + balance.toLocaleString('es-DO', {minimumFractionDigits: 2, maximumFractionDigits: 2});
         infoDiv.style.display = 'block';
         
-        // Establecer el monto máximo como sugerencia
-        document.getElementById('monto_reclamado').max = total;
+        // Establecer el monto máximo como sugerencia (balance pendiente)
+        document.getElementById('monto_reclamado').max = balance;
+        
+        if (reclCount > 0 && ultimaId && ultimaUrl) {
+            ultimaInfo.textContent = `#${ultimaId} por $${ultimaMonto.toLocaleString('es-DO', {minimumFractionDigits: 2, maximumFractionDigits: 2})} en ${ultimaFecha || 'fecha no disponible'}`;
+            linkUltima.href = ultimaUrl;
+            reclamacionAlert.style.display = 'block';
+        } else {
+            reclamacionAlert.style.display = 'none';
+        }
     } else {
         infoDiv.style.display = 'none';
+        reclamacionAlert.style.display = 'none';
     }
 }
 
@@ -193,6 +250,11 @@ document.addEventListener('DOMContentLoaded', function() {
         const today = new Date().toISOString().split('T')[0];
         fechaInput.value = today;
     }
+    // Deshabilitar select de factura si no hay ARS seleccionada (refuerzo)
+    const facturaSelect = document.getElementById('factura_id');
+    {% if not ars_id %}
+    facturaSelect.disabled = true;
+    {% endif %}
 });
 </script>
 {% endblock %}

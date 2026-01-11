@@ -141,7 +141,7 @@
                     </div>
                 </div>
 
-                <div class="row mb-4">
+                <div class="row mb-3">
                     <div class="col-md-6 mb-3">
                         <label for="referencia" class="form-label">
                             <i class="fas fa-hashtag me-2 text-primary"></i>Referencia
@@ -153,22 +153,36 @@
                                placeholder="Número de referencia, cheque, etc."
                                maxlength="100">
                     </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label">
+                            <i class="fas fa-money-bill-wave me-2 text-primary"></i>Monto del Pago <span class="required-asterisk">*</span>
+                        </label>
+                        <input type="number" class="form-control" id="monto_pago" name="monto_pago" step="0.01" min="0.01" value="0.00" required>
+                    </div>
                 </div>
 
                 <div class="mb-4">
+                    {% if ars_pago %}
+                    <div class="alert alert-info py-2 px-3">
+                        <i class="fas fa-hospital me-2"></i>ARS del pago: <strong>{{ ars_pago }}</strong>
+                    </div>
+                    {% endif %}
                     <label class="form-label">
                         <i class="fas fa-file-invoice me-2 text-primary"></i>Facturas a Pagar <span class="required-asterisk">*</span>
                     </label>
                     <div id="facturas-container">
                         {% for factura in facturas_list %}
                         {% set monto_disponible = factura['total'] - factura['monto_pagado'] %}
+                        {% set es_objetivo = factura_id_param and factura_id_param|int == factura['id'] %}
+                        {% set monto_reclamo = factura.get('ultima_reclamacion_monto') or factura.get('monto_reclamado_procesado') or factura.get('monto_reclamado') or 0 %}
                         <div class="factura-item">
                             <div class="form-check mb-2">
                                 <input class="form-check-input factura-checkbox" 
                                        type="checkbox" 
                                        id="factura_{{ factura['id'] }}" 
                                        value="{{ factura['id'] }}"
-                                       onchange="toggleFactura({{ factura['id'] }})">
+                                       onchange="toggleFactura({{ factura['id'] }})"
+                                       {% if es_objetivo %}checked{% endif %}>
                                 <label class="form-check-label" for="factura_{{ factura['id'] }}" style="font-weight: 600;">
                                     <strong>{{ factura['numero_factura'] }}</strong> - {{ factura['nombre_paciente'] }} 
                                     ({{ factura['nombre_ars'] or 'Sin ARS' }})
@@ -180,6 +194,9 @@
                                         Total: ${{ "{:,.2f}".format(factura['total']) }} | 
                                         Pagado: ${{ "{:,.2f}".format(factura['monto_pagado']) }} | 
                                         Disponible: <strong>${{ "{:,.2f}".format(monto_disponible) }}</strong>
+                                        {% if factura.get('monto_reclamado') %}
+                                        | Reclamado: ${{ "{:,.2f}".format(factura['monto_reclamado']) }}
+                                        {% endif %}
                                     </small>
                                 </div>
                                 <div class="col-md-6">
@@ -188,16 +205,28 @@
                                            id="monto_{{ factura['id'] }}" 
                                            name="montos[]"
                                            data-factura-id="{{ factura['id'] }}"
-                                           data-max="{{ monto_disponible }}"
+                                            data-max="{{ es_objetivo and monto_reclamo and (monto_reclamo if monto_reclamo < monto_disponible else monto_disponible) or monto_disponible }}"
                                            step="0.01"
                                            min="0.01"
-                                           max="{{ monto_disponible }}"
+                                            max="{{ es_objetivo and monto_reclamo and (monto_reclamo if monto_reclamo < monto_disponible else monto_disponible) or monto_disponible }}"
                                            placeholder="0.00"
-                                           disabled
-                                           onchange="calcularTotal()">
-                                    <input type="hidden" name="facturas_ids[]" id="factura_id_{{ factura['id'] }}" value="">
+                                           {% if not es_objetivo %}disabled{% endif %}
+                                           onchange="calcularTotal()"
+                                            value="{% if es_objetivo %}{{ '%.2f'|format(monto_reclamo if monto_reclamo and monto_reclamo < monto_disponible else monto_disponible) }}{% endif %}">
+                                    <input type="hidden" name="facturas_ids[]" id="factura_id_{{ factura['id'] }}" value="{% if es_objetivo %}{{ factura['id'] }}{% endif %}">
                                 </div>
                             </div>
+                            {% if factura.get('reclamaciones_count') %}
+                            <div class="mt-2">
+                                <small>
+                                    <i class="fas fa-exclamation-circle text-warning me-1"></i>
+                                    {{ factura['reclamaciones_count'] }} reclamación(es)
+                                    {% if factura.get('ultima_reclamacion_id') %}
+                                        - <a href="{{ url_for('facturacion_reclamacion_detalle', reclamacion_id=factura['ultima_reclamacion_id']) }}" target="_blank">Ver última</a>
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endif %}
                         </div>
                         {% endfor %}
                     </div>
@@ -309,9 +338,34 @@ document.addEventListener('DOMContentLoaded', function() {
             return false;
         }
     });
+
+    // Recalcular total al cargar (útil si llegó con factura preseleccionada)
+    calcularTotal();
 });
+
+function calcularTotal() {
+    let total = 0;
+    document.querySelectorAll('.factura-checkbox').forEach((checkbox) => {
+        const id = checkbox.value;
+        const montoInput = document.getElementById(`monto_${id}`);
+        if (checkbox.checked && montoInput && !montoInput.disabled) {
+            const val = parseFloat(montoInput.value || 0);
+            if (!isNaN(val)) total += val;
+        }
+    });
+    const totalSpan = document.getElementById('total-pago');
+    if (totalSpan) totalSpan.textContent = '$' + total.toLocaleString('es-DO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const montoPagoInput = document.getElementById('monto_pago');
+    if (montoPagoInput) {
+        if (total > 0) {
+            montoPagoInput.value = total.toFixed(2);
+            montoPagoInput.min = total.toFixed(2);
+        }
+    }
+}
 </script>
 {% endblock %}
+
 
 
 

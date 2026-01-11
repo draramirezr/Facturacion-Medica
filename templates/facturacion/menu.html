@@ -5,11 +5,22 @@
 
 {% block content %}
 <style>
+    /* Evitar barra de desplazamiento horizontal en el dashboard */
+    html, body {
+        overflow-x: hidden;
+        width: 100%;
+        max-width: 100%;
+        position: relative;
+    }
+    #facturacion-menu-root {
+        overflow-x: hidden;
+        width: 100%;
+    }
     .facturacion-hero {
         background: {{ tema.background }};
         border-radius: 12px;
-        padding: 0.8rem 1.2rem;
-        margin-bottom: 0.8rem;
+        padding: 0.6rem 0.9rem;
+        margin-bottom: 0.6rem;
         position: relative;
         overflow: hidden;
         border: 1px solid {{ tema.primary_light }}33;
@@ -23,14 +34,14 @@
     .maestra-card {
         background: white;
         border-radius: 18px;
-        padding: 2.5rem 1.5rem;
+        padding: 1.4rem 1.1rem;
         text-align: center;
         transition: all 0.3s ease;
         border: 2px solid transparent;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
         height: 100%;
         cursor: pointer;
-        min-height: 180px;
+        min-height: 140px;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -44,8 +55,8 @@
     }
     
     .maestra-card i {
-        font-size: 3.5rem;
-        margin-bottom: 1rem;
+        font-size: 2.7rem;
+        margin-bottom: 0.6rem;
         color: {{ tema.primary }};
         opacity: 1;
         transition: all 0.3s ease;
@@ -59,21 +70,21 @@
     .maestra-card h4 {
         color: {{ tema.primary }};
         font-weight: 700;
-        margin-bottom: 0.5rem;
-        font-size: 1.15rem;
+        margin-bottom: 0.35rem;
+        font-size: 1.05rem;
     }
     
     .maestra-card p {
         color: #6B7280;
-        font-size: 0.9rem;
+        font-size: 0.85rem;
         margin: 0;
-        line-height: 1.4;
+        line-height: 1.3;
     }
     
     .section-title {
         color: {{ tema.primary }};
         font-weight: 700;
-        margin: 1.5rem 0 1rem 0;
+        margin: 1rem 0 0.75rem 0;
         text-align: center;
         font-size: 1.3rem;
         border-bottom: none !important;
@@ -104,17 +115,17 @@
     /* Ajustes para pantallas pequeñas */
     @media (max-width: 1400px) {
         .maestra-card {
-            padding: 2rem 1.2rem;
-            min-height: 160px;
+            padding: 1.2rem 1rem;
+            min-height: 130px;
         }
         .maestra-card i {
-            font-size: 3rem;
+            font-size: 2.4rem;
         }
         .maestra-card h4 {
-            font-size: 1.05rem;
+            font-size: 1rem;
         }
         .maestra-card p {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
         }
     }
     
@@ -135,7 +146,8 @@
     }
 </style>
 
-<div class="container-fluid px-4 py-2" style="max-width: 1600px;">
+<div id="facturacion-menu-root">
+<div class="container-fluid px-3 py-2" style="max-width: 1200px;">
     <!-- Hero Section -->
     <div class="facturacion-hero animate-card">
         <div class="text-center">
@@ -311,10 +323,10 @@
         <!-- Agregar Pacientes -->
         <div class="{% if current_user.perfil == 'Registro de Facturas' %}col-lg-6{% else %}col-lg-4{% endif %} animate-card" style="animation-delay: 0.6s">
             <a href="{{ url_for('facturacion_facturas_nueva') }}" style="text-decoration: none;">
-                <div class="maestra-card" style="background: {{ tema.background }}; border: 3px solid {{ tema.primary }}; padding: 3rem 2rem; min-height: 220px;">
-                    <i class="fas fa-user-plus" style="font-size: 4.5rem; color: {{ tema.primary }};"></i>
-                    <h4 style="color: {{ tema.primary }}; font-size: 1.4rem; font-weight: 800; margin-top: 1rem;">AGREGAR PACIENTES</h4>
-                    <p style="color: #6B7280; font-size: 1rem; margin-top: 0.5rem;">Agregar nuevos pacientes</p>
+                <div class="maestra-card" style="background: {{ tema.background }}; border: 3px solid {{ tema.primary }}; padding: 2rem 1.4rem; min-height: 170px;">
+                    <i class="fas fa-user-plus" style="font-size: 3.4rem; color: {{ tema.primary }};"></i>
+                    <h4 style="color: {{ tema.primary }}; font-size: 1.2rem; font-weight: 800; margin-top: 0.6rem;">AGREGAR PACIENTES</h4>
+                    <p style="color: #6B7280; font-size: 0.9rem; margin-top: 0.4rem;">Agregar nuevos pacientes</p>
                 </div>
             </a>
         </div>
@@ -322,10 +334,10 @@
         <!-- Estado de Facturación -->
         <div class="{% if current_user.perfil == 'Registro de Facturas' %}col-lg-6{% else %}col-lg-4{% endif %} animate-card" style="animation-delay: 0.7s">
             <a href="{{ url_for('facturacion_pacientes_pendientes') }}" style="text-decoration: none;">
-                <div class="maestra-card" style="background: {{ tema.background }}; border: 3px solid {{ tema.primary }}; padding: 3rem 2rem; min-height: 220px;">
-                    <i class="fas fa-clipboard-list" style="font-size: 4.5rem; color: {{ tema.primary }};"></i>
-                    <h4 style="color: {{ tema.primary }}; font-size: 1.4rem; font-weight: 800; margin-top: 1rem;">ESTADO DE FACTURACIÓN</h4>
-                    <p style="color: #6B7280; font-size: 1rem; margin-top: 0.5rem;">Gestión de pendientes</p>
+                <div class="maestra-card" style="background: {{ tema.background }}; border: 3px solid {{ tema.primary }}; padding: 2rem 1.4rem; min-height: 170px;">
+                    <i class="fas fa-clipboard-list" style="font-size: 3.4rem; color: {{ tema.primary }};"></i>
+                    <h4 style="color: {{ tema.primary }}; font-size: 1.2rem; font-weight: 800; margin-top: 0.6rem;">ESTADO DE FACTURACIÓN</h4>
+                    <p style="color: #6B7280; font-size: 0.9rem; margin-top: 0.4rem;">Gestión de pendientes</p>
                 </div>
             </a>
         </div>
@@ -334,15 +346,16 @@
         <!-- Generar Factura -->
         <div class="col-lg-4 animate-card" style="animation-delay: 0.8s">
             <a href="{{ url_for('facturacion_generar') }}" style="text-decoration: none;">
-                <div class="maestra-card" style="background: {{ tema.background }}; border: 3px solid {{ tema.primary }}; padding: 3rem 2rem; min-height: 220px;">
-                    <i class="fas fa-file-invoice-dollar" style="font-size: 4.5rem; color: {{ tema.primary }};"></i>
-                    <h4 style="color: {{ tema.primary }}; font-size: 1.4rem; font-weight: 800; margin-top: 1rem;">GENERAR FACTURA</h4>
-                    <p style="color: #6B7280; font-size: 1rem; margin-top: 0.5rem;">Crear facturas</p>
+                <div class="maestra-card" style="background: {{ tema.background }}; border: 3px solid {{ tema.primary }}; padding: 2rem 1.4rem; min-height: 170px;">
+                    <i class="fas fa-file-invoice-dollar" style="font-size: 3.4rem; color: {{ tema.primary }};"></i>
+                    <h4 style="color: {{ tema.primary }}; font-size: 1.2rem; font-weight: 800; margin-top: 0.6rem;">GENERAR FACTURA</h4>
+                    <p style="color: #6B7280; font-size: 0.9rem; margin-top: 0.4rem;">Crear facturas</p>
                 </div>
             </a>
         </div>
         {% endif %}
     </div>
+</div>
 </div>
 {% endblock %}
 

@@ -35,6 +35,7 @@
         position: sticky;
         top: 0;
         z-index: 10;
+        white-space: nowrap;
     }
     
     .table-facturacion td {
@@ -61,7 +62,7 @@
     }
     
     .badge-procesada {
-        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%);
+        background: #198754; /* verde bootstrap */
         color: white;
     }
     
@@ -92,6 +93,45 @@
         </div>
     </div>
 
+    <!-- Filtros -->
+    <div class="card mb-3 shadow-sm border-0">
+        <div class="card-body">
+            <form method="GET" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label mb-1">NCF</label>
+                    <input type="text" name="ncf" value="{{ ncf or '' }}" class="form-control" placeholder="NCF">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">ARS</label>
+                    <select name="ars_id" class="form-select">
+                        <option value="">Todas</option>
+                        {% for ars in ars_list %}
+                        <option value="{{ ars.id }}" {% if ars_id and ars_id|int == ars.id %}selected{% endif %}>
+                            {{ ars.nombre }}{% if ars.rnc %} ({{ ars.rnc }}){% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Fecha desde</label>
+                    <input type="date" name="fecha_desde" value="{{ fecha_desde or '' }}" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label mb-1">Fecha hasta</label>
+                    <input type="date" name="fecha_hasta" value="{{ fecha_hasta or '' }}" class="form-control">
+                </div>
+                <div class="col-12 d-flex gap-2 mt-2">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search me-1"></i>Filtrar
+                    </button>
+                    <a href="{{ url_for('facturacion_reclamaciones') }}" class="btn btn-outline-secondary">
+                        Limpiar
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Tabla -->
     <div class="table-facturacion">
         {% if reclamaciones_list %}
@@ -99,23 +139,19 @@
             <table class="table mb-0">
                 <thead>
                     <tr>
-                        <th style="width: 12%;">Número Factura</th>
-                        <th style="width: 20%;">Paciente</th>
-                        <th style="width: 15%;">ARS</th>
-                        <th style="width: 12%;" class="text-end">Total Factura</th>
-                        <th style="width: 12%;" class="text-end">Monto Reclamado</th>
-                        <th style="width: 12%;">Fecha</th>
-                        <th style="width: 10%;" class="text-center">Estado</th>
-                        <th style="width: 7%;" class="text-center">Acciones</th>
+                        <th style="width: 16%;">ARS</th>
+                        <th style="width: 16%;">NCF</th>
+                        <th style="width: 16%;" class="text-end">Monto reclamado</th>
+                        <th style="width: 16%;">Fecha reclamación</th>
+                        <th style="width: 18%;" class="text-center">Estado</th>
+                        <th style="width: 18%;" class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for reclamacion in reclamaciones_list %}
                     <tr>
-                        <td><strong>{{ reclamacion['numero_factura'] }}</strong></td>
-                        <td>{{ reclamacion['nombre_paciente'] }}</td>
                         <td>{{ reclamacion['nombre_ars'] or 'Sin ARS' }}</td>
-                        <td class="text-end">${{ "{:,.2f}".format(reclamacion['total_factura']) }}</td>
+                        <td><strong>{{ reclamacion['ncf'] or '-' }}</strong></td>
                         <td class="text-end"><strong>${{ "{:,.2f}".format(reclamacion['monto_reclamado']) }}</strong></td>
                         <td>{{ reclamacion['fecha_reclamacion'] }}</td>
                         <td class="text-center">

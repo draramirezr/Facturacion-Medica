@@ -25,8 +25,7 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <h6 class="text-uppercase text-muted mb-2">Factura</h6>
-                    <p class="mb-1"><strong>Número:</strong> {{ reclamacion['numero_factura'] }}</p>
-                    <p class="mb-1"><strong>Paciente:</strong> {{ reclamacion['nombre_paciente'] }}</p>
+                    <p class="mb-1"><strong>NCF:</strong> {{ reclamacion['ncf'] or '-' }}</p>
                     <p class="mb-1"><strong>ARS:</strong> {{ reclamacion['nombre_ars'] or 'Sin ARS' }}</p>
                     <p class="mb-1"><strong>Total factura:</strong> ${{ "{:,.2f}".format(reclamacion['total_factura']) }}</p>
                     <p class="mb-0"><strong>Estado factura:</strong> {{ reclamacion['estado_factura'] }}</p>
@@ -40,8 +39,44 @@
                 </div>
             </div>
         </div>
+
+        <div class="mt-4">
+            <form method="POST" action="{{ url_for('facturacion_reclamacion_cambiar_estado', reclamacion_id=reclamacion['id']) }}" class="card card-body border-0 shadow-sm">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1">Cambiar estado</label>
+                        <select name="estado" id="estado-select" class="form-select" required onchange="toggleObs()">
+                            {% for estado in ['Pendiente','Procesada','Rechazada'] %}
+                            <option value="{{ estado }}" {% if reclamacion['estado'] == estado %}selected{% endif %}>{{ estado }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-8" id="obs-container" style="display: none;">
+                        <label class="form-label mb-1">Observación (requerida si Rechazada)</label>
+                        <textarea name="observaciones_estado" id="observaciones_estado" class="form-control" rows="2" placeholder="Motivo del rechazo"></textarea>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-1"></i>Guardar estado
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
+<script>
+function toggleObs() {
+    const estado = document.getElementById('estado-select').value;
+    const obs = document.getElementById('obs-container');
+    if (estado === 'Rechazada') {
+        obs.style.display = 'block';
+    } else {
+        obs.style.display = 'none';
+        const ta = document.getElementById('observaciones_estado');
+        if (ta) ta.value = '';
+    }
+}
+document.addEventListener('DOMContentLoaded', toggleObs);
+</script>
 {% endblock %}
-
-

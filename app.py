@@ -1897,6 +1897,7 @@ def facturacion_centros_medicos():
     
     tenant_id = get_current_tenant_id()
     search = request.args.get('search', '').strip()
+    ncf_search = request.args.get('ncf', '').strip()
     
     if search:
         centros_list = execute_query(
@@ -2842,14 +2843,39 @@ def api_facturacion_pacientes_pendientes_update(paciente_id):
 def facturacion_reclamaciones():
     """Lista de reclamaciones - Filtrado por tenant"""
     tenant_id = get_current_tenant_id()
-    reclamaciones_list = execute_query('''
-        SELECT r.*, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total as total_factura
+    ncf = request.args.get('ncf', '').strip()
+    ars_id_filter = request.args.get('ars_id')
+    fecha_desde = request.args.get('fecha_desde', '').strip()
+    fecha_hasta = request.args.get('fecha_hasta', '').strip()
+    
+    query = '''
+        SELECT r.*, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total as total_factura, f.ncf, a.rnc as ars_rnc
         FROM reclamaciones r
         JOIN facturas f ON r.factura_id = f.id
+        LEFT JOIN ars a ON f.ars_id = a.id
         WHERE r.tenant_id = %s
-        ORDER BY r.fecha_reclamacion DESC, r.id DESC
-    ''', (tenant_id,), fetch='all') or []
-    return render_template('facturacion/reclamaciones.html', reclamaciones_list=reclamaciones_list)
+    '''
+    params = [tenant_id]
+    
+    if ncf:
+        query += ' AND f.ncf LIKE %s'
+        params.append(f'%{ncf}%')
+    if ars_id_filter:
+        query += ' AND f.ars_id = %s'
+        params.append(ars_id_filter)
+    if fecha_desde:
+        query += ' AND r.fecha_reclamacion >= %s'
+        params.append(fecha_desde)
+    if fecha_hasta:
+        query += ' AND r.fecha_reclamacion <= %s'
+        params.append(fecha_hasta)
+    
+    query += ' ORDER BY r.fecha_reclamacion DESC, r.id DESC'
+    
+    reclamaciones_list = execute_query(query, tuple(params), fetch='all') or []
+    ars_list = execute_query('SELECT id, nombre, rnc FROM ars WHERE tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    return render_template('facturacion/reclamaciones.html', reclamaciones_list=reclamaciones_list,
+                           ncf=ncf, ars_id=ars_id_filter, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ars_list=ars_list)
 
 @app.route('/facturacion/reclamaciones/<int:reclamacion_id>')
 @login_required
@@ -2858,7 +2884,7 @@ def facturacion_reclamacion_detalle(reclamacion_id: int):
     tenant_id = get_current_tenant_id()
     reclamacion = execute_query('''
         SELECT r.*, 
-               f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total as total_factura,
+               f.numero_factura, f.ncf, f.nombre_paciente, f.nombre_ars, f.total as total_factura,
                f.fecha_emision, f.estado as estado_factura
         FROM reclamaciones r
         JOIN facturas f ON r.factura_id = f.id
@@ -2870,6 +2896,185 @@ def facturacion_reclamacion_detalle(reclamacion_id: int):
         return redirect(url_for('facturacion_reclamaciones'))
     
     return render_template('facturacion/reclamacion_detalle.html', reclamacion=reclamacion)
+
+@app.route('/facturacion/reclamaciones/<int:reclamacion_id>/estado', methods=['POST'])
+@login_required
+def facturacion_reclamacion_cambiar_estado(reclamacion_id: int):
+    """Actualizar estado de reclamación"""
+    tenant_id = get_current_tenant_id()
+    nuevo_estado = request.form.get('estado')
+    observacion_estado = request.form.get('observaciones_estado', '').strip()
+    if nuevo_estado not in ['Pendiente', 'Procesada', 'Rechazada']:
+        flash('Estado inválido', 'error')
+        return redirect(url_for('facturacion_reclamacion_detalle', reclamacion_id=reclamacion_id))
+    
+    # Verificar pertenencia al tenant y estado actual
+    reclamacion_actual = execute_query('SELECT id, estado, factura_id FROM reclamaciones WHERE id = %s AND tenant_id = %s', (reclamacion_id, tenant_id))
+    if not reclamacion_actual:
+        flash('Reclamación no encontrada', 'error')
+        return redirect(url_for('facturacion_reclamaciones'))
+    
+    estado_actual = reclamacion_actual.get('estado')
+    factura_id = reclamacion_actual.get('factura_id')
+    if estado_actual == 'Procesada' and nuevo_estado != 'Procesada':
+        flash('Una reclamación procesada no puede volver a Pendiente o Rechazada.', 'error')
+        return redirect(url_for('facturacion_reclamacion_detalle', reclamacion_id=reclamacion_id))
+    
+    # Si se intenta marcar como procesada, validar que exista pago asociado a la factura
+    if nuevo_estado == 'Procesada' and factura_id:
+        pagos_count = execute_query('''
+            SELECT COUNT(*) as count
+            FROM pago_facturas pf
+            JOIN pagos p ON pf.pago_id = p.id
+            WHERE pf.factura_id = %s AND p.tenant_id = %s
+        ''', (factura_id, tenant_id))
+        if not pagos_count or pagos_count.get('count', 0) == 0:
+            flash('Debes registrar un pago de la factura antes de marcar la reclamación como Procesada.', 'error')
+            return redirect(url_for('facturacion_pagos_nuevo', factura_id=factura_id))
+    
+    # Si se rechaza, exigir comentario
+    if nuevo_estado == 'Rechazada' and not observacion_estado:
+        flash('Debes ingresar una observación al rechazar la reclamación.', 'error')
+        return redirect(url_for('facturacion_reclamacion_detalle', reclamacion_id=reclamacion_id))
+    
+    if nuevo_estado == 'Rechazada':
+        execute_update('UPDATE reclamaciones SET estado = %s, observaciones = %s WHERE id = %s AND tenant_id = %s',
+                       (nuevo_estado, observacion_estado or None, reclamacion_id, tenant_id))
+    else:
+        execute_update('UPDATE reclamaciones SET estado = %s WHERE id = %s AND tenant_id = %s',
+                       (nuevo_estado, reclamacion_id, tenant_id))
+    flash('Estado actualizado', 'success')
+    if nuevo_estado == 'Procesada':
+        return redirect(url_for('facturacion_pagos_nuevo', factura_id=factura_id))
+    return redirect(url_for('facturacion_reclamacion_detalle', reclamacion_id=reclamacion_id))
+
+@app.route('/facturacion/reclamaciones/<int:reclamacion_id>/pdf')
+@login_required
+def facturacion_reclamacion_pdf(reclamacion_id: int):
+    """Descargar PDF de la reclamación"""
+    if not REPORTLAB_AVAILABLE:
+        flash('ReportLab no está disponible', 'error')
+        return redirect(url_for('facturacion_reclamacion_detalle', reclamacion_id=reclamacion_id))
+    
+    tenant_id = get_current_tenant_id()
+    reclamacion = execute_query('''
+        SELECT r.*, 
+               f.numero_factura, f.ncf, f.nombre_paciente, f.nombre_ars, f.total as total_factura,
+               f.fecha_emision, f.estado as estado_factura,
+               f.nombre_medico, f.nombre_centro_medico
+        FROM reclamaciones r
+        JOIN facturas f ON r.factura_id = f.id
+        WHERE r.id = %s AND r.tenant_id = %s
+    ''', (reclamacion_id, tenant_id))
+    
+    if not reclamacion:
+        flash('Reclamación no encontrada', 'error')
+        return redirect(url_for('facturacion_reclamaciones'))
+    
+    # Datos para footer similar a factura
+    medico_nombre = reclamacion.get('nombre_medico') or ''
+    centro_nombre = reclamacion.get('nombre_centro_medico') or ''
+    empresa_info = get_empresa_info(tenant_id)
+    
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        leftMargin=0.6 * inch,
+        rightMargin=0.6 * inch,
+        topMargin=0.6 * inch,
+        bottomMargin=0.7 * inch,
+    )
+    story = []
+    styles = getSampleStyleSheet()
+    primary_color = colors.HexColor('#111111')
+    accent_color = colors.HexColor('#0077b6')
+    subtle_gray = colors.HexColor('#f2f2f2')
+    
+    # Header
+    header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=18, fontName='Helvetica-Bold', textColor=primary_color)
+    sub_style = ParagraphStyle('Sub', parent=styles['Normal'], fontSize=9, textColor=colors.HexColor('#555'))
+    header_table = Table([
+        [Paragraph(f"RECLAMACIÓN #{reclamacion_id}", header_style),
+         Paragraph(f"Fecha reclamación: {escape(str(reclamacion.get('fecha_reclamacion') or ''))}", sub_style)],
+        [Paragraph(f"NCF: {escape(str(reclamacion.get('ncf') or reclamacion.get('numero_factura') or ''))}", sub_style),
+         Paragraph(f"Estado: {escape(str(reclamacion.get('estado') or ''))}", sub_style)],
+    ], colWidths=[3.7*inch, 3.7*inch])
+    header_table.setStyle(TableStyle([
+        ('ALIGN', (1,0), (1,0), 'RIGHT'),
+        ('ALIGN', (1,1), (1,1), 'RIGHT'),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 4),
+    ]))
+    story.append(header_table)
+    line = Table([['']], colWidths=[7.4*inch])
+    line.setStyle(TableStyle([('LINEBELOW', (0,0), (-1,-1), 1, primary_color)]))
+    story.append(line)
+    story.append(Spacer(1, 0.2*inch))
+    
+    # Info blocks
+    info_style = ParagraphStyle('Info', parent=styles['Normal'], fontSize=9, leading=12, textColor=colors.HexColor('#222'))
+    bold_style = ParagraphStyle('Bold', parent=info_style, fontName='Helvetica-Bold')
+    card_data = [
+        [Paragraph('<b>Factura</b>', bold_style), Paragraph('<b>Reclamación</b>', bold_style)],
+        [
+            Paragraph(f"NCF: {escape(str(reclamacion.get('ncf') or ''))}<br/>Fecha factura: {escape(str(reclamacion.get('fecha_emision') or ''))}<br/>ARS: {escape(str(reclamacion.get('nombre_ars') or ''))}<br/>Paciente: {escape(str(reclamacion.get('nombre_paciente') or ''))}", info_style),
+            Paragraph(f"Monto reclamado: ${reclamacion.get('monto_reclamado'):,.2f}<br/>Total factura: ${reclamacion.get('total_factura'):,.2f}<br/>Estado factura: {escape(str(reclamacion.get('estado_factura') or ''))}<br/>Estado reclamación: {escape(str(reclamacion.get('estado') or ''))}", info_style),
+        ]
+    ]
+    card = Table(card_data, colWidths=[3.7*inch, 3.7*inch])
+    card.setStyle(TableStyle([
+        ('BACKGROUND', (0,0), (-1,0), primary_color),
+        ('TEXTCOLOR', (0,0), (-1,0), colors.white),
+        ('LEFTPADDING', (0,0), (-1,-1), 8),
+        ('RIGHTPADDING', (0,0), (-1,-1), 8),
+        ('TOPPADDING', (0,0), (-1,-1), 8),
+        ('BOTTOMPADDING', (0,0), (-1,-1), 8),
+        ('BACKGROUND', (0,1), (-1,1), subtle_gray),
+        ('BOX', (0,0), (-1,-1), 0.5, colors.HexColor('#cccccc')),
+        ('VALIGN', (0,1), (-1,-1), 'TOP'),
+    ]))
+    story.append(card)
+    
+    # Observaciones
+    if reclamacion.get('observaciones'):
+        story.append(Spacer(1, 0.25*inch))
+        obs_title = ParagraphStyle('ObsTitle', parent=styles['Normal'], fontSize=10, fontName='Helvetica-Bold', textColor=primary_color)
+        obs_body = ParagraphStyle('ObsBody', parent=styles['Normal'], fontSize=9, leading=12)
+        story.append(Paragraph("Observaciones", obs_title))
+        story.append(Paragraph(escape(str(reclamacion.get('observaciones'))), obs_body))
+    
+    story.append(Spacer(1, 0.35*inch))
+    
+    # Footer similar a factura
+    footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER, textColor=colors.HexColor('#666'))
+    footer_bold_style = ParagraphStyle('FooterBold', parent=styles['Normal'], fontSize=9, alignment=TA_CENTER, textColor=accent_color, fontName='Helvetica-Bold')
+    footer_lines = []
+    if medico_nombre:
+        footer_lines.append(Paragraph(escape(str(medico_nombre)), footer_bold_style))
+    if centro_nombre:
+        footer_lines.append(Paragraph(escape(str(centro_nombre)), footer_style))
+    extra = []
+    if empresa_info:
+        if empresa_info.get('telefono'):
+            extra.append(f"Tel: {empresa_info.get('telefono')}")
+        if empresa_info.get('email'):
+            extra.append(f"Email: {empresa_info.get('email')}")
+    if extra:
+        footer_lines.append(Paragraph(' | '.join(extra), footer_style))
+    
+    if footer_lines:
+        footer_table = Table([[line] for line in footer_lines], colWidths=[7.4*inch])
+        footer_table.setStyle(TableStyle([
+            ('ALIGN', (0,0), (-1,-1), 'CENTER'),
+            ('TOPPADDING', (0,0), (-1,-1), 3),
+            ('BOTTOMPADDING', (0,0), (-1,-1), 3),
+        ]))
+        story.append(footer_table)
+    
+    doc.build(story)
+    buffer.seek(0)
+    filename = f"reclamacion_{reclamacion_id}.pdf"
+    return send_file(buffer, mimetype='application/pdf', as_attachment=True, download_name=filename)
 
 @app.route('/facturacion/reclamaciones/nueva', methods=['GET', 'POST'])
 @login_required
@@ -2888,7 +3093,14 @@ def facturacion_reclamaciones_nueva():
             return redirect(url_for('facturacion_reclamaciones_nueva'))
         
         # Verificar que la factura existe y pertenece al tenant
-        factura = execute_query('SELECT id, total FROM facturas WHERE id = %s AND tenant_id = %s', (factura_id, tenant_id))
+        factura = execute_query('''
+            SELECT f.id, f.total, f.fecha_emision,
+                   (f.total - COALESCE(SUM(pf.monto_aplicado), 0)) AS balance_pendiente
+            FROM facturas f
+            LEFT JOIN pago_facturas pf ON f.id = pf.factura_id
+            WHERE f.id = %s AND f.tenant_id = %s AND f.estado != 'Anulada'
+            GROUP BY f.id
+        ''', (factura_id, tenant_id))
         if not factura:
             flash('Factura no encontrada', 'error')
             return redirect(url_for('facturacion_reclamaciones_nueva'))
@@ -2897,6 +3109,31 @@ def facturacion_reclamaciones_nueva():
             monto_reclamado = float(monto_reclamado)
             if monto_reclamado <= 0:
                 flash('El monto debe ser mayor a cero', 'error')
+                return redirect(url_for('facturacion_reclamaciones_nueva'))
+            # Validar antigüedad (<= 90 días)
+            fecha_emision = factura.get('fecha_emision')
+            if fecha_emision:
+                try:
+                    fecha_emision_dt = datetime.strptime(str(fecha_emision), "%Y-%m-%d")
+                    if (datetime.now() - fecha_emision_dt).days > 90:
+                        flash('Solo se permiten reclamaciones de facturas con menos de 90 días.', 'error')
+                        return redirect(url_for('facturacion_reclamaciones_nueva'))
+                except Exception:
+                    pass
+            # Validar balance pendiente
+            balance_pendiente = float(factura.get('balance_pendiente') or 0)
+            # Sumar reclamaciones previas de la misma factura
+            reclamado_previo = execute_query('''
+                SELECT COALESCE(SUM(monto_reclamado), 0) AS total_reclamado
+                FROM reclamaciones
+                WHERE factura_id = %s AND tenant_id = %s
+            ''', (factura_id, tenant_id))
+            total_reclamado = float(reclamado_previo.get('total_reclamado') or 0)
+            if monto_reclamado + total_reclamado > balance_pendiente:
+                flash(f'El monto reclamado supera el balance pendiente considerando reclamaciones previas (${balance_pendiente:,.2f}).', 'error')
+                return redirect(url_for('facturacion_reclamaciones_nueva'))
+            if monto_reclamado > balance_pendiente:
+                flash(f'El monto reclamado excede el balance pendiente (${balance_pendiente:,.2f}).', 'error')
                 return redirect(url_for('facturacion_reclamaciones_nueva'))
         except ValueError:
             flash('Monto inválido', 'error')
@@ -2910,24 +3147,61 @@ def facturacion_reclamaciones_nueva():
         flash('Reclamación creada exitosamente', 'success')
         return redirect(url_for('facturacion_reclamaciones'))
     
-    # Obtener facturas disponibles para reclamar
-    facturas_list = execute_query('''
-        SELECT f.id, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total, f.fecha_emision, f.estado
+    # Filtros (ARS requerido para listar facturas)
+    search = ''  # desactivado: solo filtramos por ARS y NCF
+    ncf_search = request.args.get('ncf', '').strip()
+    ars_id = request.args.get('ars_id')
+    
+    facturas_list = []
+    if ars_id:
+        query = '''
+            SELECT f.id, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total, f.fecha_emision, f.estado,
+                   (f.total - COALESCE(SUM(pf.monto_aplicado), 0)) AS balance_pendiente,
+                   (SELECT COUNT(*) FROM reclamaciones r WHERE r.factura_id = f.id AND r.tenant_id = f.tenant_id) AS reclamaciones_count,
+                   (SELECT r.monto_reclamado FROM reclamaciones r WHERE r.factura_id = f.id AND r.tenant_id = f.tenant_id ORDER BY r.fecha_reclamacion DESC LIMIT 1) AS ultima_reclamacion_monto,
+                   (SELECT r.fecha_reclamacion FROM reclamaciones r WHERE r.factura_id = f.id AND r.tenant_id = f.tenant_id ORDER BY r.fecha_reclamacion DESC LIMIT 1) AS ultima_reclamacion_fecha,
+                   (SELECT r.id FROM reclamaciones r WHERE r.factura_id = f.id AND r.tenant_id = f.tenant_id ORDER BY r.fecha_reclamacion DESC LIMIT 1) AS ultima_reclamacion_id
         FROM facturas f
-        WHERE f.tenant_id = %s AND f.estado != 'Anulada'
+            LEFT JOIN pago_facturas pf ON f.id = pf.factura_id
+            WHERE f.tenant_id = %s
+              AND f.estado != 'Anulada'
+              AND f.ars_id = %s
+              AND f.fecha_emision >= DATE_SUB(CURDATE(), INTERVAL 90 DAY)
+        '''
+        params = [tenant_id, ars_id]
+        if ncf_search:
+            query += ' AND f.ncf LIKE %s'
+            params.append(f'%{ncf_search}%')
+        query += '''
+            GROUP BY f.id
+            HAVING (f.total - COALESCE(SUM(pf.monto_aplicado), 0)) > 0
         ORDER BY f.fecha_emision DESC, f.numero_factura DESC
         LIMIT 100
-    ''', (tenant_id,), fetch='all') or []
+        '''
+        facturas_list = execute_query(query, tuple(params), fetch='all') or []
+    
+    ars_list = execute_query('SELECT id, nombre FROM ars WHERE tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
     
     fecha_actual = datetime.now().strftime('%Y-%m-%d')
-    return render_template('facturacion/reclamacion_form.html', facturas_list=facturas_list, fecha_actual=fecha_actual)
+    return render_template('facturacion/reclamacion_form.html',
+                           facturas_list=facturas_list,
+                           fecha_actual=fecha_actual,
+                           ars_list=ars_list,
+                           search=search,
+                           ncf=ncf_search,
+                           ars_id=ars_id)
 
 @app.route('/facturacion/pagos')
 @login_required
 def facturacion_pagos():
     """Lista de pagos - Filtrado por tenant"""
     tenant_id = get_current_tenant_id()
-    pagos_list = execute_query('''
+    ars_id_filter = request.args.get('ars_id')
+    ncf_filter = request.args.get('ncf', '').strip()
+    fecha_desde = request.args.get('fecha_desde', '').strip()
+    fecha_hasta = request.args.get('fecha_hasta', '').strip()
+    
+    query = '''
         SELECT 
                p.id,
                CONCAT('PAGO-', LPAD(p.id, 6, '0')) AS numero_pago,
@@ -2935,21 +3209,45 @@ def facturacion_pagos():
                p.metodo_pago,
                p.monto AS monto_total,
                COUNT(pf.id) AS cantidad_facturas,
-               GROUP_CONCAT(f.numero_factura SEPARATOR ', ') AS facturas_numeros
+               GROUP_CONCAT(f.numero_factura SEPARATOR ', ') AS facturas_numeros,
+               GROUP_CONCAT(DISTINCT f.ncf SEPARATOR ', ') AS ncf_list,
+               GROUP_CONCAT(DISTINCT a.nombre SEPARATOR ', ') AS ars_list
         FROM pagos p
         LEFT JOIN pago_facturas pf ON p.id = pf.pago_id
         LEFT JOIN facturas f ON pf.factura_id = f.id
+        LEFT JOIN ars a ON f.ars_id = a.id
         WHERE p.tenant_id = %s
+    '''
+    params = [tenant_id]
+    if ars_id_filter:
+        query += ' AND f.ars_id = %s'
+        params.append(ars_id_filter)
+    if ncf_filter:
+        query += ' AND f.ncf LIKE %s'
+        params.append(f'%{ncf_filter}%')
+    if fecha_desde:
+        query += ' AND p.fecha_pago >= %s'
+        params.append(fecha_desde)
+    if fecha_hasta:
+        query += ' AND p.fecha_pago <= %s'
+        params.append(fecha_hasta)
+    
+    query += '''
         GROUP BY p.id
         ORDER BY p.fecha_pago DESC, p.id DESC
-    ''', (tenant_id,), fetch='all') or []
-    return render_template('facturacion/pagos.html', pagos_list=pagos_list)
+    '''
+    pagos_list = execute_query(query, tuple(params), fetch='all') or []
+    ars_list = execute_query('SELECT id, nombre FROM ars WHERE tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    return render_template('facturacion/pagos.html', pagos_list=pagos_list,
+                           ars_list=ars_list, ars_id=ars_id_filter, ncf=ncf_filter,
+                           fecha_desde=fecha_desde, fecha_hasta=fecha_hasta)
 
 @app.route('/facturacion/pagos/nuevo', methods=['GET', 'POST'])
 @login_required
 def facturacion_pagos_nuevo():
     """Crear nuevo pago"""
     tenant_id = get_current_tenant_id()
+    factura_id_param = request.args.get('factura_id')
     
     if request.method == 'POST':
         fecha_pago = request.form.get('fecha_pago')
@@ -2958,6 +3256,7 @@ def facturacion_pagos_nuevo():
         observaciones = request.form.get('observaciones', '').strip()
         facturas_ids = request.form.getlist('facturas_ids[]')
         montos = request.form.getlist('montos[]')
+        monto_pago_ingresado = request.form.get('monto_pago')
         
         if not all([fecha_pago, metodo_pago]):
             flash('Fecha y método de pago son obligatorios', 'error')
@@ -2987,6 +3286,16 @@ def facturacion_pagos_nuevo():
             flash('El monto total debe ser mayor a cero', 'error')
             return redirect(url_for('facturacion_pagos_nuevo'))
         
+        try:
+            monto_pago_num = float(monto_pago_ingresado or 0)
+        except ValueError:
+            flash('Monto de pago inválido', 'error')
+            return redirect(url_for('facturacion_pagos_nuevo'))
+        
+        if monto_pago_num < monto_total:
+            flash('El monto del pago no puede ser menor que el total aplicado a documentos.', 'error')
+            return redirect(url_for('facturacion_pagos_nuevo'))
+        
         # Seleccionar una factura principal para el registro legacy (tabla pagos requiere factura_id)
         factura_principal_id = facturas_data[0][0]
         
@@ -2994,7 +3303,7 @@ def facturacion_pagos_nuevo():
         pago_id = execute_update('''
             INSERT INTO pagos (tenant_id, factura_id, fecha_pago, monto, metodo_pago, referencia, observaciones, created_by)
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        ''', (tenant_id, factura_principal_id, fecha_pago, monto_total, metodo_pago, referencia or None, observaciones or None, current_user.id))
+        ''', (tenant_id, factura_principal_id, fecha_pago, monto_pago_num, metodo_pago, referencia or None, observaciones or None, current_user.id))
         
         # Crear relaciones pago-facturas
         for factura_id, monto in facturas_data:
@@ -3011,21 +3320,35 @@ def facturacion_pagos_nuevo():
         flash('Pago registrado exitosamente', 'success')
         return redirect(url_for('facturacion_pagos'))
     
-    # Obtener facturas disponibles para pagar
-    facturas_list = execute_query('''
+    # Obtener facturas disponibles para pagar, con info de reclamaciones
+    filtro_factura = ""
+    params_facturas = [tenant_id]
+    if factura_id_param:
+        filtro_factura = " AND f.id = %s "
+        params_facturas.append(factura_id_param)
+    facturas_list = execute_query(f'''
         SELECT f.id, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total, f.fecha_emision, f.estado,
-               COALESCE(SUM(pf.monto_aplicado), 0) as monto_pagado
+               COALESCE(SUM(pf.monto_aplicado), 0) as monto_pagado,
+               (SELECT COALESCE(SUM(r.monto_reclamado), 0) FROM reclamaciones r WHERE r.factura_id = f.id AND r.tenant_id = f.tenant_id) as monto_reclamado,
+               (SELECT COALESCE(SUM(r.monto_reclamado), 0) FROM reclamaciones r WHERE r.factura_id = f.id AND r.tenant_id = f.tenant_id AND r.estado = 'Procesada') as monto_reclamado_procesado,
+               (SELECT r.monto_reclamado FROM reclamaciones r WHERE r.factura_id = f.id AND r.tenant_id = f.tenant_id AND r.estado = 'Procesada' ORDER BY r.fecha_reclamacion DESC LIMIT 1) as ultima_reclamacion_monto,
+               (SELECT COUNT(*) FROM reclamaciones r WHERE r.factura_id = f.id AND r.tenant_id = f.tenant_id) as reclamaciones_count,
+               (SELECT r.id FROM reclamaciones r WHERE r.factura_id = f.id AND r.tenant_id = f.tenant_id ORDER BY r.fecha_reclamacion DESC LIMIT 1) as ultima_reclamacion_id
         FROM facturas f
         LEFT JOIN pago_facturas pf ON f.id = pf.factura_id
-        WHERE f.tenant_id = %s AND f.estado != 'Anulada'
+        WHERE f.tenant_id = %s AND f.estado != 'Anulada' {filtro_factura}
         GROUP BY f.id
         HAVING (f.total - COALESCE(SUM(pf.monto_aplicado), 0)) > 0
         ORDER BY f.fecha_emision DESC, f.numero_factura DESC
         LIMIT 100
-    ''', (tenant_id,), fetch='all') or []
+    ''', tuple(params_facturas), fetch='all') or []
+    
+    ars_pago = None
+    if facturas_list:
+        ars_pago = facturas_list[0].get('nombre_ars')
     
     fecha_actual = datetime.now().strftime('%Y-%m-%d')
-    return render_template('facturacion/pago_form.html', facturas_list=facturas_list, fecha_actual=fecha_actual)
+    return render_template('facturacion/pago_form.html', facturas_list=facturas_list, fecha_actual=fecha_actual, factura_id_param=factura_id_param, ars_pago=ars_pago)
 
 @app.route('/facturacion/pacientes/exportar-excel')
 @login_required
@@ -3831,259 +4154,143 @@ def generar_pdf_factura_vista_previa(factura_id, tenant_id=None):
                                 leftMargin=0.5*inch, rightMargin=0.5*inch,
                                 topMargin=0.5*inch, bottomMargin=0.5*inch)
         story = []
-        
         styles = getSampleStyleSheet()
+        primary_color = colors.black
+        subtle_gray = colors.HexColor('#d9d9d9')
         
-        # Color primario (puede obtenerse del tema, por defecto usamos un color)
-        primary_color_hex = '#CEB0B7'
-        primary_color = colors.HexColor(primary_color_hex)
-        primary_dark = colors.HexColor('#B89CA3')
-        
-        # Estilo para título
-        title_style = ParagraphStyle(
-            'FacturaTitle',
-            parent=styles['Heading1'],
-            fontSize=28,
-            textColor=primary_color,
-            spaceAfter=15,
-            alignment=TA_CENTER,
-            fontName='Helvetica-Bold'
-        )
-        
-        # Header: FACTURA centrado
-        story.append(Paragraph("FACTURA", title_style))
-        story.append(Spacer(1, 0.25*inch))
-        
-        # Información en 3 columnas (simuladas con tabla) - Formato como imagen
-        info_box_style = ParagraphStyle(
-            'InfoBox',
-            parent=styles['Normal'],
-            fontSize=8,
-            leading=11,
-            textColor=colors.black
-        )
-        
-        info_header_style = ParagraphStyle(
-            'InfoHeader',
-            parent=styles['Normal'],
-            fontSize=7,
-            textColor=colors.white,
-            fontName='Helvetica-Bold',
-            spaceAfter=4
-        )
-        
-        # Columna 1: Información de Factura
-        info_factura_data = [
-            [Paragraph('<b>Información de Factura</b>', info_header_style)],
-            [Paragraph(f"<b>Fecha:</b> {escape(str(fecha_factura))}", info_box_style)],
-            [Paragraph(f"<b>Cliente:</b> {escape(str(ars.get('nombre', 'N/A')))}", info_box_style)],
-        ]
-        if ars.get('rnc'):
-            info_factura_data.append([Paragraph(f"<b>RNC:</b> {escape(str(ars.get('rnc')))}", info_box_style)])
-        
-        info_factura_table = Table(info_factura_data, colWidths=[2.4*inch])
-        info_factura_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, 0), primary_color),
-            ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
-            ('BACKGROUND', (0, 1), (0, -1), colors.white),
-            ('LEFTPADDING', (0, 0), (0, -1), 8),
-            ('RIGHTPADDING', (0, 0), (0, -1), 8),
-            ('TOPPADDING', (0, 0), (0, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (0, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, primary_color),  # Borde delgado
-            ('BOX', (0, 0), (-1, -1), 1, primary_color),  # Borde alrededor de toda la tabla
-        ]))
-        
-        # Columna 2: NCF
-        ncf_data = [
-            [Paragraph('<b>NCF</b>', info_header_style)],
-            [Paragraph(f"<font color='{primary_color_hex}'>{escape(str(ncf_numero))}</font>", ParagraphStyle('NCFNumber', parent=info_box_style, fontSize=10, textColor=primary_color))],
-        ]
-        if ncf_tipo_descripcion:
-            ncf_data.append([Paragraph(f"<b>Tipo:</b> {escape(str(ncf_tipo_descripcion))}", info_box_style)])
-        if ncf_fecha_fin:
-            ncf_data.append([Paragraph(f"<b>Válido hasta:</b> {escape(str(ncf_fecha_fin))}", info_box_style)])
-        
-        ncf_table = Table(ncf_data, colWidths=[2.4*inch])
-        ncf_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, 0), primary_color),
-            ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
-            ('BACKGROUND', (0, 1), (0, -1), colors.white),
-            ('LEFTPADDING', (0, 0), (0, -1), 8),
-            ('RIGHTPADDING', (0, 0), (0, -1), 8),
-            ('TOPPADDING', (0, 0), (0, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (0, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, primary_color),  # Borde delgado
-            ('BOX', (0, 0), (-1, -1), 1, primary_color),  # Borde alrededor de toda la tabla
-        ]))
-        
-        # Columna 3: Remitente
-        remitente_data = [
-            [Paragraph('<b>Remitente</b>', info_header_style)],
-        ]
+        # Datos auxiliares
+        numero_factura = factura.get('numero_factura', factura_id)
+        proveedor_rnc = ''
         if tipo_empresa == 'centro_salud':
-            remitente_data.append([Paragraph(f"<b>{empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A'))}</b>", info_box_style)])
-            if empresa_info.get('rnc'):
-                remitente_data.append([Paragraph(f"<b>RNC:</b> {empresa_info.get('rnc')}", info_box_style)])
+            proveedor_rnc = empresa_info.get('rnc', '') if empresa_info else ''
         else:
-            # Nombre del médico sin label "Médico:" - en negrita
-            remitente_data.append([Paragraph(f"<b>{medico_factura.get('nombre', 'N/A')}</b>", info_box_style)])
-            if medico_factura.get('especialidad'):
-                especialidad_style = ParagraphStyle('Especialidad', parent=info_box_style, fontSize=7, textColor=colors.HexColor('#666'))
-                remitente_data.append([Paragraph(medico_factura.get('especialidad', ''), especialidad_style)])
-            if medico_factura.get('cedula'):
-                remitente_data.append([Paragraph(f"<b>Código:</b> {medico_factura.get('cedula', '')}", info_box_style)])
-            if medico_completo and medico_completo.get('exequatur'):
-                remitente_data.append([Paragraph(f"<b>Exequátur:</b> {medico_completo.get('exequatur', '')}", info_box_style)])
+            proveedor_rnc = medico_factura.get('cedula', '')
+        cliente_rnc = ars.get('rnc') or factura.get('rnc_paciente') or ''
         
-        remitente_table = Table(remitente_data, colWidths=[2.4*inch])
-        remitente_table.setStyle(TableStyle([
-            ('BACKGROUND', (0, 0), (0, 0), primary_color),
-            ('TEXTCOLOR', (0, 0), (0, 0), colors.white),
-            ('BACKGROUND', (0, 1), (0, -1), colors.white),
-            ('LEFTPADDING', (0, 0), (0, -1), 8),
-            ('RIGHTPADDING', (0, 0), (0, -1), 8),
-            ('TOPPADDING', (0, 0), (0, -1), 8),
-            ('BOTTOMPADDING', (0, 0), (0, -1), 8),
-            ('GRID', (0, 0), (-1, -1), 1, primary_color),  # Borde delgado
-            ('BOX', (0, 0), (-1, -1), 1, primary_color),  # Borde alrededor de toda la tabla
+        # Título principal con número de factura y NCF
+        title_style = ParagraphStyle('TituloFactura', parent=styles['Normal'], fontSize=16, fontName='Helvetica-Bold')
+        ncf_style = ParagraphStyle('NCF', parent=styles['Normal'], fontSize=12, fontName='Helvetica-Bold')
+        title_table = Table([
+            [Paragraph(f"FACTURA #{escape(str(numero_factura))}", title_style),
+             Paragraph(escape(str(ncf_numero)), ncf_style)]
+        ], colWidths=[4.0*inch, 3.5*inch])
+        title_table.setStyle(TableStyle([
+            ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
         ]))
+        story.append(title_table)
+        story.append(Spacer(1, 0.15*inch))
         
-        # Combinar las 3 columnas en una tabla con espaciado entre columnas
-        info_combined = Table([[info_factura_table, ncf_table, remitente_table]], colWidths=[2.4*inch, 2.4*inch, 2.4*inch])
-        info_combined.setStyle(TableStyle([
+        # Datos de proveedor / cliente
+        info_style = ParagraphStyle('Info', parent=styles['Normal'], fontSize=8.5, leading=11)
+        info_table = Table([
+            [Paragraph(f"De: {escape(str(medico_factura.get('nombre', '')))}", info_style),
+             Paragraph(f"Fecha: {escape(str(fecha_factura))}", info_style)],
+            [Paragraph(f"RNC: {escape(str(proveedor_rnc or ''))}", info_style),
+             Paragraph(f"Cliente: {escape(str(ars.get('nombre', '')))}", info_style)],
+            ['', Paragraph(f"RNC: {escape(str(cliente_rnc or ''))}", info_style)],
+        ], colWidths=[3.75*inch, 3.75*inch])
+        info_table.setStyle(TableStyle([
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-            ('LEFTPADDING', (0, 0), (-1, -1), 0),
-            ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-            ('TOPPADDING', (0, 0), (-1, -1), 0),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
         ]))
-        story.append(info_combined)
-        story.append(Spacer(1, 0.25*inch))
+        story.append(info_table)
+        
+        # Línea divisoria
+        line_div = Table([['']], colWidths=[7.5*inch])
+        line_div.setStyle(TableStyle([('LINEBELOW', (0, 0), (-1, -1), 1.0, primary_color)]))
+        story.append(line_div)
+        story.append(Spacer(1, 0.15*inch))
         
         # Tabla de pacientes/servicios
         if pacientes:
-            tabla_headers = ['No.', 'NOMBRES PACIENTE', 'NSS/CONTRATO', 'FECHA', 'AUTORIZACIÓN', 'SERVICIO', 'V/UNITARIO']
+            header_style = ParagraphStyle('Header', parent=styles['Normal'], fontSize=8, fontName='Helvetica-Bold')
+            cell_style = ParagraphStyle('Cell', parent=styles['Normal'], fontSize=8, leading=10)
+            tabla_headers = ['No.', 'NOMBRES PACIENTE', 'NSS', 'FECHA', 'AUTORIZACIÓN', 'SERVICIO', 'V/UNITARIO']
             tabla_data = [tabla_headers]
-            
             for idx, paciente in enumerate(pacientes, 1):
                 monto = float(paciente.get('monto') or paciente.get('monto_estimado', 0) or 0)
                 tabla_data.append([
                     str(idx),
-                    Paragraph(f"<b>{escape(str(paciente.get('nombre_paciente', 'N/A')))}</b>", info_box_style),
+                    Paragraph(escape(str(paciente.get('nombre_paciente', ''))), cell_style),
                     escape(str(paciente.get('nss', ''))),
                     escape(str(paciente.get('fecha_servicio', ''))),
                     escape(str(paciente.get('autorizacion', ''))),
                     escape(str(paciente.get('descripcion_servicio', ''))),
-                    Paragraph(f"<b>{monto:,.2f}</b>", ParagraphStyle('Monto', parent=info_box_style, alignment=TA_RIGHT, fontName='Helvetica-Bold'))
+                    Paragraph(f"{monto:,.2f}", ParagraphStyle('MontoCell', parent=cell_style, alignment=TA_RIGHT))
                 ])
             
-            # Ajustar anchos de columnas según la imagen: No. (4%), NOMBRES (30%), NSS (10%), FECHA (12%), AUTORIZACIÓN (12%), SERVICIO (20%), V/UNITARIO (12%)
-            # Ancho total disponible: ~7.5 inch (letter size - márgenes)
-            tabla = Table(tabla_data, colWidths=[0.3*inch, 2.25*inch, 0.75*inch, 0.9*inch, 0.9*inch, 1.5*inch, 0.9*inch])
+            tabla = Table(tabla_data, colWidths=[0.35*inch, 2.2*inch, 0.9*inch, 0.9*inch, 0.9*inch, 1.4*inch, 0.85*inch])
             tabla.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, 0), primary_color),
+                ('BACKGROUND', (0, 0), (-1, 0), colors.black),
                 ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
                 ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
-                ('FONTSIZE', (0, 0), (-1, 0), 7),
-                ('ALIGN', (0, 0), (0, -1), 'CENTER'),  # No.
-                ('ALIGN', (3, 1), (3, -1), 'CENTER'),  # FECHA
-                ('ALIGN', (6, 1), (6, -1), 'RIGHT'),  # V/UNITARIO
-                ('BACKGROUND', (0, 1), (-1, -1), colors.white),
-                ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#DDD')),
+                ('FONTSIZE', (0, 0), (-1, 0), 8),
+                ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+                ('ALIGN', (3, 1), (3, -1), 'CENTER'),
+                ('ALIGN', (6, 1), (6, -1), 'RIGHT'),
+                ('GRID', (0, 0), (-1, -1), 0.25, colors.HexColor('#cfcfcf')),
                 ('LEFTPADDING', (0, 0), (-1, -1), 4),
                 ('RIGHTPADDING', (0, 0), (-1, -1), 4),
-                ('TOPPADDING', (0, 0), (-1, -1), 5),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 5),
-                ('FONTSIZE', (0, 1), (-1, -1), 7),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
                 ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
             ]))
             story.append(tabla)
         
-        story.append(Spacer(1, 0.25*inch))
+        story.append(Spacer(1, 0.3*inch))
         
-        # Totales - alineados a la derecha
-        total_style = ParagraphStyle('Total', parent=styles['Normal'], fontSize=9, alignment=TA_RIGHT, fontName='Helvetica-Bold')
+        # Totales
         total_label_style = ParagraphStyle('TotalLabel', parent=styles['Normal'], fontSize=9, alignment=TA_RIGHT, fontName='Helvetica-Bold')
-        total_final_style = ParagraphStyle('TotalFinal', parent=styles['Normal'], fontSize=12, alignment=TA_RIGHT, fontName='Helvetica-Bold', textColor=primary_color)
+        total_value_style = ParagraphStyle('TotalValue', parent=styles['Normal'], fontSize=9, alignment=TA_RIGHT)
+        total_final_style = ParagraphStyle('TotalFinal', parent=styles['Normal'], fontSize=12, alignment=TA_RIGHT, fontName='Helvetica-Bold')
         
-        # Crear tabla de totales alineada a la derecha
         totales_data = [
-            [Paragraph('SUB-TOTAL:', total_label_style), Paragraph(f"{subtotal:,.2f}", total_style)],
-            [Paragraph('ITBIS:', total_label_style), Paragraph('*E', total_style)],
+            [Paragraph('Subtotal:', total_label_style), Paragraph(f"{subtotal:,.2f}", total_value_style)],
+            [Paragraph('ITBIS:', total_label_style), Paragraph('*E', total_value_style)],
             [Paragraph('TOTAL:', total_label_style), Paragraph(f"{total:,.2f}", total_final_style)],
         ]
-        
-        # Tabla de totales más ancha y alineada a la derecha
-        totales_table = Table(totales_data, colWidths=[1.2*inch, 1.2*inch])
+        totales_table = Table(totales_data, colWidths=[1.5*inch, 1.2*inch])
         totales_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (0, -1), 'RIGHT'),
-            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
-            ('TOPPADDING', (0, 0), (-1, -1), 6),
-            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-            ('LINEABOVE', (0, -1), (-1, -1), 1, primary_color),
-            ('TOPPADDING', (0, -1), (-1, -1), 8),
+            ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
+            ('LINEABOVE', (0, 2), (-1, 2), 1, primary_color),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
         ]))
-        
-        # Contenedor para alinear totales a la derecha
-        from reportlab.platypus import KeepTogether
         totales_container = Table([[totales_table]], colWidths=[7.5*inch])
         totales_container.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (0, 0), 'RIGHT'),
-            ('VALIGN', (0, 0), (0, 0), 'TOP'),
+            ('ALIGN', (0, 0), (-1, -1), 'RIGHT'),
         ]))
         story.append(totales_container)
         
-        story.append(Spacer(1, 0.4*inch))
+        story.append(Spacer(1, 0.35*inch))
         
-        # Footer
-        footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER, textColor=colors.HexColor('#666'))
-        footer_bold_style = ParagraphStyle('FooterBold', parent=styles['Normal'], fontSize=9, alignment=TA_CENTER, textColor=primary_color, fontName='Helvetica-Bold')
-        
-        if tipo_empresa == 'centro_salud':
-            footer_data = [
-                [Paragraph(f"<b>{empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A'))}</b>", footer_bold_style)],
-            ]
-            if empresa_info.get('direccion'):
-                footer_data.append([Paragraph(empresa_info.get('direccion', ''), footer_style)])
-            footer_text = []
-            if empresa_info.get('rnc'):
-                footer_text.append(f"RNC: {empresa_info.get('rnc')}")
-            if empresa_info.get('telefono'):
-                footer_text.append(f"Tel: {empresa_info.get('telefono')}")
-            if empresa_info.get('email'):
-                footer_text.append(f"Email: {empresa_info.get('email')}")
-            if footer_text:
-                footer_data.append([Paragraph(' | '.join(footer_text), footer_style)])
-        else:
-            # Footer para médico - formato como ejemplo del PDF
-            footer_data = [
-                [Paragraph(f"<b>{medico_factura.get('nombre', 'N/A')}</b>", footer_bold_style)],
-            ]
-            
-            # Segunda línea: Especialidad | Cédula | EXEQUATUR (en mayúsculas)
-            footer_text_line1 = []
-            if medico_factura.get('especialidad'):
-                footer_text_line1.append(medico_factura.get('especialidad', ''))
-            if medico_factura.get('cedula'):
-                footer_text_line1.append(f"Cédula: {medico_factura.get('cedula', '')}")
-            if medico_completo and medico_completo.get('exequatur'):
-                footer_text_line1.append(f"EXEQUATUR: {medico_completo.get('exequatur', '')}")
-            if footer_text_line1:
-                footer_data.append([Paragraph(' | '.join(footer_text_line1), footer_style)])
-            
-            # Tercera línea: Dirección del centro médico (si está disponible)
-            if centro_medico and centro_medico.get('nombre'):
-                centro_text = centro_medico.get('nombre', '')
-                if centro_medico.get('direccion'):
-                    centro_text += f", {centro_medico.get('direccion', '')}"
-                footer_data.append([Paragraph(centro_text, footer_style)])
-        
-        footer_table = Table(footer_data, colWidths=[7*inch])
+        # Footer sencillo (ajustado)
+        footer_style = ParagraphStyle('Footer', parent=styles['Normal'], fontSize=8, alignment=TA_CENTER)
+        footer_bold_style = ParagraphStyle('FooterBold', parent=styles['Normal'], fontSize=9, alignment=TA_CENTER, fontName='Helvetica-Bold')
+        footer_data = [
+            [Paragraph(escape(str(medico_factura.get('nombre', ''))), footer_bold_style)],
+        ]
+        footer_line2 = []
+        if centro_medico and centro_medico.get('nombre'):
+            footer_line2.append(centro_medico.get('nombre'))
+        if centro_medico and centro_medico.get('direccion'):
+            footer_line2.append(centro_medico.get('direccion'))
+        if footer_line2:
+            footer_data.append([Paragraph(' - '.join(footer_line2), footer_style)])
+        footer_line3 = []
+        if empresa_info and empresa_info.get('telefono'):
+            footer_line3.append(f"Tel: {empresa_info.get('telefono')}")
+        if empresa_info and empresa_info.get('email'):
+            footer_line3.append(f"Email: {empresa_info.get('email')}")
+        if footer_line3:
+            footer_data.append([Paragraph(' | '.join(footer_line3), footer_style)])
+        footer_table = Table(footer_data, colWidths=[7.5*inch])
         footer_table.setStyle(TableStyle([
-            ('ALIGN', (0, 0), (0, -1), 'CENTER'),
-            ('TOPPADDING', (0, 0), (0, -1), 4),
-            ('BOTTOMPADDING', (0, 0), (0, -1), 4),
+            ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+            ('TOPPADDING', (0, 0), (-1, -1), 2),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
         ]))
         story.append(footer_table)
         
@@ -4093,20 +4300,15 @@ def generar_pdf_factura_vista_previa(factura_id, tenant_id=None):
             doc.build(story)
             logger.info(f"PDF construido exitosamente para factura {factura_id}")
             
-            # Obtener el contenido del buffer y crear un nuevo BytesIO para retornar
             buffer.seek(0)
             buffer_content = buffer.read()
-            
-            # Verificar que el buffer tiene contenido
             buffer_size = len(buffer_content) if buffer_content else 0
             if buffer_size == 0:
                 logger.error(f"PDF generado para factura {factura_id} está vacío (buffer_size=0)")
                 return None
             
-            # Crear un nuevo BytesIO con el contenido del PDF para evitar problemas de lectura
             pdf_buffer = BytesIO(buffer_content)
             pdf_buffer.seek(0)
-            
             logger.info(f"PDF generado exitosamente para factura {factura_id}, tamaño: {buffer_size} bytes")
             return pdf_buffer
         except Exception as build_error:
@@ -4124,7 +4326,6 @@ def generar_pdf_factura_vista_previa(factura_id, tenant_id=None):
         logger.error(f"Tipo de error: {type(e).__name__}, Mensaje: {str(e)}")
         print(f"ERROR CRÍTICO al generar PDF para factura {factura_id}: {str(e)}")
         print(f"Traceback completo: {error_trace}")
-        # También imprimir información de debug
         print(f"DEBUG - factura encontrada: {factura is not None}")
         print(f"DEBUG - detalles encontrados: {len(detalles) if detalles else 0}")
         print(f"DEBUG - pacientes procesados: {len(pacientes) if 'pacientes' in locals() else 'N/A'}")
