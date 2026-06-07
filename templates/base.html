@@ -659,6 +659,13 @@
         .search-box i, .filtros-card i {
             color: var(--primary-color) !important;
         }
+
+        /* Borde/halo de inputs en cajas de búsqueda al color del tema */
+        .search-box .form-control:focus,
+        .search-box .form-control:hover {
+            border-color: var(--primary-color) !important;
+            box-shadow: 0 0 0 0.2rem {{ tema.primary }}40 !important;
+        }
         
         /* Iconos en badges de estado (solo si no tienen color específico) */
         .badge i:not(.fa-exclamation-triangle):not(.fa-times):not(.fa-check) {

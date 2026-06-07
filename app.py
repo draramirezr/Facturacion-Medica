@@ -3210,6 +3210,19 @@ def facturacion_reclamaciones_nueva():
 def facturacion_pagos():
     """Lista de pagos - Filtrado por tenant"""
     tenant_id = get_current_tenant_id()
+    # Detectar si pago_facturas tiene tenant_id para filtrar/joinear correctamente
+    tiene_tenant_pf = False
+    try:
+        check_tenant_pf = execute_query('''
+            SELECT COUNT(*) as count
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'pago_facturas'
+              AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_pf = check_tenant_pf and check_tenant_pf.get('count', 0) > 0
+    except Exception:
+        tiene_tenant_pf = False
     ars_id_filter = request.args.get('ars_id')
     ncf_filter = request.args.get('ncf', '').strip()
     fecha_desde = request.args.get('fecha_desde', '').strip()
@@ -3233,6 +3246,9 @@ def facturacion_pagos():
         WHERE p.tenant_id = %s
     '''
     params = [tenant_id]
+    if tiene_tenant_pf:
+        query += ' AND (pf.tenant_id = %s OR pf.tenant_id IS NULL)'
+        params.append(tenant_id)
     if ars_id_filter:
         query += ' AND f.ars_id = %s'
         params.append(ars_id_filter)
@@ -3262,6 +3278,19 @@ def facturacion_pagos_nuevo():
     """Crear nuevo pago"""
     tenant_id = get_current_tenant_id()
     factura_id_param = request.args.get('factura_id')
+    # Detectar si pago_facturas tiene tenant_id
+    tiene_tenant_pf = False
+    try:
+        check_tenant_pf = execute_query('''
+            SELECT COUNT(*) as count
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = 'pago_facturas'
+              AND COLUMN_NAME = 'tenant_id'
+        ''')
+        tiene_tenant_pf = check_tenant_pf and check_tenant_pf.get('count', 0) > 0
+    except Exception:
+        tiene_tenant_pf = False
     
     if request.method == 'POST':
         fecha_pago = request.form.get('fecha_pago')
@@ -3321,10 +3350,16 @@ def facturacion_pagos_nuevo():
         
         # Crear relaciones pago-facturas
         for factura_id, monto in facturas_data:
-            execute_update('''
-                INSERT INTO pago_facturas (pago_id, factura_id, monto_aplicado)
-                VALUES (%s, %s, %s)
-            ''', (pago_id, factura_id, monto))
+            if tiene_tenant_pf:
+                execute_update('''
+                    INSERT INTO pago_facturas (tenant_id, pago_id, factura_id, monto_aplicado)
+                    VALUES (%s, %s, %s, %s)
+                ''', (tenant_id, pago_id, factura_id, monto))
+            else:
+                execute_update('''
+                    INSERT INTO pago_facturas (pago_id, factura_id, monto_aplicado)
+                    VALUES (%s, %s, %s)
+                ''', (pago_id, factura_id, monto))
             
             # Actualizar estado de la factura a Pagada si el monto aplicado es igual o mayor al total
             factura = execute_query('SELECT total FROM facturas WHERE id = %s', (factura_id,))
@@ -4712,7 +4747,7 @@ def facturacion_dashboard():
         
         if tiene_tenant_pp:
             filtros_pp.append('(pp.tenant_id = %s OR pp.tenant_id IS NULL)')
-            params_pp.append(tenant_id)
+            params_pp.append(tenant_pp)
         
         clause_pp_ars, p_pp_ars = _in_clause('pp.ars_id', ars_ids)
         filtros_pp.append(clause_pp_ars)
@@ -4744,6 +4779,37 @@ def facturacion_dashboard():
             for r in result
         ] if result else []
     
+        # Fallback sin filtro de tenant si no se obtuvo nada
+        if (monto_pendiente == 0.0 and not ars_pendientes_detalle) and tiene_tenant_pp:
+            filtros_pp_no_tenant = ["UPPER(pp.estado) LIKE 'PENDIENTE%'"]
+            params_pp_no_tenant = []
+            clause_pp_ars, p_pp_ars = _in_clause('pp.ars_id', ars_ids)
+            filtros_pp_no_tenant.append(clause_pp_ars)
+            params_pp_no_tenant += p_pp_ars
+            where_pp_no_tenant = ' AND '.join([f for f in filtros_pp_no_tenant if f])
+            result = execute_query(f'''
+                SELECT COALESCE(SUM(pp.monto_estimado), 0) as total
+                FROM pacientes_pendientes pp
+                WHERE {where_pp_no_tenant}
+            ''', tuple(params_pp_no_tenant))
+            monto_pendiente = float(result.get('total') or 0.0) if result else 0.0
+
+            result = execute_query(f'''
+                SELECT pp.ars_id,
+                       COALESCE(a.nombre, 'SIN ARS') AS nombre,
+                       COALESCE(SUM(pp.monto_estimado), 0) AS total_monto
+                FROM pacientes_pendientes pp
+                LEFT JOIN ars a ON pp.ars_id = a.id
+                WHERE {where_pp_no_tenant}
+                GROUP BY pp.ars_id, a.nombre
+                ORDER BY total_monto DESC
+            ''', tuple(params_pp_no_tenant), fetch='all')
+            ars_pendientes_nombres = [r['nombre'] for r in result] if result else []
+            ars_pendientes_detalle = [
+                {'id': r['ars_id'], 'nombre': r['nombre'], 'monto': float(r['total_monto'] or 0)}
+                for r in result
+            ] if result else []
+
     except Exception as e:
         print(f"Error en dashboard: {e}")
         where_facturas = '1=1'
@@ -5214,6 +5280,16 @@ def facturacion_facturas_nueva():
         if centro_medico_id and not validate_tenant_access('centros_medicos', centro_medico_id):
             flash('Centro médico no válido', 'error')
             return redirect(url_for('facturacion_facturas_nueva'))
+
+        # Tenant a usar para pacientes_pendientes: si no hay tenant_id de sesión, intentar derivarlo
+        tenant_pp = tenant_id
+        if not tenant_pp:
+            if medico_id:
+                t_med = execute_query('SELECT tenant_id FROM medicos WHERE id = %s LIMIT 1', (medico_id,))
+                tenant_pp = t_med.get('tenant_id') if t_med else None
+            if not tenant_pp and ars_id:
+                t_ars = execute_query('SELECT tenant_id FROM ars WHERE id = %s LIMIT 1', (ars_id,))
+                tenant_pp = t_ars.get('tenant_id') if t_ars else None
         
         # Validar JSON
         try:
@@ -5423,7 +5499,7 @@ def facturacion_facturas_nueva():
                 params_dup.append(autorizacion or '')
             if tiene_col_tenant_cache:
                 where_extra += " AND (tenant_id = %s OR tenant_id IS NULL)"
-                params_dup.append(tenant_id)
+                params_dup.append(tenant_pp)
             
             if tiene_col_autorizacion_cache:
                 duplicado = execute_query(f'''
@@ -5446,7 +5522,7 @@ def facturacion_facturas_nueva():
                                 medico_id = %s, centro_medico_id = %s, estado = 'Pendiente',
                                 autorizacion = %s, updated_at = NOW()
                             WHERE id = %s AND (tenant_id = %s OR tenant_id IS NULL)
-                        ''', (nombre, servicios_realizados, monto, medico_id, centro_medico_id, autorizacion, duplicado['id'], tenant_id))
+                        ''', (nombre, servicios_realizados, monto, medico_id, centro_medico_id, autorizacion, duplicado['id'], tenant_pp))
                     elif tiene_col_autorizacion_cache:
                         execute_update('''
                             UPDATE pacientes_pendientes
@@ -5462,7 +5538,7 @@ def facturacion_facturas_nueva():
                                 medico_id = %s, centro_medico_id = %s, estado = 'Pendiente',
                                 updated_at = NOW()
                             WHERE id = %s AND (tenant_id = %s OR tenant_id IS NULL)
-                        ''', (nombre, servicios_realizados, monto, medico_id, centro_medico_id, duplicado['id'], tenant_id))
+                        ''', (nombre, servicios_realizados, monto, medico_id, centro_medico_id, duplicado['id'], tenant_pp))
                     else:
                         execute_update('''
                             UPDATE pacientes_pendientes
@@ -5486,7 +5562,7 @@ def facturacion_facturas_nueva():
                     (tenant_id, paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
                      servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id, created_by, autorizacion)
                     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s, %s, %s)
-                ''', (tenant_id, paciente_id, nombre, nss, ars_id, fecha_iso, servicios_realizados, monto, medico_id, centro_medico_id, current_user.id, autorizacion))
+                ''', (tenant_pp, paciente_id, nombre, nss, ars_id, fecha_iso, servicios_realizados, monto, medico_id, centro_medico_id, current_user.id, autorizacion))
             except Exception as e:
                 error_msg = str(e).lower()
                 if 'unknown column' in error_msg:
@@ -5622,10 +5698,10 @@ def facturacion_pacientes_pendientes():
     if estado_filtro:
         estado_db = estado_filtro.strip().lower()
         if estado_db in ('facturado', 'facturada'):
-            query += ' AND LOWER(pp.estado) = %s'
+            query += " AND LOWER(TRIM(COALESCE(pp.estado, ''))) = %s"
             params.append('facturado')
         elif estado_db in ('pendiente', 'pendientes'):
-            query += ' AND LOWER(pp.estado) = %s'
+            query += " AND LOWER(TRIM(COALESCE(pp.estado, ''))) = %s"
             params.append('pendiente')
     
     # Filtro por médico
@@ -7013,6 +7089,20 @@ def facturacion_generar_final():
                   ars_id, ars.get('nombre', ''), medico_factura_id, medico_factura.get('nombre', ''),
                   centro_medico_id, centro_medico_nombre, subtotal, 0, total, current_user.id))
         
+        # Verificar si factura_detalles tiene tenant_id
+        tiene_tenant_fd = False
+        try:
+            check_tenant_fd = execute_query('''
+                SELECT COUNT(*) as count
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'factura_detalles'
+                  AND COLUMN_NAME = 'tenant_id'
+            ''')
+            tiene_tenant_fd = check_tenant_fd and check_tenant_fd.get('count', 0) > 0
+        except Exception:
+            tiene_tenant_fd = False
+
         # Crear detalles de factura para cada paciente
         for paciente in pacientes_raw:
             servicio_completo = paciente.get('servicios_realizados', '') or ''
@@ -7033,13 +7123,22 @@ def facturacion_generar_final():
             
             # Insertar detalle con columnas ampliadas; fallback si alguna no existe
             try:
-                execute_update('''
-                    INSERT INTO factura_detalles 
-                    (factura_id, descripcion, cantidad, precio_unitario, subtotal,
-                     medico_id, medico_consulta, ars_id, estado, paciente_id, nss, autorizacion, fecha_servicio)
-                    VALUES (%s, %s, 1, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-                ''', (factura_id, descripcion_servicio, monto, monto,
-                      medico_detalle_id, medico_detalle_id, ars_id, estado_detalle, paciente_id_ref, nss, autorizacion, fecha_servicio))
+                if tiene_tenant_fd:
+                    execute_update('''
+                        INSERT INTO factura_detalles 
+                        (tenant_id, factura_id, descripcion, cantidad, precio_unitario, subtotal,
+                         medico_id, medico_consulta, ars_id, estado, paciente_id, nss, autorizacion, fecha_servicio)
+                        VALUES (%s, %s, %s, 1, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ''', (tenant_id, factura_id, descripcion_servicio, monto, monto,
+                          medico_detalle_id, medico_detalle_id, ars_id, estado_detalle, paciente_id_ref, nss, autorizacion, fecha_servicio))
+                else:
+                    execute_update('''
+                        INSERT INTO factura_detalles 
+                        (factura_id, descripcion, cantidad, precio_unitario, subtotal,
+                         medico_id, medico_consulta, ars_id, estado, paciente_id, nss, autorizacion, fecha_servicio)
+                        VALUES (%s, %s, 1, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    ''', (factura_id, descripcion_servicio, monto, monto,
+                          medico_detalle_id, medico_detalle_id, ars_id, estado_detalle, paciente_id_ref, nss, autorizacion, fecha_servicio))
             except Exception as e:
                 error_msg = str(e).lower()
                 if 'unknown column' in error_msg:

@@ -99,20 +99,21 @@
                     <textarea class="form-control" id="direccion" name="direccion" rows="3" required maxlength="100">{{ centro['direccion'] if centro else '' }}</textarea>
                 </div>
 
-                <!-- RNC -->
+                <!-- RNC / Cédula -->
                 <div class="mb-3">
                     <label for="rnc" class="form-label">
                         <i class="fas fa-id-card me-2" style="color: var(--primary-color);"></i>
-                        RNC*
+                        RNC / Cédula*
                     </label>
                     <input type="text" class="form-control" id="rnc" name="rnc" 
                            value="{{ centro['rnc'] if centro else '' }}" required 
-                           placeholder="000-0000000-0"
-                           maxlength="15"
-                           pattern="[0-9\-]*"
+                           placeholder="00000000000"
+                           maxlength="11"
+                           pattern="[0-9]{1,11}"
                            inputmode="numeric"
-                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57) || event.charCode == 45"
-                           title="Solo se permiten números y guiones">
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,11)"
+                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
+                           title="Solo se permiten números (máx. 11 caracteres)">
                 </div>
 
                 <!-- Teléfono -->
@@ -123,12 +124,13 @@
                     </label>
                     <input type="text" class="form-control" id="telefono" name="telefono" 
                            value="{{ centro['telefono'] if centro else '' }}"
-                           placeholder="(809) 000-0000"
-                           maxlength="15"
-                           pattern="[0-9\(\)\-\s]*"
+                           placeholder="8090000000"
+                           maxlength="10"
+                           pattern="[0-9]{10}"
                            inputmode="numeric"
-                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57) || event.charCode == 40 || event.charCode == 41 || event.charCode == 45 || event.charCode == 32"
-                           title="Solo se permiten números, paréntesis, espacios y guiones">
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,10)"
+                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
+                           title="Solo se permiten números (10 dígitos)">
                 </div>
 
                 <!-- Activar/Desactivar Centro -->

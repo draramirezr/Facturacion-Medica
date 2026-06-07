@@ -77,6 +77,12 @@
         vertical-align: middle;
         border-bottom: 1px solid {{ tema.primary }}15;
     }
+
+    .search-box .form-control:focus,
+    .search-box .form-control:hover {
+        border-color: var(--primary-color) !important;
+        box-shadow: 0 0 0 0.2rem {{ tema.primary }}40 !important;
+    }
     
     .table-facturacion tbody tr:hover {
         background-color: {{ tema.primary }}08;

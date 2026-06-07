@@ -362,6 +362,7 @@
             <tbody>
                 {% for paciente in pendientes %}
                 {% set monto_paciente = paciente.get('monto') or paciente.get('monto_estimado', 0) %}
+                {% set estado_val = (paciente.get('estado') or estado_filtro or '')|lower|trim %}
                 <tr>
                     <td><strong>{{ paciente['id'] }}</strong></td>
                     <td>{{ paciente['nss'] }}</td>
@@ -379,7 +380,7 @@
                     <td><small>{{ paciente['medico_nombre'] }}</small></td>
                     <td><small>{{ paciente.get('nombre_ars') or paciente.get('ars_nombre', 'N/A') }}</small></td>
                     <td class="text-center">
-                        {% if paciente['estado'] == 'facturado' %}
+                        {% if estado_val == 'facturado' %}
                         <span class="badge-facturado">
                             FACTURADO
                         </span>
