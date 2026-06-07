@@ -1,9 +1,24 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Pacientes Pendientes - Facturación{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
+
+{% macro fecha_ddmmyyyy(fecha) -%}
+    {%- if fecha %}
+        {%- set f = fecha|string %}
+        {%- if '-' in f and f|length >= 10 -%}
+            {{ f[8:10] }}/{{ f[5:7] }}/{{ f[0:4] }}
+        {%- elif '/' in f and f|length >= 10 -%}
+            {{ f }}
+        {%- else -%}
+            {{ f }}
+        {%- endif -%}
+    {%- else -%}
+        -
+    {%- endif -%}
+{%- endmacro %}
 <style>
     .facturacion-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
@@ -351,7 +366,7 @@
                     <td><strong>{{ paciente['id'] }}</strong></td>
                     <td>{{ paciente['nss'] }}</td>
                     <td>{{ paciente['nombre_paciente'] }}</td>
-                    <td>{{ paciente['fecha_servicio'] }}</td>
+                    <td>{{ fecha_ddmmyyyy(paciente['fecha_servicio']) }}</td>
                     <td>
                         {% set servicio_completo = paciente.get('descripcion_servicio', '') %}
                         {% if ' - Autorización:' in servicio_completo %}

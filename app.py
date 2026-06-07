@@ -2734,35 +2734,29 @@ def api_facturacion_pacientes_pendientes_update(paciente_id):
     """Actualizar un paciente pendiente"""
     try:
         tenant_id = get_current_tenant_id()
-        
         if not request.is_json:
             return jsonify({'error': 'Content-Type debe ser application/json'}), 400
         
-        data = request.get_json()
-        if not data:
-            return jsonify({'error': 'No se recibieron datos'}), 400
+        data = request.get_json() or {}
         
         # Validar datos
         nombre_paciente = sanitize_input(data.get('nombre_paciente', ''), 200)
         nss = sanitize_input(data.get('nss', ''), 50)
         fecha_servicio = data.get('fecha_servicio', '')
-        servicio_completo = sanitize_input(data.get('servicio', ''), 500)  # Ya viene con autorización si existe
+        servicio_completo = sanitize_input(data.get('servicio', ''), 500)
         
         try:
             monto_estimado = float(data.get('monto_estimado', 0))
         except (ValueError, TypeError):
             monto_estimado = 0.0
         
-        ars_id = data.get('ars_id') or None
-        medico_id = data.get('medico_id') or None
-        centro_medico_id = data.get('centro_medico_id') or None
+        ars_id = validate_int(data.get('ars_id'), min_value=1)
+        medico_id = validate_int(data.get('medico_id'), min_value=1)
+        centro_medico_id = validate_int(data.get('centro_medico_id'), min_value=1)
         
-        # Manejar observaciones de forma segura
         observaciones = data.get('observaciones')
         if observaciones:
-            observaciones = str(observaciones).strip()
-            if not observaciones:
-                observaciones = None
+            observaciones = str(observaciones).strip() or None
         else:
             observaciones = None
         
@@ -2772,7 +2766,6 @@ def api_facturacion_pacientes_pendientes_update(paciente_id):
         if not fecha_servicio:
             return jsonify({'error': 'La fecha de servicio es obligatoria'}), 400
         
-        # El servicio ya viene completo con autorización desde el frontend
         servicios_realizados = servicio_completo
         
         # Verificar si existe la columna tenant_id
@@ -2782,34 +2775,13 @@ def api_facturacion_pacientes_pendientes_update(paciente_id):
                 SELECT COUNT(*) as count 
                 FROM information_schema.COLUMNS 
                 WHERE TABLE_SCHEMA = DATABASE()
-                AND TABLE_NAME = 'pacientes_pendientes' 
-                AND COLUMN_NAME = 'tenant_id'
+                  AND TABLE_NAME = 'pacientes_pendientes' 
+                  AND COLUMN_NAME = 'tenant_id'
             ''')
             tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
-        except Exception as e:
-            print(f"Error al verificar tenant_id: {e}")
+        except Exception:
             tiene_tenant_id = False
-        
-        # Convertir IDs a enteros si existen
-        try:
-            if ars_id:
-                ars_id = int(ars_id)
-        except (ValueError, TypeError):
-            ars_id = None
-            
-        try:
-            if medico_id:
-                medico_id = int(medico_id)
-        except (ValueError, TypeError):
-            medico_id = None
-            
-        try:
-            if centro_medico_id:
-                centro_medico_id = int(centro_medico_id)
-        except (ValueError, TypeError):
-            centro_medico_id = None
-        
-        # Actualizar
+
         if tiene_tenant_id:
             execute_update('''
                 UPDATE pacientes_pendientes 
@@ -2835,8 +2807,50 @@ def api_facturacion_pacientes_pendientes_update(paciente_id):
         error_trace = traceback.format_exc()
         print(f"Error al actualizar paciente pendiente: {error_trace}")
         return jsonify({'error': f'Error al actualizar: {str(e)}'}), 500
+
+@app.route('/api/facturacion/buscar-paciente/<nss>', defaults={'ars_id': None})
+@app.route('/api/facturacion/buscar-paciente/<nss>/<ars_id>')
+@login_required
+def api_facturacion_buscar_paciente(nss, ars_id):
+    """Busca paciente por NSS y opcionalmente por ARS. Devuelve nombre y ars."""
+    tenant_id = get_current_tenant_id()
+    nss = nss.strip()
+    ars_id = validate_int(ars_id, min_value=1) if ars_id else None
     
-    return jsonify({'success': True, 'message': 'Registro actualizado exitosamente'})
+    # Buscar por NSS + ARS si viene ars_id
+    if ars_id:
+        paciente = execute_query('''
+            SELECT p.*, a.nombre AS ars_nombre
+            FROM pacientes p
+            LEFT JOIN ars a ON p.ars_id = a.id
+            WHERE p.nss = %s AND p.ars_id = %s AND p.tenant_id = %s
+            LIMIT 1
+        ''', (nss, ars_id, tenant_id))
+        if paciente:
+            return jsonify({
+                'encontrado': True,
+                'nombre': paciente.get('nombre', ''),
+                'ars_nombre': paciente.get('ars_nombre', '')
+            })
+    
+    # Buscar por NSS en cualquier ARS del tenant
+    paciente_otro = execute_query('''
+        SELECT p.*, a.nombre AS ars_nombre
+        FROM pacientes p
+        LEFT JOIN ars a ON p.ars_id = a.id
+        WHERE p.nss = %s AND p.tenant_id = %s
+        LIMIT 1
+    ''', (nss, tenant_id))
+    
+    if paciente_otro:
+        return jsonify({
+            'encontrado': True,
+            'nombre': paciente_otro.get('nombre', ''),
+            'ars_nombre': paciente_otro.get('ars_nombre', ''),
+            'ars_id': paciente_otro.get('ars_id')
+        })
+    
+    return jsonify({'encontrado': False})
 
 @app.route('/facturacion/reclamaciones')
 @login_required
@@ -4567,119 +4581,616 @@ def facturacion_enviar_email(factura_id):
 @app.route('/facturacion/dashboard')
 @login_required
 def facturacion_dashboard():
-    """Dashboard de facturación"""
-    from datetime import datetime, timedelta
+    """Dashboard de facturación con filtros multi-select (lógica similar al otro proyecto, sin cambiar diseño)."""
+    from datetime import datetime, timedelta, timezone
     
-    # Fechas por defecto (último mes)
-    fecha_hasta = request.args.get('fecha_hasta', datetime.now().strftime('%Y-%m-%d'))
-    fecha_desde = request.args.get('fecha_desde', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
+    # Roles permitidos (alineado al otro proyecto)
+    if current_user.perfil not in ['Administrador', 'Registro de Facturas', 'Nivel 2']:
+        flash('No tienes permisos para acceder a esta sección', 'error')
+        return redirect(url_for('facturacion_menu'))
     
-    # Estadísticas básicas
+    tenant_id = get_current_tenant_id()
+    
+    # Fechas por defecto: últimos 12 meses (zona horaria RD -4)
+    tz_rd = timezone(timedelta(hours=-4))
+    fecha_actual = datetime.now(tz_rd)
+    fecha_hace_12_meses = fecha_actual - timedelta(days=365)
+    
+    fecha_desde = request.args.get('fecha_desde', default=fecha_hace_12_meses.strftime('%Y-%m-%d'))
+    fecha_hasta = request.args.get('fecha_hasta', default=fecha_actual.strftime('%Y-%m-%d'))
+    
+    # Filtros múltiples
+    def _clean_ids(raw_ids):
+        ids = []
+        for value in raw_ids:
+            try:
+                parsed = int(value)
+                if parsed > 0:
+                    ids.append(parsed)
+            except Exception:
+                continue
+        return ids
+    
+    ars_ids = _clean_ids(request.args.getlist('ars_id'))
+    medico_factura_ids = _clean_ids(request.args.getlist('medico_factura_id'))
+    medico_consulta_ids = _clean_ids(request.args.getlist('medico_consulta_id'))
+    
+    # Si hay médico consulta, ignorar médico factura (compat con lógica previa)
+    if medico_consulta_ids:
+        medico_factura_ids = []
+    
+    # Helper para armar cláusulas dinámicas
+    def _in_clause(field, values):
+        if not values:
+            return '', []
+        placeholders = ','.join(['%s'] * len(values))
+        return f' AND {field} IN ({placeholders})', values
+    
+    # ==================== INDICADORES ====================
     total_facturas = 0
     total_facturado = 0.0
     monto_pendiente = 0.0
     ars_pendientes_nombres = []
+    ars_pendientes_detalle = []
+    # fallback para que los gráficos no fallen si hay excepción
+    where_facturas = '1=1'
+    params_facturas = []
     
     try:
-        tenant_id = get_current_tenant_id()
+        # Detectar si facturas tiene tenant_id
+        tiene_tenant_id_facturas = False
+        try:
+            check_tenant_facturas = execute_query('''
+                SELECT COUNT(*) as count 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'facturas' 
+                  AND COLUMN_NAME = 'tenant_id'
+            ''')
+            tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
+        except Exception:
+            tiene_tenant_id_facturas = False
+        
+        # Expresión de fecha: usar fecha_emision y como respaldo created_at
+        fecha_expr = "COALESCE(f.fecha_emision, DATE(f.created_at))"
+        
+        # Base filters (facturas)
+        filtros_facturas = ['f.estado != %s', f'{fecha_expr} BETWEEN %s AND %s']
+        params_facturas = ['Anulada', fecha_desde, fecha_hasta]
+        if tiene_tenant_id_facturas:
+            filtros_facturas.insert(0, '(f.tenant_id = %s OR f.tenant_id IS NULL)')
+            params_facturas.insert(0, tenant_id)
+        
+        clause_ars, p_ars = _in_clause('f.ars_id', ars_ids)
+        filtros_facturas.append(clause_ars)
+        params_facturas += p_ars
+        
+        clause_medico_f, p_medico_f = _in_clause('f.medico_id', medico_factura_ids)
+        filtros_facturas.append(clause_medico_f)
+        params_facturas += p_medico_f
+        
+        clause_medico_c, p_medico_c = _in_clause('f.medico_id', medico_consulta_ids)
+        filtros_facturas.append(clause_medico_c)
+        params_facturas += p_medico_c
+        
+        where_facturas = ' AND '.join([f for f in filtros_facturas if f])
         
         # Total de facturas
-        result = execute_query('''
-            SELECT COUNT(*) as total FROM facturas 
-            WHERE tenant_id = %s
-        ''', (tenant_id,))
-        total_facturas = result['total'] if result else 0
+        total_facturas_query = f'''
+            SELECT COUNT(*) as total
+            FROM facturas f
+            WHERE {where_facturas}
+        '''
+        result = execute_query(total_facturas_query, tuple(params_facturas))
+        total_facturas = result.get('total', 0) if result else 0
         
         # Total facturado
-        result = execute_query('''
-            SELECT COALESCE(SUM(total), 0) as total FROM facturas 
-            WHERE tenant_id = %s
-        ''', (tenant_id,))
-        total_facturado = float(result['total']) if result and result['total'] else 0.0
+        total_facturado_query = f'''
+            SELECT COALESCE(SUM(f.total), 0) as total
+            FROM facturas f
+            WHERE {where_facturas}
+        '''
+        result = execute_query(total_facturado_query, tuple(params_facturas))
+        total_facturado = float(result.get('total') or 0.0)
         
-        # Monto pendiente (usar monto estimado de pacientes_pendientes si existe)
+        # Monto pendiente (pacientes_pendientes)
+        tiene_tenant_pp = False
         try:
-            result = execute_query('''
-                SELECT COALESCE(SUM(monto_estimado), 0) as total 
-                FROM pacientes_pendientes
-                WHERE estado = 'Pendiente'
+            check_tenant_pp = execute_query('''
+                SELECT COUNT(*) as count 
+                FROM information_schema.COLUMNS 
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = 'pacientes_pendientes' 
+                  AND COLUMN_NAME = 'tenant_id'
             ''')
-            monto_pendiente = float(result['total']) if result and result['total'] else 0.0
+            tiene_tenant_pp = check_tenant_pp and check_tenant_pp.get('count', 0) > 0
         except Exception:
-            monto_pendiente = 0.0
+            tiene_tenant_pp = False
         
-        # ARS pendientes
-        result = execute_query('''
-            SELECT DISTINCT a.nombre 
-            FROM pacientes_pendientes pp 
-            JOIN ars a ON pp.ars_id = a.id 
-            WHERE pp.estado = 'Pendiente'
-        ''', fetch='all')
+        filtros_pp = ["UPPER(pp.estado) LIKE 'PENDIENTE%'"]
+        params_pp = []
+        
+        if tiene_tenant_pp:
+            filtros_pp.append('(pp.tenant_id = %s OR pp.tenant_id IS NULL)')
+            params_pp.append(tenant_id)
+        
+        clause_pp_ars, p_pp_ars = _in_clause('pp.ars_id', ars_ids)
+        filtros_pp.append(clause_pp_ars)
+        params_pp += p_pp_ars
+        
+        where_pp = ' AND '.join([f for f in filtros_pp if f])
+        
+        result = execute_query(f'''
+            SELECT COALESCE(SUM(pp.monto_estimado), 0) as total
+            FROM pacientes_pendientes pp
+            WHERE {where_pp}
+        ''', tuple(params_pp))
+        monto_pendiente = float(result.get('total') or 0.0) if result else 0.0
+        
+        # ARS pendientes (nombres y monto)
+        result = execute_query(f'''
+            SELECT pp.ars_id,
+                   COALESCE(a.nombre, 'SIN ARS') AS nombre,
+                   COALESCE(SUM(pp.monto_estimado), 0) AS total_monto
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a ON pp.ars_id = a.id
+            WHERE {where_pp}
+            GROUP BY pp.ars_id, a.nombre
+            ORDER BY total_monto DESC
+        ''', tuple(params_pp), fetch='all')
         ars_pendientes_nombres = [r['nombre'] for r in result] if result else []
-        
+        ars_pendientes_detalle = [
+            {'id': r['ars_id'], 'nombre': r['nombre'], 'monto': float(r['total_monto'] or 0)}
+            for r in result
+        ] if result else []
+    
     except Exception as e:
         print(f"Error en dashboard: {e}")
+        where_facturas = '1=1'
+        params_facturas = []
     
     # Facturación por mes
     facturacion_por_mes = []
     try:
-        result = execute_query('''
-            SELECT DATE_FORMAT(fecha_emision, '%%Y-%%m') as mes, 
-                   SUM(total) as total_monto
-            FROM facturas
-            WHERE fecha_emision BETWEEN %s AND %s
-            GROUP BY DATE_FORMAT(fecha_emision, '%%Y-%%m')
+        query_mes = f'''
+            SELECT DATE_FORMAT({fecha_expr}, '%%Y-%%m') as mes,
+                   SUM(f.total) as total_monto
+            FROM facturas f
+            WHERE {where_facturas}
+            GROUP BY DATE_FORMAT({fecha_expr}, '%%Y-%%m')
             ORDER BY mes
-        ''', (fecha_desde, fecha_hasta), fetch='all')
+        '''
+        result = execute_query(query_mes, tuple(params_facturas), fetch='all')
         facturacion_por_mes = [{'mes': r['mes'], 'total_monto': float(r['total_monto'])} for r in result] if result else []
-    except:
+    except Exception:
         facturacion_por_mes = []
     
     # Facturación por ARS y mes
     facturacion_ars_mes = []
     try:
-        result = execute_query('''
-            SELECT DATE_FORMAT(f.fecha_emision, '%%Y-%%m') as mes,
-                   a.nombre as nombre_ars,
+        query_ars_mes = f'''
+            SELECT DATE_FORMAT({fecha_expr}, '%%Y-%%m') as mes,
+                   COALESCE(a.nombre, 'SIN ARS') as nombre_ars,
                    SUM(f.total) as total_monto
             FROM facturas f
-            JOIN ars a ON f.ars_id = a.id
-            WHERE f.fecha_emision BETWEEN %s AND %s
-            GROUP BY DATE_FORMAT(f.fecha_emision, '%%Y-%%m'), a.nombre
-            ORDER BY mes, a.nombre
-        ''', (fecha_desde, fecha_hasta), fetch='all')
-        facturacion_ars_mes = [{'mes': r['mes'], 'nombre_ars': r['nombre_ars'], 'total_monto': float(r['total_monto'])} for r in result] if result else []
-    except:
+            LEFT JOIN ars a ON f.ars_id = a.id
+            WHERE {where_facturas}
+            GROUP BY DATE_FORMAT({fecha_expr}, '%%Y-%%m'), nombre_ars
+            ORDER BY mes, nombre_ars
+        '''
+        result = execute_query(query_ars_mes, tuple(params_facturas), fetch='all')
+        facturacion_ars_mes = [
+            {'mes': r['mes'], 'nombre_ars': r['nombre_ars'], 'total_monto': float(r['total_monto'])}
+            for r in result
+        ] if result else []
+    except Exception:
         facturacion_ars_mes = []
     
+    # Facturación por médico (paciente) y mes
+    facturacion_medico_paciente_mes = []
+    try:
+        monto_detalle = "COALESCE(fd.subtotal, fd.precio_unitario, 0)"
+        query_medico_mes = f'''
+            SELECT
+                COALESCE(m.nombre, 'Sin médico asignado') AS medico_nombre,
+                DATE_FORMAT({fecha_expr}, '%%Y-%%m') AS mes,
+                COALESCE(SUM({monto_detalle}), 0) AS total_monto
+            FROM facturas f
+            JOIN factura_detalles fd ON fd.factura_id = f.id
+            LEFT JOIN medicos m ON COALESCE(fd.medico_consulta, f.medico_id) = m.id
+            WHERE {where_facturas}
+            GROUP BY m.id, medico_nombre, DATE_FORMAT({fecha_expr}, '%%Y-%%m')
+            ORDER BY medico_nombre, mes
+        '''
+        result = execute_query(query_medico_mes, tuple(params_facturas), fetch='all')
+        facturacion_medico_paciente_mes = [
+            {'medico_nombre': r['medico_nombre'], 'mes': r['mes'], 'total_monto': float(r['total_monto'])}
+            for r in result
+        ] if result else []
+    except Exception:
+        facturacion_medico_paciente_mes = []
+    
+    # Facturación por ARS + médico (paciente) + mes (barras apiladas)
+    facturacion_ars_medico_paciente_mes = []
+    try:
+        monto_detalle = "COALESCE(fd.subtotal, fd.precio_unitario, 0)"
+        query_ars_medico_mes = f'''
+            SELECT
+                COALESCE(a.nombre, 'SIN ARS') AS nombre_ars,
+                COALESCE(m.nombre, 'Sin médico asignado') AS medico_nombre,
+                DATE_FORMAT({fecha_expr}, '%%Y-%%m') AS mes,
+                COALESCE(SUM({monto_detalle}), 0) AS total_monto
+            FROM facturas f
+            JOIN factura_detalles fd ON fd.factura_id = f.id
+            LEFT JOIN ars a ON f.ars_id = a.id
+            LEFT JOIN medicos m ON COALESCE(fd.medico_consulta, f.medico_id) = m.id
+            WHERE {where_facturas}
+            GROUP BY nombre_ars, medico_nombre, DATE_FORMAT({fecha_expr}, '%%Y-%%m')
+            ORDER BY mes ASC, nombre_ars ASC, medico_nombre ASC
+        '''
+        result = execute_query(query_ars_medico_mes, tuple(params_facturas), fetch='all')
+        facturacion_ars_medico_paciente_mes = [
+            {
+                'nombre_ars': r['nombre_ars'],
+                'medico_nombre': r['medico_nombre'],
+                'mes': r['mes'],
+                'total_monto': float(r['total_monto'])
+            }
+            for r in result
+        ] if result else []
+    except Exception:
+        facturacion_ars_medico_paciente_mes = []
+
+    # Si hay totales pero series por ARS están vacías, reintentar sin filtro de tenant
+    if total_facturado > 0 and not facturacion_ars_mes:
+        filtros_no_tenant = ['f.estado != %s', f'{fecha_expr} BETWEEN %s AND %s']
+        params_no_tenant = ['Anulada', fecha_desde, fecha_hasta]
+        clause_ars, p_ars = _in_clause('f.ars_id', ars_ids)
+        filtros_no_tenant.append(clause_ars)
+        params_no_tenant += p_ars
+        clause_med_f, p_med_f = _in_clause('f.medico_id', medico_factura_ids)
+        filtros_no_tenant.append(clause_med_f)
+        params_no_tenant += p_med_f
+        clause_med_c, p_med_c = _in_clause('f.medico_id', medico_consulta_ids)
+        filtros_no_tenant.append(clause_med_c)
+        params_no_tenant += p_med_c
+        where_no_tenant = ' AND '.join([f for f in filtros_no_tenant if f])
+
+        try:
+            result = execute_query(f'''
+                SELECT DATE_FORMAT({fecha_expr}, '%%Y-%%m') as mes,
+                       COALESCE(a.nombre, 'SIN ARS') as nombre_ars,
+                       SUM(f.total) as total_monto
+                FROM facturas f
+                LEFT JOIN ars a ON f.ars_id = a.id
+                WHERE {where_no_tenant}
+                GROUP BY DATE_FORMAT({fecha_expr}, '%%Y-%%m'), nombre_ars
+                ORDER BY mes, nombre_ars
+            ''', tuple(params_no_tenant), fetch='all')
+            facturacion_ars_mes = [
+                {'mes': r['mes'], 'nombre_ars': r['nombre_ars'], 'total_monto': float(r['total_monto'])}
+                for r in result
+            ] if result else []
+        except Exception:
+            pass
+
+    if total_facturado > 0 and not facturacion_ars_medico_paciente_mes:
+        filtros_no_tenant = ['f.estado != %s', f'{fecha_expr} BETWEEN %s AND %s']
+        params_no_tenant = ['Anulada', fecha_desde, fecha_hasta]
+        clause_ars, p_ars = _in_clause('f.ars_id', ars_ids)
+        filtros_no_tenant.append(clause_ars)
+        params_no_tenant += p_ars
+        clause_med_f, p_med_f = _in_clause('f.medico_id', medico_factura_ids)
+        filtros_no_tenant.append(clause_med_f)
+        params_no_tenant += p_med_f
+        clause_med_c, p_med_c = _in_clause('f.medico_id', medico_consulta_ids)
+        filtros_no_tenant.append(clause_med_c)
+        params_no_tenant += p_med_c
+        where_no_tenant = ' AND '.join([f for f in filtros_no_tenant if f])
+
+        try:
+            result = execute_query(f'''
+                SELECT
+                    COALESCE(a.nombre, 'SIN ARS') AS nombre_ars,
+                    COALESCE(m.nombre, 'Sin médico asignado') AS medico_nombre,
+                    DATE_FORMAT({fecha_expr}, '%%Y-%%m') AS mes,
+                    COALESCE(SUM(f.total), 0) AS total_monto
+                FROM facturas f
+                LEFT JOIN ars a ON f.ars_id = a.id
+                LEFT JOIN medicos m ON f.medico_id = m.id
+                WHERE {where_no_tenant}
+                GROUP BY nombre_ars, medico_nombre, DATE_FORMAT({fecha_expr}, '%%Y-%%m')
+                ORDER BY mes ASC, nombre_ars ASC, medico_nombre ASC
+            ''', tuple(params_no_tenant), fetch='all')
+            facturacion_ars_medico_paciente_mes = [
+                {
+                    'nombre_ars': r['nombre_ars'],
+                    'medico_nombre': r['medico_nombre'],
+                    'mes': r['mes'],
+                    'total_monto': float(r['total_monto'])
+                }
+                for r in result
+            ] if result else []
+        except Exception:
+            pass
+
+    # Fallback: si no hay datos, reintentar sin filtrar por tenant_id (por si los registros no lo tienen)
+    if (
+        total_facturas == 0
+        and total_facturado == 0.0
+        and monto_pendiente == 0.0
+        and not ars_pendientes_detalle
+    ):
+        try:
+            filtros_ft_no_tenant = ['f.estado != %s', f'{fecha_expr} BETWEEN %s AND %s']
+            params_ft_no_tenant = ['Anulada', fecha_desde, fecha_hasta]
+            clause_ars, p_ars = _in_clause('f.ars_id', ars_ids)
+            filtros_ft_no_tenant.append(clause_ars)
+            params_ft_no_tenant += p_ars
+            clause_med_f, p_med_f = _in_clause('f.medico_id', medico_factura_ids)
+            filtros_ft_no_tenant.append(clause_med_f)
+            params_ft_no_tenant += p_med_f
+            clause_med_c, p_med_c = _in_clause('f.medico_id', medico_consulta_ids)
+            filtros_ft_no_tenant.append(clause_med_c)
+            params_ft_no_tenant += p_med_c
+            where_ft_no_tenant = ' AND '.join([f for f in filtros_ft_no_tenant if f])
+
+            # Totales
+            result = execute_query(f'''
+                SELECT COUNT(*) as total FROM facturas f WHERE {where_ft_no_tenant}
+            ''', tuple(params_ft_no_tenant))
+            total_facturas = result.get('total', 0) if result else 0
+
+            result = execute_query(f'''
+                SELECT COALESCE(SUM(f.total), 0) as total FROM facturas f WHERE {where_ft_no_tenant}
+            ''', tuple(params_ft_no_tenant))
+            total_facturado = float(result.get('total') or 0.0)
+
+            # Pendientes (sin tenant)
+            filtros_pp_no_tenant = ["UPPER(pp.estado) LIKE 'PENDIENTE%'"]
+            params_pp_no_tenant = []
+            clause_pp_ars, p_pp_ars = _in_clause('pp.ars_id', ars_ids)
+            filtros_pp_no_tenant.append(clause_pp_ars)
+            params_pp_no_tenant += p_pp_ars
+            where_pp_no_tenant = ' AND '.join([f for f in filtros_pp_no_tenant if f])
+
+            result = execute_query(f'''
+                SELECT COALESCE(SUM(pp.monto_estimado), 0) as total
+                FROM pacientes_pendientes pp
+                WHERE {where_pp_no_tenant}
+            ''', tuple(params_pp_no_tenant))
+            monto_pendiente = float(result.get('total') or 0.0) if result else 0.0
+
+            result = execute_query(f'''
+                SELECT pp.ars_id,
+                       COALESCE(a.nombre, 'SIN ARS') AS nombre,
+                       COALESCE(SUM(pp.monto_estimado), 0) AS total_monto
+                FROM pacientes_pendientes pp
+                LEFT JOIN ars a ON pp.ars_id = a.id
+                WHERE {where_pp_no_tenant}
+                GROUP BY pp.ars_id, a.nombre
+                ORDER BY total_monto DESC
+            ''', tuple(params_pp_no_tenant), fetch='all')
+            ars_pendientes_nombres = [r['nombre'] for r in result] if result else []
+            ars_pendientes_detalle = [
+                {'id': r['ars_id'], 'nombre': r['nombre'], 'monto': float(r['total_monto'] or 0)}
+                for r in result
+            ] if result else []
+
+            # Recalcular series
+            result = execute_query(f'''
+                SELECT DATE_FORMAT({fecha_expr}, '%%Y-%%m') as mes,
+                       SUM(f.total) as total_monto
+                FROM facturas f
+                WHERE {where_ft_no_tenant}
+                GROUP BY DATE_FORMAT({fecha_expr}, '%%Y-%%m')
+                ORDER BY mes
+            ''', tuple(params_ft_no_tenant), fetch='all')
+            facturacion_por_mes = [{'mes': r['mes'], 'total_monto': float(r['total_monto'])} for r in result] if result else []
+
+            result = execute_query(f'''
+                SELECT DATE_FORMAT({fecha_expr}, '%%Y-%%m') as mes,
+                       COALESCE(a.nombre, 'SIN ARS') as nombre_ars,
+                       SUM(f.total) as total_monto
+                FROM facturas f
+                LEFT JOIN ars a ON f.ars_id = a.id
+                WHERE {where_ft_no_tenant}
+                GROUP BY DATE_FORMAT({fecha_expr}, '%%Y-%%m'), nombre_ars
+                ORDER BY mes, nombre_ars
+            ''', tuple(params_ft_no_tenant), fetch='all')
+            facturacion_ars_mes = [
+                {'mes': r['mes'], 'nombre_ars': r['nombre_ars'], 'total_monto': float(r['total_monto'])}
+                for r in result
+            ] if result else []
+
+            result = execute_query(f'''
+                SELECT
+                    COALESCE(m.nombre, 'Sin médico asignado') AS medico_nombre,
+                    DATE_FORMAT({fecha_expr}, '%%Y-%%m') AS mes,
+                    COALESCE(SUM(f.total), 0) AS total_monto
+                FROM facturas f
+                LEFT JOIN medicos m ON f.medico_id = m.id
+                WHERE {where_ft_no_tenant}
+                GROUP BY m.id, medico_nombre, DATE_FORMAT({fecha_expr}, '%%Y-%%m')
+                ORDER BY medico_nombre, mes
+            ''', tuple(params_ft_no_tenant), fetch='all')
+            facturacion_medico_paciente_mes = [
+                {'medico_nombre': r['medico_nombre'], 'mes': r['mes'], 'total_monto': float(r['total_monto'])}
+                for r in result
+            ] if result else []
+
+            result = execute_query(f'''
+                SELECT
+                    COALESCE(a.nombre, 'SIN ARS') AS nombre_ars,
+                    COALESCE(m.nombre, 'Sin médico asignado') AS medico_nombre,
+                    DATE_FORMAT({fecha_expr}, '%%Y-%%m') AS mes,
+                    COALESCE(SUM(f.total), 0) AS total_monto
+                FROM facturas f
+                LEFT JOIN ars a ON f.ars_id = a.id
+                LEFT JOIN medicos m ON f.medico_id = m.id
+                WHERE {where_ft_no_tenant}
+                GROUP BY nombre_ars, medico_nombre, DATE_FORMAT({fecha_expr}, '%%Y-%%m')
+                ORDER BY mes ASC, nombre_ars ASC, medico_nombre ASC
+            ''', tuple(params_ft_no_tenant), fetch='all')
+            facturacion_ars_medico_paciente_mes = [
+                {
+                    'nombre_ars': r['nombre_ars'],
+                    'medico_nombre': r['medico_nombre'],
+                    'mes': r['mes'],
+                    'total_monto': float(r['total_monto'])
+                }
+                for r in result
+            ] if result else []
+        except Exception:
+            pass
+    
     # Listas para filtros
-    tenant_id = get_current_tenant_id()
-    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
-    medicos_factura_list = execute_query('SELECT * FROM medicos WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
-    medicos_consulta_list = medicos_factura_list  # Usar la misma lista
+    ars_list = execute_query(
+        'SELECT id, nombre FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre',
+        (tenant_id,), fetch='all'
+    ) or []
+    
+    medicos_factura_list = execute_query(
+        'SELECT id, nombre FROM medicos WHERE activo = 1 AND tenant_id = %s ORDER BY nombre',
+        (tenant_id,), fetch='all'
+    ) or []
+    
+    # Usamos la misma lista para consulta (no existe médico_consulta en este esquema)
+    medicos_consulta_list = medicos_factura_list
     
     return render_template('facturacion/dashboard.html',
                           total_facturas=total_facturas,
                           total_facturado=total_facturado,
                           monto_pendiente=monto_pendiente,
                           ars_pendientes_nombres=ars_pendientes_nombres,
+                          ars_pendientes_detalle=ars_pendientes_detalle,
                           facturacion_por_mes=facturacion_por_mes,
                           facturacion_ars_mes=facturacion_ars_mes,
+                          facturacion_medico_paciente_mes=facturacion_medico_paciente_mes,
+                          facturacion_ars_medico_paciente_mes=facturacion_ars_medico_paciente_mes,
                           ars_list=ars_list,
                           medicos_factura_list=medicos_factura_list,
                           medicos_consulta_list=medicos_consulta_list,
                           fecha_desde=fecha_desde,
                           fecha_hasta=fecha_hasta,
                           es_administrador=(current_user.perfil == 'Administrador'),
-                          ars_ids_seleccionados=[],
-                          medico_factura_ids_seleccionados=[],
-                          medico_consulta_ids_seleccionados=[])
+                          ars_ids_seleccionados=ars_ids,
+                          medico_factura_ids_seleccionados=medico_factura_ids,
+                          medico_consulta_ids_seleccionados=medico_consulta_ids)
 
+
+@app.route('/facturacion/dashboard/detalle-mes')
+@login_required
+def facturacion_dashboard_detalle_mes():
+    """Detalle de facturas por mes/rango (complemento del dashboard)."""
+    from datetime import datetime, date, timedelta
+    
+    if current_user.perfil not in ['Administrador', 'Registro de Facturas', 'Nivel 2']:
+        flash('No tienes permisos para acceder a esta sección', 'error')
+        return redirect(url_for('facturacion_menu'))
+    
+    tenant_id = get_current_tenant_id()
+    
+    mes = (request.args.get('mes') or '').strip()  # esperado: YYYY-MM
+    fecha_desde = (request.args.get('fecha_desde') or '').strip()
+    fecha_hasta = (request.args.get('fecha_hasta') or '').strip()
+    
+    # Si llega solo "mes", derivar rango de fechas para ese mes
+    if mes and (not fecha_desde or not fecha_hasta):
+        try:
+            y, m = mes.split('-')
+            y_i = int(y)
+            m_i = int(m)
+            start = date(y_i, m_i, 1)
+            if m_i == 12:
+                end = date(y_i + 1, 1, 1)
+            else:
+                end = date(y_i, m_i + 1, 1)
+            end = end - timedelta(days=1)
+            fecha_desde = start.strftime('%Y-%m-%d')
+            fecha_hasta = end.strftime('%Y-%m-%d')
+        except Exception:
+            pass
+    
+    if not fecha_desde or not fecha_hasta:
+        flash('Faltan parámetros de fecha para ver el detalle.', 'error')
+        return redirect(url_for('facturacion_dashboard'))
+    
+    # Filtros múltiples (mismos nombres que el dashboard)
+    def _clean_ids(raw_ids):
+        ids = []
+        for value in raw_ids:
+            try:
+                parsed = int(value)
+                if parsed > 0:
+                    ids.append(parsed)
+            except Exception:
+                continue
+        return ids
+    
+    ars_ids = _clean_ids(request.args.getlist('ars_id'))
+    medico_factura_ids = _clean_ids(request.args.getlist('medico_factura_id'))
+    medico_consulta_ids = _clean_ids(request.args.getlist('medico_consulta_id'))
+    
+    # En este esquema no distinguimos médico consulta: los aplicamos sobre medico_id
+    medico_ids = list(set(medico_factura_ids + medico_consulta_ids))
+    
+    def _in_clause(field, values):
+        if not values:
+            return '', []
+        placeholders = ','.join(['%s'] * len(values))
+        return f' AND {field} IN ({placeholders})', values
+    
+    filtros = ['tenant_id = %s', 'estado != %s', 'fecha_emision BETWEEN %s AND %s']
+    params = [tenant_id, 'Anulada', fecha_desde, fecha_hasta]
+    
+    clause_ars, p_ars = _in_clause('ars_id', ars_ids)
+    filtros.append(clause_ars)
+    params += p_ars
+    
+    clause_med, p_med = _in_clause('medico_id', medico_ids)
+    filtros.append(clause_med)
+    params += p_med
+    
+    where_clause = ' AND '.join([f for f in filtros if f])
+    
+    facturas = execute_query(f'''
+        SELECT f.id,
+               f.fecha_emision,
+               a.nombre as nombre_ars,
+               COALESCE(f.ncf, '') AS ncf_numero,
+               f.total
+        FROM facturas f
+        LEFT JOIN ars a ON f.ars_id = a.id
+        WHERE {where_clause}
+        ORDER BY f.fecha_emision DESC, f.id DESC
+    ''', tuple(params), fetch='all') or []
+    
+    mes_label = None
+    try:
+        if mes and len(mes) == 7 and '-' in mes:
+            dt = datetime.strptime(mes + '-01', '%Y-%m-%d')
+            mes_label = dt.strftime('%B %Y')
+    except Exception:
+        mes_label = None
+    
+    return render_template('facturacion/dashboard_detalle_mes.html',
+                           facturas=facturas,
+                           mes=mes,
+                           mes_label=mes_label,
+                           fecha_desde=fecha_desde,
+                           fecha_hasta=fecha_hasta,
+                           ars_ids=ars_ids,
+                           medico_ids=medico_ids)
 @app.route('/facturacion/facturas/nueva', methods=['GET', 'POST'])
 @login_required
 def facturacion_facturas_nueva():
     """Agregar pacientes para facturar"""
     tenant_id = get_current_tenant_id()
+    
+    auto_mode = (request.args.get('auto') == '1')
+    ars_prefill_id = validate_int(request.args.get('ars_id'), min_value=1)
+    medico_prefill_id = None
     
     if request.method == 'POST':
         # Obtener datos del formulario
@@ -4721,18 +5232,103 @@ def facturacion_facturas_nueva():
             flash('Debe agregar al menos un paciente', 'error')
             return redirect(url_for('facturacion_facturas_nueva'))
         
-        # Procesar cada línea (paciente)
+        # Validaciones adicionales (fechas y duplicados)
+        from datetime import date, timedelta
+        fecha_hoy = date.today()
+        fecha_minima = fecha_hoy - timedelta(days=45)  # no permitir más de 45 días hacia atrás
         pacientes_agregados = 0
-        for linea in lineas:
+        errores_validacion = []
+        errores_duplicados = []
+        advertencias = []
+        autorizaciones_vistas = set()  # Duplicados de autorización en el mismo Excel por ARS
+        combinaciones_vistas = set()    # Duplicados de (NSS, fecha, ARS, autorizacion) en el mismo Excel
+        
+        def parse_fecha(value):
+            if not value:
+                return None
+            v = str(value).strip()
+            try:
+                # Intentar ISO
+                return date.fromisoformat(v[:10])
+            except Exception:
+                pass
+            if '/' in v:
+                parts = v.split('/')
+                if len(parts) == 3:
+                    dd, mm, yyyy = parts
+                    try:
+                        return date(int(yyyy), int(mm), int(dd))
+                    except Exception:
+                        return None
+            return None
+        
+        # Detectar columnas opcionales una sola vez
+        tiene_col_autorizacion_cache = None
+        tiene_col_tenant_cache = None
+        
+        import re
+
+        for idx, linea in enumerate(lineas, start=1):
             nss = sanitize_input(linea.get('nss', ''), 50)
             nombre = sanitize_input(linea.get('nombre', ''), 200)
-            fecha = linea.get('fecha')
+            fecha_raw = linea.get('fecha')
             autorizacion = sanitize_input(linea.get('autorizacion', ''), 50)
             servicio = sanitize_input(linea.get('servicio', ''), 200)
-            monto = float(linea.get('monto', 0))
+            monto_raw = linea.get('monto', 0)
             
+            # Validaciones mínimas
             if not nss or not nombre:
+                errores_validacion.append(f"Línea {idx}: NSS y Nombre son obligatorios")
                 continue
+            if not re.fullmatch(r'[0-9\-]+', nss):
+                errores_validacion.append(f"Línea {idx}: NSS \"{nss}\" solo debe contener números y guiones")
+                continue
+            if not re.fullmatch(r"[A-Za-zÁÉÍÓÚáéíóúÑñ\s.\-']+", nombre):
+                errores_validacion.append(f"Línea {idx}: Nombre \"{nombre}\" tiene caracteres inválidos")
+                continue
+            if re.search(r'\d', servicio or ''):
+                errores_validacion.append(f"Línea {idx}: Servicio \"{servicio}\" no debe contener números")
+                continue
+            if autorizacion:
+                autorizacion = autorizacion.upper()
+                if len(autorizacion) > 50:
+                    errores_validacion.append(f"Línea {idx}: Autorización supera 50 caracteres")
+                    continue
+                clave_aut = (ars_id, autorizacion)
+                if clave_aut in autorizaciones_vistas:
+                    errores_validacion.append(f"Línea {idx}: Autorización \"{autorizacion}\" está duplicada en el Excel para esta ARS")
+                    continue
+                autorizaciones_vistas.add(clave_aut)
+            
+            # Fecha
+            fecha_obj = parse_fecha(fecha_raw)
+            if not fecha_obj:
+                errores_validacion.append(f"Línea {idx}: Fecha de consulta inválida")
+                continue
+            if fecha_obj > fecha_hoy:
+                errores_validacion.append(f"Línea {idx}: Fecha de consulta no puede ser futura")
+                continue
+            if fecha_obj < fecha_minima:
+                errores_validacion.append(f"Línea {idx}: Fecha de consulta no puede ser anterior a {fecha_minima.strftime('%d/%m/%Y')}")
+                continue
+            
+            try:
+                monto = float(monto_raw or 0)
+            except Exception:
+                errores_validacion.append(f"Línea {idx}: Monto inválido")
+                continue
+            if monto < 0:
+                advertencias.append(f"Línea {idx}: Monto negativo, se ajusta a 0.00")
+                monto = 0.0
+            
+            fecha_iso = fecha_obj.strftime('%Y-%m-%d')
+            
+            # Duplicados dentro del mismo Excel
+            clave_local = (nss, fecha_iso, ars_id, autorizacion or '')
+            if clave_local in combinaciones_vistas:
+                errores_duplicados.append(f"Línea {idx}: Registro duplicado en el Excel (NSS {nss}, Fecha {fecha_iso}, Autorización {autorizacion or 'N/A'})")
+                continue
+            combinaciones_vistas.add(clave_local)
             
             # Buscar si el paciente ya existe (por NSS + ARS)
             paciente_existente = execute_query('''
@@ -4743,15 +5339,12 @@ def facturacion_facturas_nueva():
             paciente_id = None
             if paciente_existente:
                 paciente_id = paciente_existente['id']
-                # Actualizar datos del paciente si es necesario
                 execute_update('''
                     UPDATE pacientes 
                     SET nombre = %s, updated_at = NOW()
                     WHERE id = %s
                 ''', (nombre, paciente_id))
             else:
-                # Crear nuevo paciente
-                # Intentar insertar con tenant_id y created_by, si falla intentar sin ellas
                 try:
                     paciente_id = execute_update('''
                         INSERT INTO pacientes (tenant_id, nombre, nss, ars_id, created_by)
@@ -4759,36 +5352,30 @@ def facturacion_facturas_nueva():
                     ''', (tenant_id, nombre, nss, ars_id, current_user.id))
                 except Exception as e:
                     error_msg = str(e).lower()
-                    # Si falla por columnas desconocidas, intentar sin ellas
                     if 'unknown column' in error_msg:
                         if 'tenant_id' in error_msg and 'created_by' in error_msg:
-                            # Intentar sin ambas columnas
                             paciente_id = execute_update('''
                                 INSERT INTO pacientes (nombre, nss, ars_id)
                                 VALUES (%s, %s, %s)
                             ''', (nombre, nss, ars_id))
                         elif 'created_by' in error_msg:
-                            # Intentar sin created_by
                             try:
                                 paciente_id = execute_update('''
                                     INSERT INTO pacientes (tenant_id, nombre, nss, ars_id)
                                     VALUES (%s, %s, %s, %s)
                                 ''', (tenant_id, nombre, nss, ars_id))
                             except:
-                                # Si también falla tenant_id, intentar sin ambas
                                 paciente_id = execute_update('''
                                     INSERT INTO pacientes (nombre, nss, ars_id)
                                     VALUES (%s, %s, %s)
                                 ''', (nombre, nss, ars_id))
                         elif 'tenant_id' in error_msg:
-                            # Intentar sin tenant_id
                             try:
                                 paciente_id = execute_update('''
                                     INSERT INTO pacientes (nombre, nss, ars_id, created_by)
                                     VALUES (%s, %s, %s, %s)
                                 ''', (nombre, nss, ars_id, current_user.id))
                             except:
-                                # Si también falla created_by, intentar sin ambas
                                 paciente_id = execute_update('''
                                     INSERT INTO pacientes (nombre, nss, ars_id)
                                     VALUES (%s, %s, %s)
@@ -4796,63 +5383,160 @@ def facturacion_facturas_nueva():
                         else:
                             raise
                     else:
-                        raise  # Re-lanzar si es otro error
+                        raise
             
-            # Crear registro en pacientes_pendientes
+            # Preparar descripción del servicio (se usa tanto para inserción como actualización de duplicados)
             servicios_realizados = f"{servicio} - Autorización: {autorizacion}" if autorizacion else servicio
             
-            # Intentar insertar con todas las columnas, si falla intentar sin las opcionales
+            # Chequear duplicados en pacientes_pendientes (NSS + fecha + autorización + ARS + tenant si aplica)
+            if tiene_col_autorizacion_cache is None:
+                try:
+                    col_aut = execute_query('''
+                        SELECT COUNT(*) AS count
+                        FROM information_schema.COLUMNS
+                        WHERE TABLE_SCHEMA = DATABASE()
+                          AND TABLE_NAME = 'pacientes_pendientes'
+                          AND COLUMN_NAME = 'autorizacion'
+                    ''')
+                    tiene_col_autorizacion_cache = col_aut and col_aut.get('count', 0) > 0
+                except Exception as e:
+                    print(f"Error verificando columna autorizacion en pacientes_pendientes: {e}")
+                    tiene_col_autorizacion_cache = False
+            
+            if tiene_col_tenant_cache is None:
+                try:
+                    col_tenant = execute_query('''
+                        SELECT COUNT(*) AS count
+                        FROM information_schema.COLUMNS
+                        WHERE TABLE_SCHEMA = DATABASE()
+                          AND TABLE_NAME = 'pacientes_pendientes'
+                          AND COLUMN_NAME = 'tenant_id'
+                    ''')
+                    tiene_col_tenant_cache = col_tenant and col_tenant.get('count', 0) > 0
+                except Exception as e:
+                    print(f"Error verificando columna tenant_id en pacientes_pendientes: {e}")
+                    tiene_col_tenant_cache = False
+            
+            params_dup = [nss, fecha_iso, ars_id]
+            where_extra = ""
+            if tiene_col_autorizacion_cache:
+                params_dup.append(autorizacion or '')
+            if tiene_col_tenant_cache:
+                where_extra += " AND (tenant_id = %s OR tenant_id IS NULL)"
+                params_dup.append(tenant_id)
+            
+            if tiene_col_autorizacion_cache:
+                duplicado = execute_query(f'''
+                    SELECT id FROM pacientes_pendientes
+                    WHERE nss = %s AND fecha_servicio = %s AND ars_id = %s AND COALESCE(autorizacion, '') = %s {where_extra}
+                ''', tuple(params_dup))
+            else:
+                duplicado = execute_query(f'''
+                    SELECT id FROM pacientes_pendientes
+                    WHERE nss = %s AND fecha_servicio = %s AND ars_id = %s {where_extra}
+                ''', tuple(params_dup))
+            
+            if duplicado:
+                # En vez de rechazar, actualizamos la fila existente con los nuevos datos
+                try:
+                    if tiene_col_autorizacion_cache and tiene_col_tenant_cache:
+                        execute_update('''
+                            UPDATE pacientes_pendientes
+                            SET nombre_paciente = %s, servicios_realizados = %s, monto_estimado = %s,
+                                medico_id = %s, centro_medico_id = %s, estado = 'Pendiente',
+                                autorizacion = %s, updated_at = NOW()
+                            WHERE id = %s AND (tenant_id = %s OR tenant_id IS NULL)
+                        ''', (nombre, servicios_realizados, monto, medico_id, centro_medico_id, autorizacion, duplicado['id'], tenant_id))
+                    elif tiene_col_autorizacion_cache:
+                        execute_update('''
+                            UPDATE pacientes_pendientes
+                            SET nombre_paciente = %s, servicios_realizados = %s, monto_estimado = %s,
+                                medico_id = %s, centro_medico_id = %s, estado = 'Pendiente',
+                                autorizacion = %s, updated_at = NOW()
+                            WHERE id = %s
+                        ''', (nombre, servicios_realizados, monto, medico_id, centro_medico_id, autorizacion, duplicado['id']))
+                    elif tiene_col_tenant_cache:
+                        execute_update('''
+                            UPDATE pacientes_pendientes
+                            SET nombre_paciente = %s, servicios_realizados = %s, monto_estimado = %s,
+                                medico_id = %s, centro_medico_id = %s, estado = 'Pendiente',
+                                updated_at = NOW()
+                            WHERE id = %s AND (tenant_id = %s OR tenant_id IS NULL)
+                        ''', (nombre, servicios_realizados, monto, medico_id, centro_medico_id, duplicado['id'], tenant_id))
+                    else:
+                        execute_update('''
+                            UPDATE pacientes_pendientes
+                            SET nombre_paciente = %s, servicios_realizados = %s, monto_estimado = %s,
+                                medico_id = %s, centro_medico_id = %s, estado = 'Pendiente',
+                                updated_at = NOW()
+                            WHERE id = %s
+                        ''', (nombre, servicios_realizados, monto, medico_id, centro_medico_id, duplicado['id']))
+                    
+                    pacientes_agregados += 1
+                    continue  # pasar a la siguiente línea tras actualizar
+                except Exception as e:
+                    errores_duplicados.append(f"Línea {idx}: No se pudo actualizar duplicado ({str(e)})")
+                    continue
+            
+            servicios_realizados = f"{servicio} - Autorización: {autorizacion}" if autorizacion else servicio
+            
             try:
-                # Intentar insertar con tenant_id y created_by
                 execute_update('''
                     INSERT INTO pacientes_pendientes 
                     (tenant_id, paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
-                     servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id, created_by)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s, %s)
-                ''', (tenant_id, paciente_id, nombre, nss, ars_id, fecha, servicios_realizados, monto, medico_id, centro_medico_id, current_user.id))
+                     servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id, created_by, autorizacion)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s, %s, %s)
+                ''', (tenant_id, paciente_id, nombre, nss, ars_id, fecha_iso, servicios_realizados, monto, medico_id, centro_medico_id, current_user.id, autorizacion))
             except Exception as e:
                 error_msg = str(e).lower()
-                # Si falla por columnas desconocidas, intentar sin ellas
                 if 'unknown column' in error_msg:
-                    if 'created_by' in error_msg:
-                        # Intentar sin created_by
-                        try:
-                            execute_update('''
-                                INSERT INTO pacientes_pendientes 
-                                (tenant_id, paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
-                                 servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id)
-                                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s)
-                            ''', (tenant_id, paciente_id, nombre, nss, ars_id, fecha, servicios_realizados, monto, medico_id, centro_medico_id))
-                        except Exception as e2:
-                            # Si también falla tenant_id, intentar sin ambos
-                            if 'tenant_id' in str(e2).lower():
-                                execute_update('''
-                                    INSERT INTO pacientes_pendientes 
-                                    (paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
-                                     servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id)
-                                    VALUES (%s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s)
-                                ''', (paciente_id, nombre, nss, ars_id, fecha, servicios_realizados, monto, medico_id, centro_medico_id))
-                            else:
-                                raise
-                    elif 'tenant_id' in error_msg:
-                        # Intentar sin tenant_id
-                        execute_update('''
-                            INSERT INTO pacientes_pendientes 
-                            (paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
-                             servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id, created_by)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s, %s)
-                        ''', (paciente_id, nombre, nss, ars_id, fecha, servicios_realizados, monto, medico_id, centro_medico_id, current_user.id))
+                    execute_update('''
+                        INSERT INTO pacientes_pendientes 
+                        (paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
+                         servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s)
+                    ''', (paciente_id, nombre, nss, ars_id, fecha_iso, servicios_realizados, monto, medico_id, centro_medico_id))
                 else:
-                    raise  # Re-lanzar si es otro error
+                    raise
             
             pacientes_agregados += 1
         
-        flash(f'{pacientes_agregados} paciente(s) agregado(s) como pendientes de facturación', 'success')
+        # Resumen de carga
+        total_esperado = len(lineas)
+        if pacientes_agregados == total_esperado and not errores_validacion and not errores_duplicados:
+            flash(f'{pacientes_agregados} paciente(s) agregado(s) como pendientes de facturación', 'success')
+        else:
+            if pacientes_agregados:
+                flash(f'{pacientes_agregados} de {total_esperado} paciente(s) agregados. Verifica los que fueron omitidos.', 'warning')
+            else:
+                flash('No se agregaron pacientes. Revisa los errores de validación o duplicados.', 'error')
+            # Mostrar primeros mensajes para no saturar
+            for msg in (errores_validacion + errores_duplicados)[:8]:
+                flash(msg, 'error')
+            extras = len(errores_validacion) + len(errores_duplicados) - 8
+            if extras > 0:
+                flash(f'... y {extras} más.', 'warning')
+        # Mostrar advertencias (ej. montos negativos ajustados)
+        for adv in advertencias[:5]:
+            flash(adv, 'warning')
+        
         return redirect(url_for('facturacion_pacientes_pendientes'))
     
     # GET: Mostrar formulario
     ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
     medicos = execute_query('SELECT * FROM medicos WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    
+    # Prefill de médico basado en email del usuario o primer médico disponible
+    if auto_mode and not medico_prefill_id:
+        medico_usuario = execute_query('''
+            SELECT id FROM medicos 
+            WHERE email = %s AND tenant_id = %s AND activo = 1
+            LIMIT 1
+        ''', (current_user.email, tenant_id))
+        if medico_usuario:
+            medico_prefill_id = medico_usuario.get('id')
+        elif medicos:
+            medico_prefill_id = medicos[0].get('id')
     
     # Obtener relaciones médico-centro para poblar el dropdown de centros médicos
     centros_medicos = execute_query('''
@@ -4879,7 +5563,10 @@ def facturacion_facturas_nueva():
                          ars_list=ars_list, 
                          medicos=medicos, 
                          centros_medicos=centros_medicos,
-                         servicios_list=servicios_list)
+                         servicios_list=servicios_list,
+                         auto_mode=auto_mode,
+                         ars_prefill_id=ars_prefill_id,
+                         medico_prefill_id=medico_prefill_id)
 
 @app.route('/facturacion/pacientes-pendientes')
 @login_required
@@ -4888,7 +5575,7 @@ def facturacion_pacientes_pendientes():
     # Obtener filtros de la query string
     medico_id_filtro = request.args.get('medico_id', '')
     ars_id_filtro = request.args.get('ars_id', '')
-    estado_filtro = request.args.get('estado', 'pendiente')  # Por defecto 'pendiente'
+    estado_filtro = request.args.get('estado', 'pendiente').lower() if request.args.get('estado') is not None else 'pendiente'
     
     # Construir query con filtros - consultar tabla pacientes_pendientes
     tenant_id = get_current_tenant_id()
@@ -4931,16 +5618,15 @@ def facturacion_pacientes_pendientes():
         query += ' AND (m.tenant_id = %s OR m.tenant_id IS NULL)'
         params.append(tenant_id)
     
-    # Filtro por estado
+    # Filtro por estado (acepta pendiente/facturado; vacío = no filtra)
     if estado_filtro:
-        # Convertir 'pendiente' a 'Pendiente' y 'facturado' a 'Facturado'
-        estado_db = estado_filtro.capitalize()
-        if estado_db == 'Facturado':
-            query += ' AND pp.estado = %s'
-            params.append('Facturado')
-        elif estado_db == 'Pendiente':
-            query += ' AND pp.estado = %s'
-            params.append('Pendiente')
+        estado_db = estado_filtro.strip().lower()
+        if estado_db in ('facturado', 'facturada'):
+            query += ' AND LOWER(pp.estado) = %s'
+            params.append('facturado')
+        elif estado_db in ('pendiente', 'pendientes'):
+            query += ' AND LOWER(pp.estado) = %s'
+            params.append('pendiente')
     
     # Filtro por médico
     if medico_id_filtro:
@@ -5465,6 +6151,7 @@ def facturacion_procesar_excel():
         errores = []
         autorizaciones_vistas = set()
         numero_fila = 1
+        filas_con_datos = 0
         
         for row in ws.iter_rows(min_row=2, values_only=False):
             numero_fila += 1
@@ -5490,6 +6177,7 @@ def facturacion_procesar_excel():
             # Si la fila está vacía, saltarla
             if not nss and not nombre and not fecha and not autorizacion and not servicio and not monto:
                 continue
+            filas_con_datos += 1
             
             # Validaciones
             errores_fila = []
@@ -5511,7 +6199,7 @@ def facturacion_procesar_excel():
                 errores_fila.append(f'Fila {numero_fila}: Fecha es obligatoria')
             else:
                 try:
-                    from datetime import datetime, date
+                    from datetime import datetime, date, timedelta
                     fecha_normalizada = None
                     
                     # Si ya está en formato AAAA-MM-DD, validar y usar directamente
@@ -5550,8 +6238,14 @@ def facturacion_procesar_excel():
                     
                     if fecha_normalizada:
                         # Validar que el formato sea correcto (AAAA-MM-DD)
-                        datetime.strptime(fecha_normalizada, '%Y-%m-%d')
+                        fecha_dt = datetime.strptime(fecha_normalizada, '%Y-%m-%d').date()
                         fecha = fecha_normalizada
+                        fecha_hoy = date.today()
+                        fecha_min = fecha_hoy - timedelta(days=45)
+                        if fecha_dt > fecha_hoy:
+                            errores_fila.append(f'Fila {numero_fila}: Fecha no puede ser futura')
+                        if fecha_dt < fecha_min:
+                            errores_fila.append(f'Fila {numero_fila}: Fecha no puede ser anterior a {fecha_min.strftime("%d/%m/%Y")}')
                     else:
                         raise ValueError(f'Fecha no válida: {fecha}')
                         
@@ -5625,7 +6319,8 @@ def facturacion_procesar_excel():
             'error': False,
             'mensaje': f'Se procesaron {len(pacientes)} paciente(s) correctamente',
             'pacientes': pacientes,
-            'total': len(pacientes)
+            'total': len(pacientes),
+            'total_excel': filas_con_datos
         }), 200
         
     except Exception as e:
@@ -5646,6 +6341,11 @@ def facturacion_generar():
     if current_user.perfil not in ['Administrador', 'Nivel 2']:
         flash('No tienes permisos para acceder a esta sección', 'error')
         return redirect(url_for('facturacion_menu'))
+    
+    auto_mode = (request.args.get('auto') == '1')
+    ars_prefill_id = validate_int(request.args.get('ars_id'), min_value=1)
+    medico_prefill_id = None
+    ncf_prefill_id = None
     
     # Si es POST, redirigir al step 2
     if request.method == 'POST':
@@ -5720,6 +6420,18 @@ def facturacion_generar():
             ORDER BY nombre
         ''', (tenant_id,), fetch='all') or []
     
+    # Prefill médico (buscar por email del usuario, si no tomar el primero)
+    if auto_mode and not medico_prefill_id and medicos_habilitados:
+        medico_usuario = execute_query('''
+            SELECT id FROM medicos 
+            WHERE email = %s AND tenant_id = %s AND activo = 1
+            LIMIT 1
+        ''', (current_user.email, tenant_id))
+        if medico_usuario:
+            medico_prefill_id = medico_usuario.get('id')
+        else:
+            medico_prefill_id = medicos_habilitados[0].get('id')
+    
     # Obtener pacientes pendientes
     tiene_tenant_id = False
     try:
@@ -5739,7 +6451,7 @@ def facturacion_generar():
             SELECT pp.*, a.nombre as ars_nombre 
             FROM pacientes_pendientes pp
             LEFT JOIN ars a ON pp.ars_id = a.id
-            WHERE pp.estado = 'Pendiente' AND pp.tenant_id = %s
+            WHERE UPPER(pp.estado) = 'PENDIENTE' AND pp.tenant_id = %s
             ORDER BY pp.created_at
         ''', (tenant_id,), fetch='all') or []
     else:
@@ -5747,9 +6459,30 @@ def facturacion_generar():
             SELECT pp.*, a.nombre as ars_nombre 
             FROM pacientes_pendientes pp
             LEFT JOIN ars a ON pp.ars_id = a.id
-            WHERE pp.estado = 'Pendiente'
+            WHERE UPPER(pp.estado) = 'PENDIENTE'
             ORDER BY pp.created_at
         ''', fetch='all') or []
+    
+    # Si hay auto_mode y ars_prefill_id, filtrar NCF por lógica (SENASA -> GUBERNAMENTAL; otro -> CRÉDITO)
+    if auto_mode and ars_prefill_id:
+        ars_prefill = next((a for a in ars_list if a.get('id') == ars_prefill_id), None)
+        ars_nombre_upper = (ars_prefill.get('nombre', '').upper() if ars_prefill else '')
+        if ars_prefill:
+            # Seleccionar NCF
+            if ars_nombre_upper and 'SENASA' in ars_nombre_upper:
+                for ncf in ncf_list:
+                    tipo = (ncf.get('tipo') or '').upper()
+                    if 'GUBERN' in tipo or 'GUBERNAMENTAL' in tipo:
+                        ncf_prefill_id = ncf.get('id')
+                        break
+            if not ncf_prefill_id:
+                for ncf in ncf_list:
+                    tipo = (ncf.get('tipo') or '').upper()
+                    if 'CREDITO' in tipo or 'CRÉDITO' in tipo or 'B01' in tipo:
+                        ncf_prefill_id = ncf.get('id')
+                        break
+            if not ncf_prefill_id and ncf_list:
+                ncf_prefill_id = ncf_list[0].get('id')
     
     # Obtener fecha actual en formato YYYY-MM-DD
     from datetime import date
@@ -5761,7 +6494,11 @@ def facturacion_generar():
                           ncf_list=ncf_list,
                           medicos_habilitados=medicos_habilitados,
                           fecha_actual=fecha_actual,
-                          tipo_empresa=tipo_empresa)
+                         tipo_empresa=tipo_empresa,
+                         auto_mode=auto_mode,
+                         ars_prefill_id=ars_prefill_id,
+                         ncf_prefill_id=ncf_prefill_id,
+                         medico_prefill_id=medico_prefill_id)
 
 @app.route('/facturacion/generar/step2', methods=['GET', 'POST'])
 @login_required
@@ -6280,17 +7017,40 @@ def facturacion_generar_final():
         for paciente in pacientes_raw:
             servicio_completo = paciente.get('servicios_realizados', '') or ''
             if ' - Autorización:' in servicio_completo:
-                descripcion_servicio = servicio_completo.split(' - Autorización:')[0].strip()
+                partes = servicio_completo.split(' - Autorización:')
+                descripcion_servicio = partes[0].strip()
+                autorizacion = partes[1].strip() if len(partes) > 1 else ''
             else:
                 descripcion_servicio = servicio_completo.strip()
+                autorizacion = ''
             
             monto = float(paciente.get('monto_estimado', 0) or 0)
+            fecha_servicio = paciente.get('fecha') or paciente.get('fecha_servicio') or fecha_factura
+            nss = paciente.get('nss')
+            paciente_id_ref = paciente.get('paciente_id')  # puede venir del lookup/creación
+            estado_detalle = 'facturado'
+            medico_detalle_id = paciente.get('medico_id') or medico_factura_id
             
-            execute_update('''
-                INSERT INTO factura_detalles 
-                (factura_id, descripcion, cantidad, precio_unitario, subtotal)
-                VALUES (%s, %s, 1, %s, %s)
-            ''', (factura_id, descripcion_servicio, monto, monto))
+            # Insertar detalle con columnas ampliadas; fallback si alguna no existe
+            try:
+                execute_update('''
+                    INSERT INTO factura_detalles 
+                    (factura_id, descripcion, cantidad, precio_unitario, subtotal,
+                     medico_id, medico_consulta, ars_id, estado, paciente_id, nss, autorizacion, fecha_servicio)
+                    VALUES (%s, %s, 1, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ''', (factura_id, descripcion_servicio, monto, monto,
+                      medico_detalle_id, medico_detalle_id, ars_id, estado_detalle, paciente_id_ref, nss, autorizacion, fecha_servicio))
+            except Exception as e:
+                error_msg = str(e).lower()
+                if 'unknown column' in error_msg:
+                    # Intentar sin las columnas nuevas
+                    execute_update('''
+                        INSERT INTO factura_detalles 
+                        (factura_id, descripcion, cantidad, precio_unitario, subtotal)
+                        VALUES (%s, %s, 1, %s, %s)
+                    ''', (factura_id, descripcion_servicio, monto, monto))
+                else:
+                    raise
         
         # Actualizar estado de pacientes_pendientes a 'Facturado'
         if tiene_tenant_id:

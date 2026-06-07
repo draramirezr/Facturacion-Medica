@@ -49,6 +49,20 @@
     }
 </style>
 
+{% macro fecha_ddmmyyyy(fecha) -%}
+    {%- set f = (fecha|string) -%}
+    {%- if '-' in f -%}
+        {%- set p = f.split('-') -%}
+        {%- if p|length == 3 -%}
+            {{ p[2] }}/{{ p[1] }}/{{ p[0] }}
+        {%- else -%}
+            {{ fecha }}
+        {%- endif -%}
+    {%- else -%}
+        {{ fecha }}
+    {%- endif -%}
+{%- endmacro %}
+
 <div class="container mt-4">
     <div class="facturacion-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -91,11 +105,15 @@
                 </div>
                 <div class="col-md-3">
                     <label class="form-label mb-1">Fecha desde</label>
-                    <input type="date" name="fecha_desde" value="{{ fecha_desde or '' }}" class="form-control">
+                    <input type="text" name="fecha_desde" id="fecha_desde" placeholder="dd/mm/aaaa"
+                           value="{{ fecha_ddmmyyyy(fecha_desde) if fecha_desde else '' }}"
+                           class="form-control">
                 </div>
                 <div class="col-md-3">
                     <label class="form-label mb-1">Fecha hasta</label>
-                    <input type="date" name="fecha_hasta" value="{{ fecha_hasta or '' }}" class="form-control">
+                    <input type="text" name="fecha_hasta" id="fecha_hasta" placeholder="dd/mm/aaaa"
+                           value="{{ fecha_ddmmyyyy(fecha_hasta) if fecha_hasta else '' }}"
+                           class="form-control">
                 </div>
                 <div class="col-12 d-flex gap-2 mt-2">
                     <button type="submit" class="btn btn-primary">
@@ -128,7 +146,7 @@
                     <tr>
                         {% set numero_pago = pago.get('numero_pago') or ('PAGO-' + "%06d"|format(pago.get('id', 0))) %}
                         <td><strong>{{ numero_pago }}</strong></td>
-                        <td>{{ pago['fecha_pago'] }}</td>
+                        <td>{{ fecha_ddmmyyyy(pago['fecha_pago']) }}</td>
                         <td>{{ pago['metodo_pago'] }}</td>
                         <td>
                             <small>{{ pago['facturas_numeros'] or 'Sin facturas' }}</small>
@@ -160,6 +178,33 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toISO(fecha) {
+    if (!fecha) return '';
+    const p = fecha.split('/');
+    if (p.length === 3) {
+        const [dd, mm, yyyy] = p;
+        if (dd.length === 2 && mm.length === 2 && yyyy.length === 4) {
+            return `${yyyy}-${mm}-${dd}`;
+        }
+    }
+    return fecha;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    if (!form) return;
+    form.addEventListener('submit', function() {
+        const desde = document.getElementById('fecha_desde');
+        const hasta = document.getElementById('fecha_hasta');
+        if (desde) desde.value = toISO(desde.value.trim());
+        if (hasta) hasta.value = toISO(hasta.value.trim());
+    });
+});
+</script>
 {% endblock %}
 
 

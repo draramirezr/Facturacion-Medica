@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Generar Factura - Paso 2{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -226,6 +226,20 @@
     }
 </style>
 
+{% macro fecha_ddmmyyyy(fecha) -%}
+    {%- set f = (fecha|string) -%}
+    {%- if '-' in f -%}
+        {%- set p = f.split('-') -%}
+        {%- if p|length == 3 -%}
+            {{ p[2] }}/{{ p[1] }}/{{ p[0] }}
+        {%- else -%}
+            {{ fecha }}
+        {%- endif -%}
+    {%- else -%}
+        {{ fecha }}
+    {%- endif -%}
+{%- endmacro %}
+
 <div class="container-fluid mt-4">
     <!-- Hero Section -->
     <div class="facturacion-hero">
@@ -334,6 +348,11 @@
         <input type="hidden" name="medico_factura_id" value="{{ medico_factura_id }}">
         <input type="hidden" name="fecha_factura" value="{{ fecha_factura }}">
         
+        <div class="alert alert-info mb-3" style="background: {{ tema.primary }}12; border-color: {{ tema.primary }}; color: #333;">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Tip:</strong> Haz doble click en cualquier paciente para editarlo rápidamente.
+        </div>
+        
         <div class="table-responsive">
             <table class="table tabla-pacientes">
                 <thead>
@@ -367,7 +386,7 @@
                         </td>
                         <td>{{ paciente['nss'] }}</td>
                         <td><strong>{{ paciente['paciente_nombre_completo'] }}</strong></td>
-                        <td>{{ paciente['fecha_servicio'] }}</td>
+                        <td>{{ fecha_ddmmyyyy(paciente['fecha_servicio']) }}</td>
                         <td><code style="background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px;">{{ paciente['autorizacion'] }}</code></td>
                         <td>{{ paciente['descripcion_servicio'] }}</td>
                         <td class="text-center"><strong> {{ "{:,.2f}".format(monto_paciente) }}</strong></td>
@@ -420,6 +439,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Guardar todas las filas originales
     const tbody = document.getElementById('tablaBody');
     todasLasFilas = Array.from(tbody.querySelectorAll('tr[data-medico]'));
+    
+    // Doble click para editar paciente pendiente
+    todasLasFilas.forEach(fila => {
+        fila.addEventListener('dblclick', () => {
+            const checkbox = fila.querySelector('.paciente-check');
+            if (checkbox) {
+                abrirModalEditarPaciente(checkbox.value);
+            }
+        });
+    });
 });
 
 function aplicarFiltros() {
@@ -585,6 +614,148 @@ document.getElementById('formGenerar').addEventListener('submit', function(e) {
     // Enviar formulario
     this.submit();
 });
+
+// ================== Edición rápida (doble click) ==================
+let editPacienteId = null;
+
+function abrirModalEditarPaciente(pacienteId) {
+    editPacienteId = pacienteId;
+    fetch(`/api/facturacion/pacientes-pendientes/${pacienteId}`)
+        .then(resp => resp.json())
+        .then(data => {
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            document.getElementById('editNombre').value = data.nombre_paciente || '';
+            document.getElementById('editNss').value = data.nss || '';
+            document.getElementById('editFecha').value = data.fecha_servicio || '';
+            document.getElementById('editAutorizacion').value = data.autorizacion || '';
+            const servicioLimpio = (data.servicio || '').split(' - Autorización:')[0].trim();
+            document.getElementById('editServicio').value = servicioLimpio;
+            document.getElementById('editMonto').value = data.monto_estimado || 0;
+            const medicoSel = document.getElementById('editMedico');
+            if (medicoSel) {
+                medicoSel.value = data.medico_id || '';
+            }
+            const modal = new bootstrap.Modal(document.getElementById('modalEditarPaciente'));
+            modal.show();
+        })
+        .catch(err => {
+            console.error(err);
+            alert('No se pudo cargar el paciente');
+        });
+}
+
+function guardarEdicionPaciente() {
+    if (!editPacienteId) return;
+    const payload = {
+        nombre_paciente: document.getElementById('editNombre').value.trim(),
+        nss: document.getElementById('editNss').value.trim(),
+        fecha_servicio: document.getElementById('editFecha').value,
+        autorizacion: document.getElementById('editAutorizacion').value.trim(),
+        servicio: document.getElementById('editServicio').value.trim(),
+        monto_estimado: parseFloat(document.getElementById('editMonto').value) || 0,
+        medico_id: document.getElementById('editMedico').value || null
+    };
+    
+    if (payload.autorizacion) {
+        payload.servicio = `${payload.servicio} - Autorización: ${payload.autorizacion}`;
+    }
+    
+    fetch(`/api/facturacion/pacientes-pendientes/${editPacienteId}`, {
+        method: 'PUT',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload)
+    })
+    .then(resp => {
+        if (!resp.ok) throw new Error('Error al guardar cambios');
+        return resp.json();
+    })
+    .then(() => {
+        const fila = Array.from(document.querySelectorAll('.paciente-check')).find(cb => cb.value == editPacienteId)?.closest('tr');
+        if (fila) {
+            const celdas = fila.querySelectorAll('td');
+            if (celdas.length >= 8) {
+                celdas[1].innerText = payload.nss;
+                celdas[2].innerText = payload.nombre_paciente;
+                celdas[3].innerText = payload.fecha_servicio;
+                celdas[4].innerHTML = `<code style="background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px;">${payload.autorizacion || ''}</code>`;
+                const servicioLimpio = (payload.servicio.split(' - Autorización:')[0] || '').trim();
+                celdas[5].innerText = servicioLimpio;
+                celdas[6].innerHTML = `<strong>${payload.monto_estimado.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>`;
+                const medicoSelect = document.getElementById('editMedico');
+                const medicoNombre = medicoSelect && medicoSelect.options[medicoSelect.selectedIndex] ? medicoSelect.options[medicoSelect.selectedIndex].text : '';
+                celdas[7].innerHTML = `<small style="color: #666;">${medicoNombre}</small>`;
+                fila.dataset.medico = payload.medico_id || '';
+                fila.dataset.medicoNombre = medicoNombre;
+                fila.dataset.fecha = payload.fecha_servicio || '';
+                const checkbox = fila.querySelector('.paciente-check');
+                if (checkbox) {
+                    checkbox.dataset.monto = payload.monto_estimado;
+                }
+            }
+        }
+        calcularTotal();
+        const modalEl = document.getElementById('modalEditarPaciente');
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+    })
+    .catch(err => {
+        console.error(err);
+        alert('No se pudo guardar los cambios');
+    });
+}
 </script>
+<!-- Modal editar paciente -->
+<div class="modal fade" id="modalEditarPaciente" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header" style="background: {{ tema.primary }}; color: white;">
+        <h5 class="modal-title" style="color: white;"><i class="fas fa-user-edit me-2"></i>Editar consulta</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <div class="mb-2">
+          <label class="form-label">Nombre</label>
+          <input type="text" class="form-control" id="editNombre" maxlength="200">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">NSS</label>
+          <input type="text" class="form-control" id="editNss" maxlength="50">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Fecha de consulta</label>
+          <input type="date" class="form-control" id="editFecha">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Autorización</label>
+          <input type="text" class="form-control" id="editAutorizacion" maxlength="100">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Servicio</label>
+          <input type="text" class="form-control" id="editServicio" maxlength="200">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Monto</label>
+          <input type="number" class="form-control" id="editMonto" step="0.01" min="0">
+        </div>
+        <div class="mb-2">
+          <label class="form-label">Médico</label>
+          <select class="form-select" id="editMedico">
+            <option value="">(Sin cambio)</option>
+            {% for medico in medicos %}
+            <option value="{{ medico.id }}">{{ medico.nombre }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-primary" onclick="guardarEdicionPaciente()">Guardar cambios</button>
+      </div>
+    </div>
+  </div>
+</div>
 {% endblock %}
 

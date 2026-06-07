@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Dashboard de Facturación - Indicadores en Tiempo Real{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -704,9 +704,14 @@
                 </div>
             </div>
             
-            <button type="submit" class="btn-filter">
-                <i class="fas fa-search me-2"></i>Filtrar
-            </button>
+            <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 0.5rem;">
+                <button type="submit" class="btn-filter">
+                    <i class="fas fa-search me-2"></i>Aplicar filtros
+                </button>
+                <button type="button" class="btn-filter" style="background: #adb5bd; border-color: #adb5bd;" onclick="limpiarFiltros()">
+                    <i class="fas fa-eraser me-2"></i>Limpiar filtros
+                </button>
+            </div>
         </form>
     </div>
     
@@ -734,20 +739,23 @@
             </div>
         </div>
         
-        <!-- ARS Pendientes por Facturar -->
+        <!-- ARS Pendientes por Facturar (clickeables) -->
         <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.4s">
             <div class="stat-card warning">
                 <div class="stat-icon warning">
                     <i class="fas fa-building"></i>
                 </div>
-                {% if ars_pendientes_nombres|length > 0 %}
+                {% if ars_pendientes_detalle and ars_pendientes_detalle|length > 0 %}
                     <div style="position: relative; z-index: 1;">
                         <p class="stat-label" style="margin-bottom: 0.8rem;">ARS Pendientes por Facturar</p>
                         <div style="max-height: 150px; overflow-y: auto; padding-right: 5px;">
-                            {% for ars in ars_pendientes_nombres %}
-                                <span style="display: inline-block; background: rgba(255, 193, 7, 0.15); color: #856404; padding: 0.4rem 0.8rem; border-radius: 8px; margin: 0.2rem; font-size: 0.85rem; font-weight: 600; border: 1px solid rgba(255, 193, 7, 0.3);">
-                                    {{ ars }}
-                                </span>
+                            {% for ars in ars_pendientes_detalle %}
+                                <a href="{{ url_for('facturacion_generar') }}?auto=1&ars_id={{ ars.id }}"
+                                   class="d-inline-block"
+                                   style="text-decoration: none; background: rgba(255, 193, 7, 0.15); color: #856404; padding: 0.5rem 0.85rem; border-radius: 10px; margin: 0.2rem; font-size: 0.9rem; font-weight: 700; border: 1px solid rgba(255, 193, 7, 0.3); box-shadow: 0 4px 12px rgba(255,193,7,0.15); transition: all 0.2s ease;">
+                                    <i class="fas fa-external-link-alt me-1"></i>
+                                    {{ ars.nombre }} — {{ ars.monto|formato_moneda }}
+                                </a>
                             {% endfor %}
                         </div>
                     </div>
@@ -776,6 +784,26 @@
             <div class="chart-card">
                 <h3><i class="fas fa-calendar-alt"></i>Facturación por ARS y Mes</h3>
                 <canvas id="chartARSporMes" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <!-- Facturación por Médico (Paciente) y Mes -->
+        <div class="col-lg-12 animate-card" style="animation-delay: 0.7s">
+            <div class="chart-card">
+                <h3><i class="fas fa-user-md"></i>Facturación por Médico Paciente y Mes</h3>
+                <canvas id="chartMedicoMes" height="100"></canvas>
+            </div>
+        </div>
+    </div>
+    
+    <div class="row g-4 mb-4">
+        <!-- Facturación por Mes: ARS (X) + Médico Paciente (apilado) -->
+        <div class="col-lg-12 animate-card" style="animation-delay: 0.75s">
+            <div class="chart-card">
+                <h3><i class="fas fa-layer-group"></i>Facturación por Mes: ARS + Médico (apilado)</h3>
+                <canvas id="chartArsMedicoMes" height="110"></canvas>
             </div>
         </div>
     </div>
@@ -878,10 +906,49 @@
         updateSelectedText('medico_consulta');
     });
     
+    // Limpiar filtros: desmarca todos los checkboxes y reinicia fechas al rango por defecto
+    function limpiarFiltros() {
+        // Desmarcar todos los checkboxes
+        ['ars', 'medico_factura', 'medico_consulta'].forEach(name => {
+            const dropdown = document.getElementById(name + '-dropdown');
+            if (!dropdown) return;
+            dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
+            updateSelectedText(name);
+        });
+        // Reset de fechas: último mes por defecto
+        const hoy = new Date();
+        const hace30 = new Date();
+        hace30.setDate(hace30.getDate() - 30);
+        document.getElementById('fecha_hasta').value = hoy.toISOString().split('T')[0];
+        document.getElementById('fecha_desde').value = hace30.toISOString().split('T')[0];
+    }
+    
     // ==================== FUNCIONES PARA GRÁFICOS ====================
     
     // Esperar a que se cargue Chart.js antes de ejecutar
     document.addEventListener('DOMContentLoaded', function() {
+        // Convertir fechas dd/mm/yyyy a yyyy-mm-dd al enviar
+        const form = document.getElementById('filtrosDashboard');
+        if (form) {
+            form.addEventListener('submit', function() {
+                const fDesde = document.getElementById('fecha_desde');
+                const fHasta = document.getElementById('fecha_hasta');
+                const toISO = (val) => {
+                    if (!val) return '';
+                    const p = val.split('/');
+                    if (p.length === 3) {
+                        const [dd, mm, yyyy] = p;
+                        if (dd.length === 2 && mm.length === 2 && yyyy.length === 4) {
+                            return `${yyyy}-${mm}-${dd}`;
+                        }
+                    }
+                    return val;
+                };
+                if (fDesde) fDesde.value = toISO(fDesde.value.trim());
+                if (fHasta) fHasta.value = toISO(fHasta.value.trim());
+            });
+        }
+
         if (typeof Chart === 'undefined') {
             const script = document.createElement('script');
             script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
@@ -894,225 +961,356 @@
     
     function initCharts() {
     // ==================== GRÁFICO: FACTURACIÓN POR MES ====================
-    const ctxMes = document.getElementById('chartPorMes').getContext('2d');
-    const facturacionPorMes = {{ facturacion_por_mes | tojson }};
-    
-    const meses = facturacionPorMes.map(item => {
-        const [year, month] = item.mes.split('-');
-        const fecha = new Date(year, month - 1);
-        return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-    });
-    const montos = facturacionPorMes.map(item => item.total_monto);
-    
-    new Chart(ctxMes, {
-        type: 'bar',
-        data: {
-            labels: meses,
-            datasets: [{
-                label: 'Monto Facturado ($)',
-                data: montos,
-                backgroundColor: '{{ tema.primary }}CC',
-                borderColor: '{{ tema.primary }}',
-                borderWidth: 2,
-                borderRadius: 8,
-                hoverBackgroundColor: '{{ tema.primary }}',
-                hoverBorderColor: '{{ tema.primary_dark }}',
-                hoverBorderWidth: 3
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        color: '#282828',
-                        font: {
-                            size: 14,
-                            weight: '600'
-                        }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: '#fff',
-                    titleColor: '#282828',
-                    bodyColor: '#666',
+    const facturacionPorMes = {{ facturacion_por_mes | default([]) | tojson }};
+    if (!facturacionPorMes.length) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'text-center text-muted py-3';
+        placeholder.innerText = 'Sin datos en el rango seleccionado';
+        const canvas = document.getElementById('chartPorMes');
+        canvas.parentNode.replaceChild(placeholder, canvas);
+    } else {
+        const ctxMes = document.getElementById('chartPorMes').getContext('2d');
+        const meses = facturacionPorMes.map(item => {
+            const [year, month] = item.mes.split('-');
+            const fecha = new Date(year, month - 1);
+            return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+        });
+        const montos = facturacionPorMes.map(item => item.total_monto);
+        
+        new Chart(ctxMes, {
+            type: 'bar',
+            data: {
+                labels: meses,
+                datasets: [{
+                    label: 'Monto Facturado ($)',
+                    data: montos,
+                    backgroundColor: '{{ tema.primary }}CC',
                     borderColor: '{{ tema.primary }}',
                     borderWidth: 2,
-                    padding: 12,
-                    bodyFont: {
-                        size: 14
-                    },
-                    callbacks: {
-                        label: function(context) {
-                            return 'Monto: $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                        }
-                    }
-                }
+                    borderRadius: 8,
+                    hoverBackgroundColor: '{{ tema.primary }}',
+                    hoverBorderColor: '{{ tema.primary_dark }}',
+                    hoverBorderWidth: 3
+                }]
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: '#282828',
+                            font: {
+                                size: 14,
+                                weight: '600'
+                            }
+                        }
                     },
-                    ticks: {
-                        color: '#666',
-                        font: {
-                            size: 12
+                    tooltip: {
+                        backgroundColor: '#fff',
+                        titleColor: '#282828',
+                        bodyColor: '#666',
+                        borderColor: '{{ tema.primary }}',
+                        borderWidth: 2,
+                        padding: 12,
+                        bodyFont: {
+                            size: 14
                         },
-                        callback: function(value) {
-                            return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0});
+                        callbacks: {
+                            label: function(context) {
+                                return 'Monto: $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                            }
                         }
                     }
                 },
-                x: {
-                    grid: {
-                        display: false
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            color: '#666',
+                            font: {
+                                size: 12
+                            },
+                            callback: function(value) {
+                                return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0});
+                            }
+                        }
                     },
-                    ticks: {
-                        color: '#666',
-                        font: {
-                            size: 12
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#666',
+                            font: {
+                                size: 12
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
+    }
     
     // ==================== GRÁFICO: FACTURACIÓN POR ARS Y MES ====================
-    const ctxARSMes = document.getElementById('chartARSporMes').getContext('2d');
-    const facturacionARSMes = {{ facturacion_ars_mes | tojson }};
-    
-    // Obtener lista única de meses
-    const mesesUnicos = [...new Set(facturacionARSMes.map(item => item.mes))].sort();
-    
-    // Obtener lista única de ARS (usar nombre_ars del backend)
-    const arsUnicos = [...new Set(facturacionARSMes.map(item => item.nombre_ars || item.nombre))];
-    
-    // Preparar meses con formato
-    const mesesFormateados = mesesUnicos.map(mes => {
-        const [year, month] = mes.split('-');
-        const fecha = new Date(year, month - 1);
-        return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-    });
-    
-    // Colores distintivos para cada ARS
-    const coloresARS = [
-        '{{ tema.primary }}', // Color principal del tema
-        '#3498db', // Azul brillante
-        '#e74c3c', // Rojo
-        '#2ecc71', // Verde
-        '#f39c12', // Naranja
-        '#9b59b6', // Morado
-        '#1abc9c', // Turquesa
-        '#e67e22', // Naranja oscuro
-        '#34495e', // Gris azulado
-        '#16a085', // Verde azulado
-        '#d35400', // Naranja quemado
-        '#8e44ad', // Púrpura
-        '#27ae60', // Verde oscuro
-        '#2980b9', // Azul oscuro
-        '#c0392b'  // Rojo oscuro
-    ];
-    
-    // Crear datasets (una línea por cada ARS)
-    const datasetsARS = arsUnicos.map((ars, index) => {
-        const datosARS = mesesUnicos.map(mes => {
-            const registro = facturacionARSMes.find(item => (item.nombre_ars || item.nombre) === ars && item.mes === mes);
-            return registro ? registro.total_monto : 0;
+    const facturacionARSMes = {{ facturacion_ars_mes | default([]) | tojson }};
+    if (!facturacionARSMes.length) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'text-center text-muted py-3';
+        placeholder.innerText = 'Sin datos en el rango seleccionado';
+        const canvas = document.getElementById('chartARSporMes');
+        canvas.parentNode.replaceChild(placeholder, canvas);
+    } else {
+        const ctxARSMes = document.getElementById('chartARSporMes').getContext('2d');
+        const mesesUnicos = [...new Set(facturacionARSMes.map(item => item.mes))].sort();
+        const arsUnicos = [...new Set(facturacionARSMes.map(item => item.nombre_ars || item.nombre))];
+        const mesesFormateados = mesesUnicos.map(mes => {
+            const [year, month] = mes.split('-');
+            const fecha = new Date(year, month - 1);
+            return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+        });
+        const coloresARS = [
+            '{{ tema.primary }}', '#3498db', '#e74c3c', '#2ecc71', '#f39c12',
+            '#9b59b6', '#1abc9c', '#e67e22', '#34495e', '#16a085',
+            '#d35400', '#8e44ad', '#27ae60', '#2980b9', '#c0392b'
+        ];
+        const datasetsARS = arsUnicos.map((ars, index) => {
+            const datosARS = mesesUnicos.map(mes => {
+                const registro = facturacionARSMes.find(item => (item.nombre_ars || item.nombre) === ars && item.mes === mes);
+                return registro ? registro.total_monto : 0;
+            });
+            
+            return {
+                label: ars,
+                data: datosARS,
+                borderColor: coloresARS[index % coloresARS.length],
+                backgroundColor: coloresARS[index % coloresARS.length] + '20',
+                borderWidth: 3,
+                fill: false,
+                tension: 0.4,
+                pointBackgroundColor: coloresARS[index % coloresARS.length],
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2,
+                pointRadius: 5,
+                pointHoverRadius: 7
+            };
         });
         
-        return {
-            label: ars,
-            data: datosARS,
-            borderColor: coloresARS[index % coloresARS.length],
-            backgroundColor: coloresARS[index % coloresARS.length] + '20',
-            borderWidth: 3,
-            fill: false,
-            tension: 0.4,
-            pointBackgroundColor: coloresARS[index % coloresARS.length],
-            pointBorderColor: '#fff',
-            pointBorderWidth: 2,
-            pointRadius: 5,
-            pointHoverRadius: 7
-        };
-    });
-    
-    new Chart(ctxARSMes, {
-        type: 'line',
-        data: {
-            labels: mesesFormateados,
-            datasets: datasetsARS
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: {
-                    display: true,
-                    position: 'top',
-                    labels: {
-                        color: '#282828',
-                        font: {
-                            size: 13,
-                            weight: '600'
-                        },
-                        padding: 15,
-                        boxWidth: 15,
-                        boxHeight: 15,
-                        usePointStyle: true
-                    }
-                },
-                tooltip: {
-                    backgroundColor: '#fff',
-                    titleColor: '#282828',
-                    bodyColor: '#666',
-                    borderColor: '{{ tema.primary }}',
-                    borderWidth: 2,
-                    padding: 12,
-                    bodyFont: {
-                        size: 14
-                    },
-                    callbacks: {
-                        label: function(context) {
-                            return context.dataset.label + ': $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                        }
-                    }
-                }
+        new Chart(ctxARSMes, {
+            type: 'line',
+            data: {
+                labels: mesesFormateados,
+                datasets: datasetsARS
             },
-            scales: {
-                y: {
-                    beginAtZero: true,
-                    grid: {
-                        color: 'rgba(0, 0, 0, 0.05)'
+            options: {
+                responsive: true,
+                maintainAspectRatio: true,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top',
+                        labels: {
+                            color: '#282828',
+                            font: {
+                                size: 13,
+                                weight: '600'
+                            },
+                            padding: 15,
+                            boxWidth: 15,
+                            boxHeight: 15,
+                            usePointStyle: true
+                        }
                     },
-                    ticks: {
-                        color: '#666',
-                        font: {
-                            size: 12
+                    tooltip: {
+                        backgroundColor: '#fff',
+                        titleColor: '#282828',
+                        bodyColor: '#666',
+                        borderColor: '{{ tema.primary }}',
+                        borderWidth: 2,
+                        padding: 12,
+                        bodyFont: {
+                            size: 14
                         },
-                        callback: function(value) {
-                            return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0});
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+                            }
                         }
                     }
                 },
-                x: {
-                    grid: {
-                        display: false
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: {
+                            color: 'rgba(0, 0, 0, 0.05)'
+                        },
+                        ticks: {
+                            color: '#666',
+                            font: {
+                                size: 12
+                            },
+                            callback: function(value) {
+                                return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0});
+                            }
+                        }
                     },
-                    ticks: {
-                        color: '#666',
-                        font: {
-                            size: 12
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            color: '#666',
+                            font: {
+                                size: 12
+                            }
                         }
                     }
                 }
             }
-        }
-    });
+        });
+    }
+    
+    // ==================== GRÁFICO: FACTURACIÓN POR MÉDICO PACIENTE Y MES ====================
+    const facturacionMedicoMes = {{ facturacion_medico_paciente_mes | default([]) | tojson }};
+    if (!facturacionMedicoMes.length) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'text-center text-muted py-3';
+        placeholder.innerText = 'Sin datos en el rango seleccionado';
+        const canvas = document.getElementById('chartMedicoMes');
+        canvas.parentNode.replaceChild(placeholder, canvas);
+    } else {
+        const ctxMedicoMes = document.getElementById('chartMedicoMes').getContext('2d');
+        const mesesMedicoUnicos = [...new Set(facturacionMedicoMes.map(item => item.mes))].sort();
+        const mesesMedicoLabels = mesesMedicoUnicos.map(mes => {
+            const [year, month] = mes.split('-');
+            const fecha = new Date(year, month - 1);
+            return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+        });
+        const medicosUnicos = [...new Set(facturacionMedicoMes.map(item => item.medico_nombre))];
+        const palette = [
+            '{{ tema.primary }}', '#3498db', '#e74c3c', '#2ecc71', '#f39c12',
+            '#9b59b6', '#1abc9c', '#e67e22', '#34495e', '#16a085',
+            '#d35400', '#8e44ad', '#27ae60', '#2980b9', '#c0392b'
+        ];
+        const datasetsMedico = medicosUnicos.map((med, idx) => {
+            const data = mesesMedicoUnicos.map(mes => {
+                const reg = facturacionMedicoMes.find(item => item.medico_nombre === med && item.mes === mes);
+                return reg ? reg.total_monto : 0;
+            });
+            const color = palette[idx % palette.length];
+            return {
+                label: med,
+                data,
+                borderColor: color,
+                backgroundColor: color + '33',
+                borderWidth: 2,
+                fill: false,
+                tension: 0.4,
+                pointRadius: 4,
+                pointBackgroundColor: color,
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            };
+        });
+        
+        new Chart(ctxMedicoMes, {
+            type: 'line',
+            data: {
+                labels: mesesMedicoLabels,
+                datasets: datasetsMedico
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { ticks: { color: '#666' } },
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#666',
+                            callback: (v) => '$' + v.toLocaleString('en-US', {minimumFractionDigits:0})
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // ==================== GRÁFICO: FACTURACIÓN POR MES (ARS + MÉDICO apilado) ====================
+    const facturacionArsMedicoMes = {{ facturacion_ars_medico_paciente_mes | default([]) | tojson }};
+    if (!facturacionArsMedicoMes.length) {
+        const placeholder = document.createElement('div');
+        placeholder.className = 'text-center text-muted py-3';
+        placeholder.innerText = 'Sin datos en el rango seleccionado';
+        const canvas = document.getElementById('chartArsMedicoMes');
+        canvas.parentNode.replaceChild(placeholder, canvas);
+    } else {
+        const ctxArsMedicoMes = document.getElementById('chartArsMedicoMes').getContext('2d');
+        const mesesStackUnicos = [...new Set(facturacionArsMedicoMes.map(item => item.mes))].sort();
+        const mesesStackLabels = mesesStackUnicos.map(mes => {
+            const [year, month] = mes.split('-');
+            const fecha = new Date(year, month - 1);
+            return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
+        });
+        
+        const combos = [...new Set(facturacionArsMedicoMes.map(item => `${item.nombre_ars} — ${item.medico_nombre}`))];
+        
+        const datasetsStack = combos.map((combo, idx) => {
+            const data = mesesStackUnicos.map(mes => {
+                const reg = facturacionArsMedicoMes.find(item => `${item.nombre_ars} — ${item.medico_nombre}` === combo && item.mes === mes);
+                return reg ? reg.total_monto : 0;
+            });
+            const color = palette[idx % palette.length];
+            return {
+                label: combo,
+                data,
+                backgroundColor: color + 'CC',
+                borderColor: color,
+                borderWidth: 1
+            };
+        });
+        
+        new Chart(ctxArsMedicoMes, {
+            type: 'bar',
+            data: {
+                labels: mesesStackLabels,
+                datasets: datasetsStack
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`
+                        }
+                    }
+                },
+                scales: {
+                    x: { stacked: true, ticks: { color: '#666' } },
+                    y: { 
+                        stacked: true,
+                        beginAtZero: true,
+                        ticks: {
+                            color: '#666',
+                            callback: (v) => '$' + v.toLocaleString('en-US', {minimumFractionDigits:0})
+                        }
+                    }
+                }
+            }
+        });
+    }
     } // Fin de initCharts()
 </script>
 

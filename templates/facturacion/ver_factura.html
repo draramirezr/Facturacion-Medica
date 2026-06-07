@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Factura #{{ factura['id'] }}{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -406,10 +406,37 @@
         margin: 0 0.3rem;
     }
     
+    /* Color de texto sincronizado con iconos en botones de acción */
+    .btn-accion,
+    .btn-volver,
+    .btn-email {
+        --btn-fg-color: #fff;
+        color: var(--btn-fg-color) !important;
+    }
+    
+    /* Mantener color de texto en estados disabled */
+    .btn-accion:disabled,
+    .btn-accion.disabled,
+    .btn-volver:disabled,
+    .btn-volver.disabled,
+    .btn-email:disabled,
+    .btn-email.disabled {
+        color: var(--btn-fg-color) !important;
+        -webkit-text-fill-color: var(--btn-fg-color) !important;
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
+        opacity: 0.45;
+        pointer-events: none;
+    }
+    
+    .btn-accion i,
+    .btn-volver i,
+    .btn-email i {
+        color: inherit !important;
+    }
+    
     .btn-accion {
         background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
         border: none;
-        color: white !important;
         padding: 0.8rem 2rem;
         border-radius: 12px;
         font-weight: 600;
@@ -427,14 +454,9 @@
         box-shadow: 0 8px 25px {{ tema.primary }}60;
     }
     
-    .btn-accion i {
-        color: white !important;
-    }
-    
     .btn-volver {
         background: var(--primary-color) !important;
         border: none;
-        color: white !important;
         padding: 0.8rem 2rem;
         border-radius: 12px;
         font-weight: 600;
@@ -451,14 +473,9 @@
         box-shadow: 0 8px 25px rgba(172, 172, 173, 0.4);
     }
     
-    .btn-volver i {
-        color: white !important;
-    }
-    
     .btn-email {
         background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
         border: none;
-        color: white !important;
         padding: 0.8rem 2rem;
         border-radius: 12px;
         font-weight: 600;
@@ -474,10 +491,6 @@
         color: white !important;
         transform: translateY(-2px);
         box-shadow: 0 8px 25px {{ tema.primary }}60;
-    }
-    
-    .btn-email i {
-        color: white !important;
     }
     
     .badge-facturada {
@@ -505,6 +518,20 @@
         color: white !important;
     }
 </style>
+
+{% macro fecha_ddmmyyyy(fecha) -%}
+    {%- set f = (fecha|string) -%}
+    {%- if '-' in f -%}
+        {%- set p = f.split('-') -%}
+        {%- if p|length == 3 -%}
+            {{ p[2] }}/{{ p[1] }}/{{ p[0] }}
+        {%- else -%}
+            {{ fecha }}
+        {%- endif -%}
+    {%- else -%}
+        {{ fecha }}
+    {%- endif -%}
+{%- endmacro %}
 
 <div class="container-fluid mt-4">
     <!-- Badge de Estado -->
@@ -550,7 +577,7 @@
         <div class="factura-info">
             <div class="info-box">
                 <h6 style="white-space: nowrap;">Información de Factura</h6>
-                <p><strong>Fecha:</strong> {{ fecha_factura }}</p>
+                <p><strong>Fecha:</strong> {{ fecha_ddmmyyyy(fecha_factura) }}</p>
                 <p><strong>Cliente:</strong> {{ ars.get('nombre') or ars.get('nombre_ars', 'N/A') }}</p>
                 {% if ars['rnc'] %}
                 <p><strong>RNC:</strong> {{ ars['rnc'] }}</p>
@@ -561,7 +588,7 @@
                 <p class="highlight">{{ ncf_completo }}</p>
                 <p>{{ ncf_tipo_descripcion }}</p>
                 {% if ncf['fecha_fin'] %}
-                <p><strong>Válido hasta:</strong> {{ ncf['fecha_fin'] }}</p>
+                <p><strong>Válido hasta:</strong> {{ fecha_ddmmyyyy(ncf['fecha_fin']) }}</p>
                 {% endif %}
             </div>
             <div class="info-box">
@@ -599,7 +626,7 @@
                     <td class="text-center">{{ loop.index }}</td>
                     <td><strong>{{ paciente['nombre_paciente'] }}</strong></td>
                     <td>{{ paciente['nss'] }}</td>
-                    <td>{{ paciente['fecha_servicio'] }}</td>
+                    <td>{{ fecha_ddmmyyyy(paciente['fecha_servicio']) }}</td>
                     <td><code style="background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px;">{{ paciente['autorizacion'] }}</code></td>
                     <td>{{ paciente['descripcion_servicio'] }}</td>
                     <td class="text-right"><strong>{{ monto_paciente|formato_moneda }}</strong></td>

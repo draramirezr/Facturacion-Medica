@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Histórico de Facturas{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -88,9 +88,10 @@
     /* Botones de acciones - Sobrescribir estilos globales */
     .btn-ver-factura,
     .btn-editar-factura {
+        --btn-fg: #fff;
         background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
         border: none !important;
-        color: #FFFFFF !important;
+        color: var(--btn-fg) !important;
         padding: 0.4rem 0.8rem !important;
         border-radius: 8px !important;
         font-weight: 600 !important;
@@ -121,7 +122,7 @@
     
     .btn-ver-factura i,
     .btn-editar-factura i {
-        color: #FFFFFF !important;
+        color: var(--btn-fg) !important;
         margin-right: 0.3rem !important;
         font-size: 0.85rem !important;
     }
@@ -184,6 +185,20 @@
         color: white;
     }
 </style>
+
+{% macro fecha_ddmmyyyy(fecha) -%}
+    {%- set f = (fecha|string) -%}
+    {%- if '-' in f -%}
+        {%- set p = f.split('-') -%}
+        {%- if p|length == 3 -%}
+            {{ p[2] }}/{{ p[1] }}/{{ p[0] }}
+        {%- else -%}
+            {{ fecha }}
+        {%- endif -%}
+    {%- else -%}
+        {{ fecha }}
+    {%- endif -%}
+{%- endmacro %}
 
 <div class="container mt-4">
     <!-- Hero Section -->
@@ -249,13 +264,17 @@
                     <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
                         <i class="fas fa-calendar"></i> Desde
                     </label>
-                    <input type="date" class="form-control" name="fecha_desde" value="{{ fecha_desde or '' }}">
+                    <input type="text" class="form-control" name="fecha_desde" id="fecha_desde"
+                           placeholder="dd/mm/aaaa"
+                           value="{{ fecha_ddmmyyyy(fecha_desde) if fecha_desde else '' }}">
                 </div>
                 <div class="col-md-2 mb-3">
                     <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
                         <i class="fas fa-calendar"></i> Hasta
                     </label>
-                    <input type="date" class="form-control" name="fecha_hasta" value="{{ fecha_hasta or '' }}">
+                    <input type="text" class="form-control" name="fecha_hasta" id="fecha_hasta"
+                           placeholder="dd/mm/aaaa"
+                           value="{{ fecha_ddmmyyyy(fecha_hasta) if fecha_hasta else '' }}">
                 </div>
             </div>
             <div class="text-end">
@@ -290,7 +309,7 @@
                 {% for factura in facturas %}
                 <tr>
                     <td><strong>{{ factura['id'] }}</strong></td>
-                    <td>{{ factura['fecha_factura'] }}</td>
+                    <td>{{ fecha_ddmmyyyy(factura['fecha_factura']) }}</td>
                     <td>
                         <span class="badge-ncf">
                             {{ factura['ncf_numero'] if factura['ncf_numero'] else factura['ncf'] }}
@@ -385,6 +404,33 @@ document.addEventListener('DOMContentLoaded', function() {
             const diasRestantes = 30 - diffDays;
             btn.title = `Editar factura (${diasRestantes} día${diasRestantes !== 1 ? 's' : ''} restante${diasRestantes !== 1 ? 's' : ''})`;
         }
+    });
+});
+</script>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function toISO(fecha) {
+    if (!fecha) return '';
+    const parts = fecha.split('/');
+    if (parts.length === 3) {
+        const [dd, mm, yyyy] = parts;
+        if (dd.length === 2 && mm.length === 2 && yyyy.length === 4) {
+            return `${yyyy}-${mm}-${dd}`;
+        }
+    }
+    return fecha; // fallback
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    if (!form) return;
+    form.addEventListener('submit', function() {
+        const desde = document.getElementById('fecha_desde');
+        const hasta = document.getElementById('fecha_hasta');
+        if (desde) desde.value = toISO(desde.value.trim());
+        if (hasta) hasta.value = toISO(hasta.value.trim());
     });
 });
 </script>

@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Generar Factura - Paso 1{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -379,6 +379,35 @@ function seleccionarNCFporARS() {
 
 // Verificar al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
+    // Prefill automático si viene desde dashboard (auto=1)
+    const AUTO_MODE = {{ 'true' if auto_mode else 'false' }};
+    const ARS_PREFILL_ID = {{ ars_prefill_id if ars_prefill_id else 'null' }};
+    const NCF_PREFILL_ID = {{ ncf_prefill_id if ncf_prefill_id else 'null' }};
+    const MEDICO_PREFILL_ID = {{ medico_prefill_id if medico_prefill_id else 'null' }};
+    const FECHA_PREFILL = "{{ fecha_actual }}";
+    
+    if (AUTO_MODE) {
+        if (ARS_PREFILL_ID) {
+            const arsSelect = document.getElementById('ars_id');
+            arsSelect.value = ARS_PREFILL_ID;
+            seleccionarNCFporARS();
+        }
+        if (NCF_PREFILL_ID) {
+            const ncfSelect = document.getElementById('ncf_id');
+            ncfSelect.value = NCF_PREFILL_ID;
+        }
+        if (MEDICO_PREFILL_ID) {
+            const medicoSelect = document.getElementById('medico_factura_id');
+            if (medicoSelect) {
+                medicoSelect.value = MEDICO_PREFILL_ID;
+            }
+        }
+        const fechaInput = document.getElementById('fecha_factura');
+        if (fechaInput && !fechaInput.value) {
+            fechaInput.value = FECHA_PREFILL;
+        }
+    }
+    
     checkForm();
     
     // Si solo hay un médico habilitado, actualizar info visual
