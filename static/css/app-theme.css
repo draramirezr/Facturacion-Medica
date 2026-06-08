@@ -1,0 +1,215 @@
+:root {
+  --primary: #0F386E;         /* Azul marino base */
+  --primary-strong: #0c2d59;  /* Variante oscura */
+  --accent: #00A896;          /* Verde acento */
+  --secondary: #0F172A;
+  --muted: #4C4C4C;           /* Gris institucional */
+  --bg: #F8FAFC;
+  --card: #FFFFFF;
+  --border: #E2E8F0;
+  --shadow: 0 12px 40px rgba(15, 23, 42, 0.08);
+  --radius: 12px;
+  --radius-lg: 16px;
+  --font: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+* { box-sizing: border-box; }
+body {
+  font-family: var(--font);
+  color: var(--secondary);
+  background: var(--bg);
+}
+
+/* Layout containers */
+.page-container {
+  background: var(--bg);
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow);
+}
+.card-flat {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+}
+
+/* Buttons */
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-weight: 600;
+  box-shadow: 0 10px 30px rgba(15, 56, 110, 0.20);
+}
+.btn-primary:hover { background: var(--primary-strong); }
+.btn-ghost {
+  background: transparent;
+  color: var(--secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  font-weight: 600;
+}
+.btn-ghost:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+}
+
+/* Inputs */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="date"],
+input[type="password"],
+select,
+textarea {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  font-family: var(--font);
+  font-size: 14px;
+  color: var(--secondary);
+  background: #fff;
+}
+input:focus,
+select:focus,
+textarea:focus {
+  outline: 2px solid rgba(20, 184, 166, 0.25);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.15);
+}
+
+/* Badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: var(--radius);
+  font-weight: 600;
+  font-size: 12px;
+  border: 1px solid var(--border);
+}
+.badge-success { color: #0f766e; background: #ecfdf3; border-color: #befae0; }
+.badge-warning { color: #b45309; background: #fff7ed; border-color: #fde68a; }
+.badge-info { color: var(--primary-strong); background: #ecfeff; border-color: #99f6e4; }
+
+/* Tables */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+thead th {
+  background: #f8fafc;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+}
+tbody td {
+  padding: 12px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+}
+tbody tr:hover {
+  background: #f9fbfd;
+}
+
+/* Metrics cards */
+.metric-card {
+  display: grid;
+  gap: 6px;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+.metric-title { color: var(--muted); font-size: 13px; }
+.metric-value { font-size: 24px; font-weight: 700; color: var(--secondary); }
+.metric-delta { font-size: 12px; font-weight: 600; color: #0f766e; }
+.metric-delta.neg { color: #b91c1c; }
+
+/* Sidebar & topbar (base) */
+.sidebar {
+  background: #fff;
+  border-right: 1px solid var(--border);
+  min-height: 100vh;
+}
+.sidebar a {
+  color: var(--secondary);
+  border-radius: var(--radius);
+}
+.sidebar a:hover {
+  background: #f0fdfa;
+  color: var(--primary);
+}
+.topbar {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(15,23,42,0.04);
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* Utility spacing */
+.section {
+  padding: 16px;
+}
+.section-lg {
+  padding: 24px;
+}
+
+/* Form labels */
+label {
+  font-weight: 600;
+  color: var(--secondary);
+  margin-bottom: 6px;
+}
+
+/* Links */
+a {
+  color: var(--primary);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--primary-strong);
+}
+
+/* Dashboard layout helpers */
+.layout-dashboard {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 0;
+}
+@media (max-width: 960px) {
+  .layout-dashboard {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Metric cards compact */
+.metric-compact {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: 0 10px 24px rgba(15,23,42,0.06);
+}
+.metric-compact .label { font-size: 12px; color: var(--muted); font-weight: 600; }
+.metric-compact .value { font-size: 22px; font-weight: 800; color: var(--secondary); }
+.metric-compact .delta { font-size: 12px; font-weight: 700; color: var(--accent); }
+.metric-compact .delta.neg { color: #b91c1c; }

@@ -141,6 +141,7 @@
     <!-- Preload de recursos críticos -->
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}?v=1.0">
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" as="script">
     
     <!-- Font Awesome Completo desde CDN -->
@@ -1099,6 +1100,25 @@
     {% block extra_head %}{% endblock %}
 </head>
 <body>
+    {% if 'facturacion' in request.path %}
+    <div class="topbar" style="position: sticky; top: 0; z-index: 10;">
+        <div style="display:flex;align-items:center;gap:10px;flex:1;">
+            <img src="{{ url_for('static', filename='img/logo-arsflow.png') }}" alt="ARSFlow" style="height:32px;">
+            <div style="flex:1;max-width:420px;">
+                <input type="text" placeholder="Buscar pacientes, facturas, ARS..." style="width:100%;padding:8px 10px;border:1px solid var(--border, #E2E8F0);border-radius:12px;font-size:13px;">
+            </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+            <div style="text-align:right;">
+                <div style="font-weight:700;font-size:13px;color:var(--secondary, #0F172A);">{{ current_user.nombre if current_user.is_authenticated else 'Invitado' }}</div>
+                <div style="font-size:12px;color:var(--muted, #64748B);">{{ current_user.email if current_user.is_authenticated else '' }}</div>
+            </div>
+            <div style="width:36px;height:36px;border-radius:50%;background:#ecfeff;display:grid;place-items:center;color:var(--primary,#14B8A6);font-weight:700;">
+                {{ current_user.nombre[:1]|upper if current_user.is_authenticated else '?' }}
+            </div>
+        </div>
+    </div>
+    {% endif %}
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TW8956LR"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
@@ -1341,12 +1361,12 @@
         <i class="fab fa-instagram"></i>
     </a>
 
-    <!-- Citas Button -->
-    <a href="{{ url_for('request_appointment') }}" 
+    <!-- Citas Button (deshabilitado: endpoint no existe) -->
+    {# <a href="{{ url_for('request_appointment') }}" 
        class="float-button citas-float"
        title="Solicitar Cita">
         <i class="fas fa-calendar-plus"></i>
-    </a>
+    </a> #}
     {% endif %}
 
     <!-- JavaScript - Carga optimizada con defer para máxima velocidad -->

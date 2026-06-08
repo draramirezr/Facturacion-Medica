@@ -460,15 +460,9 @@ centrosPorMedico[{{ centro['medico_id'] }}].push({
 
 console.log('📍 Centros por médico cargados:', centrosPorMedico);
 
-// Event listener para cambio de médico
-document.getElementById('medico_id').addEventListener('change', function() {
-    const medicoId = parseInt(this.value);
+function actualizarCentrosPorMedico(medicoId) {
     const centroSelect = document.getElementById('centro_medico_id');
-    
-    console.log('🔍 Médico seleccionado:', medicoId);
-    console.log('📋 Centros disponibles:', centrosPorMedico[medicoId]);
-    
-    // Limpiar opciones
+    if (!centroSelect) return;
     centroSelect.innerHTML = '<option value="">Seleccione un centro médico...</option>';
     
     if (medicoId && centrosPorMedico[medicoId]) {
@@ -488,15 +482,25 @@ document.getElementById('medico_id').addEventListener('change', function() {
             centroSelect.appendChild(option);
         });
         
-        // Preseleccionar el centro por defecto
         if (centroDefectoId) {
             centroSelect.value = centroDefectoId;
-            console.log('✅ Centro por defecto preseleccionado:', centroDefectoId);
         }
     } else {
         centroSelect.innerHTML = '<option value="">No hay centros médicos asociados</option>';
-        console.log('⚠️ No hay centros para este médico');
     }
+}
+
+// Event listener para cambio de médico
+document.getElementById('medico_id').addEventListener('change', function() {
+    const medicoId = parseInt(this.value);
+    const centroSelect = document.getElementById('centro_medico_id');
+    
+    console.log('🔍 Médico seleccionado:', medicoId);
+    console.log('📋 Centros disponibles:', centrosPorMedico[medicoId]);
+    
+    // Limpiar opciones
+    centroSelect.innerHTML = '<option value="">Seleccione un centro médico...</option>';
+    actualizarCentrosPorMedico(medicoId);
 });
 
 let numeroLinea = 0;
@@ -672,9 +676,45 @@ document.addEventListener('input', function(e) {
     }
 });
 
-const HOY_ISO = new Date().toISOString().split('T')[0];
+// Cargar ARS según médico seleccionado
+async function cargarArsPorMedico(medicoId) {
+    const arsSelect = document.getElementById('ars_id');
+    if (!arsSelect) return;
+    arsSelect.innerHTML = '<option value="">Cargando ARS...</option>';
+    if (!medicoId) {
+        arsSelect.innerHTML = '<option value="">Seleccione un ARS</option>';
+        return;
+    }
+    try {
+        const resp = await fetch(`/api/medicos/${medicoId}/ars`);
+        const data = await resp.json();
+        const arsLista = data.ars || [];
+        let opciones = '<option value="">Seleccione un ARS</option>';
+        arsLista.forEach(ars => {
+            opciones += `<option value="${ars.id}">${ars.nombre}</option>`;
+        });
+        arsSelect.innerHTML = opciones;
+    } catch (err) {
+        console.error('Error cargando ARS por médico', err);
+        arsSelect.innerHTML = '<option value="">Seleccione un ARS</option>';
+    }
+}
+
+// Evento de cambio en médico
+document.getElementById('medico_id')?.addEventListener('change', function() {
+    const medicoId = this.value;
+    cargarArsPorMedico(medicoId);
+});
+
+function hoyLocalISO() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().split('T')[0];
+}
+const HOY_ISO = hoyLocalISO();
 const MIN_45_ISO = (() => {
     const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     d.setDate(d.getDate() - 45);
     return d.toISOString().split('T')[0];
 })();
@@ -1255,6 +1295,12 @@ const ARS_PREFILL_ID = {{ ars_prefill_id if ars_prefill_id else 'null' }};
 const MEDICO_PREFILL_ID = {{ medico_prefill_id if medico_prefill_id else 'null' }};
 
 window.addEventListener('DOMContentLoaded', function() {
+    // Si ya hay médico seleccionado (prefill), cargar centros y ARS
+    const medSelect = document.getElementById('medico_id');
+    if (medSelect && medSelect.value) {
+        medSelect.dispatchEvent(new Event('change'));
+    }
+
     if (AUTO_MODE) {
         if (MEDICO_PREFILL_ID) {
             const medSelect = document.getElementById('medico_id');

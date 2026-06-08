@@ -5,357 +5,386 @@
 
 {% block content %}
 <style>
-    /* Evitar barra de desplazamiento horizontal en el dashboard */
+    :root {
+        --primary: #14B8A6;
+        --primary-strong: #0f766e;
+        --secondary: #0F172A;
+        --muted: #64748B;
+        --bg: #F8FAFC;
+        --card: #FFFFFF;
+        --border: #E2E8F0;
+        --shadow: 0 16px 50px rgba(15, 23, 42, 0.08);
+        --radius: 12px;
+        --radius-lg: 16px;
+    }
     html, body {
         overflow-x: hidden;
         width: 100%;
         max-width: 100%;
         position: relative;
+        background: var(--bg);
+        color: var(--secondary);
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
     }
-    #facturacion-menu-root {
-        overflow-x: hidden;
-        width: 100%;
+    #facturacion-menu-root { overflow: hidden; width: 100%; }
+    .menu-layout {
+        display: grid;
+        grid-template-columns: 240px 1fr;
+        min-height: calc(100vh - 80px);
     }
-    .facturacion-hero {
-        background: {{ tema.background }};
-        border-radius: 12px;
-        padding: 0.6rem 0.9rem;
-        margin-bottom: 0.6rem;
-        position: relative;
-        overflow: hidden;
-        border: 1px solid {{ tema.primary_light }}33;
+    .menu-sidebar {
+        background: #fff;
+        border-right: 1px solid var(--border);
+        padding: 20px 16px;
+        position: sticky;
+        top: 0;
+        height: fit-content;
+        box-shadow: 6px 0 30px rgba(15,23,42,0.04);
     }
-    
-    .facturacion-hero h1 {
-        font-size: 1.3rem !important;
-        margin: 0 !important;
+    .sidebar-title {
+        font-weight: 800;
+        font-size: 16px;
+        color: var(--secondary);
+        margin-bottom: 10px;
     }
-    
-    .maestra-card {
-        background: white;
-        border-radius: 18px;
-        padding: 1.4rem 1.1rem;
-        text-align: center;
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        height: 100%;
-        cursor: pointer;
-        min-height: 140px;
+    .sidebar-group { margin-bottom: 18px; }
+    .sidebar-subtitle {
+        font-size: 12px;
+        color: var(--muted);
+        font-weight: 700;
+        margin: 0 0 6px 0;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+    }
+    .sidebar-link {
         display: flex;
-        flex-direction: column;
-        justify-content: center;
         align-items: center;
+        gap: 10px;
+        padding: 10px 12px;
+        border-radius: var(--radius);
+        color: var(--secondary);
+        font-weight: 600;
+        text-decoration: none;
+        border: 1px solid transparent;
+        transition: all 0.2s ease;
     }
-    
-    .maestra-card:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 10px 30px {{ tema.primary }}40;
-        border-color: {{ tema.primary }};
+    .sidebar-link i { color: var(--primary); width: 18px; text-align: center; }
+    .sidebar-link:hover {
+        background: #f0fdfa;
+        border-color: var(--primary);
+        color: var(--primary-strong);
     }
-    
-    .maestra-card i {
-        font-size: 2.7rem;
-        margin-bottom: 0.6rem;
-        color: {{ tema.primary }};
-        opacity: 1;
-        transition: all 0.3s ease;
-    }
-    
-    .maestra-card:hover i {
-        transform: scale(1.15);
-        color: {{ tema.primary_dark }};
-    }
-    
-    .maestra-card h4 {
-        color: {{ tema.primary }};
+    .sidebar-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        background: none;
+        border: 1px solid transparent;
+        padding: 8px 8px;
+        border-radius: var(--radius);
+        color: var(--secondary);
         font-weight: 700;
-        margin-bottom: 0.35rem;
-        font-size: 1.05rem;
+        cursor: pointer;
     }
-    
-    .maestra-card p {
-        color: #6B7280;
-        font-size: 0.85rem;
+    .sidebar-toggle:hover {
+        background: #f0fdfa;
+        border-color: var(--primary);
+        color: var(--primary-strong);
+    }
+    .sidebar-chevron {
+        font-size: 12px;
+        transition: transform 0.2s ease;
+    }
+    .sidebar-chevron.rotate {
+        transform: rotate(-90deg);
+    }
+    .menu-content {
+        padding: 20px 20px 28px;
+    }
+    .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 18px;
+        gap: 12px;
+    }
+    .topbar-title {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--secondary);
         margin: 0;
-        line-height: 1.3;
     }
-    
-    .section-title {
-        color: {{ tema.primary }};
-        font-weight: 700;
-        margin: 1rem 0 0.75rem 0;
-        text-align: center;
-        font-size: 1.3rem;
-        border-bottom: none !important;
-        padding-bottom: 0 !important;
+    .cta-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 12px;
+        margin-bottom: 18px;
     }
-    
-    .section-title::after {
-        display: none !important;
-        content: none !important;
+    .cta-card {
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        background: var(--card);
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+        padding: 14px;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        color: var(--secondary);
     }
-    
-    @keyframes smoothSlideUp {
-        from {
-            opacity: 0;
-            transform: translateY(30px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    .cta-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
+    .cta-icon {
+        width: 42px; height: 42px;
+        border-radius: 12px;
+        background: #ecfeff;
+        display: grid; place-items: center;
+        color: var(--primary);
+        font-size: 18px;
     }
-    
-    .animate-card {
-        animation: smoothSlideUp 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
-        animation-fill-mode: both;
+    .grid-modulos {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 12px;
     }
-    
-    /* Ajustes para pantallas pequeñas */
-    @media (max-width: 1400px) {
-        .maestra-card {
-            padding: 1.2rem 1rem;
-            min-height: 130px;
-        }
-        .maestra-card i {
-            font-size: 2.4rem;
-        }
-        .maestra-card h4 {
-            font-size: 1rem;
-        }
-        .maestra-card p {
-            font-size: 0.8rem;
-        }
+    .mod-card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+        padding: 16px 14px;
+        text-align: left;
+        transition: all 0.2s ease;
+        color: var(--secondary);
+        text-decoration: none;
+        display: grid;
+        gap: 8px;
+        min-height: 120px;
     }
-    
-    @media (max-width: 768px) {
-        .maestra-card {
-            padding: 2rem 1rem;
-            min-height: 150px;
-        }
-        .maestra-card i {
-            font-size: 2.8rem;
-        }
-        .maestra-card h4 {
-            font-size: 1rem;
-        }
-        .maestra-card p {
-            font-size: 0.8rem;
-        }
+    .mod-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--primary); }
+    .mod-icon {
+        width: 38px; height: 38px;
+        border-radius: 12px;
+        background: #f0fdfa;
+        color: var(--primary);
+        display: grid; place-items: center;
+        font-size: 18px;
+    }
+    .mod-title { font-weight: 700; margin: 0; font-size: 1rem; }
+    .mod-desc { margin: 0; color: var(--muted); font-size: 0.88rem; line-height: 1.35; }
+    @media (max-width: 960px) {
+        .menu-layout { grid-template-columns: 1fr; }
+        .menu-sidebar { position: relative; top: auto; width: 100%; }
     }
 </style>
 
 <div id="facturacion-menu-root">
-<div class="container-fluid px-3 py-2" style="max-width: 1200px;">
-    <!-- Hero Section -->
-    <div class="facturacion-hero animate-card">
-        <div class="text-center">
-            <h1 style="color: {{ tema.primary }}; font-weight: 800;">
-                <i class="fas fa-file-invoice-dollar me-2" style="font-size: 1.2rem;"></i>
-                ARSFLOW Gestion de Factras Medicas
-            </h1>
+  <div class="menu-layout">
+    <!-- Sidebar -->
+    <aside class="menu-sidebar">
+      <div class="sidebar-title">ARSFlow</div>
+      {% if current_user.perfil == 'Administrador' %}
+      <div class="sidebar-group">
+        <div class="sidebar-subtitle">Resumen</div>
+        <a class="sidebar-link" href="{{ url_for('facturacion_dashboard') }}"><i class="fas fa-chart-line"></i>Dashboard</a>
+      </div>
+      {% endif %}
+      <div class="sidebar-group">
+        <div class="sidebar-subtitle">Gestión</div>
+        <a class="sidebar-link" href="{{ url_for('facturacion_pacientes_pendientes') }}"><i class="fas fa-list"></i>Pendientes</a>
+        <a class="sidebar-link" href="{{ url_for('facturacion_generar') }}"><i class="fas fa-file-invoice-dollar"></i>Facturación</a>
+        <a class="sidebar-link" href="{{ url_for('facturacion_reclamaciones') }}"><i class="fas fa-exclamation-circle"></i>Reclamaciones</a>
+        <a class="sidebar-link" href="{{ url_for('facturacion_pagos') }}"><i class="fas fa-hand-holding-usd"></i>Pagos</a>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-subtitle">Catálogos</div>
+        <button class="sidebar-toggle" type="button" id="toggle-catalogos">
+          <span>Catálogos</span>
+          <span class="sidebar-chevron" id="chevron-catalogos">▼</span>
+        </button>
+        <div id="catalogos-links">
+          <a class="sidebar-link" href="{{ url_for('facturacion_centros_medicos') }}"><i class="fas fa-hospital-alt"></i>Centros Médicos</a>
+          <a class="sidebar-link" href="{{ url_for('facturacion_medicos') }}"><i class="fas fa-user-md"></i>Médicos</a>
+          <a class="sidebar-link" href="{{ url_for('facturacion_medico_centro') }}"><i class="fas fa-link"></i>Centro x Médico</a>
+          <a class="sidebar-link" href="{{ url_for('facturacion_ars') }}"><i class="fas fa-hospital"></i>ARS</a>
+          <a class="sidebar-link" href="{{ url_for('facturacion_codigo_ars') }}"><i class="fas fa-barcode"></i>Código ARS</a>
+          <a class="sidebar-link" href="{{ url_for('facturacion_servicios') }}"><i class="fas fa-clipboard-list"></i>Servicios</a>
+          <a class="sidebar-link" href="{{ url_for('facturacion_ncf') }}"><i class="fas fa-file-invoice"></i>NCF</a>
         </div>
-    </div>
+      </div>
+      <div class="sidebar-group">
+        <div class="sidebar-subtitle">Reportes</div>
+        <a class="sidebar-link" href="{{ url_for('facturacion_historico') }}"><i class="fas fa-history"></i>Histórico</a>
+      </div>
+    </aside>
 
-    {% if current_user.perfil == 'Administrador' or current_user.perfil == 'Nivel 2' %}
-    <!-- Módulos de Configuración -->
-    <div class="row g-3 mb-3">
-        <!-- 1. Centros Médicos -->
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 0.1s">
-            <a href="{{ url_for('facturacion_centros_medicos') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-hospital-alt"></i>
-                    <h4>Centros Médicos</h4>
-                    <p>Centros médicos</p>
-                </div>
-            </a>
+    <!-- Main content -->
+    <main class="menu-content">
+      <div class="topbar">
+        <div>
+          <p class="topbar-title">Bienvenido</p>
+          <p style="margin:0;color:var(--muted);font-weight:500;">Accede rápido a facturación, reclamos y pagos.</p>
         </div>
+      </div>
 
-        <!-- 2. Médicos -->
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 0.2s">
-            <a href="{{ url_for('facturacion_medicos') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-user-md"></i>
-                    <h4>Médicos</h4>
-                    <p>Registro de médicos</p>
-                </div>
-            </a>
+      <!-- Métricas rápidas (placeholder) -->
+      <div class="grid-modulos" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 14px;">
+        <div class="metric-compact">
+          <div class="label">Facturas generadas</div>
+          <div class="value">{{ facturas_generadas or 0 }}</div>
+          <div class="delta" style="color: var(--muted); font-weight:600;">Total</div>
         </div>
+        <div class="metric-compact">
+          <div class="label">Pendientes</div>
+          <div class="value">{{ pendientes or 0 }}</div>
+          <div class="delta" style="color: var(--muted); font-weight:600;">En cola</div>
+        </div>
+        <div class="metric-compact">
+          <div class="label">Pagos recibidos</div>
+          <div class="value">RD$ {{ pagos_recibidos|formato_moneda }}</div>
+          <div class="delta" style="color: var(--muted); font-weight:600;">Acumulado</div>
+        </div>
+        <div class="metric-compact">
+          <div class="label">Reclamaciones</div>
+          <div class="value">{{ reclamaciones or 0 }}</div>
+          <div class="delta neg" style="color: var(--muted); font-weight:600;">Total</div>
+        </div>
+      </div>
 
-        <!-- 3. Centro x Médico -->
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 0.3s">
-            <a href="{{ url_for('facturacion_medico_centro') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-link"></i>
-                    <h4>Centro x Médico</h4>
-                    <p>Relaciones</p>
-                </div>
-            </a>
-        </div>
+      <div class="cta-row">
+        <a class="cta-card" href="{{ url_for('facturacion_facturas_nueva') }}">
+          <div class="cta-icon"><i class="fas fa-user-plus"></i></div>
+          <div>
+            <div style="font-weight:700;color:var(--secondary);">Agregar consultas</div>
+            <div style="color:var(--muted);font-size:13px;">Carga manual o Excel con validaciones.</div>
+          </div>
+        </a>
+        <a class="cta-card" href="{{ url_for('facturacion_pacientes_pendientes') }}">
+          <div class="cta-icon"><i class="fas fa-tasks"></i></div>
+          <div>
+            <div style="font-weight:700;color:var(--secondary);">Estado de facturación</div>
+            <div style="color:var(--muted);font-size:13px;">Pendientes y seguimiento.</div>
+          </div>
+        </a>
+        <a class="cta-card" href="{{ url_for('facturacion_generar') }}">
+          <div class="cta-icon"><i class="fas fa-file-invoice-dollar"></i></div>
+          <div>
+            <div style="font-weight:700;color:var(--secondary);">Generar factura</div>
+            <div style="color:var(--muted);font-size:13px;">Convierte pendientes a facturas.</div>
+          </div>
+        </a>
+      </div>
 
-        <!-- 4. ARS -->
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 0.4s">
-            <a href="{{ url_for('facturacion_ars') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-hospital"></i>
-                    <h4>ARS</h4>
-                    <p>Administradoras de Riesgos de Salud</p>
-                </div>
-            </a>
+      <!-- Paneles secundarios -->
+      <div class="grid-modulos" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 16px;">
+        <div class="card-flat" style="padding:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-weight:700;color:var(--secondary);">Facturación por ARS</div>
+            <span style="font-size:12px;color:var(--muted);">Mes actual</span>
+          </div>
+          <ul style="list-style:none;padding:0;margin:0;display:grid;gap:6px;font-size:13px;color:var(--muted);">
+            {% for row in facturacion_por_ars or [] %}
+            <li style="display:flex;justify-content:space-between;">
+              <span>{{ row.ars }}</span><span>RD$ {{ row.total|formato_moneda }}</span>
+            </li>
+            {% else %}
+            <li style="color:var(--muted);">Sin datos</li>
+            {% endfor %}
+          </ul>
         </div>
+        <div class="card-flat" style="padding:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-weight:700;color:var(--secondary);">Actividad reciente</div>
+            <span style="font-size:12px;color:var(--muted);">Hoy</span>
+          </div>
+          <ul style="list-style:none;padding:0;margin:0;display:grid;gap:8px;font-size:13px;color:var(--muted);">
+            {% for ev in actividad_reciente or [] %}
+            <li style="display:flex;justify-content:space-between;">
+              <span>{{ ev.ref }} - {{ ev.detalle }}</span>
+              <span>{{ ev.fecha_txt }}</span>
+            </li>
+            {% else %}
+            <li style="color:var(--muted);">Sin actividad reciente</li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="card-flat" style="padding:14px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+            <div style="font-weight:700;color:var(--secondary);">Resumen de pagos</div>
+            <span style="font-size:12px;color:var(--muted);">Este mes</span>
+          </div>
+          <div style="font-size:13px;color:var(--muted);display:grid;gap:6px;">
+            <div style="display:flex;justify-content:space-between;"><span>Total facturado</span><span style="color:var(--secondary);font-weight:700;">RD$ {{ total_facturado|formato_moneda }}</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>Total cobrado</span><span style="color:var(--primary-strong);font-weight:700;">RD$ {{ total_cobrado|formato_moneda }}</span></div>
+            <div style="display:flex;justify-content:space-between;"><span>Pendiente</span><span style="color:#b45309;font-weight:700;">RD$ {{ pendiente_cobrar|formato_moneda }}</span></div>
+          </div>
+        </div>
+      </div>
 
-        <!-- 5. Código ARS -->
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 0.5s">
-            <a href="{{ url_for('facturacion_codigo_ars') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-barcode"></i>
-                    <h4>Código ARS</h4>
-                    <p>Códigos de servicios</p>
-                </div>
-            </a>
+      <!-- Tabla corta de pendientes (placeholder) -->
+      <div class="card-flat" style="padding:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+          <div style="font-weight:700;color:var(--secondary);">Pendientes recientes</div>
+          <a href="{{ url_for('facturacion_pacientes_pendientes') }}" style="font-size:13px;color:var(--primary);font-weight:700;">Ver todas</a>
         </div>
+        <div class="table-responsive">
+          <table class="table mb-0">
+            <thead>
+              <tr>
+                <th>Factura</th>
+                <th>Paciente</th>
+                <th>ARS</th>
+                <th>Fecha</th>
+                <th>Monto</th>
+                <th>Estado</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in pendientes_tabla or [] %}
+              <tr>
+                <td>{{ p.id }}</td>
+                <td>{{ p.nombre_paciente }}</td>
+                <td>{{ p.nss or '—' }}</td>
+                <td>{{ p.fecha_servicio }}</td>
+                <td>RD$ {{ p.monto_estimado|formato_moneda }}</td>
+                <td>
+                  {% if p.estado == 'Facturado' %}
+                    <span class="badge badge-success">Facturado</span>
+                  {% elif p.estado == 'En Proceso' or p.estado == 'En revisión' %}
+                    <span class="badge badge-info">En proceso</span>
+                  {% else %}
+                    <span class="badge badge-warning">Pendiente</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% else %}
+              <tr><td colspan="6" style="color:var(--muted);">No hay pendientes recientes</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-        <!-- 6. Tipos de Servicios -->
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 0.6s">
-            <a href="{{ url_for('facturacion_servicios') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-clipboard-list"></i>
-                    <h4>Tipos de Servicios</h4>
-                    <p>Catálogo servicios</p>
-                </div>
-            </a>
-        </div>
-
-        <!-- 7. NCF -->
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 0.7s">
-            <a href="{{ url_for('facturacion_ncf') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-file-invoice"></i>
-                    <h4>NCF</h4>
-                    <p>Comprobantes (DGII)</p>
-                </div>
-            </a>
-        </div>
-
-        <!-- 8. Pacientes -->
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 0.8s">
-            <a href="{{ url_for('facturacion_pacientes') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-users"></i>
-                    <h4>Pacientes</h4>
-                    <p>Registro pacientes</p>
-                </div>
-            </a>
-        </div>
-
-        <!-- 9. Histórico -->
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 0.9s">
-            <a href="{{ url_for('facturacion_historico') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-history"></i>
-                    <h4>Histórico</h4>
-                    <p>Facturas generadas</p>
-                </div>
-            </a>
-        </div>
-
-        <!-- 10. Dashboard (Solo Administradores) -->
-        {% if current_user.perfil == 'Administrador' %}
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 1.0s">
-            <a href="{{ url_for('facturacion_dashboard') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-chart-line"></i>
-                    <h4>Dashboard</h4>
-                    <p>Estadísticas</p>
-                </div>
-            </a>
-        </div>
-        {% endif %}
-
-        <!-- 11. Reclamaciones -->
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 1.1s">
-            <a href="{{ url_for('facturacion_reclamaciones') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h4>Reclamaciones</h4>
-                    <p>Gestión de reclamaciones</p>
-                </div>
-            </a>
-        </div>
-
-        <!-- 12. Pagos -->
-        <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 animate-card" style="animation-delay: 1.2s">
-            <a href="{{ url_for('facturacion_pagos') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-money-check-alt"></i>
-                    <h4>Pagos</h4>
-                    <p>Registro y cotejo</p>
-                </div>
-            </a>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Dashboard para Registro de Facturas y Nivel 2 -->
-    {% if current_user.perfil in ['Registro de Facturas', 'Nivel 2'] %}
-    <div class="row g-4 mb-4">
-        <div class="col-lg-3 col-md-6 animate-card">
-            <a href="{{ url_for('facturacion_dashboard') }}" style="text-decoration: none;">
-                <div class="maestra-card">
-                    <i class="fas fa-chart-line"></i>
-                    <h4>Dashboard</h4>
-                    <p>Indicadores y estadísticas</p>
-                </div>
-            </a>
-        </div>
-    </div>
-    {% endif %}
-
-    <!-- Sección de Facturación Principal -->
-    <div class="row mt-3">
-        <div class="col-12">
-            <h3 class="section-title">
-                <i class="fas fa-sync-alt me-2" style="font-size: 1.1rem;"></i>Ciclo de Facturación
-            </h3>
-        </div>
-        
-        <!-- Agregar Pacientes -->
-        <div class="{% if current_user.perfil == 'Registro de Facturas' %}col-lg-6{% else %}col-lg-4{% endif %} animate-card" style="animation-delay: 0.6s">
-            <a href="{{ url_for('facturacion_facturas_nueva') }}" style="text-decoration: none;">
-                <div class="maestra-card" style="background: {{ tema.background }}; border: 3px solid {{ tema.primary }}; padding: 2rem 1.4rem; min-height: 170px;">
-                    <i class="fas fa-user-plus" style="font-size: 3.4rem; color: {{ tema.primary }};"></i>
-                    <h4 style="color: {{ tema.primary }}; font-size: 1.2rem; font-weight: 800; margin-top: 0.6rem;">AGREGAR PACIENTES</h4>
-                    <p style="color: #6B7280; font-size: 0.9rem; margin-top: 0.4rem;">Agregar nuevos pacientes</p>
-                </div>
-            </a>
-        </div>
-        
-        <!-- Estado de Facturación -->
-        <div class="{% if current_user.perfil == 'Registro de Facturas' %}col-lg-6{% else %}col-lg-4{% endif %} animate-card" style="animation-delay: 0.7s">
-            <a href="{{ url_for('facturacion_pacientes_pendientes') }}" style="text-decoration: none;">
-                <div class="maestra-card" style="background: {{ tema.background }}; border: 3px solid {{ tema.primary }}; padding: 2rem 1.4rem; min-height: 170px;">
-                    <i class="fas fa-clipboard-list" style="font-size: 3.4rem; color: {{ tema.primary }};"></i>
-                    <h4 style="color: {{ tema.primary }}; font-size: 1.2rem; font-weight: 800; margin-top: 0.6rem;">ESTADO DE FACTURACIÓN</h4>
-                    <p style="color: #6B7280; font-size: 0.9rem; margin-top: 0.4rem;">Gestión de pendientes</p>
-                </div>
-            </a>
-        </div>
-        
-        {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
-        <!-- Generar Factura -->
-        <div class="col-lg-4 animate-card" style="animation-delay: 0.8s">
-            <a href="{{ url_for('facturacion_generar') }}" style="text-decoration: none;">
-                <div class="maestra-card" style="background: {{ tema.background }}; border: 3px solid {{ tema.primary }}; padding: 2rem 1.4rem; min-height: 170px;">
-                    <i class="fas fa-file-invoice-dollar" style="font-size: 3.4rem; color: {{ tema.primary }};"></i>
-                    <h4 style="color: {{ tema.primary }}; font-size: 1.2rem; font-weight: 800; margin-top: 0.6rem;">GENERAR FACTURA</h4>
-                    <p style="color: #6B7280; font-size: 0.9rem; margin-top: 0.4rem;">Crear facturas</p>
-                </div>
-            </a>
-        </div>
-        {% endif %}
-    </div>
+    </main>
+  </div>
 </div>
-</div>
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const btn = document.getElementById('toggle-catalogos');
+    const panel = document.getElementById('catalogos-links');
+    const chev = document.getElementById('chevron-catalogos');
+    if (btn && panel && chev) {
+      btn.addEventListener('click', () => {
+        const isHidden = panel.style.display === 'none';
+        panel.style.display = isHidden ? 'block' : 'none';
+        chev.textContent = isHidden ? '▼' : '▲';
+      });
+      // Estado inicial abierto
+      panel.style.display = 'block';
+      chev.textContent = '▼';
+    }
+  });
+</script>
 {% endblock %}
 

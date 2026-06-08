@@ -90,6 +90,7 @@
                     <select class="form-control" 
                            id="tipo" 
                            name="tipo" 
+                           {% if ncf %}disabled{% endif %}
                            required>
                         <option value="">Seleccione un tipo</option>
                         <option value="B01" {% if ncf and ncf['tipo'] == 'B01' %}selected{% endif %}>B01 - Factura de Crédito Fiscal</option>
@@ -97,6 +98,9 @@
                         <option value="B14" {% if ncf and ncf['tipo'] == 'B14' %}selected{% endif %}>B14 - Registro Único de Ingresos</option>
                         <option value="B15" {% if ncf and ncf['tipo'] == 'B15' %}selected{% endif %}>B15 - Gastos Menores</option>
                     </select>
+                    {% if ncf %}
+                    <input type="hidden" name="tipo" value="{{ ncf['tipo'] }}">
+                    {% endif %}
                 </div>
 
                 <div class="col-md-6 mb-3">
@@ -108,9 +112,13 @@
                            id="prefijo" 
                            name="prefijo" 
                            value="{{ ncf['prefijo'] if ncf else '' }}" 
+                           {% if ncf %}readonly{% endif %}
                            required
                            placeholder="Ej: B01"
                            maxlength="10">
+                    {% if ncf %}
+                    <input type="hidden" name="prefijo" value="{{ ncf['prefijo'] }}">
+                    {% endif %}
                 </div>
             </div>
 

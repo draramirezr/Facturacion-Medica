@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ product_name or 'ARSFlow | Facturación médica' }}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --primary: #14B8A6;
+      --secondary: #0F172A;
+      --bg: #F8FAFC;
+      --card: #FFFFFF;
+      --muted: #64748B;
+      --border: #E2E8F0;
+    }
+    body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--secondary); }
+    .shadow-soft { box-shadow: 0 20px 60px rgba(15, 23, 42, 0.10); }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; }
+  </style>
+</head>
+<body class="antialiased">
+  <!-- HEADER -->
+  <header class="sticky top-0 z-30 bg-[rgba(248,250,252,0.92)] backdrop-blur">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <div class="h-9 w-9 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold">A</div>
+        <span class="text-lg font-semibold">ARSFlow</span>
+      </div>
+      <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-[var(--muted)]">
+        <a href="#caracteristicas" class="hover:text-[var(--secondary)] transition">Características</a>
+        <a href="#beneficios" class="hover:text-[var(--secondary)] transition">Beneficios</a>
+        <a href="#precios" class="hover:text-[var(--secondary)] transition">Precios</a>
+        <a href="#contacto" class="hover:text-[var(--secondary)] transition">Contacto</a>
+      </nav>
+      <div class="flex items-center gap-3">
+        <a href="{{ url_for('login') }}" class="text-sm font-semibold text-[var(--muted)] hover:text-[var(--secondary)] transition">Iniciar sesión</a>
+        <a href="#contacto" class="text-sm font-semibold px-4 py-2 rounded-lg bg-[var(--primary)] text-white hover:opacity-90 transition shadow-sm">Crear cuenta</a>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO -->
+  <section class="bg-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 lg:py-16 grid lg:grid-cols-2 gap-10 items-center" id="caracteristicas">
+      <div class="space-y-5">
+        <div class="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full bg-[var(--primary)]/10 text-[var(--primary)]">
+          Plataforma completa para gestión médica
+        </div>
+        <h1 class="text-3xl sm:text-4xl lg:text-5xl font-bold leading-tight text-[var(--secondary)]">
+          Centraliza facturación, reclamaciones y pagos en un solo lugar
+        </h1>
+        <p class="text-base sm:text-lg text-[var(--muted)] max-w-xl">
+          ARSFlow automatiza tu flujo de trabajo médico, desde la carga de pacientes hasta la conciliación de pagos con ARS, ahorrando tiempo y reduciendo errores.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a href="#contacto" class="px-5 py-3 rounded-lg bg-[var(--primary)] text-white font-semibold shadow-soft hover:-translate-y-0.5 transition transform">Solicitar demo</a>
+          <a href="#contacto" class="px-5 py-3 rounded-lg border border-[var(--border)] text-[var(--secondary)] font-semibold hover:border-[var(--primary)] hover:text-[var(--primary)] transition">Crear cuenta gratis</a>
+        </div>
+        <div class="flex flex-wrap items-center gap-4 text-sm text-[var(--muted)]">
+          <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-[var(--primary)]"></span>Multi-empresa</div>
+          <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-[var(--primary)]"></span>Soporte dedicado</div>
+          <div class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-[var(--primary)]"></span>Cumple con ley 47-08</div>
+        </div>
+      </div>
+      <div class="relative">
+        <div class="card shadow-soft p-4">
+          <div class="flex items-center justify-between mb-4">
+            <div>
+              <p class="text-xs text-[var(--muted)]">ARSFlow</p>
+              <p class="text-lg font-semibold">Resumen general</p>
+            </div>
+            <div class="text-xs px-3 py-1 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] font-semibold">Live</div>
+          </div>
+          <div class="grid sm:grid-cols-2 gap-3 text-sm mb-3">
+            <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+              <p class="text-[var(--muted)]">Pendientes</p>
+              <p class="text-2xl font-bold">1,248</p>
+              <p class="text-[var(--primary)] font-semibold">+12% este mes</p>
+            </div>
+            <div class="p-3 rounded-lg border border-[var(--border)] bg-[var(--bg)]">
+              <p class="text-[var(--muted)]">Pagadas</p>
+              <p class="text-2xl font-bold">320</p>
+              <p class="text-[var(--primary)] font-semibold">+8% este mes</p>
+            </div>
+          </div>
+          <div class="grid sm:grid-cols-2 gap-3 text-sm">
+            <div class="p-3 rounded-lg border border-[var(--border)]">
+              <p class="text-[var(--muted)] mb-2">Facturación por ARS</p>
+              <div class="flex items-center gap-3">
+                <div class="w-16 h-16 rounded-full bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold">ARS</div>
+                <div class="space-y-1 text-xs">
+                  <div class="flex justify-between gap-6"><span>ARS Alfa</span><span class="font-semibold">42%</span></div>
+                  <div class="flex justify-between gap-6"><span>ARS Beta</span><span class="font-semibold">33%</span></div>
+                  <div class="flex justify-between gap-6"><span>ARS Gamma</span><span class="font-semibold">25%</span></div>
+                </div>
+              </div>
+            </div>
+            <div class="p-3 rounded-lg border border-[var(--border)]">
+              <p class="text-[var(--muted)] mb-2">Actividad reciente</p>
+              <ul class="space-y-2 text-xs">
+                <li class="flex justify-between"><span>Factura #1248</span><span class="font-semibold text-emerald-600">Pagada</span></li>
+                <li class="flex justify-between"><span>Reclamación #203</span><span class="font-semibold text-amber-600">En curso</span></li>
+                <li class="flex justify-between"><span>Pago ARS Beta</span><span class="font-semibold text-emerald-600">Conciliado</span></li>
+              </ul>
+            </div>
+          </div>
+          <div class="mt-4">
+            <img class="w-full rounded-lg border border-[var(--border)]" src="{{ url_for('static', filename='img/landing-dashboard.png') }}" alt="Dashboard ARSFlow">
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- BENEFICIOS PRINCIPALES -->
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 py-10" id="beneficios">
+    <h2 class="text-2xl sm:text-3xl font-bold text-center mb-2">Todo lo que necesitas en una sola plataforma</h2>
+    <p class="text-[var(--muted)] text-center mb-8">Herramientas diseñadas para simplificar la gestión médica y financiera.</p>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      <div class="card p-4 shadow-soft">
+        <h3 class="font-semibold mb-1">Pacientes & ARS</h3>
+        <p class="text-sm text-[var(--muted)]">Autocomplete pacientes por NSS, autorizaciones y centros.</p>
+      </div>
+      <div class="card p-4 shadow-soft">
+        <h3 class="font-semibold mb-1">Flujo de facturación</h3>
+        <p class="text-sm text-[var(--muted)]">Genera pendientes y conviértelos en factura sin fricción.</p>
+      </div>
+      <div class="card p-4 shadow-soft">
+        <h3 class="font-semibold mb-1">Validaciones inteligentes</h3>
+        <p class="text-sm text-[var(--muted)]">Valida RNC/Cédula, teléfonos, fechas y autorizaciones.</p>
+      </div>
+      <div class="card p-4 shadow-soft">
+        <h3 class="font-semibold mb-1">Importa Excel</h3>
+        <p class="text-sm text-[var(--muted)]">Carga masiva con advertencias y control de duplicados.</p>
+      </div>
+      <div class="card p-4 shadow-soft">
+        <h3 class="font-semibold mb-1">Dashboards claros</h3>
+        <p class="text-sm text-[var(--muted)]">Métricas por ARS, médico y período.</p>
+      </div>
+      <div class="card p-4 shadow-soft">
+        <h3 class="font-semibold mb-1">Conciliación</h3>
+        <p class="text-sm text-[var(--muted)]">Cruza pagos y pendientes con métricas al día.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROCESO / PASOS -->
+  <section class="bg-white">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+      <h2 class="text-2xl sm:text-3xl font-bold text-center mb-2">Así de fácil es usar ARSFlow</h2>
+      <p class="text-[var(--muted)] text-center mb-8">Pasos simples para pasar de consultas pendientes a facturas cobradas.</p>
+      <div class="grid md:grid-cols-4 lg:grid-cols-4 gap-4">
+        <div class="card p-4 shadow-soft text-center">
+          <div class="h-9 w-9 mx-auto rounded-full bg-[var(--primary)]/10 text-[var(--primary)] font-bold flex items-center justify-center">1</div>
+          <h4 class="mt-2 font-semibold">Captura</h4>
+          <p class="text-sm text-[var(--muted)]">Carga manual o por Excel; validaciones de NSS, fecha y autorización.</p>
+        </div>
+        <div class="card p-4 shadow-soft text-center">
+          <div class="h-9 w-9 mx-auto rounded-full bg-[var(--primary)]/10 text-[var(--primary)] font-bold flex items-center justify-center">2</div>
+          <h4 class="mt-2 font-semibold">Genera y revisa</h4>
+          <p class="text-sm text-[var(--muted)]">Convierte pendientes a factura, edita líneas con doble clic.</p>
+        </div>
+        <div class="card p-4 shadow-soft text-center">
+          <div class="h-9 w-9 mx-auto rounded-full bg-[var(--primary)]/10 text-[var(--primary)] font-bold flex items-center justify-center">3</div>
+          <h4 class="mt-2 font-semibold">Reclama y sigue</h4>
+          <p class="text-sm text-[var(--muted)]">Envía reclamaciones y controla estados.</p>
+        </div>
+        <div class="card p-4 shadow-soft text-center">
+          <div class="h-9 w-9 mx-auto rounded-full bg-[var(--primary)]/10 text-[var(--primary)] font-bold flex items-center justify-center">4</div>
+          <h4 class="mt-2 font-semibold">Conciliación</h4>
+          <p class="text-sm text-[var(--muted)]">Registra pagos, cruza con pendientes y métricas al día.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- RESULTADOS -->
+  <section class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
+    <h2 class="text-2xl sm:text-3xl font-bold text-center mb-2">Resultados que impulsan tu institución</h2>
+    <p class="text-[var(--muted)] text-center mb-8">Métricas clave de eficiencia y control.</p>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="card p-4 shadow-soft text-center">
+        <p class="text-3xl font-bold text-[var(--primary)]">+50%</p>
+        <p class="text-sm text-[var(--muted)]">Ahorro de tiempo</p>
+      </div>
+      <div class="card p-4 shadow-soft text-center">
+        <p class="text-3xl font-bold text-[var(--primary)]">-80%</p>
+        <p class="text-sm text-[var(--muted)]">Menos errores</p>
+      </div>
+      <div class="card p-4 shadow-soft text-center">
+        <p class="text-3xl font-bold text-[var(--primary)]">+30%</p>
+        <p class="text-sm text-[var(--muted)]">Cobros más rápidos</p>
+      </div>
+      <div class="card p-4 shadow-soft text-center">
+        <p class="text-3xl font-bold text-[var(--primary)]">100%</p>
+        <p class="text-sm text-[var(--muted)]">Seguro y confiable</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="bg-[var(--primary)]/10 border-y border-[var(--border)]">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 text-center">
+      <h2 class="text-2xl sm:text-3xl font-bold text-[var(--secondary)] mb-2">¿Listo para transformar tu gestión médica?</h2>
+      <p class="text-[var(--muted)] mb-6">Solicita una demo personalizada y agiliza tu facturación con ARSFlow.</p>
+      <div class="flex flex-wrap gap-3 justify-center">
+        <a href="#contacto" class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-[var(--primary)] text-white font-semibold shadow-soft hover:-translate-y-0.5 transition transform">Solicitar demo personalizada</a>
+        <a href="#contacto" class="inline-flex items-center justify-center px-6 py-3 rounded-lg border border-[var(--border)] text-[var(--secondary)] font-semibold hover:border-[var(--primary)] hover:text-[var(--primary)] transition">Crear cuenta gratis</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="bg-white border-t border-[var(--border)]" id="precios">
+    <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid md:grid-cols-4 gap-8">
+      <div class="space-y-2">
+        <div class="flex items-center gap-2">
+          <div class="h-9 w-9 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold">A</div>
+          <span class="text-lg font-semibold">ARSFlow</span>
+        </div>
+        <p class="text-sm text-[var(--muted)]">Plataforma para facturación médica, reclamos y conciliación.</p>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-3">Producto</h4>
+        <ul class="space-y-2 text-sm text-[var(--muted)]">
+          <li><a href="#caracteristicas" class="hover:text-[var(--secondary)]">Características</a></li>
+          <li><a href="#beneficios" class="hover:text-[var(--secondary)]">Beneficios</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-3">Empresa</h4>
+        <ul class="space-y-2 text-sm text-[var(--muted)]">
+          <li><a href="#contacto" class="hover:text-[var(--secondary)]">Contacto</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-semibold mb-3">Legal</h4>
+        <ul class="space-y-2 text-sm text-[var(--muted)]">
+          <li><a href="#" class="hover:text-[var(--secondary)]">Privacidad</a></li>
+          <li><a href="#" class="hover:text-[var(--secondary)]">Términos</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-[var(--border)] py-4 text-center text-sm text-[var(--muted)]">
+      © 2026 ARSFlow. Todos los derechos reservados.
+    </div>
+  </footer>
+
+  <!-- CONTACTO (ancla) -->
+  <div id="contacto" class="h-1"></div>
+</body>
+</html>

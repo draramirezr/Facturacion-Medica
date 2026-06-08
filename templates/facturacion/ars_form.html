@@ -105,12 +105,13 @@
                            name="rnc" 
                            value="{{ ars['rnc'] if ars else '' }}" 
                            required 
-                           placeholder="Ej: 124-00560-4"
-                           maxlength="50"
-                           pattern="[0-9\-]*"
+                           placeholder="Ej: 401516454"
+                           maxlength="9" minlength="9"
+                           pattern="[0-9]{9}"
                            inputmode="numeric"
-                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57) || event.charCode == 45"
-                           title="Solo se permiten números y guiones">
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,9)"
+                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
+                           title="Solo se permiten números (exactamente 9 dígitos)">
                 </div>
 
                 <!-- Activar/Desactivar ARS -->

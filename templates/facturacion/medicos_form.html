@@ -99,14 +99,15 @@
                     <label for="especialidad" class="form-label">
                         <i class="fas fa-stethoscope me-2 text-primary"></i>Especialidad *
                     </label>
-                    <input type="text" 
-                           class="form-control" 
-                           id="especialidad" 
-                           name="especialidad" 
-                           value="{{ medico['especialidad'] if medico else '' }}" 
-                           required 
-                           placeholder="Ej: GINECOLOGO/OBSTETRA"
-                           maxlength="50">
+                    <select class="form-select" id="especialidad" name="especialidad" required>
+                        <option value="">-- Seleccione --</option>
+                        {% for esp in especialidades %}
+                        {% set nombre_esp = esp['nombre'] if esp is mapping else esp %}
+                        <option value="{{ nombre_esp }}" {% if medico and medico['especialidad'] == nombre_esp %}selected{% endif %}>
+                            {{ nombre_esp }}
+                        </option>
+                        {% endfor %}
+                    </select>
                 </div>
 
                 <div class="mb-4">
@@ -120,11 +121,12 @@
                            value="{{ medico['cedula'] if medico else '' }}" 
                            required 
                            placeholder="Ej: 01400204101"
-                           maxlength="15"
-                           pattern="[0-9]*"
+                           maxlength="11"
+                           pattern="[0-9]{10,11}"
                            inputmode="numeric"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,11)"
                            onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
-                           title="Solo se permiten números">
+                           title="Solo se permiten números (10-11 dígitos)">
                 </div>
 
                 <div class="mb-4">
@@ -153,8 +155,13 @@
                            id="telefono" 
                            name="telefono" 
                            value="{{ medico['telefono'] if medico and medico['telefono'] else '' }}" 
-                           placeholder="Ej: 809-555-1234"
-                           maxlength="20">
+                           placeholder="Ej: 8090000000"
+                           maxlength="10"
+                           pattern="[0-9]{10}"
+                           inputmode="numeric"
+                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,10)"
+                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
+                           title="Solo se permiten números (10 dígitos)">
                     <small class="text-muted">
                         <i class="fas fa-info-circle me-1"></i>
                         <span id="telefono-help">Opcional</span>

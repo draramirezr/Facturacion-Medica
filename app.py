@@ -78,6 +78,12 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(hours=8)
 app.config['SESSION_COOKIE_NAME'] = 'facturacion_session'
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
+# Contacto para landing (configurable por variables de entorno)
+LANDING_CONTACT_EMAIL = os.getenv('LANDING_CONTACT_EMAIL', 'ventas@facturacionmedica.com')
+LANDING_CONTACT_PHONE = os.getenv('LANDING_CONTACT_PHONE', '+1 809 000 0000')
+LANDING_WHATSAPP = os.getenv('LANDING_WHATSAPP', 'https://wa.me/18090000000')
+PRODUCT_NAME = os.getenv('PRODUCT_NAME', 'ARSFlow - Facturación Médica')
+
 @app.after_request
 def set_security_headers(response):
     """Agregar headers de seguridad a todas las respuestas"""
@@ -89,8 +95,8 @@ def set_security_headers(response):
     
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com https://cdn.tailwindcss.com; "
+        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://cdn.tailwindcss.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
         "img-src 'self' data: https:; "
         "connect-src 'self' https://www.googletagmanager.com; "
@@ -698,6 +704,8 @@ def add_tenant_filter(query, table_alias=''):
         # Resultado: "SELECT * FROM pacientes WHERE activo = 1 AND tenant_id = %s"
     """
     tenant_id = get_current_tenant_id()
+    tenant_pp = tenant_id  # para pacientes_pendientes
+    tenant_pp = tenant_id  # usado para pendientes (se mantiene del tenant actual)
     if not tenant_id:
         return query
     
@@ -751,6 +759,21 @@ def validate_tenant_access(table, record_id, id_column='id'):
     tenant_id = get_current_tenant_id()
     if not tenant_id:
         return False
+
+    # Si la tabla no tiene tenant_id, no aplicar validación (tabla global)
+    try:
+        col = execute_query('''
+            SELECT COUNT(*) as count
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME = %s
+              AND COLUMN_NAME = 'tenant_id'
+        ''', (table,))
+        if not col or col.get('count', 0) == 0:
+            return True
+    except Exception:
+        # Si falla la detección, seguir con la validación normal para mayor seguridad
+        pass
     
     # Query segura usando parámetros
     result = execute_query(
@@ -907,10 +930,17 @@ def rate_limit(max_requests=10, window=60):
 
 @app.route('/')
 def index():
-    """Página principal - redirige al login"""
+    """Página principal / Landing"""
     if current_user.is_authenticated:
         return redirect(url_for('facturacion_menu'))
-    return redirect(url_for('login'))
+    
+    return render_template(
+        'landing.html',
+        contact_email=LANDING_CONTACT_EMAIL,
+        contact_phone=LANDING_CONTACT_PHONE,
+        whatsapp_link=LANDING_WHATSAPP,
+        product_name=PRODUCT_NAME
+    )
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
@@ -1662,21 +1692,168 @@ def admin():
 @login_required
 def facturacion_menu():
     """Menú principal de facturación"""
-    return render_template('facturacion/menu.html')
+    tenant_id = get_current_tenant_id()
+    if not tenant_id:
+        flash('No se pudo identificar la empresa (tenant).', 'error')
+        return redirect(url_for('logout'))
+
+    def tiene_columna(tabla, columna):
+        try:
+            res = execute_query("""
+                SELECT COUNT(*) AS c
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = DATABASE()
+                  AND TABLE_NAME = %s
+                  AND COLUMN_NAME = %s
+            """, (tabla, columna), fetch='one')
+            return res and res.get('c', 0) > 0
+        except Exception:
+            return False
+
+    def safe_count(query, params):
+        try:
+            res = execute_query(query, params, fetch='one')
+            return res.get('c', 0) if res else 0
+        except Exception:
+            return 0
+
+    def safe_sum(query, params):
+        try:
+            res = execute_query(query, params, fetch='one')
+            return res.get('s', 0) if res else 0
+        except Exception:
+            return 0
+
+    def safe_rows(query, params, fallback_empty=True):
+        try:
+            res = execute_query(query, params, fetch='all')
+            return res if res else ([] if fallback_empty else None)
+        except Exception:
+            return [] if fallback_empty else None
+
+    facturas_generadas = safe_count("SELECT COUNT(*) AS c FROM facturas WHERE tenant_id = %s", (tenant_id,))
+    pendientes = safe_count("SELECT COUNT(*) AS c FROM pacientes_pendientes WHERE tenant_id = %s", (tenant_id,))
+    pagos_recibidos = safe_sum("SELECT COALESCE(SUM(monto),0) AS s FROM pago_facturas WHERE tenant_id = %s", (tenant_id,))
+    reclamaciones = safe_count("SELECT COUNT(*) AS c FROM reclamaciones WHERE tenant_id = %s", (tenant_id,))
+
+    # Fallbacks sin tenant_id si la columna no existe
+    if not tiene_columna('facturas', 'tenant_id'):
+        facturas_generadas = safe_count("SELECT COUNT(*) AS c FROM facturas", None)
+    if not tiene_columna('pacientes_pendientes', 'tenant_id'):
+        pendientes = safe_count("SELECT COUNT(*) AS c FROM pacientes_pendientes", None)
+    if not tiene_columna('pago_facturas', 'tenant_id'):
+        pagos_recibidos = safe_sum("SELECT COALESCE(SUM(monto),0) AS s FROM pago_facturas", None)
+    if not tiene_columna('reclamaciones', 'tenant_id'):
+        reclamaciones = safe_count("SELECT COUNT(*) AS c FROM reclamaciones", None)
+
+    # Facturación por ARS (top 5)
+    if tiene_columna('facturas', 'tenant_id'):
+        facturacion_por_ars = safe_rows("""
+            SELECT COALESCE(a.nombre, 'SIN ARS') AS ars, COALESCE(SUM(f.total),0) AS total
+            FROM facturas f
+            LEFT JOIN ars a ON f.ars_id = a.id
+            WHERE f.tenant_id = %s
+            GROUP BY COALESCE(a.nombre, 'SIN ARS')
+            ORDER BY total DESC
+            LIMIT 5
+        """, (tenant_id,))
+    else:
+        facturacion_por_ars = safe_rows("""
+            SELECT COALESCE(a.nombre, 'SIN ARS') AS ars, COALESCE(SUM(f.total),0) AS total
+            FROM facturas f
+            LEFT JOIN ars a ON f.ars_id = a.id
+            GROUP BY COALESCE(a.nombre, 'SIN ARS')
+            ORDER BY total DESC
+            LIMIT 5
+        """, None)
+    if not facturacion_por_ars:
+        facturacion_por_ars = []
+
+    # Actividad reciente (últimas 5 facturas)
+    if tiene_columna('facturas', 'tenant_id'):
+        actividad_reciente = safe_rows("""
+            SELECT numero_factura AS ref,
+                   nombre_paciente AS detalle,
+                   estado,
+                   DATE_FORMAT(created_at, '%%d/%%m/%%Y %%H:%%i') AS fecha_txt
+            FROM facturas
+            WHERE tenant_id = %s
+            ORDER BY created_at DESC
+            LIMIT 5
+        """, (tenant_id,))
+    else:
+        actividad_reciente = safe_rows("""
+            SELECT numero_factura AS ref,
+                   nombre_paciente AS detalle,
+                   estado,
+                   DATE_FORMAT(created_at, '%%d/%%m/%%Y %%H:%%i') AS fecha_txt
+            FROM facturas
+            ORDER BY created_at DESC
+            LIMIT 5
+        """, None)
+
+    # Resumen de pagos
+    if tiene_columna('facturas', 'tenant_id'):
+        total_facturado = safe_sum("SELECT COALESCE(SUM(total),0) AS s FROM facturas WHERE tenant_id = %s", (tenant_id,))
+    else:
+        total_facturado = safe_sum("SELECT COALESCE(SUM(total),0) AS s FROM facturas", None)
+
+    if tiene_columna('pago_facturas', 'tenant_id'):
+        total_cobrado = safe_sum("""
+            SELECT COALESCE(SUM(pf.monto_aplicado),0) AS s
+            FROM pago_facturas pf
+            JOIN facturas f ON pf.factura_id = f.id
+            WHERE f.tenant_id = %s
+        """, (tenant_id,))
+    else:
+        total_cobrado = safe_sum("""
+            SELECT COALESCE(SUM(pf.monto_aplicado),0) AS s
+            FROM pago_facturas pf
+            JOIN facturas f ON pf.factura_id = f.id
+        """, None)
+
+    pendiente_cobrar = max(total_facturado - total_cobrado, 0)
+
+    # Pendientes recientes
+    if tiene_columna('pacientes_pendientes', 'tenant_id'):
+        pendientes_tabla = safe_rows("""
+            SELECT id, nss, nombre_paciente, fecha_servicio, monto_estimado, estado
+            FROM pacientes_pendientes
+            WHERE tenant_id = %s
+            ORDER BY created_at DESC
+            LIMIT 4
+        """, (tenant_id,))
+    else:
+        pendientes_tabla = safe_rows("""
+            SELECT id, nss, nombre_paciente, fecha_servicio, monto_estimado, estado
+            FROM pacientes_pendientes
+            ORDER BY created_at DESC
+            LIMIT 4
+        """, None)
+
+    return render_template(
+        'facturacion/menu.html',
+        facturas_generadas=facturas_generadas,
+        pendientes=pendientes,
+        pagos_recibidos=pagos_recibidos,
+        reclamaciones=reclamaciones,
+        facturacion_por_ars=facturacion_por_ars,
+        actividad_reciente=actividad_reciente,
+        total_facturado=total_facturado,
+        total_cobrado=total_cobrado,
+        pendiente_cobrar=pendiente_cobrar,
+        pendientes_tabla=pendientes_tabla
+    )
 
 @app.route('/facturacion/ars')
 @login_required
 def facturacion_ars():
-    """Lista de ARS - Filtrado por tenant"""
+    """Lista de ARS - global (sin tenant)"""
     if current_user.perfil not in ['Administrador', 'Nivel 2']:
         flash('No tienes permisos para acceder a esta sección', 'error')
         return redirect(url_for('facturacion_menu'))
     
-    tenant_id = get_current_tenant_id()
-    ars_list = execute_query(
-        'SELECT * FROM ars WHERE tenant_id = %s ORDER BY nombre', 
-        (tenant_id,), fetch='all'
-    ) or []
+    ars_list = execute_query('SELECT * FROM ars ORDER BY nombre', fetch='all') or []
     return render_template('facturacion/ars.html', ars_list=ars_list)
 
 @app.route('/facturacion/ars/nuevo', methods=['GET', 'POST'])
@@ -1696,8 +1873,6 @@ def facturacion_ars_nuevo():
             flash('El nombre es obligatorio', 'error')
             return redirect(url_for('facturacion_ars_nuevo'))
         
-        tenant_id = get_current_tenant_id()
-        
         # Generar código automáticamente basado en el nombre (primeras letras + timestamp)
         import time
         codigo = ''.join(filter(str.isalnum, nombre_ars[:6].upper())) + str(int(time.time()))[-4:]
@@ -1705,14 +1880,14 @@ def facturacion_ars_nuevo():
         # Asegurar que el código sea único
         contador = 1
         codigo_original = codigo
-        while execute_query('SELECT id FROM ars WHERE codigo = %s AND tenant_id = %s', (codigo, tenant_id)):
+        while execute_query('SELECT id FROM ars WHERE codigo = %s', (codigo,)):
             codigo = f"{codigo_original}{contador}"
             contador += 1
         
         execute_update('''
-            INSERT INTO ars (tenant_id, codigo, nombre, rnc, activo)
-            VALUES (%s, %s, %s, %s, %s)
-        ''', (tenant_id, codigo, nombre_ars, rnc, activo))
+            INSERT INTO ars (codigo, nombre, rnc, activo)
+            VALUES (%s, %s, %s, %s)
+        ''', (codigo, nombre_ars, rnc, activo))
         
         flash(f'ARS {nombre_ars} creada exitosamente', 'success')
         return redirect(url_for('facturacion_ars'))
@@ -1727,8 +1902,7 @@ def facturacion_ars_editar(ars_id):
         flash('No tienes permisos', 'error')
         return redirect(url_for('facturacion_menu'))
     
-    tenant_id = get_current_tenant_id()
-    ars = execute_query('SELECT * FROM ars WHERE id = %s AND tenant_id = %s', (ars_id, tenant_id))
+    ars = execute_query('SELECT * FROM ars WHERE id = %s', (ars_id,))
     if not ars:
         flash('ARS no encontrada', 'error')
         return redirect(url_for('facturacion_ars'))
@@ -1747,8 +1921,8 @@ def facturacion_ars_editar(ars_id):
         execute_update('''
             UPDATE ars 
             SET nombre = %s, rnc = %s, activo = %s
-            WHERE id = %s AND tenant_id = %s
-        ''', (nombre_ars, rnc, activo, ars_id, tenant_id))
+            WHERE id = %s
+        ''', (nombre_ars, rnc, activo, ars_id))
         
         flash(f'ARS {nombre_ars} actualizada exitosamente', 'success')
         return redirect(url_for('facturacion_ars'))
@@ -1763,13 +1937,7 @@ def facturacion_ars_eliminar(ars_id):
         flash('No tienes permisos', 'error')
         return redirect(url_for('facturacion_ars'))
     
-    tenant_id = get_current_tenant_id()
-    # Validar que pertenece al tenant antes de eliminar
-    if not validate_tenant_access('ars', ars_id):
-        flash('No tienes acceso a esta ARS', 'error')
-        return redirect(url_for('facturacion_ars'))
-    
-    execute_update('DELETE FROM ars WHERE id = %s AND tenant_id = %s', (ars_id, tenant_id))
+    execute_update('DELETE FROM ars WHERE id = %s', (ars_id,))
     flash('ARS eliminada exitosamente', 'success')
     return redirect(url_for('facturacion_ars'))
 
@@ -1823,7 +1991,14 @@ def facturacion_medicos_nuevo():
         flash(f'Médico {nombre} creado exitosamente', 'success')
         return redirect(url_for('facturacion_medicos'))
     
-    return render_template('facturacion/medicos_form.html', medico=None)
+    # Cargar catálogo de especialidades (tabla sin tenant)
+    try:
+        especialidades = execute_query('SELECT nombre FROM especialidades_medicas ORDER BY nombre', fetch='all') or []
+    except Exception as e:
+        print(f"Error cargando especialidades_medicas: {e}")
+        especialidades = []
+    
+    return render_template('facturacion/medicos_form.html', medico=None, especialidades=especialidades)
 
 @app.route('/facturacion/medicos/<int:medico_id>/editar', methods=['GET', 'POST'])
 @login_required
@@ -1868,7 +2043,14 @@ def facturacion_medicos_editar(medico_id):
         flash(f'Médico {nombre} actualizado exitosamente', 'success')
         return redirect(url_for('facturacion_medicos'))
     
-    return render_template('facturacion/medicos_form.html', medico=medico)
+    # Cargar catálogo de especialidades (tabla sin tenant)
+    try:
+        especialidades = execute_query('SELECT nombre FROM especialidades_medicas ORDER BY nombre', fetch='all') or []
+    except Exception as e:
+        print(f"Error cargando especialidades_medicas: {e}")
+        especialidades = []
+    
+    return render_template('facturacion/medicos_form.html', medico=medico, especialidades=especialidades)
 
 @app.route('/facturacion/medicos/<int:medico_id>/eliminar', methods=['POST'])
 @login_required
@@ -2162,7 +2344,7 @@ def facturacion_codigo_ars_nuevo():
         return redirect(url_for('facturacion_codigo_ars'))
     
     tenant_id = get_current_tenant_id()
-    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 ORDER BY nombre', fetch='all') or []
     medicos_list = execute_query('SELECT * FROM medicos WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
     return render_template('facturacion/codigo_ars_form.html', codigo=None, ars_list=ars_list, medicos=medicos_list)
 
@@ -2214,7 +2396,7 @@ def facturacion_codigo_ars_editar(codigo_id):
         return redirect(url_for('facturacion_codigo_ars'))
     
     tenant_id = get_current_tenant_id()
-    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 ORDER BY nombre', fetch='all') or []
     medicos_list = execute_query('SELECT * FROM medicos WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
     return render_template('facturacion/codigo_ars_form.html', codigo=codigo, ars_list=ars_list, medicos=medicos_list)
 
@@ -2234,6 +2416,31 @@ def facturacion_codigo_ars_eliminar(codigo_id):
     execute_update('DELETE FROM codigo_ars WHERE id = %s AND tenant_id = %s', (codigo_id, tenant_id))
     flash('Código ARS eliminado exitosamente', 'success')
     return redirect(url_for('facturacion_codigo_ars'))
+
+# API: ARS disponibles para un médico (según codigo_ars); fallback a todas las ARS
+@app.route('/api/medicos/<int:medico_id>/ars')
+@login_required
+def api_medico_ars(medico_id):
+    tenant_id = get_current_tenant_id()
+    ars = []
+    try:
+        ars = execute_query('''
+            SELECT a.id, a.nombre
+            FROM ars a
+            JOIN codigo_ars ca ON ca.ars_id = a.id
+            JOIN medicos m ON ca.medico_id = m.id
+            WHERE ca.medico_id = %s
+              AND m.tenant_id = %s
+              AND ca.activo = 1
+            GROUP BY a.id, a.nombre
+            ORDER BY a.nombre
+        ''', (medico_id, tenant_id), fetch='all') or []
+    except Exception as e:
+        print(f"Error buscando ARS por médico: {e}")
+        ars = []
+    if not ars:
+        ars = execute_query('SELECT id, nombre FROM ars ORDER BY nombre', fetch='all') or []
+    return jsonify({'ars': ars})
 
 @app.route('/facturacion/medico-centro')
 @login_required
@@ -2577,8 +2784,8 @@ def facturacion_pacientes_editar(paciente_id):
         flash('Paciente actualizado exitosamente', 'success')
         return redirect(url_for('facturacion_pacientes'))
     
-    # Obtener lista de ARS para el dropdown
-    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    # Obtener lista de ARS para el dropdown (sin tenant)
+    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 ORDER BY nombre', fetch='all') or []
     
     return render_template('facturacion/paciente_form.html', paciente=paciente, ars_list=ars_list)
 
@@ -2887,7 +3094,7 @@ def facturacion_reclamaciones():
     query += ' ORDER BY r.fecha_reclamacion DESC, r.id DESC'
     
     reclamaciones_list = execute_query(query, tuple(params), fetch='all') or []
-    ars_list = execute_query('SELECT id, nombre, rnc FROM ars WHERE tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    ars_list = execute_query('SELECT id, nombre, rnc FROM ars ORDER BY nombre', fetch='all') or []
     return render_template('facturacion/reclamaciones.html', reclamaciones_list=reclamaciones_list,
                            ncf=ncf, ars_id=ars_id_filter, fecha_desde=fecha_desde, fecha_hasta=fecha_hasta, ars_list=ars_list)
 
@@ -3194,7 +3401,7 @@ def facturacion_reclamaciones_nueva():
         '''
         facturas_list = execute_query(query, tuple(params), fetch='all') or []
     
-    ars_list = execute_query('SELECT id, nombre FROM ars WHERE tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    ars_list = execute_query('SELECT id, nombre FROM ars ORDER BY nombre', fetch='all') or []
     
     fecha_actual = datetime.now().strftime('%Y-%m-%d')
     return render_template('facturacion/reclamacion_form.html',
@@ -3267,7 +3474,7 @@ def facturacion_pagos():
         ORDER BY p.fecha_pago DESC, p.id DESC
     '''
     pagos_list = execute_query(query, tuple(params), fetch='all') or []
-    ars_list = execute_query('SELECT id, nombre FROM ars WHERE tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    ars_list = execute_query('SELECT id, nombre FROM ars ORDER BY nombre', fetch='all') or []
     return render_template('facturacion/pagos.html', pagos_list=pagos_list,
                            ars_list=ars_list, ars_id=ars_id_filter, ncf=ncf_filter,
                            fecha_desde=fecha_desde, fecha_hasta=fecha_hasta)
@@ -4625,6 +4832,7 @@ def facturacion_dashboard():
         return redirect(url_for('facturacion_menu'))
     
     tenant_id = get_current_tenant_id()
+    tenant_pp = tenant_id  # para pendientes (solo aplica si la tabla tiene tenant)
     
     # Fechas por defecto: últimos 12 meses (zona horaria RD -4)
     tz_rd = timezone(timedelta(hours=-4))
@@ -5112,8 +5320,8 @@ def facturacion_dashboard():
     
     # Listas para filtros
     ars_list = execute_query(
-        'SELECT id, nombre FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre',
-        (tenant_id,), fetch='all'
+        'SELECT id, nombre FROM ars WHERE activo = 1 ORDER BY nombre',
+        fetch='all'
     ) or []
     
     medicos_factura_list = execute_query(
@@ -5253,6 +5461,9 @@ def facturacion_dashboard_detalle_mes():
 def facturacion_facturas_nueva():
     """Agregar pacientes para facturar"""
     tenant_id = get_current_tenant_id()
+    if not tenant_id:
+        flash('No se pudo identificar la empresa (tenant). Inicie sesión nuevamente.', 'error')
+        return redirect(url_for('logout'))
     
     auto_mode = (request.args.get('auto') == '1')
     ars_prefill_id = validate_int(request.args.get('ars_id'), min_value=1)
@@ -5271,7 +5482,6 @@ def facturacion_facturas_nueva():
             return redirect(url_for('facturacion_facturas_nueva'))
         
         # Validar que los IDs pertenezcan al tenant
-        tenant_id = get_current_tenant_id()
         if not validate_tenant_access('medicos', medico_id) or \
            not validate_tenant_access('ars', ars_id):
             flash('No tienes acceso a uno o más de los recursos seleccionados', 'error')
@@ -5281,15 +5491,11 @@ def facturacion_facturas_nueva():
             flash('Centro médico no válido', 'error')
             return redirect(url_for('facturacion_facturas_nueva'))
 
-        # Tenant a usar para pacientes_pendientes: si no hay tenant_id de sesión, intentar derivarlo
-        tenant_pp = tenant_id
+        # Tenant a usar para pacientes_pendientes
+        tenant_pp = tenant_id or getattr(current_user, 'tenant_id', None)
         if not tenant_pp:
-            if medico_id:
-                t_med = execute_query('SELECT tenant_id FROM medicos WHERE id = %s LIMIT 1', (medico_id,))
-                tenant_pp = t_med.get('tenant_id') if t_med else None
-            if not tenant_pp and ars_id:
-                t_ars = execute_query('SELECT tenant_id FROM ars WHERE id = %s LIMIT 1', (ars_id,))
-                tenant_pp = t_ars.get('tenant_id') if t_ars else None
+            flash('No se pudo determinar el tenant para guardar pendientes.', 'error')
+            return redirect(url_for('facturacion_facturas_nueva'))
         
         # Validar JSON
         try:
@@ -5557,21 +5763,51 @@ def facturacion_facturas_nueva():
             servicios_realizados = f"{servicio} - Autorización: {autorizacion}" if autorizacion else servicio
             
             try:
-                execute_update('''
-                    INSERT INTO pacientes_pendientes 
-                    (tenant_id, paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
-                     servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id, created_by, autorizacion)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s, %s, %s)
-                ''', (tenant_pp, paciente_id, nombre, nss, ars_id, fecha_iso, servicios_realizados, monto, medico_id, centro_medico_id, current_user.id, autorizacion))
-            except Exception as e:
-                error_msg = str(e).lower()
-                if 'unknown column' in error_msg:
+                if tiene_col_autorizacion_cache and tiene_col_tenant_cache:
+                    execute_update('''
+                        INSERT INTO pacientes_pendientes 
+                        (tenant_id, paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
+                         servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id, created_by, autorizacion)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s, %s, %s)
+                    ''', (tenant_pp, paciente_id, nombre, nss, ars_id, fecha_iso, servicios_realizados, monto, medico_id, centro_medico_id, current_user.id, autorizacion))
+                elif tiene_col_autorizacion_cache:
+                    execute_update('''
+                        INSERT INTO pacientes_pendientes 
+                        (paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
+                         servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id, created_by, autorizacion)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s, %s, %s)
+                    ''', (paciente_id, nombre, nss, ars_id, fecha_iso, servicios_realizados, monto, medico_id, centro_medico_id, current_user.id, autorizacion))
+                elif tiene_col_tenant_cache:
+                    execute_update('''
+                        INSERT INTO pacientes_pendientes 
+                        (tenant_id, paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
+                         servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id, created_by)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s, %s)
+                    ''', (tenant_pp, paciente_id, nombre, nss, ars_id, fecha_iso, servicios_realizados, monto, medico_id, centro_medico_id, current_user.id))
+                else:
                     execute_update('''
                         INSERT INTO pacientes_pendientes 
                         (paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
                          servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id)
                         VALUES (%s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s)
                     ''', (paciente_id, nombre, nss, ars_id, fecha_iso, servicios_realizados, monto, medico_id, centro_medico_id))
+            except Exception as e:
+                error_msg = str(e).lower()
+                if 'unknown column' in error_msg:
+                    if tiene_col_tenant_cache:
+                        execute_update('''
+                            INSERT INTO pacientes_pendientes 
+                            (tenant_id, paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
+                             servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s)
+                        ''', (tenant_pp, paciente_id, nombre, nss, ars_id, fecha_iso, servicios_realizados, monto, medico_id, centro_medico_id))
+                    else:
+                        execute_update('''
+                            INSERT INTO pacientes_pendientes 
+                            (paciente_id, nombre_paciente, nss, ars_id, fecha_servicio, 
+                             servicios_realizados, monto_estimado, estado, medico_id, centro_medico_id)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s)
+                        ''', (paciente_id, nombre, nss, ars_id, fecha_iso, servicios_realizados, monto, medico_id, centro_medico_id))
                 else:
                     raise
             
@@ -5599,7 +5835,7 @@ def facturacion_facturas_nueva():
         return redirect(url_for('facturacion_pacientes_pendientes'))
     
     # GET: Mostrar formulario
-    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 ORDER BY nombre', fetch='all') or []
     medicos = execute_query('SELECT * FROM medicos WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
     
     # Prefill de médico basado en email del usuario o primer médico disponible
@@ -5720,7 +5956,7 @@ def facturacion_pacientes_pendientes():
     
     # Obtener listas para filtros
     medicos = execute_query('SELECT * FROM medicos WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
-    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
+    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 ORDER BY nombre', fetch='all') or []
     
     # Obtener nombres para mostrar en los badges de filtros activos
     medico_seleccionado = None
@@ -6631,8 +6867,8 @@ def facturacion_generar_step2():
     
     tenant_id = get_current_tenant_id()
     
-    # Obtener ARS
-    ars = execute_query('SELECT * FROM ars WHERE id = %s AND tenant_id = %s', (ars_id, tenant_id))
+    # Obtener ARS (sin tenant)
+    ars = execute_query('SELECT * FROM ars WHERE id = %s', (ars_id,))
     if not ars:
         flash('ARS no encontrada', 'error')
         return redirect(url_for('facturacion_generar'))
@@ -6767,8 +7003,8 @@ def facturacion_vista_previa():
     
     tenant_id = get_current_tenant_id()
     
-    # Obtener datos de ARS, NCF y Médico
-    ars = execute_query('SELECT * FROM ars WHERE id = %s AND tenant_id = %s', (ars_id, tenant_id))
+    # Obtener datos de ARS, NCF y Médico (ARS sin tenant)
+    ars = execute_query('SELECT * FROM ars WHERE id = %s', (ars_id,))
     if not ars:
         flash('ARS no encontrada', 'error')
         return redirect(url_for('facturacion_generar'))
@@ -6944,8 +7180,8 @@ def facturacion_generar_final():
         flash('Debe seleccionar al menos un paciente', 'error')
         return redirect(url_for('facturacion_generar'))
     
-    # Obtener datos de ARS, NCF y Médico
-    ars = execute_query('SELECT * FROM ars WHERE id = %s AND tenant_id = %s', (ars_id, tenant_id))
+    # Obtener datos de ARS, NCF y Médico (ARS sin tenant)
+    ars = execute_query('SELECT * FROM ars WHERE id = %s', (ars_id,))
     if not ars:
         flash('ARS no encontrada', 'error')
         return redirect(url_for('facturacion_generar'))
