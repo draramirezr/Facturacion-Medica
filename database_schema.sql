@@ -12,11 +12,37 @@ COLLATE utf8mb4_unicode_ci;
 USE facturacion_medica;
 
 -- ============================================
+-- TABLA: empresas
+-- Raíz del aislamiento multiempresa
+-- ============================================
+CREATE TABLE IF NOT EXISTS empresas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(255) NOT NULL,
+    razon_social VARCHAR(255) NOT NULL,
+    rnc VARCHAR(20) NOT NULL,
+    telefono VARCHAR(20) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    direccion VARCHAR(500) NOT NULL,
+    fecha_inicio DATE NOT NULL,
+    fecha_fin DATE NOT NULL,
+    licencias_totales INT NOT NULL DEFAULT 1,
+    licencias_usadas INT NOT NULL DEFAULT 0,
+    plan ENUM('basico', 'profesional', 'empresarial') NOT NULL,
+    estado ENUM('activo', 'suspendido', 'inactivo') NOT NULL DEFAULT 'activo',
+    tipo_empresa ENUM('medico', 'centro_salud') NOT NULL,
+    creado_por INT NULL,
+    fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_empresas_rnc (rnc)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
 -- TABLA: usuarios
 -- Gestión de usuarios del sistema
 -- ============================================
 CREATE TABLE IF NOT EXISTS usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NULL COMMENT 'NULL únicamente para el Super Administrador',
     nombre VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL UNIQUE,
     password_hash VARCHAR(255) NOT NULL,
@@ -28,6 +54,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     last_login DATETIME NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
+    INDEX idx_usuarios_tenant (tenant_id),
     INDEX idx_email (email),
     INDEX idx_activo (activo),
     INDEX idx_reset_token (reset_token)
@@ -39,7 +67,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
 -- ============================================
 CREATE TABLE IF NOT EXISTS ars (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    codigo VARCHAR(50) NOT NULL UNIQUE,
+    tenant_id INT NOT NULL,
+    codigo VARCHAR(50) NOT NULL,
     nombre VARCHAR(200) NOT NULL,
     telefono VARCHAR(20) NULL,
     email VARCHAR(100) NULL,
@@ -48,6 +77,9 @@ CREATE TABLE IF NOT EXISTS ars (
     activo TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
+    UNIQUE KEY uq_ars_tenant_codigo (tenant_id, codigo),
+    INDEX idx_ars_tenant (tenant_id),
     INDEX idx_codigo (codigo),
     INDEX idx_activo (activo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -58,6 +90,7 @@ CREATE TABLE IF NOT EXISTS ars (
 -- ============================================
 CREATE TABLE IF NOT EXISTS centros_medicos (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
     nombre VARCHAR(200) NOT NULL,
     codigo VARCHAR(50) NULL,
     direccion TEXT NULL,
@@ -68,6 +101,8 @@ CREATE TABLE IF NOT EXISTS centros_medicos (
     activo TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
+    INDEX idx_centros_tenant (tenant_id),
     INDEX idx_nombre (nombre),
     INDEX idx_activo (activo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -78,6 +113,7 @@ CREATE TABLE IF NOT EXISTS centros_medicos (
 -- ============================================
 CREATE TABLE IF NOT EXISTS medicos (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
     nombre VARCHAR(200) NOT NULL,
     exequatur VARCHAR(50) NULL,
     especialidad VARCHAR(100) NULL,
@@ -87,6 +123,8 @@ CREATE TABLE IF NOT EXISTS medicos (
     activo TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
+    INDEX idx_medicos_tenant (tenant_id),
     INDEX idx_nombre (nombre),
     INDEX idx_exequatur (exequatur),
     INDEX idx_activo (activo)
@@ -98,12 +136,15 @@ CREATE TABLE IF NOT EXISTS medicos (
 -- ============================================
 CREATE TABLE IF NOT EXISTS medico_centro (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
     medico_id INT NOT NULL,
     centro_medico_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
     FOREIGN KEY (medico_id) REFERENCES medicos(id) ON DELETE CASCADE,
     FOREIGN KEY (centro_medico_id) REFERENCES centros_medicos(id) ON DELETE CASCADE,
-    UNIQUE KEY unique_medico_centro (medico_id, centro_medico_id),
+    UNIQUE KEY unique_medico_centro (tenant_id, medico_id, centro_medico_id),
+    INDEX idx_medico_centro_tenant (tenant_id),
     INDEX idx_medico (medico_id),
     INDEX idx_centro (centro_medico_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -114,6 +155,7 @@ CREATE TABLE IF NOT EXISTS medico_centro (
 -- ============================================
 CREATE TABLE IF NOT EXISTS codigo_ars (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
     ars_id INT NOT NULL,
     codigo VARCHAR(50) NOT NULL,
     descripcion VARCHAR(500) NOT NULL,
@@ -122,11 +164,13 @@ CREATE TABLE IF NOT EXISTS codigo_ars (
     activo TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
     FOREIGN KEY (ars_id) REFERENCES ars(id) ON DELETE CASCADE,
     INDEX idx_codigo (codigo),
     INDEX idx_ars (ars_id),
     INDEX idx_activo (activo),
-    UNIQUE KEY unique_ars_codigo (ars_id, codigo)
+    UNIQUE KEY unique_ars_codigo (tenant_id, ars_id, codigo),
+    INDEX idx_codigo_ars_tenant (tenant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -135,6 +179,7 @@ CREATE TABLE IF NOT EXISTS codigo_ars (
 -- ============================================
 CREATE TABLE IF NOT EXISTS servicios (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
     codigo VARCHAR(50) NULL,
     nombre VARCHAR(200) NOT NULL,
     descripcion TEXT NULL,
@@ -143,6 +188,8 @@ CREATE TABLE IF NOT EXISTS servicios (
     activo TINYINT(1) NOT NULL DEFAULT 1,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
+    INDEX idx_servicios_tenant (tenant_id),
     INDEX idx_codigo (codigo),
     INDEX idx_nombre (nombre),
     INDEX idx_activo (activo)
@@ -154,6 +201,7 @@ CREATE TABLE IF NOT EXISTS servicios (
 -- ============================================
 CREATE TABLE IF NOT EXISTS ncf (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
     tipo ENUM('B01', 'B02', 'B14', 'B15') NOT NULL DEFAULT 'B01',
     secuencia_inicial VARCHAR(20) NOT NULL,
     secuencia_final VARCHAR(20) NOT NULL,
@@ -163,6 +211,8 @@ CREATE TABLE IF NOT EXISTS ncf (
     agotado TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
+    INDEX idx_ncf_tenant (tenant_id),
     INDEX idx_tipo (tipo),
     INDEX idx_activo (activo)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -173,6 +223,7 @@ CREATE TABLE IF NOT EXISTS ncf (
 -- ============================================
 CREATE TABLE IF NOT EXISTS pacientes (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
     nombre VARCHAR(200) NOT NULL,
     cedula VARCHAR(20) NULL,
     nss VARCHAR(50) NULL COMMENT 'Número de Seguridad Social',
@@ -185,8 +236,10 @@ CREATE TABLE IF NOT EXISTS pacientes (
     tipo_afiliacion ENUM('Titular', 'Dependiente') NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
     FOREIGN KEY (ars_id) REFERENCES ars(id) ON DELETE SET NULL,
     INDEX idx_cedula (cedula),
+    INDEX idx_pacientes_tenant (tenant_id),
     INDEX idx_nss (nss),
     INDEX idx_nombre (nombre),
     INDEX idx_ars (ars_id)
@@ -198,6 +251,7 @@ CREATE TABLE IF NOT EXISTS pacientes (
 -- ============================================
 CREATE TABLE IF NOT EXISTS pacientes_pendientes (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
     paciente_id INT NULL,
     nombre_paciente VARCHAR(200) NOT NULL,
     cedula VARCHAR(20) NULL,
@@ -213,12 +267,14 @@ CREATE TABLE IF NOT EXISTS pacientes_pendientes (
     created_by INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
     FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE SET NULL,
     FOREIGN KEY (ars_id) REFERENCES ars(id) ON DELETE SET NULL,
     FOREIGN KEY (medico_id) REFERENCES medicos(id) ON DELETE SET NULL,
     FOREIGN KEY (centro_medico_id) REFERENCES centros_medicos(id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES usuarios(id) ON DELETE SET NULL,
     INDEX idx_estado (estado),
+    INDEX idx_pendientes_tenant_estado_fecha (tenant_id, estado, fecha_servicio),
     INDEX idx_fecha (fecha_servicio),
     INDEX idx_ars (ars_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -229,7 +285,8 @@ CREATE TABLE IF NOT EXISTS pacientes_pendientes (
 -- ============================================
 CREATE TABLE IF NOT EXISTS facturas (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    numero_factura VARCHAR(50) NOT NULL UNIQUE,
+    tenant_id INT NOT NULL,
+    numero_factura VARCHAR(50) NOT NULL,
     ncf VARCHAR(20) NULL,
     fecha_emision DATE NOT NULL,
     fecha_vencimiento DATE NULL,
@@ -270,13 +327,15 @@ CREATE TABLE IF NOT EXISTS facturas (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
     FOREIGN KEY (paciente_id) REFERENCES pacientes(id) ON DELETE SET NULL,
     FOREIGN KEY (ars_id) REFERENCES ars(id) ON DELETE SET NULL,
     FOREIGN KEY (medico_id) REFERENCES medicos(id) ON DELETE SET NULL,
     FOREIGN KEY (centro_medico_id) REFERENCES centros_medicos(id) ON DELETE SET NULL,
     FOREIGN KEY (created_by) REFERENCES usuarios(id) ON DELETE SET NULL,
     
-    INDEX idx_numero (numero_factura),
+    UNIQUE KEY uq_facturas_tenant_numero (tenant_id, numero_factura),
+    INDEX idx_facturas_tenant_fecha (tenant_id, fecha_emision),
     INDEX idx_ncf (ncf),
     INDEX idx_fecha (fecha_emision),
     INDEX idx_estado (estado),
@@ -290,6 +349,7 @@ CREATE TABLE IF NOT EXISTS facturas (
 -- ============================================
 CREATE TABLE IF NOT EXISTS factura_detalles (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
     factura_id INT NOT NULL,
     servicio_id INT NULL,
     codigo_servicio VARCHAR(50) NULL,
@@ -298,9 +358,11 @@ CREATE TABLE IF NOT EXISTS factura_detalles (
     precio_unitario DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     subtotal DECIMAL(10, 2) NOT NULL DEFAULT 0.00,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
     FOREIGN KEY (factura_id) REFERENCES facturas(id) ON DELETE CASCADE,
     FOREIGN KEY (servicio_id) REFERENCES servicios(id) ON DELETE SET NULL,
-    INDEX idx_factura (factura_id)
+    INDEX idx_factura (factura_id),
+    INDEX idx_factura_detalles_tenant (tenant_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -309,6 +371,7 @@ CREATE TABLE IF NOT EXISTS factura_detalles (
 -- ============================================
 CREATE TABLE IF NOT EXISTS pagos (
     id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
     factura_id INT NOT NULL,
     fecha_pago DATE NOT NULL,
     monto DECIMAL(10, 2) NOT NULL,
@@ -317,9 +380,11 @@ CREATE TABLE IF NOT EXISTS pagos (
     observaciones TEXT NULL,
     created_by INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
     FOREIGN KEY (factura_id) REFERENCES facturas(id) ON DELETE CASCADE,
     FOREIGN KEY (created_by) REFERENCES usuarios(id) ON DELETE SET NULL,
     INDEX idx_factura (factura_id),
+    INDEX idx_pagos_tenant_fecha (tenant_id, fecha_pago),
     INDEX idx_fecha (fecha_pago)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -351,14 +416,7 @@ CREATE TABLE IF NOT EXISTS auditoria (
 -- No se insertan usuarios ni contraseñas predeterminadas.
 -- Crear el primer administrador con crear_admin.py.
 
--- Insertar algunas ARS de ejemplo
-INSERT INTO ars (codigo, nombre, activo) VALUES
-('ARS001', 'ARS Humano', 1),
-('ARS002', 'ARS Palic Salud', 1),
-('ARS003', 'ARS Futuro', 1),
-('ARS004', 'ARS Universal', 1),
-('ARS005', 'ARS Simag', 1)
-ON DUPLICATE KEY UPDATE nombre = nombre;
+-- Los catálogos se crean desde la aplicación después de registrar una empresa.
 
 -- ============================================
 -- FIN DEL SCRIPT

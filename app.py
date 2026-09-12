@@ -235,14 +235,35 @@ print(f"[OK] Configurado para MySQL: {DATABASE_CONFIG['database']}")
 
 REQUIRED_TENANT_TABLES = (
     'ars',
+    'auditoria_historia_clinica',
+    'auditoria_licencias_medicas',
     'centros_medicos',
+    'citas_medicas',
+    'codigo_ars',
+    'consultas_clinicas',
+    'ecf_configuraciones',
+    'ecf_eventos',
+    'ecf_outbox',
+    'ecf_secuencias',
+    'evoluciones_clinicas',
     'factura_detalles',
     'facturas',
+    'facturas_ecf',
+    'historias_emergencia',
+    'hojas_enfermeria',
+    'licencias_medicas',
+    'medico_centro',
     'medicos',
     'ncf',
     'pacientes',
     'pacientes_pendientes',
+    'pago_facturas',
+    'pagos',
+    'receta_medicamentos',
+    'recetas_medicas',
+    'reclamaciones',
     'servicios',
+    'tipos_licencia_medica',
     'usuarios',
 )
 
@@ -1469,34 +1490,18 @@ def roles_required(*allowed_profiles):
     return decorator
 
 
-def add_tenant_filter(query, table_alias=''):
-    """
-    Agregar filtro de TenantID automáticamente a una query.
-    
-    Uso:
-        query = "SELECT * FROM pacientes WHERE activo = 1"
-        query = add_tenant_filter(query)
-        # Resultado: "SELECT * FROM pacientes WHERE activo = 1 AND tenant_id = %s"
-    """
-    tenant_id = get_current_tenant_id()
-    if not tenant_id:
-        return query
-    
-    table_ref = f"{table_alias}." if table_alias else ""
-    
-    # Si la query ya tiene WHERE, agregar AND
-    if 'WHERE' in query.upper():
-        query += f" AND {table_ref}tenant_id = {tenant_id}"
-    else:
-        query += f" WHERE {table_ref}tenant_id = {tenant_id}"
-    
-    return query
-
 # Whitelist de tablas permitidas para prevenir SQL injection
 _ALLOWED_TABLES = {
-    'usuarios', 'pacientes', 'medicos', 'ars', 'servicios', 'ncf', 
-    'facturas', 'factura_detalles', 'pacientes_pendientes', 
-    'centros_medicos', 'empresas'
+    'ars', 'auditoria_historia_clinica', 'auditoria_licencias_medicas',
+    'centros_medicos', 'citas_medicas', 'codigo_ars',
+    'consultas_clinicas', 'ecf_configuraciones', 'ecf_eventos',
+    'ecf_outbox', 'ecf_secuencias', 'evoluciones_clinicas',
+    'factura_detalles', 'facturas', 'facturas_ecf',
+    'historias_emergencia', 'hojas_enfermeria', 'licencias_medicas',
+    'medico_centro', 'medicos', 'ncf', 'pacientes',
+    'pacientes_pendientes', 'pago_facturas', 'pagos',
+    'receta_medicamentos', 'recetas_medicas', 'reclamaciones',
+    'servicios', 'tipos_licencia_medica', 'usuarios',
 }
 
 _ALLOWED_ID_COLUMNS = {'id', 'paciente_id', 'medico_id', 'ars_id', 'factura_id'}
@@ -1629,36 +1634,6 @@ def get_dias_restantes_suscripcion(tenant_id=None):
     else:
         return (dias, 'vigente', f'{dias} días restantes')
 
-def execute_query_tenant(query, params=None, fetch='one'):
-    """
-    Wrapper para execute_query que automáticamente agrega filtro de tenant_id
-    Solo para tablas que tienen tenant_id
-    
-    IMPORTANTE: Esta función agrega el tenant_id automáticamente al final de params
-    """
-    tenant_id = get_current_tenant_id()
-    if not tenant_id:
-        return execute_query(query, params, fetch)
-    
-    # Convertir params a lista si es tupla
-    if params is None:
-        params = []
-    elif isinstance(params, tuple):
-        params = list(params)
-    elif not isinstance(params, list):
-        params = [params]
-    
-    # Agregar tenant_id a los parámetros
-    params.append(tenant_id)
-    
-    return execute_query(query, tuple(params), fetch)
-
-def execute_update_tenant(query, params=None):
-    """
-    Wrapper para execute_update que valida tenant_id en UPDATEs/DELETEs
-    """
-    return execute_update(query, params)
-
 request_counts = defaultdict(list)
 rate_limit_lock = Lock()
 
@@ -1767,6 +1742,7 @@ def login():
                 if user_data['password_temporal']:
                     session['cambio_password_usuario_id'] = user_data['id']
                     session['cambio_password_email'] = user_data['email']
+                    session['cambio_password_tenant_id'] = user_data.get('tenant_id')
                     flash('Debes cambiar tu contraseña temporal', 'warning')
                     return redirect(url_for('cambiar_password_obligatorio'))
                 
@@ -1786,8 +1762,13 @@ def login():
                 session['empresa_nombre'] = user.empresa_nombre
                 login_user(user, remember=True)
                 
-                execute_update('UPDATE usuarios SET last_login = %s WHERE id = %s',
-                           (datetime.now(), user_data['id']))
+                execute_update(
+                    '''
+                    UPDATE usuarios SET last_login = %s
+                    WHERE id = %s AND tenant_id <=> %s
+                    ''',
+                    (datetime.now(), user_data['id'], user_data.get('tenant_id')),
+                )
                 
                 return redirect(url_for('facturacion_menu'))
             else:
@@ -1923,19 +1904,24 @@ def cambiar_password_obligatorio():
             return redirect(url_for('cambiar_password_obligatorio'))
         
         user_id = session['cambio_password_usuario_id']
+        tenant_id = session.get('cambio_password_tenant_id')
         password_hash = generate_password_hash(password)
         
         execute_update('''
             UPDATE usuarios 
             SET password_hash = %s, password_temporal = 0
-            WHERE id = %s
-        ''', (password_hash, user_id))
+            WHERE id = %s AND tenant_id <=> %s
+        ''', (password_hash, user_id, tenant_id))
         
-        user_data = execute_query('SELECT * FROM usuarios WHERE id = %s', (user_id,))
+        user_data = execute_query(
+            'SELECT * FROM usuarios WHERE id = %s AND tenant_id <=> %s',
+            (user_id, tenant_id),
+        )
         
         # Limpiar sesión temporal
         session.pop('cambio_password_usuario_id', None)
         session.pop('cambio_password_email', None)
+        session.pop('cambio_password_tenant_id', None)
         
         # Login automático
         user = User(
@@ -1982,8 +1968,8 @@ def solicitar_recuperacion():
             execute_update('''
                 UPDATE usuarios 
                 SET reset_token = %s, reset_token_expiracion = %s
-                WHERE id = %s
-            ''', (token, expiracion, usuario['id']))
+                WHERE id = %s AND tenant_id <=> %s
+            ''', (token, expiracion, usuario['id'], usuario.get('tenant_id')))
             
             # Enviar email si SendGrid está disponible
             if SENDGRID_AVAILABLE:
@@ -2098,8 +2084,8 @@ def recuperar_password(token):
                 password_temporal = 0,
                 reset_token = NULL,
                 reset_token_expiracion = NULL
-            WHERE id = %s
-        ''', (password_hash, usuario['id']))
+            WHERE id = %s AND tenant_id <=> %s
+        ''', (password_hash, usuario['id'], usuario.get('tenant_id')))
         
         flash('Contraseña actualizada exitosamente. Ahora puedes iniciar sesión.', 'success')
         return redirect(url_for('login'))
@@ -2476,11 +2462,7 @@ def verificar_multitenant():
             verificacion['advertencias'].append('No existe empresa con ID=1 (empresa por defecto)')
         
         # 3. Verificar columnas tenant_id en tablas
-        tablas_verificar = [
-            'usuarios', 'ars', 'medicos', 'codigo_ars', 
-            'centros_medicos', 'medico_centro', 'servicios', 'ncf',
-            'pacientes', 'facturas'
-        ]
+        tablas_verificar = REQUIRED_TENANT_TABLES
         
         columnas_ok = []
         columnas_faltantes = []
@@ -3153,10 +3135,13 @@ def facturacion_codigo_ars():
         SELECT ca.*, a.nombre,
                m.nombre AS nombre_medico,
                c.nombre AS nombre_centro
-        FROM codigo_ars ca 
-        JOIN ars a ON ca.ars_id = a.id 
-        LEFT JOIN medicos m ON ca.medico_id = m.id
-        LEFT JOIN centros_medicos c ON ca.centro_medico_id = c.id
+        FROM codigo_ars ca
+        JOIN ars a
+          ON ca.ars_id = a.id AND a.tenant_id = ca.tenant_id
+        LEFT JOIN medicos m
+          ON ca.medico_id = m.id AND m.tenant_id = ca.tenant_id
+        LEFT JOIN centros_medicos c
+          ON ca.centro_medico_id = c.id AND c.tenant_id = ca.tenant_id
         WHERE ca.tenant_id = %s
     '''
     params = [tenant_id]
@@ -3378,8 +3363,10 @@ def facturacion_medico_centro():
     relaciones_list = execute_query('''
         SELECT mc.*, m.nombre as medico_nombre, m.especialidad, c.nombre as centro_nombre
         FROM medico_centro mc
-        JOIN medicos m ON mc.medico_id = m.id
-        JOIN centros_medicos c ON mc.centro_medico_id = c.id
+        JOIN medicos m
+          ON mc.medico_id = m.id AND m.tenant_id = mc.tenant_id
+        JOIN centros_medicos c
+          ON mc.centro_medico_id = c.id AND c.tenant_id = mc.tenant_id
         WHERE mc.tenant_id = %s
         ORDER BY m.nombre, c.nombre
     ''', (tenant_id,), fetch='all') or []
@@ -3404,6 +3391,24 @@ def facturacion_medico_centro_nuevo():
             return redirect(url_for('facturacion_medico_centro_nuevo'))
         
         tenant_id = get_current_tenant_id()
+        medico = execute_query(
+            '''
+            SELECT id FROM medicos
+            WHERE id = %s AND tenant_id = %s AND activo = 1
+            ''',
+            (medico_id, tenant_id),
+        )
+        centro = execute_query(
+            '''
+            SELECT id FROM centros_medicos
+            WHERE id = %s AND tenant_id = %s AND activo = 1
+            ''',
+            (centro_medico_id, tenant_id),
+        )
+        if not medico or not centro:
+            flash('El médico o centro seleccionado no pertenece a tu empresa', 'error')
+            return redirect(url_for('facturacion_medico_centro_nuevo'))
+
         existe = execute_query('SELECT id FROM medico_centro WHERE medico_id = %s AND centro_medico_id = %s AND tenant_id = %s', 
                               (medico_id, centro_medico_id, tenant_id))
         if existe:
@@ -3476,7 +3481,28 @@ def facturacion_medico_centro_editar(relacion_id):
         if not medico_id or not centro_medico_id:
             flash('Médico y centro médico son obligatorios', 'error')
             return redirect(url_for('facturacion_medico_centro_editar', relacion_id=relacion_id))
-        
+
+        medico = execute_query(
+            '''
+            SELECT id FROM medicos
+            WHERE id = %s AND tenant_id = %s AND activo = 1
+            ''',
+            (medico_id, tenant_id),
+        )
+        centro = execute_query(
+            '''
+            SELECT id FROM centros_medicos
+            WHERE id = %s AND tenant_id = %s AND activo = 1
+            ''',
+            (centro_medico_id, tenant_id),
+        )
+        if not medico or not centro:
+            flash('El médico o centro seleccionado no pertenece a tu empresa', 'error')
+            return redirect(url_for(
+                'facturacion_medico_centro_editar',
+                relacion_id=relacion_id,
+            ))
+
         # Verificar si ya existe otra relación con estos valores (excluyendo la actual)
         existe = execute_query('''
             SELECT id FROM medico_centro 
@@ -3675,8 +3701,11 @@ def facturacion_ncf():
         return redirect(url_for('facturacion_menu'))
     
     tenant_id = get_current_tenant_id()
-    # Incluir registros con el tenant_id actual o sin tenant_id (registros antiguos)
-    ncf_list = execute_query('SELECT * FROM ncf WHERE tenant_id = %s OR tenant_id IS NULL ORDER BY tipo, id DESC', (tenant_id,), fetch='all') or []
+    ncf_list = execute_query(
+        'SELECT * FROM ncf WHERE tenant_id = %s ORDER BY tipo, id DESC',
+        (tenant_id,),
+        fetch='all',
+    ) or []
     ecf_secuencias = execute_query('''
         SELECT *,
                GREATEST(ultimo_numero, secuencia_inicial - 1) + 1 AS proximo_numero
@@ -3900,8 +3929,10 @@ def facturacion_ncf_editar(ncf_id):
         return redirect(url_for('facturacion_menu'))
     
     tenant_id = get_current_tenant_id()
-    # Incluir registros con el tenant_id actual o sin tenant_id (registros antiguos)
-    ncf = execute_query('SELECT * FROM ncf WHERE id = %s AND (tenant_id = %s OR tenant_id IS NULL)', (ncf_id, tenant_id))
+    ncf = execute_query(
+        'SELECT * FROM ncf WHERE id = %s AND tenant_id = %s',
+        (ncf_id, tenant_id),
+    )
     if not ncf:
         flash('NCF no encontrado', 'error')
         return redirect(url_for('facturacion_ncf'))
@@ -3994,8 +4025,9 @@ def facturacion_pacientes():
     
     query = '''
         SELECT p.*, a.nombre as ars_nombre 
-        FROM pacientes p 
-        LEFT JOIN ars a ON p.ars_id = a.id 
+        FROM pacientes p
+        LEFT JOIN ars a
+          ON p.ars_id = a.id AND a.tenant_id = p.tenant_id
         WHERE p.tenant_id = %s
     '''
     params = [tenant_id]
@@ -4223,8 +4255,9 @@ def facturacion_pacientes_editar(paciente_id):
     tenant_id = get_current_tenant_id()
     paciente = execute_query('''
         SELECT p.*, a.nombre as ars_nombre 
-        FROM pacientes p 
-        LEFT JOIN ars a ON p.ars_id = a.id 
+        FROM pacientes p
+        LEFT JOIN ars a
+          ON p.ars_id = a.id AND a.tenant_id = p.tenant_id
         WHERE p.id = %s AND p.tenant_id = %s
     ''', (paciente_id, tenant_id))
     
@@ -4367,39 +4400,19 @@ def facturacion_pacientes_eliminar(paciente_id):
 def facturacion_pacientes_pendientes_eliminar(paciente_id):
     """Eliminar paciente pendiente"""
     tenant_id = get_current_tenant_id()
-    
-    # Verificar si existe la columna tenant_id en pacientes_pendientes
-    tiene_tenant_id = False
-    try:
-        check_tenant = execute_query('''
-            SELECT COUNT(*) as count 
-            FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = 'pacientes_pendientes' 
-            AND COLUMN_NAME = 'tenant_id'
-        ''')
-        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
-    except:
-        tiene_tenant_id = False
-    
-    # Verificar que el registro existe
-    if tiene_tenant_id:
-        paciente = execute_query('SELECT id FROM pacientes_pendientes WHERE id = %s AND tenant_id = %s', (paciente_id, tenant_id))
-        if not paciente:
-            flash('Registro no encontrado', 'error')
-            return redirect(url_for('facturacion_pacientes_pendientes'))
-        
-        # Eliminar el registro
-        execute_update('DELETE FROM pacientes_pendientes WHERE id = %s AND tenant_id = %s', (paciente_id, tenant_id))
-    else:
-        # Si no existe tenant_id, eliminar sin verificar tenant
-        paciente = execute_query('SELECT id FROM pacientes_pendientes WHERE id = %s', (paciente_id,))
-        if not paciente:
-            flash('Registro no encontrado', 'error')
-            return redirect(url_for('facturacion_pacientes_pendientes'))
-        
-        # Eliminar el registro
-        execute_update('DELETE FROM pacientes_pendientes WHERE id = %s', (paciente_id,))
+
+    paciente = execute_query(
+        'SELECT id FROM pacientes_pendientes WHERE id = %s AND tenant_id = %s',
+        (paciente_id, tenant_id),
+    )
+    if not paciente:
+        flash('Registro no encontrado', 'error')
+        return redirect(url_for('facturacion_pacientes_pendientes'))
+
+    execute_update(
+        'DELETE FROM pacientes_pendientes WHERE id = %s AND tenant_id = %s',
+        (paciente_id, tenant_id),
+    )
     
     flash('Registro eliminado exitosamente', 'success')
     return redirect(url_for('facturacion_pacientes_pendientes'))
@@ -4409,38 +4422,16 @@ def facturacion_pacientes_pendientes_eliminar(paciente_id):
 def api_facturacion_pacientes_pendientes_get(paciente_id):
     """Obtener datos de un paciente pendiente para editar"""
     tenant_id = get_current_tenant_id()
-    
-    # Verificar si existe la columna tenant_id
-    tiene_tenant_id = False
-    try:
-        check_tenant = execute_query('''
-            SELECT COUNT(*) as count 
-            FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = 'pacientes_pendientes' 
-            AND COLUMN_NAME = 'tenant_id'
-        ''')
-        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
-    except:
-        tiene_tenant_id = False
-    
-    # Obtener el registro
-    if tiene_tenant_id:
-        paciente = execute_query('''
-            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
-            FROM pacientes_pendientes pp
-            LEFT JOIN ars a ON pp.ars_id = a.id
-            LEFT JOIN medicos m ON pp.medico_id = m.id
-            WHERE pp.id = %s AND pp.tenant_id = %s
-        ''', (paciente_id, tenant_id))
-    else:
-        paciente = execute_query('''
-            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
-            FROM pacientes_pendientes pp
-            LEFT JOIN ars a ON pp.ars_id = a.id
-            LEFT JOIN medicos m ON pp.medico_id = m.id
-            WHERE pp.id = %s
-        ''', (paciente_id,))
+
+    paciente = execute_query('''
+        SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
+        FROM pacientes_pendientes pp
+        LEFT JOIN ars a
+          ON pp.ars_id = a.id AND a.tenant_id = pp.tenant_id
+        LEFT JOIN medicos m
+          ON pp.medico_id = m.id AND m.tenant_id = pp.tenant_id
+        WHERE pp.id = %s AND pp.tenant_id = %s
+    ''', (paciente_id, tenant_id))
     
     if not paciente:
         return jsonify({'error': 'Registro no encontrado'}), 404
@@ -4533,24 +4524,20 @@ def api_facturacion_pacientes_pendientes_update(paciente_id):
         
         if not fecha_servicio:
             return jsonify({'error': 'La fecha de servicio es obligatoria'}), 400
+
+        paciente = execute_query(
+            '''
+            SELECT id
+            FROM pacientes_pendientes
+            WHERE id = %s AND tenant_id = %s
+            ''',
+            (paciente_id, tenant_id),
+        )
+        if not paciente:
+            return jsonify({'error': 'Registro no encontrado'}), 404
         
         # El servicio ya viene completo con autorización desde el frontend
         servicios_realizados = servicio_completo
-        
-        # Verificar si existe la columna tenant_id
-        tiene_tenant_id = False
-        try:
-            check_tenant = execute_query('''
-                SELECT COUNT(*) as count 
-                FROM information_schema.COLUMNS 
-                WHERE TABLE_SCHEMA = DATABASE()
-                AND TABLE_NAME = 'pacientes_pendientes' 
-                AND COLUMN_NAME = 'tenant_id'
-            ''')
-            tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
-        except Exception as e:
-            print(f"Error al verificar tenant_id: {e}")
-            tiene_tenant_id = False
         
         # Convertir IDs a enteros si existen
         try:
@@ -4571,25 +4558,20 @@ def api_facturacion_pacientes_pendientes_update(paciente_id):
         except (ValueError, TypeError):
             centro_medico_id = None
         
-        # Actualizar
-        if tiene_tenant_id:
-            execute_update('''
-                UPDATE pacientes_pendientes 
-                SET nombre_paciente = %s, nss = %s, fecha_servicio = %s, 
-                    servicios_realizados = %s, monto_estimado = %s, 
-                    ars_id = %s, medico_id = %s, centro_medico_id = %s, observaciones = %s
-                WHERE id = %s AND tenant_id = %s
-            ''', (nombre_paciente, nss or None, fecha_servicio, servicios_realizados, monto_estimado,
-                  ars_id, medico_id, centro_medico_id, observaciones, paciente_id, tenant_id))
-        else:
-            execute_update('''
-                UPDATE pacientes_pendientes 
-                SET nombre_paciente = %s, nss = %s, fecha_servicio = %s, 
-                    servicios_realizados = %s, monto_estimado = %s, 
-                    ars_id = %s, medico_id = %s, centro_medico_id = %s, observaciones = %s
-                WHERE id = %s
-            ''', (nombre_paciente, nss or None, fecha_servicio, servicios_realizados, monto_estimado,
-                  ars_id, medico_id, centro_medico_id, observaciones, paciente_id))
+        updated_id = execute_update('''
+            UPDATE pacientes_pendientes
+            SET nombre_paciente = %s, nss = %s, fecha_servicio = %s,
+                servicios_realizados = %s, monto_estimado = %s,
+                ars_id = %s, medico_id = %s, centro_medico_id = %s,
+                observaciones = %s
+            WHERE id = %s AND tenant_id = %s
+        ''', (
+            nombre_paciente, nss or None, fecha_servicio,
+            servicios_realizados, monto_estimado, ars_id, medico_id,
+            centro_medico_id, observaciones, paciente_id, tenant_id,
+        ))
+        if updated_id is None:
+            return jsonify({'error': 'No se pudo actualizar el registro'}), 500
         
         return jsonify({'success': True, 'message': 'Registro actualizado exitosamente'})
     except Exception as e:
@@ -5131,7 +5113,8 @@ def sincronizar_cita_desde_historia(consulta_id, tenant_id):
         SELECT c.id, c.hora, c.medico_id, c.paciente_id,
                p.nombre AS paciente_nombre
         FROM citas_medicas c
-        JOIN pacientes p ON p.id=c.paciente_id
+        JOIN pacientes p
+          ON p.id=c.paciente_id AND p.tenant_id=c.tenant_id
         WHERE c.tenant_id=%s
           AND (c.medico_id=%s OR c.paciente_id=%s) AND c.fecha=%s
           AND c.estado NOT IN ('Cancelada','Vencida','No asistió')
@@ -5278,7 +5261,8 @@ def facturacion_historia_clinica_expediente(paciente_id):
     paciente = execute_query('''
         SELECT p.*, a.nombre AS ars_nombre
         FROM pacientes p
-        LEFT JOIN ars a ON p.ars_id = a.id
+        LEFT JOIN ars a
+          ON p.ars_id = a.id AND a.tenant_id = p.tenant_id
         WHERE p.id = %s AND p.tenant_id = %s
     ''', (paciente_id, tenant_id))
     if not paciente:
@@ -5292,7 +5276,8 @@ def facturacion_historia_clinica_expediente(paciente_id):
                m.nombre AS medico_nombre,
                COUNT(e.id) AS total_evoluciones
         FROM consultas_clinicas c
-        JOIN medicos m ON c.medico_id = m.id
+        JOIN medicos m
+          ON c.medico_id = m.id AND m.tenant_id = c.tenant_id
         LEFT JOIN evoluciones_clinicas e
           ON e.consulta_id = c.id AND e.tenant_id = c.tenant_id
         WHERE c.paciente_id = %s AND c.tenant_id = %s
@@ -5307,7 +5292,8 @@ def facturacion_historia_clinica_expediente(paciente_id):
                l.cantidad_dias, l.diagnostico, l.estado,
                m.nombre AS medico_nombre
         FROM licencias_medicas l
-        JOIN medicos m ON m.id=l.medico_id
+        JOIN medicos m
+          ON m.id=l.medico_id AND m.tenant_id=l.tenant_id
         WHERE l.paciente_id=%s AND l.tenant_id=%s
         ORDER BY l.fecha_emision DESC, l.id DESC
     ''', (paciente_id, tenant_id), fetch='all') or []
@@ -5469,14 +5455,16 @@ def facturacion_historia_clinica_ver(consulta_id):
     evoluciones = execute_query('''
         SELECT e.*, m.nombre AS medico_nombre
         FROM evoluciones_clinicas e
-        JOIN medicos m ON e.medico_id = m.id
+        JOIN medicos m
+          ON e.medico_id = m.id AND m.tenant_id = e.tenant_id
         WHERE e.consulta_id = %s AND e.tenant_id = %s
         ORDER BY e.fecha ASC, e.hora ASC, e.id ASC
     ''', (consulta_id, tenant_id), fetch='all') or []
     auditoria = execute_query('''
         SELECT a.version_anterior, a.created_at, u.nombre AS usuario_nombre
         FROM auditoria_historia_clinica a
-        LEFT JOIN usuarios u ON a.usuario_id = u.id
+        LEFT JOIN usuarios u
+          ON a.usuario_id = u.id AND u.tenant_id = a.tenant_id
         WHERE a.consulta_id = %s AND a.tenant_id = %s
         ORDER BY a.created_at DESC
     ''', (consulta_id, tenant_id), fetch='all') or []
@@ -5722,7 +5710,8 @@ def validar_formulario_cita(tenant_id, cita_id=None):
         SELECT c.id, c.hora, c.medico_id, c.paciente_id,
                c.duracion_minutos, p.nombre AS paciente_nombre
         FROM citas_medicas c
-        JOIN pacientes p ON p.id=c.paciente_id
+        JOIN pacientes p
+          ON p.id=c.paciente_id AND p.tenant_id=c.tenant_id
         WHERE c.tenant_id=%s AND (c.medico_id=%s OR c.paciente_id=%s)
           AND c.fecha=%s
           AND c.estado NOT IN ('Cancelada', 'Vencida', 'No asistió')
@@ -6016,9 +6005,12 @@ def obtener_licencia_medica(licencia_id, tenant_id):
         JOIN medicos m ON m.id=l.medico_id AND m.tenant_id=l.tenant_id
         JOIN tipos_licencia_medica t ON t.id=l.tipo_licencia_id AND t.tenant_id=l.tenant_id
         LEFT JOIN consultas_clinicas c ON c.id=l.consulta_id AND c.tenant_id=l.tenant_id
-        LEFT JOIN usuarios uc ON uc.id=l.created_by
-        LEFT JOIN usuarios um ON um.id=l.updated_by
-        LEFT JOIN usuarios ua ON ua.id=l.anulado_por
+        LEFT JOIN usuarios uc
+          ON uc.id=l.created_by AND uc.tenant_id=l.tenant_id
+        LEFT JOIN usuarios um
+          ON um.id=l.updated_by AND um.tenant_id=l.tenant_id
+        LEFT JOIN usuarios ua
+          ON ua.id=l.anulado_por AND ua.tenant_id=l.tenant_id
         WHERE l.id=%s AND l.tenant_id=%s
         """,
         (licencia_id, tenant_id)
@@ -6041,7 +6033,8 @@ def contexto_formulario_licencia(tenant_id, paciente_preseleccionado=None):
         SELECT c.id, c.paciente_id, c.fecha, c.diagnostico_principal,
                c.codigo_cie10, m.nombre AS medico_nombre
         FROM consultas_clinicas c
-        JOIN medicos m ON m.id=c.medico_id
+        JOIN medicos m
+          ON m.id=c.medico_id AND m.tenant_id=c.tenant_id
         WHERE c.tenant_id=%s
         ORDER BY c.fecha DESC, c.id DESC
         """,
@@ -6144,9 +6137,12 @@ def facturacion_licencias_medicas():
         SELECT l.*, p.nombre AS paciente_nombre, m.nombre AS medico_nombre,
                t.nombre AS tipo_licencia
         FROM licencias_medicas l
-        JOIN pacientes p ON p.id=l.paciente_id
-        JOIN medicos m ON m.id=l.medico_id
-        JOIN tipos_licencia_medica t ON t.id=l.tipo_licencia_id
+        JOIN pacientes p
+          ON p.id=l.paciente_id AND p.tenant_id=l.tenant_id
+        JOIN medicos m
+          ON m.id=l.medico_id AND m.tenant_id=l.tenant_id
+        JOIN tipos_licencia_medica t
+          ON t.id=l.tipo_licencia_id AND t.tenant_id=l.tenant_id
         WHERE l.tenant_id=%s
     """
     params = [tenant_id]
@@ -6315,7 +6311,8 @@ def facturacion_licencia_medica_ver(licencia_id):
         """
         SELECT a.*, u.nombre AS usuario_nombre
         FROM auditoria_licencias_medicas a
-        LEFT JOIN usuarios u ON u.id=a.usuario_id
+        LEFT JOIN usuarios u
+          ON u.id=a.usuario_id AND u.tenant_id=a.tenant_id
         WHERE a.licencia_id=%s AND a.tenant_id=%s
         ORDER BY a.created_at DESC
         """,
@@ -6923,7 +6920,8 @@ def facturacion_historias_emergencia_nueva():
         paciente = execute_query('''
             SELECT p.*, a.nombre AS ars_nombre
             FROM pacientes p
-            LEFT JOIN ars a ON p.ars_id = a.id
+            LEFT JOIN ars a
+              ON p.ars_id = a.id AND a.tenant_id = p.tenant_id
             WHERE p.id = %s AND p.tenant_id = %s
         ''', (paciente_id, tenant_id))
         medico = execute_query(
@@ -7006,7 +7004,8 @@ def facturacion_historias_emergencia_nueva():
         SELECT p.id, p.nombre, p.fecha_nacimiento, p.sexo, p.cedula, p.nss,
                p.ars_id, a.nombre AS ars_nombre
         FROM pacientes p
-        LEFT JOIN ars a ON p.ars_id = a.id
+        LEFT JOIN ars a
+          ON p.ars_id = a.id AND a.tenant_id = p.tenant_id
         WHERE p.tenant_id = %s
         ORDER BY p.nombre
     ''', (tenant_id,), fetch='all') or []
@@ -7408,9 +7407,13 @@ def facturacion_pagos():
                    MAX(factura_directa.numero_factura)
                ) AS facturas_numeros
         FROM pagos p
-        LEFT JOIN pago_facturas pf ON p.id = pf.pago_id
-        LEFT JOIN facturas f ON pf.factura_id = f.id
-        LEFT JOIN facturas factura_directa ON p.factura_id = factura_directa.id
+        LEFT JOIN pago_facturas pf
+          ON p.id = pf.pago_id AND pf.tenant_id = p.tenant_id
+        LEFT JOIN facturas f
+          ON pf.factura_id = f.id AND f.tenant_id = p.tenant_id
+        LEFT JOIN facturas factura_directa
+          ON p.factura_id = factura_directa.id
+         AND factura_directa.tenant_id = p.tenant_id
         WHERE p.tenant_id = %s
         GROUP BY p.id
     '''
@@ -7498,8 +7501,10 @@ def facturacion_pagos_nuevo():
                            COALESCE(SUM(pf.monto_aplicado), 0) AS pagado
                     FROM pago_facturas pf
                     JOIN facturas f
-                      ON f.id = pf.factura_id AND f.tenant_id = %s
-                    WHERE pf.factura_id IN ({placeholders})
+                      ON f.id = pf.factura_id
+                     AND f.tenant_id = pf.tenant_id
+                    WHERE pf.tenant_id = %s
+                      AND pf.factura_id IN ({placeholders})
                     GROUP BY pf.factura_id
                 ''', (tenant_id, *ids), fetch='all') or []
                 pagado_por_factura = {
@@ -7537,9 +7542,9 @@ def facturacion_pagos_nuevo():
                 for factura_id, monto in facturas_data:
                     execute_update('''
                         INSERT INTO pago_facturas
-                        (pago_id, factura_id, monto_aplicado)
-                        VALUES (%s, %s, %s)
-                    ''', (pago_id, factura_id, monto))
+                        (pago_id, factura_id, monto_aplicado, tenant_id)
+                        VALUES (%s, %s, %s, %s)
+                    ''', (pago_id, factura_id, monto, tenant_id))
                     acumulado = (
                         pagado_por_factura.get(factura_id, Decimal('0.00'))
                         + monto
@@ -7568,7 +7573,8 @@ def facturacion_pagos_nuevo():
         SELECT f.id, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total, f.fecha_emision, f.estado,
                COALESCE(SUM(pf.monto_aplicado), 0) as monto_pagado
         FROM facturas f
-        LEFT JOIN pago_facturas pf ON f.id = pf.factura_id
+        LEFT JOIN pago_facturas pf
+          ON f.id = pf.factura_id AND pf.tenant_id = f.tenant_id
         WHERE f.tenant_id = %s AND f.estado != 'Anulada'
         GROUP BY f.id
         HAVING (f.total - COALESCE(SUM(pf.monto_aplicado), 0)) > 0
@@ -7594,8 +7600,9 @@ def facturacion_pacientes_exportar_excel():
     # Obtener pacientes con el mismo filtro que la vista
     query = '''
         SELECT p.*, a.nombre as ars_nombre 
-        FROM pacientes p 
-        LEFT JOIN ars a ON p.ars_id = a.id 
+        FROM pacientes p
+        LEFT JOIN ars a
+          ON p.ars_id = a.id AND a.tenant_id = p.tenant_id
         WHERE p.tenant_id = %s
     '''
     params = [tenant_id]
@@ -7705,41 +7712,17 @@ def facturacion_ver_factura(factura_id):
     
     tenant_id = get_current_tenant_id()
     
-    # Verificar si existe tenant_id en facturas
-    tiene_tenant_id_facturas = False
-    try:
-        check_tenant_facturas = execute_query('''
-            SELECT COUNT(*) as count 
-            FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = 'facturas' 
-            AND COLUMN_NAME = 'tenant_id'
-        ''')
-        tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
-    except:
-        tiene_tenant_id_facturas = False
-    
-    # Obtener factura
-    if tiene_tenant_id_facturas:
-        factura = execute_query('''
-            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
-                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
-                   m.cedula as medico_cedula, m.exequatur as medico_exequatur
-            FROM facturas f
-            LEFT JOIN ars a ON f.ars_id = a.id
-            LEFT JOIN medicos m ON f.medico_id = m.id
-            WHERE f.id = %s AND f.tenant_id = %s
-        ''', (factura_id, tenant_id))
-    else:
-        factura = execute_query('''
-            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
-                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
-                   m.cedula as medico_cedula, m.exequatur as medico_exequatur
-            FROM facturas f
-            LEFT JOIN ars a ON f.ars_id = a.id
-            LEFT JOIN medicos m ON f.medico_id = m.id
-            WHERE f.id = %s
-        ''', (factura_id,))
+    factura = execute_query('''
+        SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc,
+               m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+               m.cedula as medico_cedula, m.exequatur as medico_exequatur
+        FROM facturas f
+        LEFT JOIN ars a
+          ON f.ars_id = a.id AND a.tenant_id = f.tenant_id
+        LEFT JOIN medicos m
+          ON f.medico_id = m.id AND m.tenant_id = f.tenant_id
+        WHERE f.id = %s AND f.tenant_id = %s
+    ''', (factura_id, tenant_id))
     
     if not factura:
         flash('Factura no encontrada', 'error')
@@ -7747,10 +7730,10 @@ def facturacion_ver_factura(factura_id):
     
     # Obtener detalles de la factura (pacientes/servicios)
     detalles = execute_query('''
-        SELECT * FROM factura_detalles 
-        WHERE factura_id = %s
+        SELECT * FROM factura_detalles
+        WHERE factura_id = %s AND tenant_id = %s
         ORDER BY id
-    ''', (factura_id,), fetch='all') or []
+    ''', (factura_id, tenant_id), fetch='all') or []
     
     # Procesar detalles para mostrar como pacientes
     pacientes = []
@@ -7812,7 +7795,10 @@ def facturacion_ver_factura(factura_id):
         }
     else:
         # Obtener datos completos del médico
-        medico_completo = execute_query('SELECT * FROM medicos WHERE id = %s', (factura.get('medico_id'),))
+        medico_completo = execute_query(
+            'SELECT * FROM medicos WHERE id = %s AND tenant_id = %s',
+            (factura.get('medico_id'), tenant_id),
+        )
         if medico_completo:
             medico_factura = {
                 'id': medico_completo.get('id'),
@@ -7852,9 +7838,10 @@ def facturacion_ver_factura(factura_id):
             (ncf_prefijo, tenant_id)
         )
         if not ncf_obj:
-            ncf_obj = execute_query(
-                'SELECT * FROM ncf WHERE prefijo = %s LIMIT 1',
-                (ncf_prefijo,)
+            logger.warning(
+                'NCF no encontrado en tenant=%s para prefijo=%s',
+                tenant_id,
+                ncf_prefijo,
             )
         ncf_tipos_descripciones = {
             'B01': 'Factura de Crédito Fiscal',
@@ -7873,40 +7860,21 @@ def facturacion_ver_factura(factura_id):
     fecha_factura = factura.get('fecha_emision', '')
     pacientes_pendientes_facturados = []
     try:
-        tiene_tenant_id_pp = False
-        try:
-            check_tenant_pp = execute_query('''
-                SELECT COUNT(*) as count 
-                FROM information_schema.COLUMNS 
-                WHERE TABLE_SCHEMA = DATABASE()
-                AND TABLE_NAME = 'pacientes_pendientes' 
-                AND COLUMN_NAME = 'tenant_id'
-            ''')
-            tiene_tenant_id_pp = check_tenant_pp and check_tenant_pp.get('count', 0) > 0
-        except:
-            tiene_tenant_id_pp = False
-        
-        if tiene_tenant_id_pp:
-            pacientes_pendientes_facturados = execute_query('''
-                SELECT pp.*, a.nombre as ars_nombre
-                FROM pacientes_pendientes pp
-                LEFT JOIN ars a ON pp.ars_id = a.id
-                WHERE pp.estado = 'Facturado' 
-                AND pp.ars_id = %s 
-                AND DATE(pp.updated_at) = DATE(%s)
-                AND pp.tenant_id = %s
-                ORDER BY pp.id
-            ''', (factura.get('ars_id'), fecha_factura, tenant_id), fetch='all') or []
-        else:
-            pacientes_pendientes_facturados = execute_query('''
-                SELECT pp.*, a.nombre as ars_nombre
-                FROM pacientes_pendientes pp
-                LEFT JOIN ars a ON pp.ars_id = a.id
-                WHERE pp.estado = 'Facturado' 
-                AND pp.ars_id = %s 
-                AND DATE(pp.updated_at) = DATE(%s)
-                ORDER BY pp.id
-            ''', (factura.get('ars_id'), fecha_factura), fetch='all') or []
+        pacientes_pendientes_facturados = execute_query('''
+            SELECT pp.*, a.nombre as ars_nombre
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a
+              ON pp.ars_id = a.id AND a.tenant_id = pp.tenant_id
+            WHERE pp.estado = 'Facturado'
+              AND pp.ars_id = %s
+              AND DATE(pp.updated_at) = DATE(%s)
+              AND pp.tenant_id = %s
+            ORDER BY pp.id
+        ''', (
+            factura.get('ars_id'),
+            fecha_factura,
+            tenant_id,
+        ), fetch='all') or []
     except Exception as e:
         logger.error(f"Error al obtener pacientes_pendientes_facturados: {str(e)}")
         pacientes_pendientes_facturados = []
@@ -8169,42 +8137,21 @@ def facturacion_consultar_estado_ecf(factura_id):
 def facturacion_editar_factura(factura_id):
     """Editar factura generada"""
     tenant_id = get_current_tenant_id()
-    
-    # Verificar si existe tenant_id en facturas
-    tiene_tenant_id_facturas = False
-    try:
-        check_tenant_facturas = execute_query('''
-            SELECT COUNT(*) as count 
-            FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = 'facturas' 
-            AND COLUMN_NAME = 'tenant_id'
-        ''')
-        tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
-    except:
-        tiene_tenant_id_facturas = False
-    
-    # Obtener factura
-    if tiene_tenant_id_facturas:
-        factura = execute_query('''
-            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
-                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
-                   m.cedula as medico_cedula, m.exequatur as medico_exequatur
-            FROM facturas f
-            LEFT JOIN ars a ON f.ars_id = a.id
-            LEFT JOIN medicos m ON f.medico_id = m.id
-            WHERE f.id = %s AND f.tenant_id = %s
-        ''', (factura_id, tenant_id))
-    else:
-        factura = execute_query('''
-            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
-                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
-                   m.cedula as medico_cedula, m.exequatur as medico_exequatur
-            FROM facturas f
-            LEFT JOIN ars a ON f.ars_id = a.id
-            LEFT JOIN medicos m ON f.medico_id = m.id
-            WHERE f.id = %s
-        ''', (factura_id,))
+    if not validate_tenant_access('facturas', factura_id):
+        flash('No tienes acceso a esta factura', 'error')
+        return redirect(url_for('facturacion_historico'))
+
+    factura = execute_query('''
+        SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc,
+               m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+               m.cedula as medico_cedula, m.exequatur as medico_exequatur
+        FROM facturas f
+        LEFT JOIN ars a
+          ON f.ars_id = a.id AND a.tenant_id = f.tenant_id
+        LEFT JOIN medicos m
+          ON f.medico_id = m.id AND m.tenant_id = f.tenant_id
+        WHERE f.id = %s AND f.tenant_id = %s
+    ''', (factura_id, tenant_id))
     
     if not factura:
         flash('Factura no encontrada', 'error')
@@ -8243,10 +8190,10 @@ def facturacion_editar_factura(factura_id):
     
     # Obtener detalles de la factura (pacientes/servicios)
     detalles = execute_query('''
-        SELECT * FROM factura_detalles 
-        WHERE factura_id = %s
+        SELECT * FROM factura_detalles
+        WHERE factura_id = %s AND tenant_id = %s
         ORDER BY id
-    ''', (factura_id,), fetch='all') or []
+    ''', (factura_id, tenant_id), fetch='all') or []
     
     # Procesar detalles para mostrar como pacientes
     pacientes = []
@@ -8290,41 +8237,18 @@ def generar_pdf_factura_vista_previa(factura_id, tenant_id=None):
     if tenant_id is None:
         tenant_id = get_current_tenant_id()
     
-    # Verificar si existe tenant_id en facturas
-    tiene_tenant_id_facturas = False
-    try:
-        check_tenant_facturas = execute_query('''
-            SELECT COUNT(*) as count 
-            FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = 'facturas' 
-            AND COLUMN_NAME = 'tenant_id'
-        ''')
-        tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
-    except:
-        tiene_tenant_id_facturas = False
-    
-    # Obtener factura
-    if tiene_tenant_id_facturas:
-        factura = execute_query('''
-            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
-                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
-                   m.cedula as medico_cedula, m.exequatur as medico_exequatur, m.id as medico_id
-            FROM facturas f
-            LEFT JOIN ars a ON f.ars_id = a.id
-            LEFT JOIN medicos m ON f.medico_id = m.id
-            WHERE f.id = %s AND f.tenant_id = %s
-        ''', (factura_id, tenant_id))
-    else:
-        factura = execute_query('''
-            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
-                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
-                   m.cedula as medico_cedula, m.exequatur as medico_exequatur, m.id as medico_id
-            FROM facturas f
-            LEFT JOIN ars a ON f.ars_id = a.id
-            LEFT JOIN medicos m ON f.medico_id = m.id
-            WHERE f.id = %s
-        ''', (factura_id,))
+    factura = execute_query('''
+        SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc,
+               m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+               m.cedula as medico_cedula, m.exequatur as medico_exequatur,
+               m.id as medico_id
+        FROM facturas f
+        LEFT JOIN ars a
+          ON f.ars_id = a.id AND a.tenant_id = f.tenant_id
+        LEFT JOIN medicos m
+          ON f.medico_id = m.id AND m.tenant_id = f.tenant_id
+        WHERE f.id = %s AND f.tenant_id = %s
+    ''', (factura_id, tenant_id))
     
     if not factura:
         logger.error(f"Factura {factura_id} no encontrada para tenant {tenant_id}")
@@ -8366,8 +8290,6 @@ def generar_pdf_factura_vista_previa(factura_id, tenant_id=None):
     ncf_numero = factura.get('ncf', '')
     ncf_prefijo = ncf_numero[:3] if len(ncf_numero) >= 3 else ''
     ncf_obj = execute_query('SELECT * FROM ncf WHERE prefijo = %s AND tenant_id = %s LIMIT 1', (ncf_prefijo, tenant_id))
-    if not ncf_obj:
-        ncf_obj = execute_query('SELECT * FROM ncf WHERE prefijo = %s LIMIT 1', (ncf_prefijo,))
     
     ncf_tipos_descripciones = {
         'B01': 'Factura de Crédito Fiscal',
@@ -8383,52 +8305,31 @@ def generar_pdf_factura_vista_previa(factura_id, tenant_id=None):
     
     # Obtener detalles de la factura (pacientes/servicios)
     detalles = execute_query('''
-        SELECT * FROM factura_detalles 
-        WHERE factura_id = %s
+        SELECT * FROM factura_detalles
+        WHERE factura_id = %s AND tenant_id = %s
         ORDER BY id
-    ''', (factura_id,), fetch='all') or []
+    ''', (factura_id, tenant_id), fetch='all') or []
     
     # Intentar obtener pacientes desde pacientes_pendientes que fueron facturados
     # Buscar pacientes_pendientes con estado 'Facturado' que coincidan con esta factura
     # Por fecha y ARS como aproximación
     pacientes_pendientes_facturados = []
     try:
-        # Verificar si existe tenant_id en pacientes_pendientes
-        tiene_tenant_id_pp = False
-        try:
-            check_tenant_pp = execute_query('''
-                SELECT COUNT(*) as count 
-                FROM information_schema.COLUMNS 
-                WHERE TABLE_SCHEMA = DATABASE()
-                AND TABLE_NAME = 'pacientes_pendientes' 
-                AND COLUMN_NAME = 'tenant_id'
-            ''')
-            tiene_tenant_id_pp = check_tenant_pp and check_tenant_pp.get('count', 0) > 0
-        except:
-            tiene_tenant_id_pp = False
-        
-        # Buscar pacientes pendientes facturados en la misma fecha y ARS
-        if tiene_tenant_id_pp:
-            pacientes_pendientes_facturados = execute_query('''
-                SELECT pp.*, a.nombre as ars_nombre
-                FROM pacientes_pendientes pp
-                LEFT JOIN ars a ON pp.ars_id = a.id
-                WHERE pp.estado = 'Facturado' 
-                AND pp.ars_id = %s 
-                AND DATE(pp.updated_at) = DATE(%s)
-                AND pp.tenant_id = %s
-                ORDER BY pp.id
-            ''', (factura.get('ars_id'), fecha_factura, tenant_id), fetch='all') or []
-        else:
-            pacientes_pendientes_facturados = execute_query('''
-                SELECT pp.*, a.nombre as ars_nombre
-                FROM pacientes_pendientes pp
-                LEFT JOIN ars a ON pp.ars_id = a.id
-                WHERE pp.estado = 'Facturado' 
-                AND pp.ars_id = %s 
-                AND DATE(pp.updated_at) = DATE(%s)
-                ORDER BY pp.id
-            ''', (factura.get('ars_id'), fecha_factura), fetch='all') or []
+        pacientes_pendientes_facturados = execute_query('''
+            SELECT pp.*, a.nombre as ars_nombre
+            FROM pacientes_pendientes pp
+            LEFT JOIN ars a
+              ON pp.ars_id = a.id AND a.tenant_id = pp.tenant_id
+            WHERE pp.estado = 'Facturado'
+              AND pp.ars_id = %s
+              AND DATE(pp.updated_at) = DATE(%s)
+              AND pp.tenant_id = %s
+            ORDER BY pp.id
+        ''', (
+            factura.get('ars_id'),
+            fecha_factura,
+            tenant_id,
+        ), fetch='all') or []
     except Exception as e:
         logger.error(f"Error al obtener pacientes_pendientes_facturados: {str(e)}")
         pacientes_pendientes_facturados = []
@@ -8509,7 +8410,10 @@ def generar_pdf_factura_vista_previa(factura_id, tenant_id=None):
     # Obtener datos completos del médico para el footer y remitente (antes de generar PDF)
     medico_completo = None
     if tipo_empresa != 'centro_salud' and medico_factura.get('id'):
-        medico_completo = execute_query('SELECT * FROM medicos WHERE id = %s', (medico_factura.get('id'),))
+        medico_completo = execute_query(
+            'SELECT * FROM medicos WHERE id = %s AND tenant_id = %s',
+            (medico_factura.get('id'), tenant_id),
+        )
         # Actualizar medico_factura con datos completos si están disponibles
         if medico_completo:
             medico_factura['nombre'] = medico_completo.get('nombre', medico_factura.get('nombre', 'N/A'))
@@ -8855,26 +8759,15 @@ def facturacion_descargar_pdf(factura_id):
         return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
     
     tenant_id = get_current_tenant_id()
+    if not validate_tenant_access('facturas', factura_id):
+        flash('No tienes acceso a esta factura', 'error')
+        return redirect(url_for('facturacion_historico'))
     
     try:
-        # Verificar que la factura existe
-        tiene_tenant_id_facturas = False
-        try:
-            check_tenant_facturas = execute_query('''
-                SELECT COUNT(*) as count 
-                FROM information_schema.COLUMNS 
-                WHERE TABLE_SCHEMA = DATABASE()
-                AND TABLE_NAME = 'facturas' 
-                AND COLUMN_NAME = 'tenant_id'
-            ''')
-            tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
-        except:
-            tiene_tenant_id_facturas = False
-        
-        if tiene_tenant_id_facturas:
-            factura_check = execute_query('SELECT id FROM facturas WHERE id = %s AND tenant_id = %s', (factura_id, tenant_id))
-        else:
-            factura_check = execute_query('SELECT id FROM facturas WHERE id = %s', (factura_id,))
+        factura_check = execute_query(
+            'SELECT id FROM facturas WHERE id = %s AND tenant_id = %s',
+            (factura_id, tenant_id),
+        )
         
         if not factura_check:
             flash('La factura no existe o no tiene permisos para acceder a ella.', 'error')
@@ -8883,11 +8776,14 @@ def facturacion_descargar_pdf(factura_id):
         logger.info(f"Iniciando descarga de PDF para factura {factura_id}, tenant_id={tenant_id}")
         print(f"=== INICIANDO DESCARGA PDF FACTURA {factura_id} ===")
         
-        # Verificar datos de la factura antes de generar PDF
-        if tiene_tenant_id_facturas:
-            factura_data = execute_query('SELECT id, ncf, fecha_emision, ars_id, subtotal, total FROM facturas WHERE id = %s AND tenant_id = %s', (factura_id, tenant_id))
-        else:
-            factura_data = execute_query('SELECT id, ncf, fecha_emision, ars_id, subtotal, total FROM facturas WHERE id = %s', (factura_id,))
+        factura_data = execute_query(
+            '''
+            SELECT id, ncf, fecha_emision, ars_id, subtotal, total
+            FROM facturas
+            WHERE id = %s AND tenant_id = %s
+            ''',
+            (factura_id, tenant_id),
+        )
         
         if factura_data:
             logger.info(f"Datos de factura {factura_id}: ncf={factura_data.get('ncf')}, fecha={factura_data.get('fecha_emision')}, ars_id={factura_data.get('ars_id')}")
@@ -8896,7 +8792,14 @@ def facturacion_descargar_pdf(factura_id):
             logger.error(f"No se encontraron datos básicos de factura {factura_id}")
             print(f"ERROR: No se encontraron datos básicos de factura {factura_id}")
         
-        detalles_check = execute_query('SELECT COUNT(*) as count FROM factura_detalles WHERE factura_id = %s', (factura_id,))
+        detalles_check = execute_query(
+            '''
+            SELECT COUNT(*) as count
+            FROM factura_detalles
+            WHERE factura_id = %s AND tenant_id = %s
+            ''',
+            (factura_id, tenant_id),
+        )
         detalles_count = detalles_check.get('count', 0) if detalles_check else 0
         logger.info(f"Factura {factura_id} tiene {detalles_count} detalles")
         print(f"Detalles encontrados: {detalles_count}")
@@ -8936,7 +8839,14 @@ def facturacion_descargar_pdf(factura_id):
             # Asegurarse de que el buffer esté al inicio antes de enviarlo
             buffer.seek(0)
             
-            factura = execute_query('SELECT numero_factura FROM facturas WHERE id = %s', (factura_id,))
+            factura = execute_query(
+                '''
+                SELECT numero_factura
+                FROM facturas
+                WHERE id = %s AND tenant_id = %s
+                ''',
+                (factura_id, tenant_id),
+            )
             filename = f"factura_{factura_id}_{factura.get('numero_factura', '') if factura else ''}.pdf"
             
             logger.info(f"Enviando PDF: factura {factura_id}, filename={filename}")
@@ -8961,6 +8871,9 @@ def facturacion_descargar_pdf(factura_id):
 def facturacion_enviar_email(factura_id):
     """Enviar factura por email"""
     tenant_id = get_current_tenant_id()
+    if not validate_tenant_access('facturas', factura_id):
+        flash('No tienes acceso a esta factura', 'error')
+        return redirect(url_for('facturacion_historico'))
     
     # Obtener email del destinatario
     destinatario = request.form.get('destinatario', '').strip()
@@ -8974,41 +8887,18 @@ def facturacion_enviar_email(factura_id):
         flash('Email inválido', 'error')
         return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
     
-    # Verificar si existe tenant_id en facturas
-    tiene_tenant_id_facturas = False
-    try:
-        check_tenant_facturas = execute_query('''
-            SELECT COUNT(*) as count 
-            FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = 'facturas' 
-            AND COLUMN_NAME = 'tenant_id'
-        ''')
-        tiene_tenant_id_facturas = check_tenant_facturas and check_tenant_facturas.get('count', 0) > 0
-    except:
-        tiene_tenant_id_facturas = False
-    
-    # Obtener factura
-    if tiene_tenant_id_facturas:
-        factura = execute_query('''
-            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
-                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
-                   m.cedula as medico_cedula, m.exequatur as medico_exequatur, m.email as medico_email
-            FROM facturas f
-            LEFT JOIN ars a ON f.ars_id = a.id
-            LEFT JOIN medicos m ON f.medico_id = m.id
-            WHERE f.id = %s AND f.tenant_id = %s
-        ''', (factura_id, tenant_id))
-    else:
-        factura = execute_query('''
-            SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc, 
-                   m.nombre as medico_nombre, m.especialidad as medico_especialidad,
-                   m.cedula as medico_cedula, m.exequatur as medico_exequatur, m.email as medico_email
-            FROM facturas f
-            LEFT JOIN ars a ON f.ars_id = a.id
-            LEFT JOIN medicos m ON f.medico_id = m.id
-            WHERE f.id = %s
-        ''', (factura_id,))
+    factura = execute_query('''
+        SELECT f.*, a.nombre as nombre_ars, a.rnc as ars_rnc,
+               m.nombre as medico_nombre, m.especialidad as medico_especialidad,
+               m.cedula as medico_cedula, m.exequatur as medico_exequatur,
+               m.email as medico_email
+        FROM facturas f
+        LEFT JOIN ars a
+          ON f.ars_id = a.id AND a.tenant_id = f.tenant_id
+        LEFT JOIN medicos m
+          ON f.medico_id = m.id AND m.tenant_id = f.tenant_id
+        WHERE f.id = %s AND f.tenant_id = %s
+    ''', (factura_id, tenant_id))
     
     if not factura:
         flash('Factura no encontrada', 'error')
@@ -9386,7 +9276,8 @@ def facturacion_facturas_nueva():
             cm.nombre as centro_nombre,
             mc.es_defecto
         FROM medico_centro mc
-        INNER JOIN centros_medicos cm ON mc.centro_medico_id = cm.id
+        INNER JOIN centros_medicos cm
+          ON mc.centro_medico_id = cm.id AND cm.tenant_id = mc.tenant_id
         WHERE mc.tenant_id = %s AND cm.activo = 1
         ORDER BY mc.medico_id, mc.es_defecto DESC, cm.nombre
     ''', (tenant_id,), fetch='all') or []
@@ -10301,36 +10192,14 @@ def facturacion_generar():
             ORDER BY nombre
         ''', (tenant_id,), fetch='all') or []
     
-    # Obtener pacientes pendientes
-    tiene_tenant_id = False
-    try:
-        check_tenant = execute_query('''
-            SELECT COUNT(*) as count 
-            FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = 'pacientes_pendientes' 
-            AND COLUMN_NAME = 'tenant_id'
-        ''')
-        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
-    except:
-        tiene_tenant_id = False
-    
-    if tiene_tenant_id:
-        pendientes = execute_query('''
-            SELECT pp.*, a.nombre as ars_nombre 
-            FROM pacientes_pendientes pp
-            LEFT JOIN ars a ON pp.ars_id = a.id
-            WHERE pp.estado = 'Pendiente' AND pp.tenant_id = %s
-            ORDER BY pp.created_at
-        ''', (tenant_id,), fetch='all') or []
-    else:
-        pendientes = execute_query('''
-            SELECT pp.*, a.nombre as ars_nombre 
-            FROM pacientes_pendientes pp
-            LEFT JOIN ars a ON pp.ars_id = a.id
-            WHERE pp.estado = 'Pendiente'
-            ORDER BY pp.created_at
-        ''', fetch='all') or []
+    pendientes = execute_query('''
+        SELECT pp.*, a.nombre as ars_nombre
+        FROM pacientes_pendientes pp
+        LEFT JOIN ars a
+          ON pp.ars_id = a.id AND a.tenant_id = pp.tenant_id
+        WHERE pp.estado = 'Pendiente' AND pp.tenant_id = %s
+        ORDER BY pp.created_at
+    ''', (tenant_id,), fetch='all') or []
     
     # Obtener fecha actual en formato YYYY-MM-DD
     from datetime import date
@@ -10475,38 +10344,18 @@ def facturacion_generar_step2():
             return redirect(url_for('facturacion_generar'))
         medico_factura_nombre = medico_factura.get('nombre', 'N/A')
     
-    # Obtener pacientes pendientes filtrados por ARS
-    tiene_tenant_id = False
-    try:
-        check_tenant = execute_query('''
-            SELECT COUNT(*) as count 
-            FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = 'pacientes_pendientes' 
-            AND COLUMN_NAME = 'tenant_id'
-        ''')
-        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
-    except:
-        tiene_tenant_id = False
-    
-    if tiene_tenant_id:
-        pendientes_raw = execute_query('''
-            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
-            FROM pacientes_pendientes pp
-            LEFT JOIN ars a ON pp.ars_id = a.id
-            LEFT JOIN medicos m ON pp.medico_id = m.id
-            WHERE pp.estado = 'Pendiente' AND pp.ars_id = %s AND pp.tenant_id = %s
-            ORDER BY pp.created_at
-        ''', (ars_id, tenant_id), fetch='all') or []
-    else:
-        pendientes_raw = execute_query('''
-            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
-            FROM pacientes_pendientes pp
-            LEFT JOIN ars a ON pp.ars_id = a.id
-            LEFT JOIN medicos m ON pp.medico_id = m.id
-            WHERE pp.estado = 'Pendiente' AND pp.ars_id = %s
-            ORDER BY pp.created_at
-        ''', (ars_id,), fetch='all') or []
+    pendientes_raw = execute_query('''
+        SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
+        FROM pacientes_pendientes pp
+        LEFT JOIN ars a
+          ON pp.ars_id = a.id AND a.tenant_id = pp.tenant_id
+        LEFT JOIN medicos m
+          ON pp.medico_id = m.id AND m.tenant_id = pp.tenant_id
+        WHERE pp.estado = 'Pendiente'
+          AND pp.ars_id = %s
+          AND pp.tenant_id = %s
+        ORDER BY pp.created_at
+    ''', (ars_id, tenant_id), fetch='all') or []
     
     # Procesar los datos para extraer autorización y servicio
     pendientes = []
@@ -10653,41 +10502,23 @@ def facturacion_vista_previa():
             flash('Médico no encontrado', 'error')
             return redirect(url_for('facturacion_generar'))
     
-    # Obtener pacientes seleccionados
-    tiene_tenant_id = False
-    try:
-        check_tenant = execute_query('''
-            SELECT COUNT(*) as count 
-            FROM information_schema.COLUMNS 
-            WHERE TABLE_SCHEMA = DATABASE()
-            AND TABLE_NAME = 'pacientes_pendientes' 
-            AND COLUMN_NAME = 'tenant_id'
-        ''')
-        tiene_tenant_id = check_tenant and check_tenant.get('count', 0) > 0
-    except:
-        tiene_tenant_id = False
-    
+    # Obtener pacientes seleccionados exclusivamente dentro del tenant.
     placeholders = ','.join(['%s'] * len(pacientes_ids))
-    if tiene_tenant_id:
-        pacientes_query = f'''
-            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
-            FROM pacientes_pendientes pp
-            LEFT JOIN ars a ON pp.ars_id = a.id
-            LEFT JOIN medicos m ON pp.medico_id = m.id
-            WHERE pp.id IN ({placeholders}) AND pp.tenant_id = %s
-            ORDER BY pp.fecha_servicio
-        '''
-        pacientes_raw = execute_query(pacientes_query, tuple(pacientes_ids) + (tenant_id,), fetch='all') or []
-    else:
-        pacientes_query = f'''
-            SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
-            FROM pacientes_pendientes pp
-            LEFT JOIN ars a ON pp.ars_id = a.id
-            LEFT JOIN medicos m ON pp.medico_id = m.id
-            WHERE pp.id IN ({placeholders})
-            ORDER BY pp.fecha_servicio
-        '''
-        pacientes_raw = execute_query(pacientes_query, tuple(pacientes_ids), fetch='all') or []
+    pacientes_query = f'''
+        SELECT pp.*, a.nombre as ars_nombre, m.nombre as medico_nombre
+        FROM pacientes_pendientes pp
+        LEFT JOIN ars a
+          ON pp.ars_id = a.id AND a.tenant_id = pp.tenant_id
+        LEFT JOIN medicos m
+          ON pp.medico_id = m.id AND m.tenant_id = pp.tenant_id
+        WHERE pp.id IN ({placeholders}) AND pp.tenant_id = %s
+        ORDER BY pp.fecha_servicio
+    '''
+    pacientes_raw = execute_query(
+        pacientes_query,
+        tuple(pacientes_ids) + (tenant_id,),
+        fetch='all',
+    ) or []
     
     # Procesar pacientes
     pacientes = []
@@ -11634,8 +11465,16 @@ def perfil_configuracion():
             return redirect(url_for('perfil_configuracion'))
         
         execute_update(
-            'UPDATE usuarios SET tema_color=%s, fuente_ui=%s WHERE id=%s',
-            (tema_color, fuente_ui, current_user.id)
+            '''
+            UPDATE usuarios SET tema_color=%s, fuente_ui=%s
+            WHERE id=%s AND tenant_id <=> %s
+            ''',
+            (
+                tema_color,
+                fuente_ui,
+                current_user.id,
+                get_current_tenant_id(),
+            ),
         )
         
         current_user.tema_color = tema_color

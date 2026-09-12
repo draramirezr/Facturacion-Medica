@@ -221,6 +221,269 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             )
         self.assertTrue(connection.closed)
 
+    def test_required_schema_covers_every_tenant_data_table(self):
+        expected_tables = {
+            'ars',
+            'auditoria_historia_clinica',
+            'auditoria_licencias_medicas',
+            'centros_medicos',
+            'citas_medicas',
+            'codigo_ars',
+            'consultas_clinicas',
+            'ecf_configuraciones',
+            'ecf_eventos',
+            'ecf_outbox',
+            'ecf_secuencias',
+            'evoluciones_clinicas',
+            'factura_detalles',
+            'facturas',
+            'facturas_ecf',
+            'historias_emergencia',
+            'hojas_enfermeria',
+            'licencias_medicas',
+            'medico_centro',
+            'medicos',
+            'ncf',
+            'pacientes',
+            'pacientes_pendientes',
+            'pago_facturas',
+            'pagos',
+            'receta_medicamentos',
+            'recetas_medicas',
+            'reclamaciones',
+            'servicios',
+            'tipos_licencia_medica',
+            'usuarios',
+        }
+        self.assertEqual(set(app_module.REQUIRED_TENANT_TABLES), expected_tables)
+        self.assertTrue(expected_tables.issubset(app_module._ALLOWED_TABLES))
+
+    def test_relational_catalog_access_uses_tenant_whitelist(self):
+        with self.flask_app.test_request_context('/'):
+            with (
+                patch.object(app_module, 'current_user', self.user),
+                patch.object(
+                    app_module,
+                    'execute_query',
+                    return_value={'count': 1},
+                ) as query,
+            ):
+                self.assertTrue(
+                    app_module.validate_tenant_access('codigo_ars', 7)
+                )
+                self.assertTrue(
+                    app_module.validate_tenant_access('medico_centro', 8)
+                )
+
+        for call in query.call_args_list:
+            sql, params = call.args
+            self.assertIn('tenant_id = %s', sql)
+            self.assertEqual(params[-1], 22)
+
+    def test_medico_centro_new_rejects_cross_tenant_relations(self):
+        queries = []
+        update = Mock()
+
+        def fake_query(query, params=None, fetch='one'):
+            queries.append((query, params))
+            if 'FROM medicos' in query:
+                return None
+            if 'FROM centros_medicos' in query:
+                return {'id': 8}
+            return None
+
+        handler = app_module.facturacion_medico_centro_nuevo
+        while hasattr(handler, '__wrapped__'):
+            handler = handler.__wrapped__
+
+        with self.flask_app.test_request_context(
+            '/facturacion/medico-centro/nuevo',
+            method='POST',
+            data={
+                'medico_id': '7',
+                'centro_medico_id': '8',
+            },
+        ):
+            with (
+                patch.object(app_module, 'current_user', self.user),
+                patch.object(
+                    app_module,
+                    'execute_query',
+                    side_effect=fake_query,
+                ),
+                patch.object(app_module, 'execute_update', update),
+            ):
+                response = handler()
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(len(queries), 2)
+        for sql, params in queries:
+            self.assertIn('tenant_id = %s', sql)
+            self.assertEqual(params[-1], 22)
+        update.assert_not_called()
+
+    def test_pending_patient_delete_never_falls_back_without_tenant(self):
+        updates = Mock()
+        with self.flask_app.test_request_context(
+            '/facturacion/pacientes-pendientes/91/eliminar',
+            method='POST',
+        ):
+            with (
+                patch.object(app_module, 'current_user', self.user),
+                patch.object(
+                    app_module,
+                    'execute_query',
+                    return_value={'id': 91},
+                ) as query,
+                patch.object(app_module, 'execute_update', updates),
+            ):
+                response = (
+                    app_module.facturacion_pacientes_pendientes_eliminar
+                    .__wrapped__(91)
+                )
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('tenant_id = %s', query.call_args.args[0])
+        self.assertEqual(query.call_args.args[1], (91, 22))
+        self.assertIn('tenant_id = %s', updates.call_args.args[0])
+        self.assertEqual(updates.call_args.args[1], (91, 22))
+
+    def test_pending_patient_get_is_tenant_scoped(self):
+        stored_patient = {
+            'id': 91,
+            'nombre_paciente': 'Paciente',
+            'fecha_servicio': '2026-09-12',
+            'monto_estimado': 0,
+        }
+        with self.flask_app.test_request_context(
+            '/api/facturacion/pacientes-pendientes/91'
+        ):
+            with (
+                patch.object(app_module, 'current_user', self.user),
+                patch.object(
+                    app_module,
+                    'execute_query',
+                    return_value=stored_patient,
+                ) as query,
+            ):
+                response = (
+                    app_module.api_facturacion_pacientes_pendientes_get
+                    .__wrapped__(91)
+                )
+
+        self.assertEqual(response.status_code, 200)
+        sql, params = query.call_args.args
+        self.assertIn('pp.tenant_id = %s', sql)
+        self.assertIn('a.tenant_id = pp.tenant_id', sql)
+        self.assertIn('m.tenant_id = pp.tenant_id', sql)
+        self.assertEqual(params, (91, 22))
+
+    def test_pending_patient_update_rejects_another_tenant(self):
+        update = Mock()
+        payload = {
+            'nombre_paciente': 'Paciente',
+            'fecha_servicio': '2026-09-12',
+            'servicio': 'Consulta',
+        }
+        with self.flask_app.test_request_context(
+            '/api/facturacion/pacientes-pendientes/91',
+            method='PUT',
+            json=payload,
+        ):
+            with (
+                patch.object(app_module, 'current_user', self.user),
+                patch.object(
+                    app_module,
+                    'execute_query',
+                    return_value=None,
+                ) as query,
+                patch.object(app_module, 'execute_update', update),
+            ):
+                response, status = (
+                    app_module.api_facturacion_pacientes_pendientes_update
+                    .__wrapped__(91)
+                )
+
+        self.assertEqual(status, 404)
+        self.assertIn('tenant_id = %s', query.call_args.args[0])
+        self.assertEqual(query.call_args.args[1], (91, 22))
+        update.assert_not_called()
+
+    def test_runtime_code_has_no_tenant_column_fallbacks(self):
+        source = Path(app_module.__file__).read_text(encoding='utf-8')
+        self.assertNotIn('tiene_tenant_id', source)
+        self.assertNotIn('OR tenant_id IS NULL', source)
+        self.assertNotIn('def add_tenant_filter(', source)
+        self.assertNotIn('def execute_query_tenant(', source)
+        self.assertNotIn('def execute_update_tenant(', source)
+        normalized = ' '.join(source.split())
+        self.assertRegex(
+            normalized,
+            r'INSERT INTO pago_facturas\s*'
+            r'\(pago_id, factura_id, monto_aplicado, tenant_id\)',
+        )
+
+    def test_pdf_download_rejects_invoice_outside_tenant(self):
+        generator = Mock()
+        with self.flask_app.test_request_context(
+            '/facturacion/facturas/91/pdf'
+        ):
+            with (
+                patch.object(app_module, 'current_user', self.user),
+                patch.object(app_module, 'REPORTLAB_AVAILABLE', True),
+                patch.object(
+                    app_module,
+                    'execute_query',
+                    return_value=None,
+                ) as query,
+                patch.object(
+                    app_module,
+                    'generar_pdf_factura_vista_previa',
+                    generator,
+                ),
+            ):
+                response = (
+                    app_module.facturacion_descargar_pdf
+                    .__wrapped__(91)
+                )
+
+        self.assertEqual(response.status_code, 302)
+        sql, params = query.call_args.args
+        self.assertIn('tenant_id = %s', sql)
+        self.assertEqual(params, (91, 22))
+        generator.assert_not_called()
+
+    def test_base_schema_defines_tenant_scope_for_core_tables(self):
+        schema = (
+            Path(app_module.__file__).resolve().parent
+            / 'database_schema.sql'
+        ).read_text(encoding='utf-8')
+        core_tables = {
+            'usuarios',
+            'ars',
+            'centros_medicos',
+            'medicos',
+            'medico_centro',
+            'codigo_ars',
+            'servicios',
+            'ncf',
+            'pacientes',
+            'pacientes_pendientes',
+            'facturas',
+            'factura_detalles',
+            'pagos',
+        }
+        for table in core_tables:
+            with self.subTest(table=table):
+                match = re.search(
+                    rf'CREATE TABLE IF NOT EXISTS {table}\s*\((.*?)\)'
+                    r'\s*ENGINE=',
+                    schema,
+                    re.DOTALL,
+                )
+                self.assertIsNotNone(match)
+                self.assertRegex(match.group(1), r'\btenant_id\s+INT\b')
+
     def test_login_template_contains_no_fixed_credentials(self):
         template = (
             Path(app_module.__file__).resolve().parent
