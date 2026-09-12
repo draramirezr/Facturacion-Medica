@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Historia de Emergencia - {{ historia['nombre_paciente'] }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .history-sheet { max-width: 980px; margin: 1rem auto; background: white; padding: 2rem; border: 1px solid #dbe2ea; color: #172033; }
+    .history-title { text-align: center; border-bottom: 4px solid var(--primary-color); padding-bottom: 1rem; margin-bottom: 1.2rem; }
+    .history-section { margin-top: 1.1rem; }
+    .history-section h2 { font-size: .95rem; text-transform: uppercase; font-weight: 800; padding: .45rem .6rem; margin: 0 0 .7rem; background: {{ tema.primary }}15; border-left: 4px solid var(--primary-color); }
+    .history-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .65rem 1rem; }
+    .history-field { border-bottom: 1px solid #aeb8c4; min-height: 2rem; }
+    .history-field.wide { grid-column: span 2; }
+    .history-field.full { grid-column: 1 / -1; }
+    .history-label { display: block; font-size: .7rem; font-weight: 800; text-transform: uppercase; color: #526071; }
+    .history-text { white-space: pre-wrap; min-height: 2.8rem; border-bottom: 1px solid #aeb8c4; padding: .2rem 0 .5rem; }
+    .history-checks { display: flex; flex-wrap: wrap; gap: .4rem 1rem; }
+    .history-signature { width: 55%; margin: 4rem auto 1rem; text-align: center; border-top: 1px solid #172033; padding-top: .4rem; }
+    @media (max-width: 767px) { .history-grid { grid-template-columns: 1fr 1fr; } }
+    @media print {
+        @page { size: letter; margin: .35in; }
+        .ars-sidebar, .ars-topbar, .ars-mobile-overlay, .no-print { display: none !important; }
+        .ars-main-column { margin-left: 0 !important; }
+        .ars-content, .ars-main-content, main { padding: 0 !important; margin: 0 !important; }
+        body { background: white !important; font-size: 10pt; }
+        .history-sheet { border: 0; margin: 0; padding: 0; max-width: none; }
+        .history-section { break-inside: avoid; }
+        .history-title { border-color: #333; }
+        .history-section h2 { background: #eee !important; border-color: #333; color: #111 !important; }
+    }
+</style>
+
+<div class="container py-3">
+    <div class="no-print d-flex justify-content-between align-items-center mb-3">
+        <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historias_emergencia') }}"><i class="fas fa-arrow-left me-2"></i>Volver</a>
+        <button class="btn btn-primary" type="button" onclick="window.print()"><i class="fas fa-print me-2"></i>Imprimir</button>
+    </div>
+
+    <article class="history-sheet">
+        <header class="history-title">
+            <h1>Historia Clínica de Emergencia</h1>
+            <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ARSFlow' }}</div>
+        </header>
+
+        <section class="history-section">
+            <h2>Datos del servicio</h2>
+            <div class="history-grid">
+                <div class="history-field"><span class="history-label">Fecha</span>{{ historia['fecha'] }}</div>
+                <div class="history-field"><span class="history-label">Hora</span>{{ historia['hora_servicio'] }}</div>
+                <div class="history-field wide"><span class="history-label">Autorización</span>{{ historia['autorizacion'] or 'N/A' }}</div>
+            </div>
+        </section>
+
+        <section class="history-section">
+            <h2>Información del paciente</h2>
+            <div class="history-grid">
+                <div class="history-field wide"><span class="history-label">Nombre y apellidos</span>{{ historia['nombre_paciente'] }}</div>
+                <div class="history-field"><span class="history-label">Edad</span>{{ historia['edad'] if historia['edad'] is not none else 'N/D' }}</div>
+                <div class="history-field"><span class="history-label">Sexo</span>{{ historia['sexo'] }}</div>
+                <div class="history-field"><span class="history-label">ARS</span>{{ historia['ars_nombre'] or 'Sin ARS' }}</div>
+                <div class="history-field wide"><span class="history-label">No. afiliado</span>{{ historia['numero_afiliado'] or 'N/A' }}</div>
+                <div class="history-field"><span class="history-label">NSS</span>{{ historia['nss'] or 'N/A' }}</div>
+            </div>
+        </section>
+
+        <section class="history-section">
+            <h2>Motivo de emergencia</h2>
+            <div class="history-text">{{ historia['motivo_emergencia'] }}</div>
+        </section>
+
+        <section class="history-section">
+            <h2>Historia de la enfermedad actual</h2>
+            <div class="history-text">{{ historia['historia_enfermedad'] }}</div>
+            <div class="history-grid mt-3">
+                <div class="history-field wide"><span class="history-label">Atenciones previas</span>{{ 'Sí' if historia.datos.get('atenciones_previas') else 'No' }}{% if historia.datos.get('atenciones_previas_donde') %}, {{ historia.datos.get('atenciones_previas_donde') }}{% endif %}</div>
+                <div class="history-field wide"><span class="history-label">Alergias</span>{{ 'Sí' if historia.datos.get('alergias') else 'No' }}{% if historia.datos.get('alergias_detalle') %}, {{ historia.datos.get('alergias_detalle') }}{% endif %}</div>
+                <div class="history-field full"><span class="history-label">Antecedentes</span>{{ historia.datos.get('antecedentes') or 'N/A' }}</div>
+            </div>
+        </section>
+
+        <section class="history-section">
+            <h2>Hallazgos positivos al examen físico</h2>
+            <div class="history-text">{{ historia.datos.get('hallazgos_examen') or 'Sin hallazgos registrados' }}</div>
+            <div class="history-grid mt-3">
+                <div class="history-field"><span class="history-label">TA</span>{{ historia.datos.get('ta') or 'N/D' }}</div>
+                <div class="history-field"><span class="history-label">FC</span>{{ historia.datos.get('fc') or 'N/D' }} L/M</div>
+                <div class="history-field"><span class="history-label">FR</span>{{ historia.datos.get('fr') or 'N/D' }} R/M</div>
+                <div class="history-field"><span class="history-label">Temperatura</span>{{ historia.datos.get('temperatura') or 'N/D' }}</div>
+            </div>
+        </section>
+
+        <section class="history-section">
+            <h2>Pruebas diagnósticas</h2>
+            <div class="history-checks">
+                {% for prueba in ['Hemograma', 'Examen de orina', 'HCG suero', 'Glucosa', 'Radiografía', 'Sonografía', 'EKG'] %}
+                <span>{{ '☑' if prueba in historia.datos.get('pruebas', []) else '☐' }} {{ prueba }}</span>
+                {% endfor %}
+                {% if historia.datos.get('otras_pruebas') %}<span>Otras: {{ historia.datos.get('otras_pruebas') }}</span>{% endif %}
+            </div>
+        </section>
+
+        <section class="history-section">
+            <h2>Manejo terapéutico en emergencia</h2>
+            <div class="history-checks">
+                {% for manejo in ['Hidratación', 'Nebulizaciones', 'RCP', 'Cura', 'Inmovilización', 'Oxígeno', 'Sutura'] %}
+                <span>{{ '☑' if manejo in historia.datos.get('manejos', []) else '☐' }} {{ manejo }}</span>
+                {% endfor %}
+            </div>
+            {% if historia.datos.get('oxigeno_inicio') or historia.datos.get('oxigeno_final') %}
+            <p class="mt-2 mb-1"><strong>Oxígeno:</strong> {{ historia.datos.get('oxigeno_inicio') or 'N/D' }} a {{ historia.datos.get('oxigeno_final') or 'N/D' }} · Total/hora: {{ historia.datos.get('oxigeno_total_hora') or 'N/D' }}</p>
+            {% endif %}
+            <div class="history-text mt-2"><strong>Medicamentos:</strong><br>{{ historia.datos.get('medicamentos') or 'Ninguno registrado' }}</div>
+        </section>
+
+        <section class="history-section">
+            <h2>Diagnóstico de impresión</h2>
+            <div class="history-text">{{ historia['diagnostico_impresion'] }}</div>
+            <div class="history-grid mt-3">
+                <div class="history-field wide"><span class="history-label">Estatus del paciente</span>{{ historia['estatus_paciente'] }}</div>
+                <div class="history-field wide"><span class="history-label">Origen de la enfermedad</span>{{ historia['origen_enfermedad'] }}</div>
+                <div class="history-field full"><span class="history-label">Observaciones</span>{{ historia['observaciones'] or 'Ninguna' }}</div>
+            </div>
+        </section>
+
+        <div class="history-signature">
+            <strong>{{ historia['medico_nombre'] }}</strong><br>
+            Firma del médico
+        </div>
+    </article>
+</div>
+
+{% if imprimir %}
+<script>window.addEventListener('load', () => window.print());</script>
+{% endif %}
+{% endblock %}

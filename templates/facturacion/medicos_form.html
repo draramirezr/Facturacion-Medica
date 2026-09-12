@@ -99,15 +99,32 @@
                     <label for="especialidad" class="form-label">
                         <i class="fas fa-stethoscope me-2 text-primary"></i>Especialidad *
                     </label>
+                    {% set especialidad_actual = medico['especialidad'] if medico else '' %}
+                    {% set especialidad_personalizada = especialidad_actual and especialidad_actual not in especialidades %}
                     <select class="form-select" id="especialidad" name="especialidad" required>
-                        <option value="">-- Seleccione --</option>
-                        {% for esp in especialidades %}
-                        {% set nombre_esp = esp['nombre'] if esp is mapping else esp %}
-                        <option value="{{ nombre_esp }}" {% if medico and medico['especialidad'] == nombre_esp %}selected{% endif %}>
-                            {{ nombre_esp }}
+                        <option value="">Selecciona una especialidad</option>
+                        {% for especialidad in especialidades %}
+                        <option value="{{ especialidad }}"
+                                {% if especialidad_actual == especialidad %}selected{% endif %}>
+                            {{ especialidad }}
                         </option>
                         {% endfor %}
+                        <option value="__otra__" {% if especialidad_personalizada %}selected{% endif %}>
+                            + Agregar otra especialidad
+                        </option>
                     </select>
+                    <div class="mt-3" id="otraEspecialidadContainer"
+                         {% if not especialidad_personalizada %}hidden{% endif %}>
+                        <label for="especialidad_otra" class="form-label">Nueva especialidad *</label>
+                        <input type="text"
+                               class="form-control"
+                               id="especialidad_otra"
+                               name="especialidad_otra"
+                               value="{{ especialidad_actual if especialidad_personalizada else '' }}"
+                               maxlength="100"
+                               placeholder="Escribe la nueva especialidad"
+                               {% if especialidad_personalizada %}required{% endif %}>
+                    </div>
                 </div>
 
                 <div class="mb-4">
@@ -121,23 +138,24 @@
                            value="{{ medico['cedula'] if medico else '' }}" 
                            required 
                            placeholder="Ej: 01400204101"
+                           minlength="11"
                            maxlength="11"
-                           pattern="[0-9]{10,11}"
+                           pattern="[0-9]{11}"
+                           data-digits-only="11"
                            inputmode="numeric"
-                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,11)"
-                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
-                           title="Solo se permiten números (10-11 dígitos)">
+                           title="La cédula debe contener exactamente 11 números">
                 </div>
 
                 <div class="mb-4">
                     <label for="exequatur" class="form-label">
-                        <i class="fas fa-certificate me-2 text-primary"></i>Exequátur
+                        <i class="fas fa-certificate me-2 text-primary"></i>Exequátur *
                     </label>
                     <input type="text" 
                            class="form-control" 
                            id="exequatur" 
                            name="exequatur" 
                            value="{{ medico['exequatur'] if medico and medico['exequatur'] else '' }}" 
+                           required
                            placeholder="Ej: 123456"
                            maxlength="10">
                     <small class="text-muted">
@@ -148,35 +166,37 @@
 
                 <div class="mb-4">
                     <label for="telefono" class="form-label">
-                        <i class="fas fa-phone me-2 text-primary"></i>Teléfono <span id="telefono-required" style="display: none; color: red;">*</span>
+                        <i class="fas fa-phone me-2 text-primary"></i>Teléfono *
                     </label>
                     <input type="tel" 
                            class="form-control" 
                            id="telefono" 
                            name="telefono" 
                            value="{{ medico['telefono'] if medico and medico['telefono'] else '' }}" 
-                           placeholder="Ej: 8090000000"
+                           required
+                           placeholder="Ej: 8095551234"
+                           minlength="10"
                            maxlength="10"
                            pattern="[0-9]{10}"
+                           data-digits-only="10"
                            inputmode="numeric"
-                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,10)"
-                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
-                           title="Solo se permiten números (10 dígitos)">
+                           title="El teléfono debe contener exactamente 10 números">
                     <small class="text-muted">
                         <i class="fas fa-info-circle me-1"></i>
-                        <span id="telefono-help">Opcional</span>
+                        Número de contacto del médico
                     </small>
                 </div>
 
                 <div class="mb-4">
                     <label for="email" class="form-label">
-                        <i class="fas fa-envelope me-2 text-primary"></i>Correo Electrónico
+                        <i class="fas fa-envelope me-2 text-primary"></i>Correo Electrónico *
                     </label>
                     <input type="email" 
                            class="form-control" 
                            id="email" 
                            name="email" 
                            value="{{ medico['email'] if medico and medico['email'] else '' }}" 
+                           required
                            placeholder="Ej: doctor@correo.com"
                            maxlength="50">
                     <small class="text-muted">
@@ -206,21 +226,13 @@
 
                 <!-- Activar/Desactivar Médico -->
                 <div class="mb-4">
-                    <div class="form-check" style="padding: 1rem; background: {{ tema.primary }}10; border-radius: 10px; border-left: 4px solid {{ tema.primary }};">
-                        <input class="form-check-input" 
-                               type="checkbox" 
-                               id="activo" 
-                               name="activo" 
-                               value="1"
-                               {% if not medico or medico['activo'] %}checked{% endif %}
-                               style="width: 20px; height: 20px; margin-top: 0.25rem; cursor: pointer; accent-color: {{ tema.primary }};">
-                        <label class="form-check-label" for="activo" style="margin-left: 10px; cursor: pointer; font-weight: 600; color: {{ tema.primary_dark }};">
-                            <i class="fas fa-toggle-on me-2"></i>Médico Activo
-                        </label>
-                        <small class="d-block text-muted mt-2" style="margin-left: 30px;">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Si está desactivado, el médico no aparecerá en los formularios ni reportes del sistema
-                        </small>
+                    <div class="ars-active-check">
+                        <input type="checkbox" id="activo" name="activo" value="1"
+                               {% if not medico or medico['activo'] %}checked{% endif %}>
+                        <div class="ars-active-check-copy">
+                            <label for="activo">Médico activo</label>
+                            <small>Desmárcalo para ocultarlo de formularios y reportes.</small>
+                        </div>
                     </div>
                 </div>
 
@@ -238,41 +250,26 @@
 </div>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const facturaCheckbox = document.getElementById('factura');
-    const telefonoInput = document.getElementById('telefono');
-    const telefonoRequired = document.getElementById('telefono-required');
-    const telefonoHelp = document.getElementById('telefono-help');
-    
-    function toggleTelefonoRequired() {
-        if (facturaCheckbox.checked) {
-            telefonoInput.required = true;
-            telefonoRequired.style.display = 'inline';
-            telefonoHelp.textContent = 'Obligatorio cuando el médico está habilitado para facturar';
-            telefonoHelp.style.color = '#dc3545';
+document.addEventListener('DOMContentLoaded', function () {
+    const select = document.getElementById('especialidad');
+    const container = document.getElementById('otraEspecialidadContainer');
+    const customInput = document.getElementById('especialidad_otra');
+
+    if (!select || !container || !customInput) return;
+
+    function toggleCustomSpecialty() {
+        const useCustom = select.value === '__otra__';
+        container.hidden = !useCustom;
+        customInput.required = useCustom;
+
+        if (useCustom) {
+            customInput.focus();
         } else {
-            telefonoInput.required = false;
-            telefonoRequired.style.display = 'none';
-            telefonoHelp.textContent = 'Opcional';
-            telefonoHelp.style.color = '';
+            customInput.value = '';
         }
     }
-    
-    // Aplicar al cargar la página
-    toggleTelefonoRequired();
-    
-    // Aplicar cuando cambia el checkbox
-    facturaCheckbox.addEventListener('change', toggleTelefonoRequired);
-    
-    // Validar antes de enviar
-    document.querySelector('form').addEventListener('submit', function(e) {
-        if (facturaCheckbox.checked && !telefonoInput.value.trim()) {
-            e.preventDefault();
-            alert('El teléfono es obligatorio cuando el médico está habilitado para facturar.');
-            telefonoInput.focus();
-            return false;
-        }
-    });
+
+    select.addEventListener('change', toggleCustomSpecialty);
 });
 </script>
 {% endblock %}

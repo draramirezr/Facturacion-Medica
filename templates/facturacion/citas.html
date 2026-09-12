@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Agenda Médica - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+{% set meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'] %}
+<style>
+    .agenda-hero,.agenda-surface { margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
+    .agenda-hero { padding:1.5rem; background:linear-gradient(135deg,{{ tema.primary }}12,white); }
+    .agenda-toolbar { padding:1rem; }
+    .agenda-view-buttons { display:flex; gap:.35rem; flex-wrap:wrap; }
+    .agenda-view-buttons .btn.active { background:var(--primary-color)!important; color:white!important; }
+    .calendar-head { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.2rem; border-bottom:1px solid var(--ars-shell-border); }
+    .calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(110px,1fr)); min-width:780px; }
+    .calendar-weekday { padding:.65rem; background:#f7f9fc; color:var(--ars-shell-muted); font-size:.7rem; font-weight:800; text-align:center; text-transform:uppercase; }
+    .calendar-day { min-height:125px; padding:.5rem; border-top:1px solid var(--ars-shell-border); border-right:1px solid var(--ars-shell-border); }
+    .calendar-day:nth-child(7n) { border-right:0; }
+    .calendar-day.other-month { background:#fafbfd; color:#b1bac7; }
+    .calendar-day.today { background:{{ tema.primary }}08; }
+    .day-number { display:inline-flex; width:27px; height:27px; align-items:center; justify-content:center; margin-bottom:.35rem; border-radius:50%; font-size:.75rem; font-weight:700; }
+    .today .day-number { background:var(--primary-color); color:white; }
+    .calendar-event { display:block; margin-bottom:.3rem; padding:.35rem .4rem; overflow:hidden; border-left:3px solid var(--primary-color); border-radius:6px; background:{{ tema.primary }}10; color:var(--ars-shell-text); font-size:.67rem; text-decoration:none; text-overflow:ellipsis; white-space:nowrap; }
+    .calendar-event:hover { color:var(--primary-dark); background:{{ tema.primary }}18; text-decoration:none; }
+    .agenda-row { display:grid; grid-template-columns:120px 1.3fr 1fr 1fr auto; gap:1rem; align-items:center; padding:1rem; border-bottom:1px solid var(--ars-shell-border); }
+    .agenda-row:last-child { border-bottom:0; }
+    .agenda-status { display:inline-block; padding:.25rem .55rem; border:1px solid {{ tema.primary }}30; border-radius:7px; background:{{ tema.primary }}12; color:var(--primary-dark); font-size:.68rem; font-weight:700; }
+    @media(max-width:900px){ .agenda-row{grid-template-columns:100px 1fr auto}.agenda-doctor,.agenda-reason{grid-column:2}.calendar-scroll{overflow-x:auto;} }
+</style>
+<div class="container py-4">
+    <header class="agenda-hero d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div><h1 class="h3 mb-1"><i class="fas fa-calendar-days me-2"></i>Agenda Médica</h1><p class="text-muted mb-0">Programa y consulta citas por fecha, paciente o médico.</p></div>
+        <a class="btn btn-primary" href="{{ url_for('facturacion_citas_nueva') }}"><i class="fas fa-plus me-2"></i>Nueva cita</a>
+    </header>
+
+    <section class="agenda-surface agenda-toolbar">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+            <div class="agenda-view-buttons">
+                <a class="btn btn-sm btn-outline-primary {{ 'active' if vista=='mes' }}" href="{{ url_for('facturacion_citas',vista='mes',mes=mes) }}">Calendario</a>
+                <a class="btn btn-sm btn-outline-primary {{ 'active' if vista=='hoy' }}" href="{{ url_for('facturacion_citas',vista='hoy') }}">Hoy</a>
+                <a class="btn btn-sm btn-outline-primary {{ 'active' if vista=='proximas' }}" href="{{ url_for('facturacion_citas',vista='proximas') }}">Próximas</a>
+                <a class="btn btn-sm btn-outline-primary {{ 'active' if vista=='todas' }}" href="{{ url_for('facturacion_citas',vista='todas') }}">Todas</a>
+            </div>
+        </div>
+        <form method="GET">
+            <input type="hidden" name="vista" value="{{ vista }}"><input type="hidden" name="mes" value="{{ mes }}">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-3"><label class="form-label">Buscar</label><input class="form-control" name="buscar" value="{{ filtros.get('buscar','') }}" placeholder="Paciente, médico o motivo"></div>
+                <div class="col-lg-3"><label class="form-label">Paciente</label><select class="form-select" name="paciente_id"><option value="">Todos</option>{% for p in pacientes %}<option value="{{ p['id'] }}" {% if filtros.get('paciente_id')|string==p['id']|string %}selected{% endif %}>{{ p['nombre'] }}</option>{% endfor %}</select></div>
+                <div class="col-lg-2"><label class="form-label">Médico</label><select class="form-select" name="medico_id"><option value="">Todos</option>{% for m in medicos %}<option value="{{ m['id'] }}" {% if filtros.get('medico_id')|string==m['id']|string %}selected{% endif %}>{{ m['nombre'] }}</option>{% endfor %}</select></div>
+                <div class="col-lg-2"><label class="form-label">Estado</label><select class="form-select" name="estado"><option value="">Todos</option>{% for e in ['Programada','Confirmada','Completada','Cancelada','No asistió','Vencida'] %}<option value="{{ e }}" {% if filtros.get('estado')==e %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>
+                <div class="col-lg-2"><button class="btn btn-primary w-100" type="submit"><i class="fas fa-filter me-2"></i>Aplicar</button></div>
+            </div>
+        </form>
+    </section>
+
+    {% if vista == 'mes' %}
+    <section class="agenda-surface">
+        <div class="calendar-head">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_citas',vista='mes',mes=mes_anterior) }}"><i class="fas fa-chevron-left"></i></a>
+            <h2 class="h5 mb-0">{{ meses[mes_numero-1] }} {{ anio }}</h2>
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_citas',vista='mes',mes=mes_siguiente) }}"><i class="fas fa-chevron-right"></i></a>
+        </div>
+        <div class="calendar-scroll">
+            <div class="calendar-grid">{% for dia in ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] %}<div class="calendar-weekday">{{ dia }}</div>{% endfor %}</div>
+            <div class="calendar-grid">
+                {% for semana in semanas %}{% for dia in semana %}
+                <div class="calendar-day {{ 'other-month' if dia.month != mes_numero }} {{ 'today' if dia == hoy }}">
+                    <a class="day-number text-decoration-none" href="{{ url_for('facturacion_citas_nueva',fecha=dia.isoformat()) }}">{{ dia.day }}</a>
+                    {% for cita in citas_por_fecha.get(dia.isoformat(),[]) %}
+                    <a class="calendar-event" href="{{ url_for('facturacion_cita_editar',cita_id=cita['id']) }}" title="{{ cita['hora']|hora_input }} · {{ cita['paciente_nombre'] }} · {{ cita['medico_nombre'] }}"><strong>{{ cita['hora']|hora_input }}</strong> {{ cita['paciente_nombre'] }}</a>
+                    {% endfor %}
+                </div>
+                {% endfor %}{% endfor %}
+            </div>
+        </div>
+    </section>
+    {% else %}
+    <section class="agenda-surface">
+        {% for cita in citas %}
+        <div class="agenda-row">
+            <div><strong>{{ cita['fecha'] }}</strong><br><span class="text-muted">{{ cita['hora']|hora_input }}</span></div>
+            <div><strong>{{ cita['paciente_nombre'] }}</strong><br><small class="text-muted">{{ cita['telefono'] or 'Sin teléfono' }}</small></div>
+            <div class="agenda-doctor"><small class="text-muted d-block">Médico</small>{{ cita['medico_nombre'] }}</div>
+            <div class="agenda-reason"><small class="text-muted d-block">Motivo</small>{{ cita['motivo']|truncate(60) }}</div>
+            <div class="text-end"><span class="agenda-status">{{ cita['estado'] }}</span><br><a class="btn btn-sm btn-outline-primary mt-2" href="{{ url_for('facturacion_cita_editar',cita_id=cita['id']) }}">Abrir</a></div>
+        </div>
+        {% else %}<div class="text-center text-muted py-5"><i class="far fa-calendar-xmark fa-3x mb-3"></i><p>No hay citas que coincidan.</p></div>{% endfor %}
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

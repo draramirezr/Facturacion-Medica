@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Factura #{{ factura['id'] }}{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -406,37 +406,10 @@
         margin: 0 0.3rem;
     }
     
-    /* Color de texto sincronizado con iconos en botones de acción */
-    .btn-accion,
-    .btn-volver,
-    .btn-email {
-        --btn-fg-color: #fff;
-        color: var(--btn-fg-color) !important;
-    }
-    
-    /* Mantener color de texto en estados disabled */
-    .btn-accion:disabled,
-    .btn-accion.disabled,
-    .btn-volver:disabled,
-    .btn-volver.disabled,
-    .btn-email:disabled,
-    .btn-email.disabled {
-        color: var(--btn-fg-color) !important;
-        -webkit-text-fill-color: var(--btn-fg-color) !important;
-        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
-        opacity: 0.45;
-        pointer-events: none;
-    }
-    
-    .btn-accion i,
-    .btn-volver i,
-    .btn-email i {
-        color: inherit !important;
-    }
-    
     .btn-accion {
         background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
         border: none;
+        color: white !important;
         padding: 0.8rem 2rem;
         border-radius: 12px;
         font-weight: 600;
@@ -454,9 +427,14 @@
         box-shadow: 0 8px 25px {{ tema.primary }}60;
     }
     
+    .btn-accion i {
+        color: white !important;
+    }
+    
     .btn-volver {
         background: var(--primary-color) !important;
         border: none;
+        color: white !important;
         padding: 0.8rem 2rem;
         border-radius: 12px;
         font-weight: 600;
@@ -473,9 +451,14 @@
         box-shadow: 0 8px 25px rgba(172, 172, 173, 0.4);
     }
     
+    .btn-volver i {
+        color: white !important;
+    }
+    
     .btn-email {
         background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
         border: none;
+        color: white !important;
         padding: 0.8rem 2rem;
         border-radius: 12px;
         font-weight: 600;
@@ -491,6 +474,10 @@
         color: white !important;
         transform: translateY(-2px);
         box-shadow: 0 8px 25px {{ tema.primary }}60;
+    }
+    
+    .btn-email i {
+        color: white !important;
     }
     
     .badge-facturada {
@@ -519,26 +506,12 @@
     }
 </style>
 
-{% macro fecha_ddmmyyyy(fecha) -%}
-    {%- set f = (fecha|string) -%}
-    {%- if '-' in f -%}
-        {%- set p = f.split('-') -%}
-        {%- if p|length == 3 -%}
-            {{ p[2] }}/{{ p[1] }}/{{ p[0] }}
-        {%- else -%}
-            {{ fecha }}
-        {%- endif -%}
-    {%- else -%}
-        {{ fecha }}
-    {%- endif -%}
-{%- endmacro %}
-
 <div class="container-fluid mt-4">
     <!-- Badge de Estado -->
     <div class="no-print text-center mb-3">
         <span class="badge-facturada">
             <i class="fas fa-check-circle me-1"></i>
-            FACTURA GENERADA
+            {% if factura_ecf %}{{ factura_ecf['estado']|replace('_', ' ') }}{% else %}FACTURA GENERADA{% endif %}
         </span>
     </div>
 
@@ -548,6 +521,7 @@
             <i class="fas fa-arrow-left me-2"></i>
             Volver al Histórico
         </a>
+        {% if not factura_ecf %}
         <a href="{{ url_for('facturacion_descargar_pdf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
             <i class="fas fa-print me-2"></i>
             Imprimir
@@ -560,7 +534,80 @@
             <i class="fas fa-envelope me-2"></i>
             Enviar por Email
         </button>
+        {% endif %}
+        {% if factura_ecf and factura_ecf.get('xml_generado') %}
+        <a href="{{ url_for('facturacion_ver_xml_ecf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
+            <i class="fas fa-code me-2"></i>
+            {{ 'Ver XML firmado' if factura_ecf.get('xml_firmado') else 'Ver XML' }}
+        </a>
+        {% endif %}
+        {% if factura_ecf and factura_ecf['estado'] == 'ACEPTADO' %}
+        <a href="{{ url_for('facturacion_representacion_impresa_ecf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
+            <i class="fas fa-file-pdf me-2"></i>
+            Representación impresa
+        </a>
+        {% endif %}
+        {% if factura_ecf and factura_ecf['estado'] in ['ENVIADO', 'ERROR_ENVIO', 'ACEPTADO', 'RECHAZADO'] %}
+        <form method="POST" action="{{ url_for('facturacion_consultar_estado_ecf', factura_id=factura['id']) }}" style="display: inline;">
+            <button type="submit" class="btn-accion no-print">
+                <i class="fas fa-sync-alt me-2"></i>
+                Consultar estado DGII
+            </button>
+        </form>
+        {% endif %}
     </div>
+
+    {% if factura_ecf %}
+    <div class="no-print alert {{ 'alert-success' if factura_ecf['estado'] == 'ACEPTADO' else ('alert-danger' if factura_ecf['estado'] in ['RECHAZADO', 'ERROR_ENVIO', 'ERROR_FIRMA', 'ERROR_VALIDACION'] else 'alert-info') }}" style="max-width: 900px; margin: 0 auto 1.5rem auto;">
+        <strong>Estado e-CF:</strong> {{ factura_ecf['estado']|replace('_', ' ') }}
+        <br>
+        <span>
+            {% if factura_ecf['estado'] == 'ACEPTADO' %}
+                DGII confirmó que el comprobante {{ factura_ecf['e_ncf'] }}
+                tiene validez fiscal.
+                {% if factura_ecf.get('track_id') %}TrackID: <strong>{{ factura_ecf.get('track_id') }}</strong>.{% endif %}
+                {% if factura_ecf.get('mensaje_respuesta') %}<br>{{ factura_ecf.get('mensaje_respuesta') }}{% endif %}
+                <div class="mt-3">
+                    <a href="{{ url_for('facturacion_representacion_impresa_ecf', factura_id=factura['id']) }}" target="_blank" aria-label="Abrir representación impresa del e-CF">
+                        <img src="{{ url_for('facturacion_qr_ecf', factura_id=factura['id']) }}"
+                             alt="QR de validación DGII para {{ factura_ecf['e_ncf'] }}"
+                             width="120" height="120"
+                             style="display: block; background: #fff; padding: 6px; border: 1px solid #b8c4cc;">
+                    </a>
+                    <small>Escanee para validar este e-CF en DGII.</small>
+                </div>
+            {% elif factura_ecf['estado'] == 'RECHAZADO' %}
+                DGII rechazó el comprobante {{ factura_ecf['e_ncf'] }}.
+                {% if factura_ecf.get('codigo_respuesta') %}Código: <strong>{{ factura_ecf.get('codigo_respuesta') }}</strong>.{% endif %}
+                {% if factura_ecf.get('mensaje_respuesta') %}<br>{{ factura_ecf.get('mensaje_respuesta') }}{% endif %}
+            {% elif factura_ecf['estado'] == 'ENVIADO' %}
+                DGII recibió el XML E31 para {{ factura_ecf['e_ncf'] }}.
+                TrackID: <strong>{{ factura_ecf.get('track_id') }}</strong>.
+                Esto todavía no significa que el documento fue aceptado.
+            {% elif factura_ecf['estado'] == 'ERROR_ENVIO' %}
+                No se confirmó el envío a DGII:
+                {{ factura_ecf.get('ultimo_error', 'revise la trazabilidad del documento') }}.
+                No se generará otro e-NCF.
+            {% elif factura_ecf['estado'] == 'FIRMADO' %}
+                El XML E31 para {{ factura_ecf['e_ncf'] }} fue validado y firmado
+                digitalmente. Todavía no ha sido enviado a la DGII.
+            {% elif factura_ecf['estado'] == 'ERROR_FIRMA' %}
+                No fue posible firmar el XML: {{ factura_ecf.get('ultimo_error', 'revise el certificado digital') }}.
+            {% elif factura_ecf['estado'] == 'XML_VALIDADO' %}
+                El XML E31 para {{ factura_ecf['e_ncf'] }} fue generado y validado
+                contra la estructura oficial. Todavía no ha sido firmado ni enviado a la DGII.
+            {% elif factura_ecf['estado'] == 'XML_GENERADO' %}
+                El XML E31 para {{ factura_ecf['e_ncf'] }} fue generado localmente.
+                Todavía no ha sido validado contra el XSD, firmado ni enviado a la DGII.
+            {% elif factura_ecf['estado'] == 'ERROR_VALIDACION' %}
+                No fue posible construir el XML: {{ factura_ecf.get('ultimo_error', 'revise los datos fiscales') }}.
+            {% else %}
+                El e-NCF {{ factura_ecf['e_ncf'] }} fue reservado localmente.
+                Todavía no ha sido firmado ni enviado a la DGII.
+            {% endif %}
+        </span>
+    </div>
+    {% endif %}
 
     <!-- Contenedor de la Factura -->
     <div class="factura-container">
@@ -568,7 +615,9 @@
         <div class="factura-header">
             <div style="width: 120px;"></div>
             <div class="factura-title-center">
-                <h1 class="factura-title">FACTURA</h1>
+                <h1 class="factura-title">
+                    {{ 'FACTURA ELECTRÓNICA' if factura_ecf else 'FACTURA' }}
+                </h1>
             </div>
             <div style="width: 120px;"></div>
         </div>
@@ -577,18 +626,18 @@
         <div class="factura-info">
             <div class="info-box">
                 <h6 style="white-space: nowrap;">Información de Factura</h6>
-                <p><strong>Fecha:</strong> {{ fecha_ddmmyyyy(fecha_factura) }}</p>
+                <p><strong>Fecha:</strong> {{ fecha_factura }}</p>
                 <p><strong>Cliente:</strong> {{ ars.get('nombre') or ars.get('nombre_ars', 'N/A') }}</p>
                 {% if ars['rnc'] %}
                 <p><strong>RNC:</strong> {{ ars['rnc'] }}</p>
                 {% endif %}
             </div>
             <div class="info-box">
-                <h6>NCF</h6>
+                <h6>{{ 'e-NCF' if factura_ecf else 'NCF' }}</h6>
                 <p class="highlight">{{ ncf_completo }}</p>
                 <p>{{ ncf_tipo_descripcion }}</p>
                 {% if ncf['fecha_fin'] %}
-                <p><strong>Válido hasta:</strong> {{ fecha_ddmmyyyy(ncf['fecha_fin']) }}</p>
+                <p><strong>Válido hasta:</strong> {{ ncf['fecha_fin'] }}</p>
                 {% endif %}
             </div>
             <div class="info-box">
@@ -626,7 +675,7 @@
                     <td class="text-center">{{ loop.index }}</td>
                     <td><strong>{{ paciente['nombre_paciente'] }}</strong></td>
                     <td>{{ paciente['nss'] }}</td>
-                    <td>{{ fecha_ddmmyyyy(paciente['fecha_servicio']) }}</td>
+                    <td>{{ paciente['fecha_servicio'] }}</td>
                     <td><code style="background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px;">{{ paciente['autorizacion'] }}</code></td>
                     <td>{{ paciente['descripcion_servicio'] }}</td>
                     <td class="text-right"><strong>{{ monto_paciente|formato_moneda }}</strong></td>
@@ -712,6 +761,7 @@
             <i class="fas fa-arrow-left me-2"></i>
             Volver al Histórico
         </a>
+        {% if not factura_ecf %}
         <a href="{{ url_for('facturacion_descargar_pdf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
             <i class="fas fa-print me-2"></i>
             Imprimir
@@ -724,6 +774,12 @@
             <i class="fas fa-envelope me-2"></i>
             Enviar por Email
         </button>
+        {% elif factura_ecf['estado'] == 'ACEPTADO' %}
+        <a href="{{ url_for('facturacion_representacion_impresa_ecf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
+            <i class="fas fa-print me-2"></i>
+            Imprimir e-CF
+        </a>
+        {% endif %}
     </div>
 </div>
 

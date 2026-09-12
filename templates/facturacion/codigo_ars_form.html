@@ -84,32 +84,33 @@
                 <i class="fas fa-barcode me-2"></i>
                 {{ 'Editar Código ARS' if codigo else 'Nuevo Código ARS' }}
             </h1>
-            <p class="text-muted">Asigna un código ARS a un médico específico</p>
+            <p class="text-muted">Asigna un código ARS a un {{ relacion.etiqueta|lower }} específico</p>
         </div>
 
         <div class="alert-info-custom">
             <i class="fas fa-info-circle me-2" style="color: var(--primary-color);"></i>
-            <strong>Nota:</strong> Cada médico debe tener un código único por cada ARS con la que trabaje.
+            <strong>Nota:</strong> Cada {{ relacion.etiqueta|lower }} debe tener un código único por cada ARS con la que trabaje.
         </div>
 
         <div class="form-card">
             <form method="POST">
                 <div class="mb-4">
-                    <label for="medico_id" class="form-label">
-                        <i class="fas fa-user-md me-2 text-primary"></i>Médico *
+                    <label for="entidad_id" class="form-label">
+                        <i class="fas {{ 'fa-hospital' if relacion.es_centro_salud else 'fa-user-md' }} me-2 text-primary"></i>{{ relacion.etiqueta }} *
                     </label>
-                    <select class="form-select" id="medico_id" name="medico_id" required>
-                        <option value="">-- Seleccione un médico --</option>
-                        {% for medico in medicos %}
-                        <option value="{{ medico['id'] }}" {% if codigo and codigo['medico_id'] == medico['id'] %}selected{% endif %}>
-                            {{ medico['nombre'] }} ({{ medico['especialidad'] }})
+                    <select class="form-select" id="entidad_id" name="entidad_id" required>
+                        <option value="">-- Seleccione un {{ relacion.etiqueta|lower }} --</option>
+                        {% for entidad in relacion.entidades %}
+                        <option value="{{ entidad['id'] }}" {% if codigo and codigo[relacion.campo] == entidad['id'] %}selected{% endif %}>
+                            {{ entidad['nombre'] }}{% if not relacion.es_centro_salud and entidad['especialidad'] %} ({{ entidad['especialidad'] }}){% endif %}
                         </option>
                         {% endfor %}
                     </select>
-                    {% if not medicos %}
+                    {% if not relacion.entidades %}
                     <small class="text-danger">
                         <i class="fas fa-exclamation-circle me-1"></i>
-                        No hay médicos disponibles. <a href="{{ url_for('facturacion_medicos_nuevo') }}">Crear uno aquí</a>
+                        No hay {{ relacion.etiqueta_plural }} disponibles.
+                        <a href="{{ url_for('facturacion_centros_medicos_nuevo') if relacion.es_centro_salud else url_for('facturacion_medicos_nuevo') }}">Crear uno aquí</a>
                     </small>
                     {% endif %}
                 </div>
@@ -149,27 +150,19 @@
                            style="font-family: 'Courier New', monospace; font-size: 1.1rem; font-weight: bold;">
                     <small class="text-muted">
                         <i class="fas fa-lightbulb me-1"></i>
-                        El código único que identifica al médico en este ARS
+                        El código único que identifica al {{ relacion.etiqueta|lower }} en este ARS
                     </small>
                 </div>
 
                 <!-- Activar/Desactivar Código -->
                 <div class="mb-4">
-                    <div class="form-check" style="padding: 1rem; background: {{ tema.primary }}10; border-radius: 10px; border-left: 4px solid {{ tema.primary }};">
-                        <input class="form-check-input" 
-                               type="checkbox" 
-                               id="activo" 
-                               name="activo" 
-                               value="1"
-                               {% if not codigo or codigo['activo'] %}checked{% endif %}
-                               style="width: 20px; height: 20px; margin-top: 0.25rem; cursor: pointer; accent-color: {{ tema.primary }};">
-                        <label class="form-check-label" for="activo" style="margin-left: 10px; cursor: pointer; font-weight: 600; color: {{ tema.primary_dark }};">
-                            <i class="fas fa-toggle-on me-2"></i>Código Activo
-                        </label>
-                        <small class="d-block text-muted mt-2" style="margin-left: 30px;">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Si está desactivado, este código no aparecerá disponible en el sistema
-                        </small>
+                    <div class="ars-active-check">
+                        <input type="checkbox" id="activo" name="activo" value="1"
+                               {% if not codigo or codigo['activo'] %}checked{% endif %}>
+                        <div class="ars-active-check-copy">
+                            <label for="activo">Código activo</label>
+                            <small>Desmárcalo para ocultarlo de las opciones del sistema.</small>
+                        </div>
                     </div>
                 </div>
 
@@ -177,7 +170,7 @@
                     <a href="{{ url_for('facturacion_codigo_ars') }}" class="btn btn-cancelar">
                         <i class="fas fa-times me-2"></i>Cancelar
                     </a>
-                    <button type="submit" class="btn btn-guardar" {% if not medicos or not ars_list %}disabled{% endif %}>
+                    <button type="submit" class="btn btn-guardar" {% if not relacion.entidades or not ars_list %}disabled{% endif %}>
                         <i class="fas fa-save me-2"></i>{{ 'Actualizar' if codigo else 'Guardar' }}
                     </button>
                 </div>

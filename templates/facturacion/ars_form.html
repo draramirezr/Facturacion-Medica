@@ -105,32 +105,24 @@
                            name="rnc" 
                            value="{{ ars['rnc'] if ars else '' }}" 
                            required 
-                           placeholder="Ej: 401516454"
-                           maxlength="9" minlength="9"
+                           placeholder="Ej: 124005604"
+                           minlength="9"
+                           maxlength="9"
                            pattern="[0-9]{9}"
+                           data-digits-only="9"
                            inputmode="numeric"
-                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,9)"
-                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
-                           title="Solo se permiten números (exactamente 9 dígitos)">
+                           title="El RNC debe contener exactamente 9 números">
                 </div>
 
                 <!-- Activar/Desactivar ARS -->
                 <div class="mb-4">
-                    <div class="form-check" style="padding: 1rem; background: {{ tema.primary }}10; border-radius: 10px; border-left: 4px solid {{ tema.primary }};">
-                        <input class="form-check-input" 
-                               type="checkbox" 
-                               id="activo" 
-                               name="activo" 
-                               value="1"
-                               {% if not ars or ars['activo'] %}checked{% endif %}
-                               style="width: 20px; height: 20px; margin-top: 0.25rem; cursor: pointer; accent-color: {{ tema.primary }};">
-                        <label class="form-check-label" for="activo" style="margin-left: 10px; cursor: pointer; font-weight: 600; color: {{ tema.primary_dark }};">
-                            <i class="fas fa-toggle-on me-2"></i>ARS Activo
-                        </label>
-                        <small class="d-block text-muted mt-2" style="margin-left: 30px;">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Si está desactivado, el ARS no aparecerá en los formularios ni reportes del sistema
-                        </small>
+                    <div class="ars-active-check">
+                        <input type="checkbox" id="activo" name="activo" value="1"
+                               {% if not ars or ars['activo'] %}checked{% endif %}>
+                        <div class="ars-active-check-copy">
+                            <label for="activo">ARS activa</label>
+                            <small>Desmárcala para ocultarla de formularios y reportes.</small>
+                        </div>
                     </div>
                 </div>
 

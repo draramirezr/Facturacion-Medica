@@ -1,0 +1,133 @@
+/* Apariencia común para registro y recuperación de acceso. */
+body {
+    min-height: 100vh !important;
+    background: #f7f9fc !important;
+    color: #172033 !important;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+}
+
+body::before,
+body::after {
+    display: none !important;
+    animation: none !important;
+}
+
+.register-container,
+.recovery-container,
+.reset-container,
+.cambiar-password-card {
+    overflow: hidden !important;
+    border: 1px solid #e8edf3 !important;
+    border-radius: 18px !important;
+    background: white !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    animation: none !important;
+}
+
+.cambiar-password-container {
+    min-height: calc(100vh - 120px) !important;
+    background: #f7f9fc !important;
+}
+
+.email-display,
+.password-requirements {
+    border: 1px solid #e8edf3 !important;
+    border-radius: 10px !important;
+    background: #f8fbfc !important;
+    color: #526071 !important;
+}
+
+.password-toggle-btn {
+    color: #718096 !important;
+}
+
+.register-header,
+.recovery-header,
+.reset-header,
+.cambiar-password-header {
+    padding: 28px 32px !important;
+    border-bottom: 1px solid #e8edf3 !important;
+    background: linear-gradient(135deg, #ecfeff, #ffffff) !important;
+    color: #172033 !important;
+}
+
+.register-header h1,
+.recovery-header h1,
+.reset-header h1,
+.cambiar-password-header h1 {
+    color: #172033 !important;
+    text-shadow: none !important;
+}
+
+.register-header p,
+.recovery-header p,
+.reset-header p,
+.cambiar-password-header p {
+    color: #718096 !important;
+}
+
+.recovery-icon,
+.reset-icon {
+    width: 54px !important;
+    height: 54px !important;
+    border: 1px solid rgba(6, 182, 212, .25) !important;
+    border-radius: 13px !important;
+    background: rgba(6, 182, 212, .1) !important;
+    box-shadow: none !important;
+    animation: none !important;
+}
+
+.register-body,
+.recovery-body,
+.reset-body,
+.cambiar-password-body {
+    padding: 30px 32px !important;
+}
+
+.form-group input,
+.form-group select,
+.form-control {
+    border: 1px solid #dce3eb !important;
+    border-radius: 10px !important;
+    background: white !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-control:focus {
+    border-color: #06b6d4 !important;
+    box-shadow: none !important;
+    outline: none !important;
+}
+
+button[type="submit"],
+.btn-submit,
+.btn-recovery,
+.btn-reset,
+.btn-cambiar {
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: #06b6d4 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+button[type="submit"]:hover,
+.btn-submit:hover,
+.btn-recovery:hover,
+.btn-reset:hover,
+.btn-cambiar:hover {
+    background: #0891b2 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+.flash,
+.alert {
+    border-radius: 9px !important;
+    box-shadow: none !important;
+    animation: none !important;
+}

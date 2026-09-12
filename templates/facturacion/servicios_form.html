@@ -138,21 +138,13 @@
 
                 <!-- Activar/Desactivar Servicio -->
                 <div class="mb-4">
-                    <div class="form-check" style="padding: 1rem; background: {{ tema.primary }}10; border-radius: 10px; border-left: 4px solid {{ tema.primary }};">
-                        <input class="form-check-input" 
-                               type="checkbox" 
-                               id="activo" 
-                               name="activo" 
-                               value="1"
-                               {% if not servicio or servicio['activo'] %}checked{% endif %}
-                               style="width: 20px; height: 20px; margin-top: 0.25rem; cursor: pointer; accent-color: {{ tema.primary }};">
-                        <label class="form-check-label" for="activo" style="margin-left: 10px; cursor: pointer; font-weight: 600; color: {{ tema.primary_dark }};">
-                            <i class="fas fa-toggle-on me-2"></i>Servicio Activo
-                        </label>
-                        <small class="d-block text-muted mt-2" style="margin-left: 30px;">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Si está desactivado, el servicio no aparecerá en los formularios ni reportes del sistema
-                        </small>
+                    <div class="ars-active-check">
+                        <input type="checkbox" id="activo" name="activo" value="1"
+                               {% if not servicio or servicio['activo'] %}checked{% endif %}>
+                        <div class="ars-active-check-copy">
+                            <label for="activo">Servicio activo</label>
+                            <small>Desmárcalo para ocultarlo de formularios y reportes.</small>
+                        </div>
                     </div>
                 </div>
 

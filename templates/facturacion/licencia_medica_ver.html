@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+
+{% block title %}Licencia {{ licencia['codigo'] }} - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .license-paper { max-width: 980px; margin: 1.5rem auto; background: white; border: 1px solid {{ tema.primary }}25; border-radius: 15px; padding: 2rem; position: relative; }
+    .license-title { text-align: center; border-bottom: 2px solid var(--primary-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+    .license-title h1 { color: var(--primary-dark); font-size: 1.7rem; margin-bottom: .2rem; }
+    .license-code { font-weight: 800; letter-spacing: .05em; }
+    .license-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+    .license-item { border-bottom: 1px solid {{ tema.primary }}20; padding-bottom: .5rem; }
+    .license-item span { display: block; color: var(--ars-shell-muted); font-size: .76rem; }
+    .license-section { margin-top: 1.5rem; }
+    .license-section h2 { color: var(--primary-dark); font-size: 1.05rem; border-bottom: 1px solid {{ tema.primary }}35; padding-bottom: .45rem; }
+    .license-status { display:inline-block; padding:.35rem .8rem; border:1px solid {{ tema.primary }}45; background:{{ tema.primary }}15; border-radius:8px; font-weight:700; }
+    .signature { margin-top: 4rem; text-align: center; }
+    .signature-line { width: 290px; border-top: 1px solid #222; margin: 0 auto .4rem; }
+    .annulled { position:absolute; inset:42% 0 auto; transform:rotate(-20deg); text-align:center; font-size:5rem; font-weight:900; color:rgba(120,120,120,.15); pointer-events:none; }
+    @media (max-width: 768px) { .license-grid { grid-template-columns: 1fr; } .license-paper { margin: .5rem; padding: 1.2rem; } }
+    @media print {
+        @page { size: Letter portrait; margin: 7mm; }
+        .ars-shell-sidebar, .ars-shell-topbar, .ars-mobile-topbar, .no-print, footer { display:none !important; }
+        .ars-shell-main, .ars-shell-content { margin:0 !important; padding:0 !important; }
+        html, body { width: 100%; min-height: 0 !important; background:white !important; }
+        .license-paper {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+            font-size: 9pt;
+            line-height: 1.18;
+            zoom: var(--license-print-zoom, .82);
+            break-inside: avoid;
+            page-break-inside: avoid;
+        }
+        .license-title { margin-bottom: 8px; padding-bottom: 6px; }
+        .license-title h1 { margin-bottom: 1px; font-size: 17pt; }
+        .license-code { font-size: 9pt; }
+        .license-grid { gap: 5px 10px; }
+        .license-item { padding-bottom: 3px; }
+        .license-item span { font-size: 7pt; }
+        .license-section { margin-top: 9px; break-inside: avoid; page-break-inside: avoid; }
+        .license-section h2 { margin-bottom: 5px; padding-bottom: 3px; font-size: 10pt; }
+        .license-section p { margin-bottom: 3px; }
+        .license-section .mt-3 { margin-top: 5px !important; }
+        .license-status { padding: 2px 5px; }
+        .signature { margin-top: 25px; }
+        .signature-line { width: 240px; margin-bottom: 3px; }
+        .annulled { font-size: 42pt; }
+    }
+</style>
+
+<div class="container py-3 no-print">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <a class="btn btn-outline-primary" href="{{ url_for('facturacion_licencias_medicas') }}"><i class="fas fa-arrow-left me-2"></i>Licencias</a>
+        <div class="d-flex gap-2">
+            {% if licencia['estado'] == 'Borrador' %}<a class="btn btn-outline-primary" href="{{ url_for('facturacion_licencia_medica_editar', licencia_id=licencia['id']) }}"><i class="fas fa-pen me-2"></i>Editar</a>{% endif %}
+            <a class="btn btn-primary" target="_blank" href="{{ url_for('facturacion_licencia_medica_imprimir', licencia_id=licencia['id']) }}"><i class="fas fa-print me-2"></i>Imprimir</a>
+            {% if licencia['estado'] != 'Anulada' %}<button class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#cancelModal"><i class="fas fa-ban me-2"></i>Anular</button>{% endif %}
+        </div>
+    </div>
+</div>
+
+<article class="license-paper">
+    {% if licencia['estado'] == 'Anulada' %}<div class="annulled">ANULADA</div>{% endif %}
+    <header class="license-title">
+        <h1>Licencia Médica</h1>
+        <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ARSFlow' }}</div>
+        <div class="license-code">{{ licencia['codigo'] }}</div>
+    </header>
+
+    <div class="license-grid">
+        <div class="license-item"><span>Paciente</span><strong>{{ licencia['paciente_nombre'] }}</strong></div>
+        <div class="license-item"><span>Identificación</span>{{ licencia['cedula'] or 'No registrada' }}</div>
+        <div class="license-item"><span>Fecha de nacimiento / edad</span>{{ licencia['fecha_nacimiento'] or 'No registrada' }} · {{ licencia['edad'] if licencia['edad'] is not none else '—' }} años</div>
+        <div class="license-item"><span>Médico responsable</span><strong>{{ licencia['medico_nombre'] }}</strong></div>
+        <div class="license-item"><span>Especialidad</span>{{ licencia['especialidad'] }}</div>
+        <div class="license-item"><span>Exequátur</span>{{ licencia['exequatur'] or 'No registrado' }}</div>
+    </div>
+
+    <section class="license-section">
+        <h2>Información médica</h2>
+        <div class="license-grid">
+            <div class="license-item"><span>Tipo de licencia</span>{{ licencia['tipo_licencia'] }}</div>
+            <div class="license-item"><span>Diagnóstico</span>{{ licencia['diagnostico'] }}</div>
+            <div class="license-item"><span>Código CIE-10</span>{{ licencia['codigo_cie10'] or 'No indicado' }}</div>
+        </div>
+        <div class="mt-3"><strong>Motivo / condición médica</strong><p class="mb-0">{{ licencia['motivo_condicion'] }}</p></div>
+        {% if licencia['observaciones'] %}<div class="mt-3"><strong>Observaciones</strong><p class="mb-0">{{ licencia['observaciones'] }}</p></div>{% endif %}
+    </section>
+
+    <section class="license-section">
+        <h2>Período de la licencia</h2>
+        <div class="license-grid">
+            <div class="license-item"><span>Fecha de emisión</span>{{ licencia['fecha_emision'] }}</div>
+            <div class="license-item"><span>Desde / hasta</span>{{ licencia['fecha_inicio'] }} — {{ licencia['fecha_termino'] }}</div>
+            <div class="license-item"><span>Cantidad de días</span><strong>{{ licencia['cantidad_dias'] }}</strong></div>
+            <div class="license-item"><span>Estado</span><span class="license-status">{{ licencia['estado'] }}</span></div>
+            {% if licencia['consulta_id'] %}<div class="license-item no-print"><span>Consulta relacionada</span><a href="{{ url_for('facturacion_historia_clinica_ver', consulta_id=licencia['consulta_id']) }}">{{ licencia['consulta_fecha'] }} · Abrir consulta</a></div>{% endif %}
+        </div>
+    </section>
+
+    {% if licencia['estado'] == 'Anulada' %}
+    <section class="license-section">
+        <h2>Datos de anulación</h2>
+        <p><strong>Fecha:</strong> {{ licencia['fecha_anulacion'] }} · <strong>Usuario:</strong> {{ licencia['anulado_por_nombre'] or 'No disponible' }}</p>
+        <p class="mb-0"><strong>Motivo:</strong> {{ licencia['motivo_anulacion'] }}</p>
+    </section>
+    {% endif %}
+
+    <div class="signature">
+        <div class="signature-line"></div>
+        <strong>{{ licencia['medico_nombre'] }}</strong><br>
+        <span>{{ licencia['especialidad'] }} · Exequátur {{ licencia['exequatur'] or '—' }}</span>
+    </div>
+
+    {% if auditoria and not imprimir %}
+    <section class="license-section no-print">
+        <h2>Historial y trazabilidad</h2>
+        {% for evento in auditoria %}<div class="py-2 border-bottom"><strong>{{ evento['accion'] }}</strong> · {{ evento['created_at'] }} · {{ evento['usuario_nombre'] or 'Sistema' }}{% if evento['motivo'] %}<br><small>{{ evento['motivo'] }}</small>{% endif %}</div>{% endfor %}
+    </section>
+    {% endif %}
+</article>
+
+{% if licencia['estado'] != 'Anulada' %}
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><form class="modal-content" method="POST" action="{{ url_for('facturacion_licencia_medica_anular', licencia_id=licencia['id']) }}"><div class="modal-header"><h2 class="modal-title fs-5">Anular licencia médica</h2><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p>La licencia permanecerá en el historial como anulada.</p><label class="form-label">Motivo de anulación *</label><textarea class="form-control" name="motivo_anulacion" rows="4" required maxlength="2000"></textarea></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Confirmar anulación</button></div></form></div></div>
+{% endif %}
+{% if imprimir %}
+<script>
+function prepararLicenciaParaUnaPagina() {
+    const documento = document.querySelector('.license-paper');
+    if (!documento) return;
+    const altoObjetivo = 900;
+    const escala = Math.max(.58, Math.min(.88, altoObjetivo / documento.scrollHeight));
+    documento.style.setProperty('--license-print-zoom', escala.toFixed(3));
+}
+window.addEventListener('beforeprint', prepararLicenciaParaUnaPagina);
+window.addEventListener('load', () => {
+    prepararLicenciaParaUnaPagina();
+    setTimeout(() => window.print(), 150);
+});
+</script>
+{% endif %}
+{% endblock %}

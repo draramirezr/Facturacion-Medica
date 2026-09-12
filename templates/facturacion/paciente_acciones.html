@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Paciente creado - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .next-step-shell { max-width: 920px; margin: 2rem auto; }
+    .next-step-header { padding: 2rem; border-radius: 18px; background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); text-align: center; }
+    .next-step-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1.25rem; }
+    .next-step-card { display: flex; min-height: 210px; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; border: 1px solid {{ tema.primary }}30; border-radius: 15px; background: white; color: var(--ars-shell-text); text-align: center; text-decoration: none; transition: .2s ease; }
+    .next-step-card:hover { border-color: var(--primary-color); color: var(--primary-dark); transform: translateY(-3px); box-shadow: 0 10px 25px {{ tema.primary }}20; }
+    .next-step-card i { margin-bottom: 1rem; color: var(--primary-color); font-size: 2.2rem; }
+    .next-step-card strong { font-size: 1rem; }
+    .next-step-card small { margin-top: .55rem; color: var(--ars-shell-muted); }
+    .next-step-card.next-step-wide { grid-column: 1 / -1; min-height: 150px; }
+    @media (max-width: 767px) { .next-step-grid { grid-template-columns: 1fr; } }
+</style>
+
+<div class="container py-4">
+    <div class="next-step-shell">
+        <div class="next-step-header">
+            <i class="fas fa-user-injured fa-3x mb-3" style="color: var(--primary-color);"></i>
+            <h1>{{ paciente['nombre'] }}</h1>
+            <p class="mb-0">{{ paciente['cedula'] or 'Sin cédula propia registrada' }}</p>
+        </div>
+
+        {% if requiere_cedula %}
+        <div class="mt-4 p-4 bg-white rounded-4 border">
+            <h2 class="h5"><i class="fas fa-id-card me-2"></i>Actualización requerida</h2>
+            <p class="text-muted">
+                El paciente ya cumplió 18 años. Antes de registrar una nueva atención,
+                debe ingresar la cédula propia del paciente, no la del pariente o tutor.
+            </p>
+            <form method="POST" action="{{ url_for('facturacion_paciente_actualizar_cedula', paciente_id=paciente['id']) }}">
+                <label class="form-label" for="cedula">Cédula del paciente *</label>
+                <div class="d-flex gap-2">
+                    <input class="form-control" type="text" id="cedula" name="cedula"
+                           minlength="11" maxlength="11" pattern="[0-9]{11}"
+                           data-digits-only="11" inputmode="numeric"
+                           placeholder="00112345678" required>
+                    <button class="btn btn-primary px-4" type="submit">Actualizar y continuar</button>
+                </div>
+            </form>
+        </div>
+        {% else %}
+        <h2 class="h5 text-center mt-4">¿Qué desea hacer ahora?</h2>
+        <div class="next-step-grid">
+            {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+            <a class="next-step-card next-step-wide" href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=paciente['id']) }}">
+                <i class="fas fa-address-card"></i>
+                <strong>Ver vista 360 del paciente</strong>
+                <small>Datos básicos, historias clínicas, emergencias, consultas, licencias y facturación.</small>
+            </a>
+            <a class="next-step-card" href="{{ url_for('facturacion_historia_clinica_nueva', paciente_id=paciente['id']) }}">
+                <i class="fas fa-notes-medical"></i>
+                <strong>Registrar historia clínica</strong>
+                <small>Crear su primera consulta dentro del expediente clínico.</small>
+            </a>
+            <a class="next-step-card" href="{{ url_for('facturacion_historias_emergencia_nueva', paciente_id=paciente['id']) }}">
+                <i class="fas fa-truck-medical"></i>
+                <strong>Historia de emergencia</strong>
+                <small>Registrar una atención clínica de emergencia.</small>
+            </a>
+            <a class="next-step-card" href="{{ url_for('facturacion_hojas_enfermeria_nueva', paciente_id=paciente['id']) }}">
+                <i class="fas fa-clipboard-list"></i>
+                <strong>Hoja de enfermería</strong>
+                <small>Registrar medicamentos y materiales suministrados.</small>
+            </a>
+            {% endif %}
+            <a class="next-step-card" href="{{ url_for('facturacion_facturas_nueva', paciente_id=paciente['id']) }}">
+                <i class="fas fa-stethoscope"></i>
+                <strong>Registrar consulta</strong>
+                <small>Agregar servicios para facturación.</small>
+            </a>
+            {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+            <a class="next-step-card" href="{{ url_for('facturacion_licencias_medicas_nueva', paciente_id=paciente['id']) }}">
+                <i class="fas fa-file-medical"></i>
+                <strong>Registrar licencia médica</strong>
+                <small>Crear una licencia, asociarla a una consulta e imprimirla.</small>
+            </a>
+            {% endif %}
+            <a class="next-step-card" href="{{ url_for('facturacion_pacientes_editar', paciente_id=paciente['id']) }}">
+                <i class="fas fa-user-pen"></i>
+                <strong>Actualizar datos</strong>
+                <small>Modificar los datos básicos y de contacto del paciente.</small>
+            </a>
+        </div>
+
+        <div class="text-center mt-4">
+            <a class="btn btn-outline-primary" href="{{ url_for('facturacion_pacientes') }}">Ahora no, volver a pacientes</a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Hoja de Enfermería - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .nursing-form-shell { max-width:1200px; margin:0 auto; }
+    .nursing-header,.nursing-card { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
+    .nursing-header { background:linear-gradient(135deg,{{ tema.primary }}12,white); }
+    .nursing-card h2 { padding-bottom:.65rem; margin-bottom:1rem; border-bottom:1px solid var(--ars-shell-border); color:var(--primary-dark); font-size:1rem; }
+    .required::after { content:" *"; color:var(--primary-color); }
+    .supply-table { min-width:1000px; }
+    .supply-table th { background:var(--primary-dark)!important; color:white!important; font-size:.75rem; }
+    .supply-table td { padding:.4rem; }
+    .supply-table .form-control { min-width:90px; }
+</style>
+<div class="container py-4">
+    <div class="nursing-form-shell">
+        <header class="nursing-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div><h1 class="h3 mb-1"><i class="fas fa-clipboard-list me-2"></i>Nueva Hoja de Enfermería</h1><p class="text-muted mb-0">Servicio de emergencia · Medicamentos y materiales suministrados.</p></div>
+            <a class="btn btn-outline-primary" href="{{ url_for('facturacion_hojas_enfermeria') }}"><i class="fas fa-arrow-left me-2"></i>Volver</a>
+        </header>
+        <form method="POST" id="nursingForm">
+            <section class="nursing-card">
+                <h2>Datos del servicio y del paciente</h2>
+                <div class="row g-3">
+                    <div class="col-lg-6"><label class="form-label required">Paciente</label><select class="form-select" id="paciente_id" name="paciente_id" required><option value="">Seleccione</option>{% for p in pacientes %}<option value="{{ p['id'] }}" data-nacimiento="{{ p['fecha_nacimiento'] or '' }}" data-sexo="{{ p['sexo'] or '' }}" data-direccion="{{ p['direccion'] or '' }}" data-ars="{{ p['ars_nombre'] or '' }}" data-responsable="{{ p['nombre_pariente'] or '' }}" data-telefono="{{ p['telefono_pariente'] or '' }}" {% if (request.form.get('paciente_id') or paciente_preseleccionado)|string == p['id']|string %}selected{% endif %}>{{ p['nombre'] }}</option>{% endfor %}</select></div>
+                    <div class="col-lg-3"><label class="form-label required">Fecha</label><input class="form-control" type="date" id="fecha_servicio" name="fecha_servicio" value="{{ request.form.get('fecha_servicio',fecha_actual) }}" required></div>
+                    <div class="col-lg-3"><label class="form-label required">Hora</label><input class="form-control" type="time" id="hora_servicio" name="hora_servicio" value="{{ request.form.get('hora_servicio',hora_actual) }}" required></div>
+                    <div class="col-lg-6"><label class="form-label">Historia de emergencia relacionada</label><select class="form-select" id="historia_emergencia_id" name="historia_emergencia_id"><option value="">Sin historia relacionada</option>{% for e in emergencias %}<option value="{{ e['id'] }}" data-paciente="{{ e['paciente_id'] }}" {% if request.form.get('historia_emergencia_id')|string == e['id']|string %}selected{% endif %}>{{ e['fecha'] }} · {{ e['motivo_emergencia'] }}</option>{% endfor %}</select></div>
+                    <div class="col-lg-2"><label class="form-label">Edad</label><input class="form-control" id="edad" readonly></div>
+                    <div class="col-lg-2"><label class="form-label">Sexo</label><input class="form-control" id="sexo" readonly></div>
+                    <div class="col-lg-2"><label class="form-label">ARS</label><input class="form-control" id="ars" readonly></div>
+                    <div class="col-12"><label class="form-label">Dirección</label><input class="form-control" id="direccion" readonly></div>
+                    <div class="col-lg-5"><label class="form-label required">Persona responsable</label><input class="form-control" id="responsable" name="responsable" value="{{ request.form.get('responsable','') }}" maxlength="200" required></div>
+                    <div class="col-lg-3"><label class="form-label required">Teléfono</label><input class="form-control" id="telefono_responsable" name="telefono_responsable" value="{{ request.form.get('telefono_responsable','') }}" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" data-digits-only="10" required></div>
+                    <div class="col-lg-4"><label class="form-label required">Nombre para la firma responsable</label><input class="form-control" id="firma_responsable" name="firma_responsable" value="{{ request.form.get('firma_responsable','') }}" maxlength="200" required></div>
+                </div>
+            </section>
+
+            <section class="nursing-card">
+                <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="mb-0 border-0 p-0">Medicamentos y materiales médicos suministrados</h2><button class="btn btn-sm btn-outline-primary" type="button" id="addRow"><i class="fas fa-plus me-1"></i>Agregar línea</button></div>
+                <div class="table-responsive">
+                    <table class="table supply-table align-middle mb-0">
+                        <thead><tr><th>Fecha</th><th>Hora</th><th>Medicamento o material</th><th>Cantidad</th><th>Dosis / vía</th><th>Observaciones</th><th>Responsable</th><th></th></tr></thead>
+                        <tbody id="supplyRows"></tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="nursing-card"><label class="form-label">Observaciones generales</label><textarea class="form-control" name="observaciones" rows="3" maxlength="3000">{{ request.form.get('observaciones','') }}</textarea></section>
+            <div class="d-flex justify-content-end gap-2"><a class="btn btn-outline-secondary" href="{{ url_for('facturacion_hojas_enfermeria') }}">Cancelar</a><button class="btn btn-primary" type="submit"><i class="fas fa-save me-2"></i>Guardar hoja</button></div>
+        </form>
+    </div>
+</div>
+<template id="rowTemplate">
+    <tr>
+        <td><input class="form-control form-control-sm line-date" type="date" name="fecha_linea[]" required></td>
+        <td><input class="form-control form-control-sm line-time" type="time" name="hora_linea[]" required></td>
+        <td><input class="form-control form-control-sm" name="item[]" maxlength="500" placeholder="Nombre" required></td>
+        <td><input class="form-control form-control-sm" name="cantidad[]" maxlength="100" placeholder="Cantidad"></td>
+        <td><input class="form-control form-control-sm" name="dosis_via[]" maxlength="200" placeholder="Dosis o vía"></td>
+        <td><input class="form-control form-control-sm" name="notas[]" maxlength="500" placeholder="Notas"></td>
+        <td><input class="form-control form-control-sm line-responsible" name="responsable_linea[]" maxlength="200"></td>
+        <td><button class="btn btn-sm btn-outline-secondary remove-row" type="button" title="Quitar"><i class="fas fa-times"></i></button></td>
+    </tr>
+</template>
+<script>
+(() => {
+    const patient = document.getElementById('paciente_id');
+    const emergency = document.getElementById('historia_emergencia_id');
+    const rows = document.getElementById('supplyRows');
+    const template = document.getElementById('rowTemplate');
+    function patientData() {
+        const option = patient.options[patient.selectedIndex];
+        const birth = option?.dataset.nacimiento;
+        const serviceDate = document.getElementById('fecha_servicio').value;
+        let age = '';
+        if (birth && serviceDate) {
+            const born = new Date(birth + 'T00:00:00'), service = new Date(serviceDate + 'T00:00:00');
+            age = service.getFullYear() - born.getFullYear();
+            if (service < new Date(service.getFullYear(), born.getMonth(), born.getDate())) age--;
+        }
+        document.getElementById('edad').value = age === '' ? '' : age;
+        document.getElementById('sexo').value = option?.dataset.sexo || '';
+        document.getElementById('direccion').value = option?.dataset.direccion || '';
+        document.getElementById('ars').value = option?.dataset.ars || '';
+        const responsible = document.getElementById('responsable');
+        const phone = document.getElementById('telefono_responsable');
+        if (!responsible.value) responsible.value = option?.dataset.responsable || '';
+        if (!phone.value) phone.value = option?.dataset.telefono || '';
+        [...emergency.options].forEach((item,index) => { if(index){ item.hidden=item.dataset.paciente!==patient.value; item.disabled=item.hidden; }});
+        if (emergency.selectedOptions[0]?.disabled) emergency.value='';
+        syncRows();
+    }
+    function syncRows() {
+        rows.querySelectorAll('.line-date').forEach(input => { if(!input.value) input.value=document.getElementById('fecha_servicio').value; });
+        rows.querySelectorAll('.line-time').forEach(input => { if(!input.value) input.value=document.getElementById('hora_servicio').value; });
+        rows.querySelectorAll('.line-responsible').forEach(input => {
+            if (!input.dataset.manual) input.value=document.getElementById('firma_responsable').value;
+        });
+    }
+    function addRow() {
+        rows.appendChild(template.content.cloneNode(true));
+        rows.lastElementChild.querySelector('.remove-row').addEventListener('click', event => {
+            if (rows.children.length > 1) event.currentTarget.closest('tr').remove();
+        });
+        rows.lastElementChild.querySelector('.line-responsible').addEventListener('input', event => {
+            event.currentTarget.dataset.manual = '1';
+        });
+        syncRows();
+    }
+    document.getElementById('addRow').addEventListener('click', addRow);
+    patient.addEventListener('change', patientData);
+    document.getElementById('fecha_servicio').addEventListener('change', patientData);
+    document.getElementById('hora_servicio').addEventListener('change', syncRows);
+    document.getElementById('firma_responsable').addEventListener('input', syncRows);
+    addRow(); addRow(); addRow();
+    patientData();
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if licencia else 'Nueva' }} Licencia Médica - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+{% set paciente_valor = form_data.get('paciente_id', paciente_preseleccionado or '') %}
+{% set medico_valor = form_data.get('medico_id', '') %}
+{% set consulta_valor = form_data.get('consulta_id', '') %}
+{% set tipo_valor = form_data.get('tipo_licencia_id', '') %}
+<style>
+    .license-header { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 1.7rem; margin-bottom: 1.25rem; }
+    .license-section { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.35rem; margin-bottom: 1.25rem; }
+    .license-section h2 { color: var(--primary-dark); font-size: 1.05rem; border-bottom: 1px solid {{ tema.primary }}20; padding-bottom: .7rem; margin-bottom: 1rem; }
+    .required::after { content: " *"; color: var(--primary-color); }
+    .days-display { background: {{ tema.primary }}12; border: 1px solid {{ tema.primary }}35; border-radius: 10px; padding: .75rem; font-weight: 700; text-align: center; }
+</style>
+
+<div class="container py-4">
+    <div class="license-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div><h1 class="h3 mb-1"><i class="fas fa-file-medical me-2"></i>{{ 'Editar' if licencia else 'Nueva' }} licencia médica</h1><p class="text-muted mb-0">{% if licencia %}{{ licencia['codigo'] }} · Solo se permite editar mientras sea borrador.{% else %}Registre el período y la información médica del paciente.{% endif %}</p></div>
+        <a class="btn btn-outline-primary" href="{{ url_for('facturacion_licencias_medicas') }}"><i class="fas fa-arrow-left me-2"></i>Volver</a>
+    </div>
+
+    <form method="POST" id="licenseForm">
+        <section class="license-section">
+            <h2><i class="fas fa-user me-2"></i>Información del paciente</h2>
+            <div class="row g-3">
+                <div class="col-lg-8"><label class="form-label required">Paciente</label><select class="form-select" id="paciente_id" name="paciente_id" required><option value="">Seleccione un paciente</option>{% for paciente in pacientes %}<option value="{{ paciente['id'] }}" data-cedula="{{ paciente['cedula'] or '' }}" data-nacimiento="{{ paciente['fecha_nacimiento'] or '' }}" {% if paciente_valor|string == paciente['id']|string %}selected{% endif %}>{{ paciente['nombre'] }}{% if paciente['cedula'] %} · {{ paciente['cedula'] }}{% endif %}</option>{% endfor %}</select></div>
+                <div class="col-lg-2"><label class="form-label">Identificación</label><input class="form-control" id="pacienteCedula" readonly></div>
+                <div class="col-lg-2"><label class="form-label">Edad</label><input class="form-control" id="pacienteEdad" readonly></div>
+            </div>
+        </section>
+
+        <section class="license-section">
+            <h2><i class="fas fa-stethoscope me-2"></i>Información médica</h2>
+            <div class="row g-3">
+                <div class="col-lg-6"><label class="form-label required">Médico responsable</label><select class="form-select" id="medico_id" name="medico_id" required><option value="">Seleccione</option>{% for medico in medicos %}<option value="{{ medico['id'] }}" {% if medico_valor|string == medico['id']|string %}selected{% endif %}>{{ medico['nombre'] }} · {{ medico['especialidad'] }}</option>{% endfor %}</select></div>
+                <div class="col-lg-6"><label class="form-label">Consulta relacionada</label><select class="form-select" id="consulta_id" name="consulta_id"><option value="">Sin consulta relacionada</option>{% for consulta in consultas %}<option value="{{ consulta['id'] }}" data-paciente="{{ consulta['paciente_id'] }}" data-diagnostico="{{ consulta['diagnostico_principal']|default('', true)|e }}" data-cie="{{ consulta['codigo_cie10']|default('', true)|e }}" {% if consulta_valor|string == consulta['id']|string %}selected{% endif %}>{{ consulta['fecha'] }} · {{ consulta['medico_nombre'] }}</option>{% endfor %}</select></div>
+                <div class="col-lg-4"><label class="form-label required">Tipo de licencia</label><select class="form-select" name="tipo_licencia_id" required><option value="">Seleccione</option>{% for tipo in tipos_licencia %}<option value="{{ tipo['id'] }}" {% if tipo_valor|string == tipo['id']|string %}selected{% endif %}>{{ tipo['nombre'] }}</option>{% endfor %}</select></div>
+                <div class="col-lg-5"><label class="form-label required">Diagnóstico</label><input class="form-control" id="diagnostico" name="diagnostico" maxlength="5000" required value="{{ form_data.get('diagnostico','') }}"></div>
+                <div class="col-lg-3"><label class="form-label">Código CIE-10</label><input class="form-control text-uppercase" id="codigo_cie10" name="codigo_cie10" maxlength="30" value="{{ form_data.get('codigo_cie10','') }}"></div>
+                <div class="col-12"><label class="form-label required">Motivo / condición médica</label><textarea class="form-control" name="motivo_condicion" rows="3" required>{{ form_data.get('motivo_condicion','') }}</textarea></div>
+                <div class="col-12"><label class="form-label">Observaciones</label><textarea class="form-control" name="observaciones" rows="3">{{ form_data.get('observaciones','') or '' }}</textarea></div>
+            </div>
+        </section>
+
+        <section class="license-section">
+            <h2><i class="fas fa-calendar-days me-2"></i>Período y emisión</h2>
+            <div class="row g-3 align-items-end">
+                <div class="col-lg-2"><label class="form-label required">Fecha de emisión</label><input type="date" class="form-control" name="fecha_emision" required value="{{ form_data.get('fecha_emision', fecha_actual|default('')) }}"></div>
+                <div class="col-lg-2"><label class="form-label required">Fecha de inicio</label><input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" required value="{{ form_data.get('fecha_inicio','') }}"></div>
+                <div class="col-lg-2"><label class="form-label required">Fecha de término</label><input type="date" class="form-control" id="fecha_termino" name="fecha_termino" required value="{{ form_data.get('fecha_termino','') }}"></div>
+                <div class="col-lg-2"><label class="form-label">Cantidad de días</label><div class="days-display" id="cantidadDias">0 días</div></div>
+                <div class="col-lg-4"><label class="form-label required">Estado</label><select class="form-select" name="estado" required><option value="Borrador" {% if form_data.get('estado','Borrador') == 'Borrador' %}selected{% endif %}>Borrador</option><option value="Emitida" {% if form_data.get('estado') == 'Emitida' %}selected{% endif %}>Emitida (documento oficial)</option></select></div>
+            </div>
+            {% if advertencia_solapamiento %}
+            <div class="mt-3 p-3 rounded" style="background:{{ tema.primary }}12;border:1px solid {{ tema.primary }}45;">
+                <label class="form-check mb-0"><input class="form-check-input" type="checkbox" name="confirmar_solapamiento" value="1" required> <span class="form-check-label">Revisé el período y deseo continuar aunque exista otra licencia solapada.</span></label>
+            </div>
+            {% endif %}
+        </section>
+
+        <div class="d-flex justify-content-end gap-2">
+            <a class="btn btn-outline-secondary" href="{{ url_for('facturacion_licencias_medicas') }}">Cancelar</a>
+            <button class="btn btn-primary" type="submit"><i class="fas fa-save me-2"></i>{{ 'Guardar cambios' if licencia else 'Registrar licencia' }}</button>
+        </div>
+    </form>
+</div>
+<script>
+(() => {
+    const patient = document.getElementById('paciente_id');
+    const consultation = document.getElementById('consulta_id');
+    const initialConsultation = consultation.value;
+    function patientInfo() {
+        const option = patient.options[patient.selectedIndex];
+        document.getElementById('pacienteCedula').value = option?.dataset.cedula || '';
+        const birth = option?.dataset.nacimiento;
+        let age = '';
+        if (birth) {
+            const born = new Date(birth + 'T00:00:00'), today = new Date();
+            age = today.getFullYear() - born.getFullYear();
+            if (today < new Date(today.getFullYear(), born.getMonth(), born.getDate())) age--;
+        }
+        document.getElementById('pacienteEdad').value = age === '' ? '' : age + ' años';
+        [...consultation.options].forEach((option, index) => {
+            if (!index) return;
+            option.hidden = option.dataset.paciente !== patient.value;
+            option.disabled = option.hidden;
+        });
+        if (consultation.selectedOptions[0]?.disabled) consultation.value = '';
+    }
+    function consultationInfo() {
+        const option = consultation.options[consultation.selectedIndex];
+        if (!option?.value) return;
+        document.getElementById('diagnostico').value = option.dataset.diagnostico || '';
+        document.getElementById('codigo_cie10').value = option.dataset.cie || '';
+    }
+    function days() {
+        const start = document.getElementById('fecha_inicio').value;
+        const end = document.getElementById('fecha_termino').value;
+        let value = 0;
+        if (start && end) value = Math.floor((new Date(end + 'T00:00:00') - new Date(start + 'T00:00:00')) / 86400000) + 1;
+        document.getElementById('cantidadDias').textContent = value > 0 ? value + (value === 1 ? ' día' : ' días') : '0 días';
+    }
+    patient.addEventListener('change', patientInfo);
+    consultation.addEventListener('change', consultationInfo);
+    document.getElementById('fecha_inicio').addEventListener('change', days);
+    document.getElementById('fecha_termino').addEventListener('change', days);
+    patientInfo();
+    if (initialConsultation) consultation.value = initialConsultation;
+    days();
+})();
+</script>
+{% endblock %}

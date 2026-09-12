@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        (() => {
+            try {
+                const saved = localStorage.getItem('arsflow-color-mode');
+                const mode = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.dataset.colorMode = mode;
+                document.documentElement.style.colorScheme = mode;
+            } catch (error) {
+                document.documentElement.dataset.colorMode = 'light';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Regístrate gratis - ARSFLOW Gestion de Factras Medicas</title>
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #F0FDFA 0%, #CCFBF1 50%, #F0FDFA 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .register-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(206, 176, 183, 0.3);
+            overflow: hidden;
+            max-width: 520px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+        .register-header {
+            padding: 40px 40px 30px;
+            text-align: center;
+            background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
+            color: white;
+        }
+        .register-header h1 { font-size: 26px; font-weight: 700; margin-bottom: 8px; }
+        .register-header p { opacity: 0.95; font-size: 14px; }
+        .register-body { padding: 36px 40px 40px; }
+        .flash-messages { margin-bottom: 18px; }
+        .flash {
+            padding: 12px 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+        .flash.error { background: #FED7D7; color: #C53030; }
+        .flash.success { background: #C6F6D5; color: #276749; }
+        .flash.warning { background: #FEEBC8; color: #C05600; }
+        .form-group { margin-bottom: 18px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2D3748;
+            font-size: 14px;
+        }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 14px 16px;
+            border: 2px solid #E2E8F0;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.2s ease;
+            font-family: inherit;
+            background: white;
+        }
+        .form-group input:focus,
+        .form-group select:focus { border-color: #06B6D4; }
+        .btn-register {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #06B6D4 0%, #0891B2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            margin-top: 8px;
+        }
+        .btn-register:hover { opacity: 0.95; }
+        .login-prompt {
+            text-align: center;
+            margin-top: 24px;
+            font-size: 14px;
+            color: #64748B;
+        }
+        .login-prompt a {
+            color: #06B6D4;
+            text-decoration: none;
+            font-weight: 700;
+        }
+        .login-prompt a:hover { color: #0891B2; text-decoration: underline; }
+        .hint {
+            font-size: 12px;
+            color: #94A3B8;
+            margin-top: 6px;
+        }
+    </style>
+    <link href="{{ url_for('static', filename='css/auth-refresh.css') }}?v=2.0" rel="stylesheet">
+    <style>
+        .register-theme-toggle { position:fixed; z-index:10; top:18px; right:18px; width:42px; height:42px; display:grid; place-items:center; border:1px solid #dce5ed; border-radius:10px; background:white; color:#24324a; cursor:pointer; }
+        html[data-color-mode="dark"] body { background:#0b1220 !important; color:#e7edf6; }
+        html[data-color-mode="dark"] .register-container,
+        html[data-color-mode="dark"] .register-body { background:#111a2b !important; border-color:#29374c !important; box-shadow:none !important; }
+        html[data-color-mode="dark"] .register-header { background:linear-gradient(135deg,#087d73,#0c655e) !important; }
+        html[data-color-mode="dark"] .form-group label { color:#e7edf6; }
+        html[data-color-mode="dark"] .form-group input,
+        html[data-color-mode="dark"] .form-group select { background:#0d1625 !important; border-color:#344258 !important; color:#e7edf6 !important; }
+        html[data-color-mode="dark"] .login-prompt,
+        html[data-color-mode="dark"] .hint { color:#9eacbd; }
+        html[data-color-mode="dark"] .register-theme-toggle { background:#111a2b; border-color:#344258; color:#e7edf6; }
+    </style>
+</head>
+<body>
+    <button class="register-theme-toggle" type="button" data-theme-toggle aria-label="Activar modo oscuro" title="Modo oscuro"><i class="fas fa-moon" data-theme-icon></i></button>
+    <div class="register-container">
+        <div class="register-header">
+            <h1>Regístrate gratis</h1>
+            <p>Crea tu cuenta y empieza a facturar</p>
+        </div>
+        <div class="register-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash {{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('registro') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="form-group">
+                    <label for="nombre_empresa">Nombre de la empresa / consultorio</label>
+                    <input type="text" id="nombre_empresa" name="nombre_empresa" required maxlength="255"
+                           placeholder="Ej: Dra. María Pérez" value="{{ request.form.nombre_empresa if request.form else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="tipo_empresa">Tipo</label>
+                    <select id="tipo_empresa" name="tipo_empresa" required>
+                        <option value="">Selecciona una opción</option>
+                        <option value="medico">Médico / Consultorio</option>
+                        <option value="centro_salud">Centro de salud</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="nombre">Tu nombre</label>
+                    <input type="text" id="nombre" name="nombre" required maxlength="255"
+                           placeholder="Nombre completo" value="{{ request.form.nombre if request.form else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Correo electrónico</label>
+                    <input type="email" id="email" name="email" required
+                           placeholder="tu.email@ejemplo.com" value="{{ request.form.email if request.form else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input type="password" id="password" name="password" required minlength="8"
+                           placeholder="Crea una contraseña segura" autocomplete="new-password">
+                    <p class="hint">Mínimo 8 caracteres, con mayúscula, minúscula y número</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="password_confirm">Confirmar contraseña</label>
+                    <input type="password" id="password_confirm" name="password_confirm" required
+                           placeholder="Repite la contraseña" autocomplete="new-password">
+                </div>
+
+                <button type="submit" class="btn-register">Crear cuenta gratis</button>
+            </form>
+
+            <div class="login-prompt">
+                ¿Ya tienes una cuenta?
+                <a href="{{ url_for('login') }}">Inicia sesión</a>
+            </div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=1"></script>
+</body>
+</html>

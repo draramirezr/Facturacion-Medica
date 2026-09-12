@@ -118,34 +118,52 @@
                 </div>
                 
                 <div class="col-md-6 mb-3">
-                    <label for="rnc" class="form-label">RNC</label>
+                    <label for="rnc" class="form-label">
+                        <span id="documento-label">Documento</span> <span class="required-asterisk">*</span>
+                    </label>
                     <input type="text" class="form-control" id="rnc" name="rnc" 
-                           value="{{ empresa['rnc'] if empresa else '' }}" maxlength="15"
-                           pattern="[0-9\-]*"
+                           value="{{ empresa['rnc'] if empresa else '' }}"
                            inputmode="numeric"
-                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57) || event.charCode == 45"
-                           title="Solo se permiten números y guiones">
+                           required>
                 </div>
                 
                 <div class="col-md-6 mb-3">
-                    <label for="telefono" class="form-label">Teléfono</label>
+                    <label for="telefono" class="form-label">Teléfono <span class="required-asterisk">*</span></label>
                     <input type="text" class="form-control" id="telefono" name="telefono" 
-                           value="{{ empresa['telefono'] if empresa else '' }}" maxlength="15"
-                           pattern="[0-9\(\)\-\s]*"
+                           value="{{ empresa['telefono'] if empresa else '' }}"
+                           minlength="10" maxlength="10"
+                           pattern="[0-9]{10}"
+                           data-digits-only="10"
                            inputmode="numeric"
-                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57) || event.charCode == 40 || event.charCode == 41 || event.charCode == 45 || event.charCode == 32"
-                           title="Solo se permiten números, paréntesis, espacios y guiones">
+                           title="El teléfono debe contener exactamente 10 números"
+                           required>
                 </div>
                 
                 <div class="col-md-12 mb-3">
-                    <label for="email" class="form-label">Email</label>
+                    <label for="email" class="form-label">Email <span class="required-asterisk">*</span></label>
                     <input type="email" class="form-control" id="email" name="email" 
-                           value="{{ empresa['email'] if empresa else '' }}" maxlength="255">
+                           value="{{ empresa['email'] if empresa else '' }}" maxlength="255" required>
                 </div>
                 
                 <div class="col-md-12 mb-3">
-                    <label for="direccion" class="form-label">Dirección</label>
-                    <textarea class="form-control" id="direccion" name="direccion" rows="3">{{ empresa['direccion'] if empresa else '' }}</textarea>
+                    <label for="direccion" class="form-label">Dirección <span class="required-asterisk">*</span></label>
+                    <textarea class="form-control" id="direccion" name="direccion" rows="3" required>{{ empresa['direccion'] if empresa else '' }}</textarea>
+                </div>
+                
+                <div class="col-md-12 mb-3">
+                    <label for="tipo_empresa" class="form-label">
+                        Tipo de Empresa <span class="required-asterisk">*</span>
+                    </label>
+                    <select class="form-select" id="tipo_empresa" name="tipo_empresa" required>
+                        <option value="">-- Seleccione un tipo --</option>
+                        <option value="medico" {{ 'selected' if empresa and empresa.get('tipo_empresa') == 'medico' else '' }}>
+                            Médico
+                        </option>
+                        <option value="centro_salud" {{ 'selected' if empresa and empresa.get('tipo_empresa') == 'centro_salud' else '' }}>
+                            Centro de Salud
+                        </option>
+                    </select>
+                    <small class="text-muted">Este campo determina las funcionalidades disponibles para la empresa</small>
                 </div>
                 
                 <div class="col-md-12 mb-3">
@@ -278,6 +296,30 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const tipoEmpresa = document.getElementById('tipo_empresa');
+    const documento = document.getElementById('rnc');
+    const documentoLabel = document.getElementById('documento-label');
+
+    function actualizarDocumento() {
+        const esMedico = tipoEmpresa.value === 'medico';
+        const longitud = esMedico ? 11 : 9;
+        const nombre = esMedico ? 'Cédula' : 'RNC';
+
+        documentoLabel.textContent = nombre;
+        documento.minLength = longitud;
+        documento.maxLength = longitud;
+        documento.pattern = `[0-9]{${longitud}}`;
+        documento.dataset.digitsOnly = longitud;
+        documento.title = `La ${nombre} debe contener exactamente ${longitud} números`;
+
+        if (documento.value.length > longitud) {
+            documento.value = documento.value.slice(0, longitud);
+        }
+    }
+
+    tipoEmpresa.addEventListener('change', actualizarDocumento);
+    actualizarDocumento();
+
     // Validar que fecha_fin sea mayor que fecha_inicio
     const fechaInicio = document.getElementById('fecha_inicio');
     const fechaFin = document.getElementById('fecha_fin');

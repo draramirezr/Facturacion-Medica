@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+
+{% block title %}Licencias Médicas - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .lm-hero { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 2rem; margin-bottom: 1.25rem; }
+    .lm-filters, .lm-table { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.2rem; margin-bottom: 1.25rem; }
+    .lm-table { padding: 0; overflow: hidden; }
+    .lm-table th { background: var(--primary-dark) !important; color: white !important; padding: .9rem; border: 0; }
+    .lm-table td { padding: .85rem; vertical-align: middle; }
+    .lm-state { display: inline-block; padding: .3rem .65rem; border: 1px solid {{ tema.primary }}40; border-radius: 8px; background: {{ tema.primary }}18; color: {{ tema.primary_dark }}; font-weight: 700; font-size: .75rem; }
+</style>
+
+<div class="container py-4">
+    <div class="lm-hero d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h1 class="mb-1"><i class="fas fa-file-medical me-2"></i>Licencias Médicas</h1>
+            <p class="text-muted mb-0">Emisión, seguimiento e impresión de licencias de pacientes.</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if current_user.perfil == 'Administrador' %}
+            <a class="btn btn-outline-primary" href="{{ url_for('facturacion_tipos_licencia_medica') }}"><i class="fas fa-list me-2"></i>Tipos</a>
+            {% endif %}
+            <a class="btn btn-primary" href="{{ url_for('facturacion_licencias_medicas_nueva') }}"><i class="fas fa-plus me-2"></i>Nueva licencia</a>
+        </div>
+    </div>
+
+    <form class="lm-filters" method="GET">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-3"><label class="form-label">Buscar</label><input class="form-control" name="buscar" value="{{ filtros.get('buscar','') }}" placeholder="Paciente, cédula, código, diagnóstico o CIE-10"></div>
+            <div class="col-lg-2"><label class="form-label">Fecha</label><input type="date" class="form-control" name="fecha" value="{{ filtros.get('fecha','') }}"></div>
+            <div class="col-lg-2"><label class="form-label">Médico</label><select class="form-select" name="medico_id"><option value="">Todos</option>{% for medico in medicos %}<option value="{{ medico['id'] }}" {% if filtros.get('medico_id')|string == medico['id']|string %}selected{% endif %}>{{ medico['nombre'] }}</option>{% endfor %}</select></div>
+            <div class="col-lg-2"><label class="form-label">Estado</label><select class="form-select" name="estado"><option value="">Todos</option>{% for estado in ['Borrador','Emitida','Anulada','Vencida'] %}<option value="{{ estado }}" {% if filtros.get('estado') == estado %}selected{% endif %}>{{ estado }}</option>{% endfor %}</select></div>
+            <div class="col-lg-2"><label class="form-label">Ordenar</label><select class="form-select" name="orden">{% for value, label in [('recientes','Más recientes'),('antiguas','Más antiguas'),('paciente','Paciente'),('medico','Médico'),('estado','Estado')] %}<option value="{{ value }}" {% if filtros.get('orden','recientes') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="col-lg-1"><button class="btn btn-primary w-100" type="submit" title="Aplicar filtros"><i class="fas fa-search"></i></button></div>
+        </div>
+    </form>
+
+    <div class="lm-table table-responsive">
+        {% if licencias %}
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Fecha</th><th>Paciente</th><th>Médico</th><th>Diagnóstico</th><th>Inicio</th><th>Término</th><th>Días</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody>
+            {% for licencia in licencias %}
+            <tr>
+                <td>{{ licencia['fecha_emision'] }}<br><small class="text-muted">{{ licencia['codigo'] }}</small></td>
+                <td><strong>{{ licencia['paciente_nombre'] }}</strong></td>
+                <td>{{ licencia['medico_nombre'] }}</td>
+                <td>{{ licencia['diagnostico']|truncate(45) }}</td>
+                <td>{{ licencia['fecha_inicio'] }}</td>
+                <td>{{ licencia['fecha_termino'] }}</td>
+                <td>{{ licencia['cantidad_dias'] }}</td>
+                <td><span class="lm-state">{{ licencia['estado'] }}</span></td>
+                <td class="text-nowrap">
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_licencia_medica_ver', licencia_id=licencia['id']) }}" title="Ver"><i class="fas fa-eye"></i></a>
+                    {% if licencia['estado'] == 'Borrador' %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_licencia_medica_editar', licencia_id=licencia['id']) }}" title="Editar"><i class="fas fa-pen"></i></a>{% endif %}
+                    <a class="btn btn-sm btn-outline-primary" target="_blank" href="{{ url_for('facturacion_licencia_medica_imprimir', licencia_id=licencia['id']) }}" title="Imprimir"><i class="fas fa-print"></i></a>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center text-muted py-5"><i class="fas fa-file-medical fa-3x mb-3"></i><p>No hay licencias con estos filtros.</p></div>
+        {% endif %}
+    </div>
+    {% include "_pagination.html" %}
+</div>
+{% endblock %}

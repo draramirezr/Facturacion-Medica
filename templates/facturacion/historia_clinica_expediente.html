@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+
+{% block title %}Expediente de {{ paciente['nombre'] }} - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .record-header, .record-card { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.4rem; margin-bottom: 1.25rem; }
+    .record-header { background: linear-gradient(135deg, {{ tema.primary }}12, white); }
+    .patient-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .patient-item span { display: block; color: var(--ars-shell-muted); font-size: .75rem; }
+    .timeline-item { position: relative; margin-left: .7rem; padding: 0 0 1.4rem 1.5rem; border-left: 2px solid {{ tema.primary }}35; }
+    .timeline-item::before { content: ""; position: absolute; left: -7px; top: 4px; width: 12px; height: 12px; border-radius: 50%; background: var(--primary-color); }
+    .timeline-body { background: #fbfcfe; border: 1px solid #e8edf3; border-radius: 12px; padding: 1rem; }
+    @media (max-width: 767px) { .patient-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<div class="container py-4">
+    <div class="record-header">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div>
+                <a href="{{ url_for('facturacion_historia_clinica') }}" class="text-decoration-none"><i class="fas fa-arrow-left me-1"></i>Pacientes</a>
+                <h1 class="mt-2 mb-1">{{ paciente['nombre'] }}</h1>
+                <p class="text-muted mb-0">Expediente clínico longitudinal</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-primary" href="{{ url_for('facturacion_licencias_medicas_nueva', paciente_id=paciente['id']) }}"><i class="fas fa-file-medical me-2"></i>Nueva licencia</a>
+                <a class="btn btn-primary" href="{{ url_for('facturacion_historia_clinica_nueva', paciente_id=paciente['id']) }}"><i class="fas fa-stethoscope me-2"></i>Nueva consulta</a>
+            </div>
+        </div>
+        <div class="patient-grid mt-4">
+            <div class="patient-item"><span>Fecha de nacimiento</span>{{ paciente['fecha_nacimiento'] or 'N/D' }}</div>
+            <div class="patient-item"><span>Edad</span>{{ paciente['edad'] if paciente['edad'] is not none else 'N/D' }}</div>
+            <div class="patient-item"><span>Sexo</span>{{ paciente['sexo'] or 'N/D' }}</div>
+            <div class="patient-item"><span>Documento</span>{{ paciente['cedula'] or 'N/D' }}</div>
+            <div class="patient-item"><span>Teléfono</span>{{ paciente['telefono'] or 'N/D' }}</div>
+            <div class="patient-item"><span>Correo</span>{{ paciente['email'] or 'N/D' }}</div>
+            <div class="patient-item"><span>Dirección</span>{{ paciente['direccion'] or 'N/D' }}</div>
+            <div class="patient-item"><span>Ocupación</span>{{ paciente['ocupacion'] or 'N/D' }}</div>
+        </div>
+    </div>
+
+    <section class="record-card">
+        <h2 class="h5 mb-4"><i class="fas fa-file-medical me-2"></i>Licencias Médicas</h2>
+        {% if licencias %}
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead><tr><th>Fecha</th><th>Diagnóstico</th><th>Inicio</th><th>Término</th><th>Días</th><th>Médico</th><th>Estado</th><th></th></tr></thead>
+                <tbody>
+                {% for licencia in licencias %}
+                <tr>
+                    <td>{{ licencia['fecha_emision'] }}<br><small class="text-muted">{{ licencia['codigo'] }}</small></td>
+                    <td>{{ licencia['diagnostico']|truncate(55) }}</td>
+                    <td>{{ licencia['fecha_inicio'] }}</td>
+                    <td>{{ licencia['fecha_termino'] }}</td>
+                    <td>{{ licencia['cantidad_dias'] }}</td>
+                    <td>{{ licencia['medico_nombre'] }}</td>
+                    <td><span class="badge" style="background:{{ tema.primary }}18;color:{{ tema.primary_dark }};">{{ licencia['estado'] }}</span></td>
+                    <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_licencia_medica_ver', licencia_id=licencia['id']) }}">Ver</a></td>
+                </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-3 text-muted">Este paciente aún no tiene licencias médicas.</div>
+        {% endif %}
+    </section>
+
+    <section class="record-card">
+        <h2 class="h5 mb-4"><i class="fas fa-clock-rotate-left me-2"></i>Historial de consultas</h2>
+        {% if consultas %}
+            {% for consulta in consultas %}
+            <div class="timeline-item">
+                <div class="timeline-body">
+                    <div class="d-flex justify-content-between flex-wrap gap-2">
+                        <div><strong>{{ consulta['fecha'] }} · {{ consulta['hora'] }}</strong><br><small class="text-muted">{{ consulta['medico_nombre'] }}</small></div>
+                        <div>
+                            <span class="badge" style="background: {{ tema.primary }}20; color: {{ tema.primary_dark }};">Versión {{ consulta['version'] }}</span>
+                            <a class="btn btn-sm btn-outline-primary ms-2" href="{{ url_for('facturacion_historia_clinica_ver', consulta_id=consulta['id']) }}">Ver consulta</a>
+                        </div>
+                    </div>
+                    <div class="row mt-3">
+                        <div class="col-md-6 mb-2"><small class="text-muted d-block">Motivo</small>{{ consulta['motivo_consulta'] }}</div>
+                        <div class="col-md-6 mb-2"><small class="text-muted d-block">Diagnóstico</small>{{ consulta['diagnostico_principal'] }}</div>
+                        <div class="col-md-6"><small class="text-muted d-block">Tratamiento</small>{{ consulta['plan'].get('medicamentos') or consulta['plan'].get('recomendaciones') or 'N/D' }}</div>
+                        <div class="col-md-6"><small class="text-muted d-block">Evolución</small>{{ consulta['nota_evolucion_inicial'] or 'Sin nota inicial' }}{% if consulta['total_evoluciones'] %} · {{ consulta['total_evoluciones'] }} nota(s) adicional(es){% endif %}</div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="text-center py-4 text-muted">Este paciente aún no tiene consultas clínicas.</div>
+        {% endif %}
+    </section>
+</div>
+{% endblock %}

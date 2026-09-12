@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+
+{% block title %}Vista 360 de {{ paciente['nombre'] }} - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .patient-360-header, .patient-360-card { background: white; border: 1px solid {{ tema.primary }}25; border-radius: 16px; padding: 1.35rem; margin-bottom: 1.2rem; }
+    .patient-360-header { background: linear-gradient(135deg, {{ tema.primary }}14, white); }
+    .patient-avatar { display: inline-flex; width: 64px; height: 64px; align-items: center; justify-content: center; border-radius: 50%; background: {{ tema.primary }}18; color: var(--primary-dark); font-size: 1.7rem; font-weight: 800; }
+    .patient-data { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
+    .patient-data span, .record-meta { display: block; color: var(--ars-shell-muted); font-size: .75rem; }
+    .summary-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .8rem; margin-bottom: 1.2rem; }
+    .summary-item { padding: 1rem; border: 1px solid {{ tema.primary }}25; border-radius: 13px; background: white; }
+    .summary-item i { color: var(--primary-color); margin-bottom: .65rem; }
+    .summary-item strong { display: block; color: var(--primary-dark); font-size: 1.45rem; }
+    .patient-tabs { display: flex; gap: .45rem; overflow-x: auto; padding-bottom: .35rem; margin-bottom: 1.2rem; flex-wrap: nowrap; }
+    .patient-tabs .nav-link { color: var(--ars-shell-text); border: 1px solid {{ tema.primary }}25; border-radius: 10px; background: white; white-space: nowrap; }
+    .patient-tabs .nav-link.active { color: white; border-color: var(--primary-color); background: var(--primary-color); }
+    .record-row { padding: 1rem 0; border-bottom: 1px solid {{ tema.primary }}18; }
+    .record-row:last-child { border-bottom: 0; }
+    .record-status { display: inline-block; padding: .25rem .55rem; border-radius: 7px; background: {{ tema.primary }}15; color: var(--primary-dark); font-size: .72rem; font-weight: 700; }
+    .empty-record { padding: 2rem; color: var(--ars-shell-muted); text-align: center; }
+    @media (max-width: 991px) { .summary-grid { grid-template-columns: repeat(3, 1fr); } .patient-data { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 575px) { .summary-grid, .patient-data { grid-template-columns: 1fr; } }
+</style>
+
+<div class="container py-4">
+    <header class="patient-360-header">
+        <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="patient-avatar">{{ paciente['nombre'][0]|upper }}</span>
+                <div>
+                    <a href="{{ url_for('facturacion_pacientes') }}" class="text-decoration-none"><i class="fas fa-arrow-left me-1"></i>Pacientes</a>
+                    <h1 class="h2 mt-2 mb-1">{{ paciente['nombre'] }}</h1>
+                    <p class="text-muted mb-0">Vista 360 del paciente</p>
+                </div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-primary" href="{{ url_for('facturacion_pacientes_editar', paciente_id=paciente['id']) }}"><i class="fas fa-pen me-2"></i>Editar datos</a>
+                <a class="btn btn-primary" href="{{ url_for('facturacion_paciente_acciones', paciente_id=paciente['id']) }}"><i class="fas fa-plus me-2"></i>Registrar</a>
+            </div>
+        </div>
+        <div class="patient-data mt-4">
+            <div><span>Fecha de nacimiento</span>{{ paciente['fecha_nacimiento'] or 'N/D' }}</div>
+            <div><span>Edad</span>{{ paciente['edad'] if paciente['edad'] is not none else 'N/D' }}</div>
+            <div><span>Sexo</span>{{ paciente['sexo'] or 'N/D' }}</div>
+            <div><span>Cédula</span>{{ paciente['cedula'] or 'N/D' }}</div>
+            <div><span>Teléfono</span>{{ paciente['telefono'] or 'N/D' }}</div>
+            <div><span>Correo</span>{{ paciente['email'] or 'N/D' }}</div>
+            <div><span>Dirección</span>{{ paciente['direccion'] or 'N/D' }}</div>
+            <div><span>Ocupación</span>{{ paciente['ocupacion'] or 'N/D' }}</div>
+            {% if paciente['nombre_pariente'] %}
+            <div><span>Pariente o tutor</span>{{ paciente['nombre_pariente'] }}</div>
+            <div><span>Parentesco</span>{{ paciente['parentesco'] or 'N/D' }}</div>
+            <div><span>Teléfono del pariente</span>{{ paciente['telefono_pariente'] or 'N/D' }}</div>
+            {% endif %}
+        </div>
+    </header>
+
+    <div class="summary-grid">
+        <div class="summary-item"><i class="fas fa-notes-medical"></i><strong>{{ resumen['consultas_clinicas'] }}</strong><span>Historias clínicas</span></div>
+        <div class="summary-item"><i class="fas fa-calendar-days"></i><strong>{{ resumen['citas'] }}</strong><span>Citas médicas</span></div>
+        <div class="summary-item"><i class="fas fa-prescription"></i><strong>{{ resumen['recetas'] }}</strong><span>Recetas</span></div>
+        <div class="summary-item"><i class="fas fa-truck-medical"></i><strong>{{ resumen['emergencias'] }}</strong><span>Emergencias</span></div>
+        <div class="summary-item"><i class="fas fa-stethoscope"></i><strong>{{ resumen['consultas_registradas'] }}</strong><span>Consultas registradas</span></div>
+        <div class="summary-item"><i class="fas fa-file-medical"></i><strong>{{ resumen['licencias'] }}</strong><span>Licencias médicas</span></div>
+        <div class="summary-item"><i class="fas fa-file-invoice-dollar"></i><strong>{{ resumen['facturas'] }}</strong><span>Facturas</span></div>
+    </div>
+
+    {% if resumen['pendientes_facturar'] %}
+    <div class="patient-360-card d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div><strong><i class="fas fa-circle-exclamation me-2" style="color:var(--primary-color);"></i>{{ resumen['pendientes_facturar'] }} consulta(s) pendiente(s) de facturar</strong></div>
+        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_pacientes_pendientes', estado='pendiente') }}">Revisar pendientes</a>
+    </div>
+    {% endif %}
+
+    <ul class="nav patient-tabs" role="tablist">
+        <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#clinical" type="button">Historia clínica</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#appointments" type="button">Citas</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#prescriptions" type="button">Recetas</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#emergency" type="button">Emergencias</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#registered" type="button">Consultas registradas</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#licenses" type="button">Licencias</button></li>
+        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#invoices" type="button">Facturación</button></li>
+    </ul>
+
+    <div class="tab-content">
+        <section class="tab-pane fade show active patient-360-card" id="clinical">
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Historia clínica</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_historia_clinica_nueva', paciente_id=paciente['id']) }}">Nueva consulta</a></div>
+            {% for consulta in consultas %}
+            <div class="record-row">
+                <div class="d-flex justify-content-between flex-wrap gap-2">
+                    <div><strong>{{ consulta['fecha'] }} · {{ consulta['motivo_consulta'] }}</strong><span class="record-meta">{{ consulta['medico_nombre'] }}</span></div>
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_ver', consulta_id=consulta['id']) }}">Ver detalle</a>
+                </div>
+                <div class="row mt-2"><div class="col-md-6"><span class="record-meta">Diagnóstico</span>{{ consulta['diagnostico_principal'] }}</div><div class="col-md-6"><span class="record-meta">Próxima cita</span>{{ consulta['proxima_cita'] or 'No programada' }}</div></div>
+            </div>
+            {% else %}<div class="empty-record">No hay historias clínicas registradas.</div>{% endfor %}
+        </section>
+
+        <section class="tab-pane fade patient-360-card" id="appointments">
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Agenda del paciente</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_citas_nueva', paciente_id=paciente['id']) }}">Programar cita</a></div>
+            {% for cita in citas %}
+            <div class="record-row d-flex justify-content-between flex-wrap gap-2">
+                <div><strong>{{ cita['fecha'] }} · {{ cita['hora']|hora_input }}</strong><span class="record-meta">{{ cita['medico_nombre'] }} · {{ cita['especialidad'] or 'Sin especialidad' }} · {{ cita['motivo'] }}</span><span class="record-status mt-2">{{ cita['estado'] }}</span></div>
+                <a class="btn btn-sm btn-outline-primary align-self-start" href="{{ url_for('facturacion_cita_editar', cita_id=cita['id']) }}">Ver cita</a>
+            </div>
+            {% else %}<div class="empty-record">No hay citas registradas para este paciente.</div>{% endfor %}
+        </section>
+
+        <section class="tab-pane fade patient-360-card" id="prescriptions">
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Recetas médicas</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_recetas_medicas_nueva', paciente_id=paciente['id']) }}">Nueva receta</a></div>
+            {% for receta in recetas %}
+            <div class="record-row d-flex justify-content-between flex-wrap gap-2">
+                <div><strong>{{ receta['fecha'] }} · {{ receta['codigo'] }}</strong><span class="record-meta">{{ receta['medico_nombre'] }} · {{ receta['medicamentos'] }} medicamento(s) · {{ receta['diagnostico'] or 'Sin diagnóstico' }}</span><span class="record-status mt-2">{{ receta['estado'] }}</span></div>
+                <a class="btn btn-sm btn-outline-primary align-self-start" href="{{ url_for('facturacion_receta_medica_ver',receta_id=receta['id']) }}">Ver receta</a>
+            </div>
+            {% else %}<div class="empty-record">No hay recetas registradas para este paciente.</div>{% endfor %}
+        </section>
+
+        <section class="tab-pane fade patient-360-card" id="emergency">
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Historias de emergencia</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_historias_emergencia_nueva', paciente_id=paciente['id']) }}">Nueva emergencia</a></div>
+            {% for emergencia in emergencias %}
+            <div class="record-row d-flex justify-content-between flex-wrap gap-2">
+                <div><strong>{{ emergencia['fecha'] }} · {{ emergencia['motivo_emergencia'] }}</strong><span class="record-meta">{{ emergencia['medico_nombre'] }} · {{ emergencia['diagnostico_impresion'] }}</span><span class="record-status mt-2">{{ emergencia['estatus_paciente'] }}</span></div>
+                <a class="btn btn-sm btn-outline-primary align-self-start" href="{{ url_for('facturacion_historia_emergencia_ver', historia_id=emergencia['id']) }}">Ver detalle</a>
+            </div>
+            {% else %}<div class="empty-record">No hay historias de emergencia registradas.</div>{% endfor %}
+        </section>
+
+        <section class="tab-pane fade patient-360-card" id="registered">
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Consultas registradas</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_facturas_nueva', paciente_id=paciente['id']) }}">Registrar consulta</a></div>
+            {% for registro in consultas_registradas %}
+            <div class="record-row">
+                <div class="d-flex justify-content-between flex-wrap gap-2"><div><strong>{{ registro['fecha_servicio'] }}</strong><span class="record-meta">{{ registro['servicios_realizados'] }}</span></div><div class="text-end"><strong>{{ registro['monto_estimado']|formato_moneda }}</strong><br><span class="record-status">{{ registro['estado'] }}</span></div></div>
+            </div>
+            {% else %}<div class="empty-record">No hay consultas registradas para facturación.</div>{% endfor %}
+        </section>
+
+        <section class="tab-pane fade patient-360-card" id="licenses">
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Licencias médicas</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_licencias_medicas_nueva', paciente_id=paciente['id']) }}">Nueva licencia</a></div>
+            {% for licencia in licencias %}
+            <div class="record-row d-flex justify-content-between flex-wrap gap-2">
+                <div><strong>{{ licencia['fecha_emision'] }} · {{ licencia['diagnostico'] }}</strong><span class="record-meta">{{ licencia['fecha_inicio'] }} al {{ licencia['fecha_termino'] }} · {{ licencia['cantidad_dias'] }} día(s) · {{ licencia['medico_nombre'] }}</span><span class="record-status mt-2">{{ licencia['estado'] }}</span></div>
+                <a class="btn btn-sm btn-outline-primary align-self-start" href="{{ url_for('facturacion_licencia_medica_ver', licencia_id=licencia['id']) }}">Ver detalle</a>
+            </div>
+            {% else %}<div class="empty-record">No hay licencias médicas registradas.</div>{% endfor %}
+        </section>
+
+        <section class="tab-pane fade patient-360-card" id="invoices">
+            <h2 class="h5 mb-2">Facturación del paciente</h2>
+            {% for factura in facturas %}
+            <div class="record-row d-flex justify-content-between flex-wrap gap-2">
+                <div><strong>{{ factura['numero_factura'] or 'Factura' }} · {{ factura['fecha_emision'] }}</strong><span class="record-meta">NCF: {{ factura['ncf'] or 'N/D' }} · {{ factura['estado'] }}</span></div>
+                <div class="text-end"><strong>{{ factura['total']|formato_moneda }}</strong><br><a class="btn btn-sm btn-outline-primary mt-1" href="{{ url_for('facturacion_ver_factura', factura_id=factura['id']) }}">Ver factura</a></div>
+            </div>
+            {% else %}<div class="empty-record">No hay facturas registradas para este paciente.</div>{% endfor %}
+        </section>
+    </div>
+</div>
+{% endblock %}

@@ -8,6 +8,7 @@ import pymysql
 import os
 import re
 import sys
+from getpass import getpass
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash
 
@@ -60,17 +61,21 @@ def crear_usuario():
     print("👤 CREANDO USUARIO ADMINISTRADOR")
     print("="*60)
     
-    # Datos del nuevo usuario
-    nombre = "Ing. Felipe Paula"
-    email = "ing.fpaula@gmail.com"
-    password = "2416Xpos@"
+    # Nunca mantener datos personales ni credenciales en el código.
+    nombre = input("Nombre del administrador: ").strip()
+    email = input("Email del administrador: ").strip().lower()
+    password = getpass("Contraseña temporal (mínimo 12 caracteres): ")
+    password_confirm = getpass("Confirma la contraseña: ")
     perfil = "Administrador"
+
+    if not nombre or not email or len(password) < 12 or password != password_confirm:
+        print("Datos incompletos, contraseña corta o confirmación diferente.")
+        return
     
     print(f"\n📝 Datos del usuario:")
     print(f"  Nombre: {nombre}")
     print(f"  Email: {email}")
     print(f"  Perfil: {perfil}")
-    print(f"  Contraseña: {password}")
     print()
     
     try:

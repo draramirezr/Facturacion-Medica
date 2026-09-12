@@ -1,390 +1,191 @@
 ﻿{% extends "base.html" %}
 
-{% block title %}ARSFLOW Gestion de Factras Medicas{% endblock %}
+{% block title %}Inicio - ARSFlow{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
 <style>
-    :root {
-        --primary: #14B8A6;
-        --primary-strong: #0f766e;
-        --secondary: #0F172A;
-        --muted: #64748B;
-        --bg: #F8FAFC;
-        --card: #FFFFFF;
-        --border: #E2E8F0;
-        --shadow: 0 16px 50px rgba(15, 23, 42, 0.08);
-        --radius: 12px;
-        --radius-lg: 16px;
+    .ars-home {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 34px 28px;
     }
-    html, body {
-        overflow-x: hidden;
-        width: 100%;
-        max-width: 100%;
-        position: relative;
-        background: var(--bg);
-        color: var(--secondary);
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+
+    .ars-home-header {
+        margin-bottom: 30px;
     }
-    #facturacion-menu-root { overflow: hidden; width: 100%; }
-    .menu-layout {
-        display: grid;
-        grid-template-columns: 240px 1fr;
-        min-height: calc(100vh - 80px);
-    }
-    .menu-sidebar {
-        background: #fff;
-        border-right: 1px solid var(--border);
-        padding: 20px 16px;
-        position: sticky;
-        top: 0;
-        height: fit-content;
-        box-shadow: 6px 0 30px rgba(15,23,42,0.04);
-    }
-    .sidebar-title {
+
+    .ars-home-header h1 {
+        margin: 0 0 7px;
+        color: #172033;
+        font-size: 1.55rem;
         font-weight: 800;
-        font-size: 16px;
-        color: var(--secondary);
-        margin-bottom: 10px;
+        letter-spacing: -0.025em;
     }
-    .sidebar-group { margin-bottom: 18px; }
-    .sidebar-subtitle {
-        font-size: 12px;
-        color: var(--muted);
-        font-weight: 700;
-        margin: 0 0 6px 0;
-        text-transform: uppercase;
-        letter-spacing: 0.3px;
-    }
-    .sidebar-link {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        padding: 10px 12px;
-        border-radius: var(--radius);
-        color: var(--secondary);
-        font-weight: 600;
-        text-decoration: none;
-        border: 1px solid transparent;
-        transition: all 0.2s ease;
-    }
-    .sidebar-link i { color: var(--primary); width: 18px; text-align: center; }
-    .sidebar-link:hover {
-        background: #f0fdfa;
-        border-color: var(--primary);
-        color: var(--primary-strong);
-    }
-    .sidebar-toggle {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        width: 100%;
-        background: none;
-        border: 1px solid transparent;
-        padding: 8px 8px;
-        border-radius: var(--radius);
-        color: var(--secondary);
-        font-weight: 700;
-        cursor: pointer;
-    }
-    .sidebar-toggle:hover {
-        background: #f0fdfa;
-        border-color: var(--primary);
-        color: var(--primary-strong);
-    }
-    .sidebar-chevron {
-        font-size: 12px;
-        transition: transform 0.2s ease;
-    }
-    .sidebar-chevron.rotate {
-        transform: rotate(-90deg);
-    }
-    .menu-content {
-        padding: 20px 20px 28px;
-    }
-    .topbar {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 18px;
-        gap: 12px;
-    }
-    .topbar-title {
-        font-size: 20px;
-        font-weight: 800;
-        color: var(--secondary);
+
+    .ars-home-header p {
         margin: 0;
+        color: #718096;
+        font-size: 0.85rem;
     }
-    .cta-row {
+
+    .ars-home-section-title {
+        margin: 0 0 14px;
+        color: #263245;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .ars-quick-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-        gap: 12px;
-        margin-bottom: 18px;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 16px;
     }
-    .cta-card {
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        background: var(--card);
-        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
-        padding: 14px;
+
+    .ars-quick-card {
         display: flex;
+        min-height: 128px;
         align-items: center;
-        gap: 12px;
-        transition: all 0.2s ease;
+        gap: 16px;
+        padding: 22px;
+        border: 1px solid #e8edf3;
+        border-radius: 14px;
+        background: white;
+        color: inherit;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
         text-decoration: none;
-        color: var(--secondary);
+        transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
     }
-    .cta-card:hover { transform: translateY(-2px); box-shadow: var(--shadow); }
-    .cta-icon {
-        width: 42px; height: 42px;
-        border-radius: 12px;
-        background: #ecfeff;
-        display: grid; place-items: center;
-        color: var(--primary);
-        font-size: 18px;
+
+    .ars-quick-card:hover,
+    .ars-quick-card:focus-visible {
+        color: inherit;
+        border-color: {{ tema.primary }};
+        box-shadow: 0 12px 28px rgba(15, 23, 42, 0.08);
+        outline: none;
+        transform: translateY(-3px);
     }
-    .grid-modulos {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 12px;
+
+    .ars-quick-icon {
+        display: inline-flex;
+        width: 48px;
+        height: 48px;
+        flex: 0 0 48px;
+        align-items: center;
+        justify-content: center;
+        border-radius: 13px;
+        background: {{ tema.primary }}18;
+        color: {{ tema.primary_dark }};
+        font-size: 1.15rem;
     }
-    .mod-card {
-        background: var(--card);
-        border: 1px solid var(--border);
-        border-radius: var(--radius-lg);
-        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
-        padding: 16px 14px;
-        text-align: left;
-        transition: all 0.2s ease;
-        color: var(--secondary);
-        text-decoration: none;
-        display: grid;
-        gap: 8px;
-        min-height: 120px;
+
+    .ars-quick-copy h2 {
+        margin: 0 0 5px;
+        color: #263245;
+        font-size: 0.92rem;
+        font-weight: 750;
     }
-    .mod-card:hover { transform: translateY(-3px); box-shadow: var(--shadow); border-color: var(--primary); }
-    .mod-icon {
-        width: 38px; height: 38px;
-        border-radius: 12px;
-        background: #f0fdfa;
-        color: var(--primary);
-        display: grid; place-items: center;
-        font-size: 18px;
+
+    .ars-quick-copy p {
+        margin: 0;
+        color: #8a96a6;
+        font-size: 0.72rem;
+        line-height: 1.45;
     }
-    .mod-title { font-weight: 700; margin: 0; font-size: 1rem; }
-    .mod-desc { margin: 0; color: var(--muted); font-size: 0.88rem; line-height: 1.35; }
-    @media (max-width: 960px) {
-        .menu-layout { grid-template-columns: 1fr; }
-        .menu-sidebar { position: relative; top: auto; width: 100%; }
+
+    @media (max-width: 991.98px) {
+        .ars-quick-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 575.98px) {
+        .ars-home {
+            padding: 24px 14px;
+        }
+
+        .ars-home-header h1 {
+            font-size: 1.3rem;
+        }
+
+        .ars-quick-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .ars-quick-card {
+            min-height: 112px;
+            padding: 18px;
+        }
     }
 </style>
 
-<div id="facturacion-menu-root">
-  <div class="menu-layout">
-    <!-- Sidebar -->
-    <aside class="menu-sidebar">
-      <div class="sidebar-title">ARSFlow</div>
-      {% if current_user.perfil == 'Administrador' %}
-      <div class="sidebar-group">
-        <div class="sidebar-subtitle">Resumen</div>
-        <a class="sidebar-link" href="{{ url_for('facturacion_dashboard') }}"><i class="fas fa-chart-line"></i>Dashboard</a>
-      </div>
-      {% endif %}
-      <div class="sidebar-group">
-        <div class="sidebar-subtitle">Gestión</div>
-        <a class="sidebar-link" href="{{ url_for('facturacion_pacientes_pendientes') }}"><i class="fas fa-list"></i>Pendientes</a>
-        <a class="sidebar-link" href="{{ url_for('facturacion_generar') }}"><i class="fas fa-file-invoice-dollar"></i>Facturación</a>
-        <a class="sidebar-link" href="{{ url_for('facturacion_reclamaciones') }}"><i class="fas fa-exclamation-circle"></i>Reclamaciones</a>
-        <a class="sidebar-link" href="{{ url_for('facturacion_pagos') }}"><i class="fas fa-hand-holding-usd"></i>Pagos</a>
-      </div>
-      <div class="sidebar-group">
-        <div class="sidebar-subtitle">Catálogos</div>
-        <button class="sidebar-toggle" type="button" id="toggle-catalogos">
-          <span>Catálogos</span>
-          <span class="sidebar-chevron" id="chevron-catalogos">▼</span>
-        </button>
-        <div id="catalogos-links">
-          <a class="sidebar-link" href="{{ url_for('facturacion_centros_medicos') }}"><i class="fas fa-hospital-alt"></i>Centros Médicos</a>
-          <a class="sidebar-link" href="{{ url_for('facturacion_medicos') }}"><i class="fas fa-user-md"></i>Médicos</a>
-          <a class="sidebar-link" href="{{ url_for('facturacion_medico_centro') }}"><i class="fas fa-link"></i>Centro x Médico</a>
-          <a class="sidebar-link" href="{{ url_for('facturacion_ars') }}"><i class="fas fa-hospital"></i>ARS</a>
-          <a class="sidebar-link" href="{{ url_for('facturacion_codigo_ars') }}"><i class="fas fa-barcode"></i>Código ARS</a>
-          <a class="sidebar-link" href="{{ url_for('facturacion_servicios') }}"><i class="fas fa-clipboard-list"></i>Servicios</a>
-          <a class="sidebar-link" href="{{ url_for('facturacion_ncf') }}"><i class="fas fa-file-invoice"></i>NCF</a>
-        </div>
-      </div>
-      <div class="sidebar-group">
-        <div class="sidebar-subtitle">Reportes</div>
-        <a class="sidebar-link" href="{{ url_for('facturacion_historico') }}"><i class="fas fa-history"></i>Histórico</a>
-      </div>
-    </aside>
+<div class="ars-home">
+    <header class="ars-home-header">
+        <h1>¡Bienvenido, {{ current_user.nombre.split()[0] }}!</h1>
+        <p>
+            {% if empresa and empresa.empresa_nombre %}
+                {{ empresa.empresa_nombre }} ·
+            {% endif %}
+            Selecciona una acción para comenzar.
+        </p>
+    </header>
 
-    <!-- Main content -->
-    <main class="menu-content">
-      <div class="topbar">
-        <div>
-          <p class="topbar-title">Bienvenido</p>
-          <p style="margin:0;color:var(--muted);font-weight:500;">Accede rápido a facturación, reclamos y pagos.</p>
-        </div>
-      </div>
+    <section aria-labelledby="quick-access-title">
+        <h2 class="ars-home-section-title" id="quick-access-title">Accesos rápidos de gestión</h2>
 
-      <!-- Métricas rápidas (placeholder) -->
-      <div class="grid-modulos" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; margin-bottom: 14px;">
-        <div class="metric-compact">
-          <div class="label">Facturas generadas</div>
-          <div class="value">{{ facturas_generadas or 0 }}</div>
-          <div class="delta" style="color: var(--muted); font-weight:600;">Total</div>
-        </div>
-        <div class="metric-compact">
-          <div class="label">Pendientes</div>
-          <div class="value">{{ pendientes or 0 }}</div>
-          <div class="delta" style="color: var(--muted); font-weight:600;">En cola</div>
-        </div>
-        <div class="metric-compact">
-          <div class="label">Pagos recibidos</div>
-          <div class="value">RD$ {{ pagos_recibidos|formato_moneda }}</div>
-          <div class="delta" style="color: var(--muted); font-weight:600;">Acumulado</div>
-        </div>
-        <div class="metric-compact">
-          <div class="label">Reclamaciones</div>
-          <div class="value">{{ reclamaciones or 0 }}</div>
-          <div class="delta neg" style="color: var(--muted); font-weight:600;">Total</div>
-        </div>
-      </div>
+        <div class="ars-quick-grid">
+            <a class="ars-quick-card" href="{{ url_for('facturacion_pacientes') }}">
+                <span class="ars-quick-icon"><i class="fas fa-user-injured"></i></span>
+                <span class="ars-quick-copy">
+                    <h2>Pacientes</h2>
+                    <p>Consulta y administra tus pacientes.</p>
+                </span>
+            </a>
 
-      <div class="cta-row">
-        <a class="cta-card" href="{{ url_for('facturacion_facturas_nueva') }}">
-          <div class="cta-icon"><i class="fas fa-user-plus"></i></div>
-          <div>
-            <div style="font-weight:700;color:var(--secondary);">Agregar consultas</div>
-            <div style="color:var(--muted);font-size:13px;">Carga manual o Excel con validaciones.</div>
-          </div>
-        </a>
-        <a class="cta-card" href="{{ url_for('facturacion_pacientes_pendientes') }}">
-          <div class="cta-icon"><i class="fas fa-tasks"></i></div>
-          <div>
-            <div style="font-weight:700;color:var(--secondary);">Estado de facturación</div>
-            <div style="color:var(--muted);font-size:13px;">Pendientes y seguimiento.</div>
-          </div>
-        </a>
-        <a class="cta-card" href="{{ url_for('facturacion_generar') }}">
-          <div class="cta-icon"><i class="fas fa-file-invoice-dollar"></i></div>
-          <div>
-            <div style="font-weight:700;color:var(--secondary);">Generar factura</div>
-            <div style="color:var(--muted);font-size:13px;">Convierte pendientes a facturas.</div>
-          </div>
-        </a>
-      </div>
+            <a class="ars-quick-card" href="{{ url_for('facturacion_facturas_nueva') }}">
+                <span class="ars-quick-icon"><i class="fas fa-file-circle-plus"></i></span>
+                <span class="ars-quick-copy">
+                    <h2>Registrar consultas</h2>
+                    <p>Registra pacientes y servicios facturables.</p>
+                </span>
+            </a>
 
-      <!-- Paneles secundarios -->
-      <div class="grid-modulos" style="grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; margin-bottom: 16px;">
-        <div class="card-flat" style="padding:14px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <div style="font-weight:700;color:var(--secondary);">Facturación por ARS</div>
-            <span style="font-size:12px;color:var(--muted);">Mes actual</span>
-          </div>
-          <ul style="list-style:none;padding:0;margin:0;display:grid;gap:6px;font-size:13px;color:var(--muted);">
-            {% for row in facturacion_por_ars or [] %}
-            <li style="display:flex;justify-content:space-between;">
-              <span>{{ row.ars }}</span><span>RD$ {{ row.total|formato_moneda }}</span>
-            </li>
-            {% else %}
-            <li style="color:var(--muted);">Sin datos</li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div class="card-flat" style="padding:14px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <div style="font-weight:700;color:var(--secondary);">Actividad reciente</div>
-            <span style="font-size:12px;color:var(--muted);">Hoy</span>
-          </div>
-          <ul style="list-style:none;padding:0;margin:0;display:grid;gap:8px;font-size:13px;color:var(--muted);">
-            {% for ev in actividad_reciente or [] %}
-            <li style="display:flex;justify-content:space-between;">
-              <span>{{ ev.ref }} - {{ ev.detalle }}</span>
-              <span>{{ ev.fecha_txt }}</span>
-            </li>
-            {% else %}
-            <li style="color:var(--muted);">Sin actividad reciente</li>
-            {% endfor %}
-          </ul>
-        </div>
-        <div class="card-flat" style="padding:14px;">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
-            <div style="font-weight:700;color:var(--secondary);">Resumen de pagos</div>
-            <span style="font-size:12px;color:var(--muted);">Este mes</span>
-          </div>
-          <div style="font-size:13px;color:var(--muted);display:grid;gap:6px;">
-            <div style="display:flex;justify-content:space-between;"><span>Total facturado</span><span style="color:var(--secondary);font-weight:700;">RD$ {{ total_facturado|formato_moneda }}</span></div>
-            <div style="display:flex;justify-content:space-between;"><span>Total cobrado</span><span style="color:var(--primary-strong);font-weight:700;">RD$ {{ total_cobrado|formato_moneda }}</span></div>
-            <div style="display:flex;justify-content:space-between;"><span>Pendiente</span><span style="color:#b45309;font-weight:700;">RD$ {{ pendiente_cobrar|formato_moneda }}</span></div>
-          </div>
-        </div>
-      </div>
+            <a class="ars-quick-card" href="{{ url_for('facturacion_pacientes_pendientes') }}">
+                <span class="ars-quick-icon"><i class="fas fa-clipboard-list"></i></span>
+                <span class="ars-quick-copy">
+                    <h2>Facturación pendiente</h2>
+                    <p>Revisa los registros pendientes de procesar.</p>
+                </span>
+            </a>
 
-      <!-- Tabla corta de pendientes (placeholder) -->
-      <div class="card-flat" style="padding:14px;">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-          <div style="font-weight:700;color:var(--secondary);">Pendientes recientes</div>
-          <a href="{{ url_for('facturacion_pacientes_pendientes') }}" style="font-size:13px;color:var(--primary);font-weight:700;">Ver todas</a>
-        </div>
-        <div class="table-responsive">
-          <table class="table mb-0">
-            <thead>
-              <tr>
-                <th>Factura</th>
-                <th>Paciente</th>
-                <th>ARS</th>
-                <th>Fecha</th>
-                <th>Monto</th>
-                <th>Estado</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for p in pendientes_tabla or [] %}
-              <tr>
-                <td>{{ p.id }}</td>
-                <td>{{ p.nombre_paciente }}</td>
-                <td>{{ p.nss or '—' }}</td>
-                <td>{{ p.fecha_servicio }}</td>
-                <td>RD$ {{ p.monto_estimado|formato_moneda }}</td>
-                <td>
-                  {% if p.estado == 'Facturado' %}
-                    <span class="badge badge-success">Facturado</span>
-                  {% elif p.estado == 'En Proceso' or p.estado == 'En revisión' %}
-                    <span class="badge badge-info">En proceso</span>
-                  {% else %}
-                    <span class="badge badge-warning">Pendiente</span>
-                  {% endif %}
-                </td>
-              </tr>
-              {% else %}
-              <tr><td colspan="6" style="color:var(--muted);">No hay pendientes recientes</td></tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
+            {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+            <a class="ars-quick-card" href="{{ url_for('facturacion_generar') }}">
+                <span class="ars-quick-icon"><i class="fas fa-file-invoice-dollar"></i></span>
+                <span class="ars-quick-copy">
+                    <h2>Generar factura</h2>
+                    <p>Crea la factura final por ARS y período.</p>
+                </span>
+            </a>
 
-    </main>
-  </div>
+            <a class="ars-quick-card" href="{{ url_for('facturacion_reclamaciones') }}">
+                <span class="ars-quick-icon"><i class="fas fa-triangle-exclamation"></i></span>
+                <span class="ars-quick-copy">
+                    <h2>Reclamaciones</h2>
+                    <p>Da seguimiento a glosas y reclamaciones.</p>
+                </span>
+            </a>
+
+            <a class="ars-quick-card" href="{{ url_for('facturacion_pagos') }}">
+                <span class="ars-quick-icon"><i class="fas fa-money-check-dollar"></i></span>
+                <span class="ars-quick-copy">
+                    <h2>Pagos</h2>
+                    <p>Registra y coteja los pagos recibidos.</p>
+                </span>
+            </a>
+            {% endif %}
+        </div>
+    </section>
 </div>
-<script>
-  document.addEventListener('DOMContentLoaded', function() {
-    const btn = document.getElementById('toggle-catalogos');
-    const panel = document.getElementById('catalogos-links');
-    const chev = document.getElementById('chevron-catalogos');
-    if (btn && panel && chev) {
-      btn.addEventListener('click', () => {
-        const isHidden = panel.style.display === 'none';
-        panel.style.display = isHidden ? 'block' : 'none';
-        chev.textContent = isHidden ? '▼' : '▲';
-      });
-      // Estado inicial abierto
-      panel.style.display = 'block';
-      chev.textContent = '▼';
-    }
-  });
-</script>
 {% endblock %}
-

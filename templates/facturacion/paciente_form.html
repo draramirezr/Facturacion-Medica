@@ -1,9 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Editar Paciente - Facturación{% endblock %}
+{% block title %}{{ 'Editar' if paciente else 'Nuevo' }} Paciente - Facturación{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
+{% set es_edicion = paciente is not none %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/facturacion-responsive.css') }}">
 <style>
     .form-container {
@@ -83,9 +84,9 @@
         <div class="mb-4">
             <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
                 <i class="fas fa-user me-2"></i>
-                Editar Paciente
+                {{ 'Editar Paciente' if es_edicion else 'Nuevo Paciente' }}
             </h1>
-            <p class="text-muted">Modifica los datos del paciente</p>
+            <p class="text-muted">{{ 'Modifica los datos del paciente' if es_edicion else 'Registra un paciente manualmente' }}</p>
         </div>
 
         <div class="form-card">
@@ -99,105 +100,182 @@
                                class="form-control" 
                                id="nombre" 
                                name="nombre" 
-                               value="{{ paciente['nombre'] }}" 
+                               value="{{ paciente['nombre'] if es_edicion else '' }}" 
                                required 
                                placeholder="Ej: Juan Pérez"
                                maxlength="200">
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label for="cedula" class="form-label">
-                            <i class="fas fa-id-card me-2 text-primary"></i>Cédula
-                        </label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="cedula" 
-                               name="cedula" 
-                               value="{{ paciente['cedula'] or '' }}" 
-                               placeholder="Ej: 001-1234567-8"
-                               pattern="[0-9\-]+"
-                               inputmode="numeric"
-                               maxlength="20">
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="nss" class="form-label">
-                            <i class="fas fa-id-badge me-2 text-primary"></i>NSS
-                        </label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="nss" 
-                               name="nss" 
-                               value="{{ paciente['nss'] or '' }}" 
-                               placeholder="Número de Seguridad Social"
-                               maxlength="50">
-                    </div>
-
-                    <div class="col-md-6 mb-3">
-                        <label for="telefono" class="form-label">
-                            <i class="fas fa-phone me-2 text-primary"></i>Teléfono
-                        </label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="telefono" 
-                               name="telefono" 
-                               value="{{ paciente['telefono'] or '' }}" 
-                               placeholder="Ej: 809-123-4567"
-                               maxlength="20">
-                    </div>
-                </div>
-
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="email" class="form-label">
-                            <i class="fas fa-envelope me-2 text-primary"></i>Correo Electrónico
-                        </label>
-                        <input type="email" 
-                               class="form-control" 
-                               id="email" 
-                               name="email" 
-                               value="{{ paciente['email'] or '' }}" 
-                               placeholder="Ej: juan@example.com"
-                               maxlength="100">
-                    </div>
-
-                    <div class="col-md-6 mb-3">
                         <label for="fecha_nacimiento" class="form-label">
-                            <i class="fas fa-calendar me-2 text-primary"></i>Fecha de Nacimiento
+                            <i class="fas fa-calendar me-2 text-primary"></i>Fecha de Nacimiento <span class="required-asterisk">*</span>
                         </label>
                         <input type="date" 
                                class="form-control" 
                                id="fecha_nacimiento" 
                                name="fecha_nacimiento" 
-                               value="{{ paciente['fecha_nacimiento'] or '' }}">
+                               value="{{ (paciente['fecha_nacimiento'] or '') if es_edicion else '' }}"
+                               required>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="ars-active-check">
+                        <input type="checkbox" id="es_asegurado" name="es_asegurado" value="1"
+                               {% if es_edicion and (paciente['nss'] or paciente['ars_id']) %}checked{% endif %}>
+                        <div class="ars-active-check-copy">
+                            <label for="es_asegurado">Paciente asegurado</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3" id="grupo-nss">
+                        <label for="nss" class="form-label">
+                            <i class="fas fa-id-badge me-2 text-primary"></i>NSS <span class="required-asterisk">*</span>
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="nss" 
+                               name="nss" 
+                               value="{{ (paciente['nss'] or '') if es_edicion else '' }}" 
+                               placeholder="Número de Seguridad Social"
+                               maxlength="50">
+                    </div>
+
+                    <div class="col-md-6 mb-3" id="grupo-ars">
+                        <label for="ars_id" class="form-label">
+                            <i class="fas fa-hospital me-2 text-primary"></i>ARS <span class="required-asterisk">*</span>
+                        </label>
+                        <select class="form-control" id="ars_id" name="ars_id">
+                            <option value="">Seleccione una ARS...</option>
+                            {% for ars in ars_list %}
+                            <option value="{{ ars['id'] }}" {% if es_edicion and paciente['ars_id'] == ars['id'] %}selected{% endif %}>
+                                {{ ars['nombre'] }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
 
                 <div class="row">
                     <div class="col-md-6 mb-3">
-                        <label for="sexo" class="form-label">
-                            <i class="fas fa-venus-mars me-2 text-primary"></i>Sexo
+                        <label for="telefono" class="form-label">
+                            <i class="fas fa-phone me-2 text-primary"></i>Teléfono <span class="required-asterisk">*</span>
                         </label>
-                        <select class="form-control" id="sexo" name="sexo">
-                            <option value="">Seleccione...</option>
-                            <option value="M" {% if paciente['sexo'] == 'M' %}selected{% endif %}>Masculino</option>
-                            <option value="F" {% if paciente['sexo'] == 'F' %}selected{% endif %}>Femenino</option>
-                            <option value="Otro" {% if paciente['sexo'] == 'Otro' %}selected{% endif %}>Otro</option>
-                        </select>
+                        <input type="text" 
+                               class="form-control" 
+                               id="telefono" 
+                               name="telefono" 
+                               value="{{ (paciente['telefono'] or '') if es_edicion else '' }}" 
+                               placeholder="Ej: 8091234567"
+                               minlength="10"
+                               maxlength="10"
+                               pattern="[0-9]{10}"
+                               data-digits-only="10"
+                               inputmode="numeric"
+                               title="El teléfono debe contener exactamente 10 números"
+                               required>
                     </div>
 
                     <div class="col-md-6 mb-3">
-                        <label for="ars_id" class="form-label">
-                            <i class="fas fa-hospital me-2 text-primary"></i>ARS
+                        <label for="email" class="form-label">
+                            <i class="fas fa-envelope me-2 text-primary"></i>Correo Electrónico <span class="required-asterisk">*</span>
                         </label>
-                        <select class="form-control" id="ars_id" name="ars_id">
-                            <option value="">Sin ARS</option>
-                            {% for ars in ars_list %}
-                            <option value="{{ ars['id'] }}" {% if paciente['ars_id'] == ars['id'] %}selected{% endif %}>
-                                {{ ars['nombre'] }}
-                            </option>
+                        <input type="email" 
+                               class="form-control" 
+                               id="email" 
+                               name="email" 
+                               value="{{ (paciente['email'] or '') if es_edicion else '' }}" 
+                               placeholder="Ej: juan@example.com"
+                               maxlength="100"
+                               required>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="cedula" class="form-label">
+                            <i class="fas fa-id-card me-2 text-primary"></i>Cédula <span class="required-asterisk" id="cedula-required">*</span>
+                        </label>
+                        <input type="text" 
+                               class="form-control" 
+                               id="cedula" 
+                               name="cedula" 
+                               value="{{ (paciente['cedula'] or '') if es_edicion else '' }}" 
+                               placeholder="Ej: 00112345678"
+                               minlength="11"
+                               maxlength="11"
+                               pattern="[0-9]{11}"
+                               data-digits-only="11"
+                               inputmode="numeric"
+                               title="La cédula debe contener exactamente 11 números">
+                    </div>
+
+                    <div class="col-md-6 mb-3">
+                        <label for="sexo" class="form-label">
+                            <i class="fas fa-venus-mars me-2 text-primary"></i>Sexo <span class="required-asterisk">*</span>
+                        </label>
+                        <select class="form-control" id="sexo" name="sexo" required>
+                            <option value="">Seleccione...</option>
+                            <option value="M" {% if es_edicion and paciente['sexo'] == 'M' %}selected{% endif %}>Masculino</option>
+                            <option value="F" {% if es_edicion and paciente['sexo'] == 'F' %}selected{% endif %}>Femenino</option>
+                            <option value="Otro" {% if es_edicion and paciente['sexo'] == 'Otro' %}selected{% endif %}>Otro</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label for="direccion" class="form-label">
+                        <i class="fas fa-location-dot me-2 text-primary"></i>Dirección <span class="required-asterisk">*</span>
+                    </label>
+                    <textarea class="form-control" id="direccion" name="direccion" rows="2"
+                              maxlength="500" placeholder="Dirección completa"
+                              required>{{ (paciente['direccion'] or '') if es_edicion else '' }}</textarea>
+                </div>
+
+                <div class="row d-none" id="campos-pariente">
+                    <div class="col-12 mb-2">
+                        <small class="text-muted">El paciente es menor de 18 años. Indique su padre, madre o tutor responsable.</small>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="nombre_pariente" class="form-label">
+                            <i class="fas fa-user-shield me-2 text-primary"></i>Nombre del pariente <span class="required-asterisk">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="nombre_pariente" name="nombre_pariente"
+                               value="{{ (paciente.get('nombre_pariente') or '') if es_edicion else '' }}"
+                               maxlength="200" placeholder="Nombre completo">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="cedula_pariente" class="form-label">
+                            <i class="fas fa-id-card me-2 text-primary"></i>Cédula del pariente <span class="required-asterisk">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="cedula_pariente" name="cedula_pariente"
+                               value="{{ (paciente.get('cedula_pariente') or '') if es_edicion else '' }}"
+                               minlength="11" maxlength="11" pattern="[0-9]{11}"
+                               data-digits-only="11" inputmode="numeric"
+                               title="La cédula del pariente debe contener exactamente 11 números"
+                               placeholder="00112345678">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="telefono_pariente" class="form-label">
+                            <i class="fas fa-phone me-2 text-primary"></i>Teléfono del pariente <span class="required-asterisk">*</span>
+                        </label>
+                        <input type="text" class="form-control" id="telefono_pariente" name="telefono_pariente"
+                               value="{{ (paciente.get('telefono_pariente') or '') if es_edicion else '' }}"
+                               minlength="10" maxlength="10" pattern="[0-9]{10}"
+                               data-digits-only="10" inputmode="numeric"
+                               title="El teléfono del pariente debe contener exactamente 10 números"
+                               placeholder="8091234567">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label for="parentesco" class="form-label">
+                            <i class="fas fa-people-roof me-2 text-primary"></i>Parentesco <span class="required-asterisk">*</span>
+                        </label>
+                        <select class="form-control" id="parentesco" name="parentesco">
+                            <option value="">Seleccione...</option>
+                            {% for opcion in ['Madre', 'Padre', 'Tutor legal', 'Abuelo/a', 'Otro'] %}
+                            <option value="{{ opcion }}" {% if es_edicion and paciente.get('parentesco') == opcion %}selected{% endif %}>{{ opcion }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -209,13 +287,72 @@
                         <i class="fas fa-times me-2"></i>Cancelar
                     </a>
                     <button type="submit" class="btn btn-guardar">
-                        <i class="fas fa-save me-2"></i>Guardar Cambios
+                        <i class="fas fa-save me-2"></i>{{ 'Guardar Cambios' if es_edicion else 'Crear Paciente' }}
                     </button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const asegurado = document.getElementById('es_asegurado');
+    const grupoNss = document.getElementById('grupo-nss');
+    const grupoArs = document.getElementById('grupo-ars');
+    const nss = document.getElementById('nss');
+    const ars = document.getElementById('ars_id');
+    const fechaNacimiento = document.getElementById('fecha_nacimiento');
+    const cedulaPaciente = document.getElementById('cedula');
+    const cedulaRequired = document.getElementById('cedula-required');
+    const camposPariente = document.getElementById('campos-pariente');
+    const nombrePariente = document.getElementById('nombre_pariente');
+    const cedulaPariente = document.getElementById('cedula_pariente');
+    const telefonoPariente = document.getElementById('telefono_pariente');
+    const parentesco = document.getElementById('parentesco');
+
+    function actualizarSeguro() {
+        const visible = asegurado.checked;
+        grupoNss.classList.toggle('d-none', !visible);
+        grupoArs.classList.toggle('d-none', !visible);
+        nss.required = visible;
+        ars.required = visible;
+        nss.disabled = !visible;
+        ars.disabled = !visible;
+    }
+
+    asegurado.addEventListener('change', actualizarSeguro);
+    actualizarSeguro();
+
+    function calcularEdad(fecha) {
+        const nacimiento = new Date(`${fecha}T00:00:00`);
+        const hoy = new Date();
+        let edad = hoy.getFullYear() - nacimiento.getFullYear();
+        const mes = hoy.getMonth() - nacimiento.getMonth();
+        if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+            edad--;
+        }
+        return edad;
+    }
+
+    function actualizarPariente() {
+        const esMenor = fechaNacimiento.value && calcularEdad(fechaNacimiento.value) < 18;
+        cedulaPaciente.required = !esMenor;
+        cedulaRequired.classList.toggle('d-none', Boolean(esMenor));
+        camposPariente.classList.toggle('d-none', !esMenor);
+        nombrePariente.required = Boolean(esMenor);
+        cedulaPariente.required = Boolean(esMenor);
+        telefonoPariente.required = Boolean(esMenor);
+        parentesco.required = Boolean(esMenor);
+        nombrePariente.disabled = !esMenor;
+        cedulaPariente.disabled = !esMenor;
+        telefonoPariente.disabled = !esMenor;
+        parentesco.disabled = !esMenor;
+    }
+
+    fechaNacimiento.addEventListener('change', actualizarPariente);
+    actualizarPariente();
+});
+</script>
 {% endblock %}
 
 

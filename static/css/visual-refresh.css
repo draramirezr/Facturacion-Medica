@@ -1,0 +1,256 @@
+/* Unificación visual de pantallas heredadas con el shell ARSFlow. */
+.ars-app-body,
+.ars-app-body .ars-content {
+    background: var(--ars-shell-bg) !important;
+}
+
+.ars-app-body .ars-content {
+    color: var(--ars-shell-text);
+}
+
+.ars-app-body .ars-content > .container,
+.ars-app-body .ars-content > [class$="-container"] {
+    width: min(100%, 1320px);
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.ars-app-body .ars-content [class$="-hero"],
+.ars-app-body .ars-content .facturacion-hero,
+.ars-app-body .ars-content .dashboard-header,
+.ars-app-body .ars-content .page-header {
+    padding: 1.6rem !important;
+    margin-bottom: 1.2rem !important;
+    border: 1px solid color-mix(in srgb, var(--primary-color) 16%, white) !important;
+    border-radius: 17px !important;
+    background: linear-gradient(
+        135deg,
+        color-mix(in srgb, var(--primary-color) 9%, white),
+        white
+    ) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.ars-app-body .ars-content [class$="-hero"] h1,
+.ars-app-body .ars-content .facturacion-hero h1,
+.ars-app-body .ars-content .dashboard-header h1,
+.ars-app-body .ars-content .page-header h1 {
+    color: var(--ars-shell-text) !important;
+    font-size: 1.65rem !important;
+    letter-spacing: -0.025em;
+}
+
+.ars-app-body .ars-content .search-box,
+.ars-app-body .ars-content .filter-card,
+.ars-app-body .ars-content .filters-card,
+.ars-app-body .ars-content .form-container,
+.ars-app-body .ars-content .table-facturacion,
+.ars-app-body .ars-content .table-empresas,
+.ars-app-body .ars-content .tabla-pendientes,
+.ars-app-body .ars-content .tabla-lineas,
+.ars-app-body .ars-content .user-info-card,
+.ars-app-body .ars-content .themes-section,
+.ars-app-body .ars-content .form-card,
+.ars-app-body .ars-content .info-card,
+.ars-app-body .ars-content .stat-card,
+.ars-app-body .ars-content .chart-card,
+.ars-app-body .ars-content .table-container,
+.ars-app-body .ars-content .info-box,
+.ars-app-body .ars-content .resultado-card,
+.ars-app-body .ars-content .licencias-info-box,
+.ars-app-body .ars-content .password-section,
+.ars-app-body .ars-content .warning-box,
+.ars-app-body .ars-content [class*="content-card"],
+.ars-app-body .ars-content [class*="summary-card"] {
+    border: 1px solid var(--ars-shell-border) !important;
+    border-radius: 15px !important;
+    background: var(--ars-shell-surface) !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.ars-app-body .ars-content .form-card,
+.ars-app-body .ars-content .info-card,
+.ars-app-body .ars-content .stat-card,
+.ars-app-body .ars-content .chart-card,
+.ars-app-body .ars-content .table-container,
+.ars-app-body .ars-content .info-box,
+.ars-app-body .ars-content .resultado-card {
+    border-color: var(--ars-shell-border) !important;
+}
+
+.ars-app-body .ars-content .admin-container,
+.ars-app-body .ars-content .dashboard-container,
+.ars-app-body .ars-content .perfil-container,
+.ars-app-body .ars-content .verificacion-container {
+    width: min(100%, 1320px);
+    margin: 0 auto !important;
+    padding: 1.5rem !important;
+}
+
+.ars-app-body .ars-content .search-box,
+.ars-app-body .ars-content .filter-card,
+.ars-app-body .ars-content .filters-card {
+    padding: 1.2rem !important;
+    margin-bottom: 1.2rem !important;
+}
+
+.ars-app-body .ars-content .form-container {
+    padding: 1.35rem !important;
+    margin: 1.2rem 0 !important;
+}
+
+.ars-app-body .ars-content [class*="card"],
+.ars-app-body .ars-content [class*="panel"],
+.ars-app-body .ars-content [class*="section"] {
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+}
+
+.ars-app-body .ars-content .form-control,
+.ars-app-body .ars-content .form-select,
+.ars-app-body .ars-content input:not([type="checkbox"]):not([type="radio"]),
+.ars-app-body .ars-content textarea,
+.ars-app-body .ars-content select {
+    box-sizing: border-box;
+    border-width: 1px !important;
+    border-color: #dce3eb !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+}
+
+.ars-app-body .ars-content .form-control:not(textarea),
+.ars-app-body .ars-content .form-select,
+.ars-app-body .ars-content input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+.ars-app-body .ars-content select {
+    min-height: 38px !important;
+    padding: .5rem .75rem !important;
+}
+
+.ars-app-body .ars-content textarea.form-control,
+.ars-app-body .ars-content textarea {
+    padding: .6rem .75rem !important;
+}
+
+.ars-app-body .ars-content .form-control:focus,
+.ars-app-body .ars-content .form-select:focus,
+.ars-app-body .ars-content input:focus,
+.ars-app-body .ars-content textarea:focus,
+.ars-app-body .ars-content select:focus {
+    border-color: var(--primary-color) !important;
+    box-shadow: none !important;
+    outline: none;
+    transform: none !important;
+}
+
+.ars-app-body .ars-content input[type="checkbox"],
+.ars-app-body .ars-content input[type="radio"] {
+    accent-color: var(--primary-color);
+}
+
+.ars-app-body .ars-content .btn,
+.ars-app-body .ars-content button,
+.ars-app-body .ars-content [class^="btn-"],
+.ars-app-body .ars-content [class*=" btn-"] {
+    min-width: 0 !important;
+    min-height: 38px !important;
+    margin-top: 0 !important;
+    padding: .55rem .9rem !important;
+    box-shadow: none !important;
+}
+
+.ars-app-body .ars-content button[type="submit"]:not(.btn-sm):not(.btn-xs),
+.ars-app-body .ars-content input[type="submit"] {
+    min-width: 0 !important;
+    min-height: 38px !important;
+    margin-top: 0 !important;
+    padding: .55rem .9rem !important;
+}
+
+.ars-app-body .ars-content .btn-sm,
+.ars-app-body .ars-content table .btn,
+.ars-app-body .ars-content .table .btn,
+.ars-app-body .ars-content .dataTable .btn {
+    min-width: 0 !important;
+    min-height: 32px !important;
+    padding: .35rem .6rem !important;
+}
+
+.ars-app-body .ars-content .w-100.btn,
+.ars-app-body .ars-content button.w-100 {
+    width: 100% !important;
+}
+
+.ars-app-body .ars-content .btn-primary {
+    border: 1px solid var(--primary-color) !important;
+    border-radius: 10px !important;
+    background: var(--primary-color) !important;
+}
+
+.ars-app-body .ars-content .btn-outline-primary,
+.ars-app-body .ars-content .btn-outline-secondary,
+.ars-app-body .ars-content .btn-cancelar,
+.ars-app-body .ars-content .btn-volver,
+.ars-app-body .ars-content .btn-limpiar {
+    border: 1px solid var(--primary-color) !important;
+    border-radius: 10px !important;
+    background: white !important;
+    color: var(--primary-dark) !important;
+}
+
+.ars-app-body .ars-content .btn-outline-primary:hover,
+.ars-app-body .ars-content .btn-outline-secondary:hover,
+.ars-app-body .ars-content .btn-cancelar:hover,
+.ars-app-body .ars-content .btn-volver:hover,
+.ars-app-body .ars-content .btn-limpiar:hover {
+    background: color-mix(in srgb, var(--primary-color) 9%, white) !important;
+    color: var(--primary-dark) !important;
+}
+
+.ars-app-body .ars-content .btn:hover,
+.ars-app-body .ars-content button:hover,
+.ars-app-body .ars-content [class*="card"]:hover,
+.ars-app-body .ars-content [class*="item"]:hover {
+    transform: none !important;
+}
+
+.ars-app-body .ars-content table {
+    color: var(--ars-shell-text);
+}
+
+.ars-app-body .ars-content table th {
+    box-shadow: none !important;
+}
+
+.ars-app-body .ars-content table tbody tr {
+    transition: background-color .15s ease !important;
+}
+
+.ars-app-body .ars-content .badge.bg-info,
+.ars-app-body .ars-content .badge.bg-success,
+.ars-app-body .ars-content .badge.bg-secondary {
+    border: 1px solid color-mix(in srgb, var(--primary-color) 28%, white) !important;
+    background: color-mix(in srgb, var(--primary-color) 12%, white) !important;
+    color: var(--primary-dark) !important;
+    box-shadow: none !important;
+}
+
+.ars-app-body .ars-content .alert {
+    border-radius: 10px;
+    box-shadow: none !important;
+}
+
+.ars-app-body .ars-content * {
+    animation-duration: 0s !important;
+    animation-delay: 0s !important;
+}
+
+@media (max-width: 767px) {
+    .ars-app-body .ars-content [class$="-hero"],
+    .ars-app-body .ars-content .facturacion-hero,
+    .ars-app-body .ars-content .dashboard-header,
+    .ars-app-body .ars-content .page-header {
+        padding: 1.2rem !important;
+    }
+}

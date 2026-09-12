@@ -1,0 +1,190 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva secuencia e-NCF - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="ars-page-header mb-4">
+        <div>
+            <span class="ars-page-kicker">Facturación electrónica</span>
+            <h1 class="ars-page-title">Registrar secuencia e-NCF</h1>
+            <p class="ars-page-subtitle mb-0">
+                Registra el rango autorizado por la DGII para el tipo de comprobante correspondiente.
+            </p>
+        </div>
+        <a href="{{ url_for('facturacion_ncf') }}" class="btn btn-cancelar">
+            <i class="fas fa-arrow-left me-2"></i>Volver
+        </a>
+    </div>
+
+    <div class="ars-form-card" style="max-width: 820px; margin: 0 auto;">
+        <div class="alert alert-info mb-4">
+            El e-NCF tendrá 13 posiciones: <strong>E</strong> + <strong id="tipoFormato">31</strong>
+            + una secuencia de <strong>10 dígitos</strong>.
+        </div>
+        <div class="alert alert-warning mb-4" id="soporteEmision" hidden>
+            Puedes registrar y administrar este rango. Su emisión electrónica se habilitará
+            cuando se incorpore el XML y XSD oficial de este tipo.
+        </div>
+
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="tipo_ecf">Tipo e-CF</label>
+                    <select class="form-select" id="tipo_ecf" name="tipo_ecf" required>
+                        {% for codigo, descripcion in ecf_types.items() %}
+                        <option value="{{ codigo }}" {% if form.get('tipo_ecf', '31') == codigo %}selected{% endif %}>
+                            E{{ codigo }} - {{ descripcion }}
+                        </option>
+                        {% endfor %}
+                        <option value="OTRO" {% if form.get('tipo_ecf') == 'OTRO' %}selected{% endif %}>
+                            Agregar otro tipo e-CF...
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="vista_previa">Formato</label>
+                    <input class="form-control" id="vista_previa" value="E310000000001"
+                           readonly aria-readonly="true">
+                </div>
+
+                <div class="col-12" id="tipoPersonalizadoRow" hidden>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="tipo_ecf_personalizado">
+                                Código del nuevo tipo <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control"
+                                   id="tipo_ecf_personalizado"
+                                   name="tipo_ecf_personalizado"
+                                   value="{{ form.get('tipo_ecf_personalizado', '') }}"
+                                   inputmode="numeric" pattern="[0-9]{2}" maxlength="2"
+                                   placeholder="Ej: 48">
+                            <small class="text-muted">Dos dígitos distintos de 00.</small>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="descripcion_tipo_ecf">
+                                Descripción <span class="text-danger">*</span>
+                            </label>
+                            <input type="text" class="form-control"
+                                   id="descripcion_tipo_ecf"
+                                   name="descripcion_tipo_ecf"
+                                   value="{{ form.get('descripcion_tipo_ecf', '') }}"
+                                   maxlength="150"
+                                   placeholder="Nombre del comprobante electrónico">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <label class="form-label" for="secuencia_inicial">
+                        Secuencia inicial <span class="text-danger">*</span>
+                    </label>
+                    <input type="number" class="form-control" id="secuencia_inicial"
+                           name="secuencia_inicial" min="1" max="9999999999"
+                           value="{{ form.get('secuencia_inicial', '1') }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="secuencia_final">
+                        Secuencia final <span class="text-danger">*</span>
+                    </label>
+                    <input type="number" class="form-control" id="secuencia_final"
+                           name="secuencia_final" min="1" max="9999999999"
+                           value="{{ form.get('secuencia_final', '') }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="ultimo_numero">
+                        Último número utilizado
+                    </label>
+                    <input type="number" class="form-control" id="ultimo_numero"
+                           name="ultimo_numero" min="0" max="9999999999"
+                           value="{{ form.get('ultimo_numero', '0') }}">
+                    <small class="text-muted">Usa 0 cuando el rango aún no se ha utilizado.</small>
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="fecha_autorizacion">
+                        Fecha de autorización
+                    </label>
+                    <input type="date" class="form-control" id="fecha_autorizacion"
+                           name="fecha_autorizacion"
+                           value="{{ form.get('fecha_autorizacion', '') }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="fecha_vencimiento">
+                        Fecha de vencimiento <span class="text-danger">*</span>
+                    </label>
+                    <input type="date" class="form-control" id="fecha_vencimiento"
+                           name="fecha_vencimiento"
+                           value="{{ form.get('fecha_vencimiento', '') }}" required>
+                </div>
+            </div>
+
+            <div class="ars-active-check mt-4">
+                <input type="checkbox" id="activo" name="activo" value="1"
+                       {% if form.get('activo', '1') == '1' %}checked{% endif %}>
+                <div class="ars-active-check-copy">
+                    <label for="activo">Secuencia activa</label>
+                    <small>Solo una secuencia vigente podrá reservar números al emitir.</small>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{{ url_for('facturacion_ncf') }}" class="btn btn-cancelar">
+                    Cancelar
+                </a>
+                <button type="submit" class="btn btn-guardar">
+                    <i class="fas fa-save me-2"></i>Guardar secuencia
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const tipoEcf = document.getElementById('tipo_ecf');
+const vistaPrevia = document.getElementById('vista_previa');
+const tipoFormato = document.getElementById('tipoFormato');
+const soporteEmision = document.getElementById('soporteEmision');
+const tipoPersonalizadoRow = document.getElementById('tipoPersonalizadoRow');
+const tipoPersonalizado = document.getElementById('tipo_ecf_personalizado');
+const descripcionPersonalizada = document.getElementById('descripcion_tipo_ecf');
+
+function tipoSeleccionado() {
+    return tipoEcf.value === 'OTRO'
+        ? tipoPersonalizado.value.trim()
+        : tipoEcf.value;
+}
+
+function actualizarTipoEcf() {
+    const esPersonalizado = tipoEcf.value === 'OTRO';
+    const tipo = tipoSeleccionado();
+    tipoPersonalizadoRow.hidden = !esPersonalizado;
+    tipoPersonalizado.required = esPersonalizado;
+    descripcionPersonalizada.required = esPersonalizado;
+    tipoFormato.textContent = /^\d{2}$/.test(tipo) ? tipo : '--';
+    vistaPrevia.value = /^\d{2}$/.test(tipo)
+        ? `E${tipo}0000000001`
+        : 'Complete el código';
+    soporteEmision.hidden = tipo === '31';
+}
+
+tipoEcf.addEventListener('change', actualizarTipoEcf);
+tipoPersonalizado.addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '').slice(0, 2);
+    actualizarTipoEcf();
+});
+actualizarTipoEcf();
+
+document.getElementById('secuencia_inicial').addEventListener('input', function () {
+    const ultimo = document.getElementById('ultimo_numero');
+    if (!ultimo.dataset.edited) {
+        ultimo.value = Math.max((parseInt(this.value, 10) || 1) - 1, 0);
+    }
+});
+document.getElementById('ultimo_numero').addEventListener('input', function () {
+    this.dataset.edited = 'true';
+});
+</script>
+{% endblock %}

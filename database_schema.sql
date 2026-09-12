@@ -348,17 +348,8 @@ CREATE TABLE IF NOT EXISTS auditoria (
 -- DATOS INICIALES
 -- ============================================
 
--- Insertar usuario administrador por defecto
--- Contraseña: Admin123 (debes cambiarla después del primer login)
-INSERT INTO usuarios (nombre, email, password_hash, perfil, activo, password_temporal) 
-VALUES (
-    'Administrador',
-    'admin@facturacion.com',
-    'scrypt:32768:8:1$LrB4IzYGPmVqSJLI$e8c7f3f9c8b4e3d2a1f5c6b7d8e9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1',
-    'Administrador',
-    1,
-    1
-) ON DUPLICATE KEY UPDATE nombre = nombre;
+-- No se insertan usuarios ni contraseñas predeterminadas.
+-- Crear el primer administrador con crear_admin.py.
 
 -- Insertar algunas ARS de ejemplo
 INSERT INTO ars (codigo, nombre, activo) VALUES

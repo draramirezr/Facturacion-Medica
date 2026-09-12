@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <script>
+        (() => {
+            try {
+                const saved = localStorage.getItem('arsflow-color-mode');
+                const mode = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.dataset.colorMode = mode;
+                document.documentElement.style.colorScheme = mode;
+            } catch (error) {
+                document.documentElement.dataset.colorMode = 'light';
+            }
+        })();
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="ARSFlow integra gestión médica, expedientes clínicos, citas, recetas, licencias y facturación tradicional y electrónica e-CF en una sola plataforma.">
+    <title>ARSFlow | Gestión médica y facturación conectadas</title>
+    <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary:#119c8f; --primary-dark:#087d73; --primary-soft:#ecfbf8; --navy:#172554; --text:#172033; --muted:#64748b; --border:#e5edf3; --surface:#fff; --background:#f8fafb; }
+        * { box-sizing:border-box; }
+        html { scroll-behavior:smooth; }
+        body { margin:0; background:var(--background); color:var(--text); font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
+        a { color:inherit; }
+        .container { width:min(1160px,calc(100% - 40px)); margin:0 auto; }
+        .site-nav { position:sticky; z-index:30; top:0; border-bottom:1px solid rgba(229,237,243,.9); background:rgba(255,255,255,.96); }
+        .nav-inner { min-height:74px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
+        .brand { width:190px; height:52px; overflow:hidden; position:relative; flex:0 0 auto; }
+        .brand img { position:absolute; width:292px; max-width:none; top:-108px; left:-52px; }
+        .nav-links { display:flex; align-items:center; gap:28px; color:#526071; font-size:.84rem; font-weight:600; }
+        .nav-links a { text-decoration:none; }
+        .nav-links a:hover { color:var(--primary-dark); }
+        .nav-actions { display:flex; align-items:center; gap:9px; }
+        .theme-button { width:44px; min-width:44px; padding:0; }
+        .button { min-height:44px; padding:0 20px; display:inline-flex; align-items:center; justify-content:center; gap:9px; border:1px solid transparent; border-radius:10px; font-size:.84rem; font-weight:700; text-decoration:none; }
+        .button-primary { background:var(--primary); color:#fff; }
+        .button-primary:hover { background:var(--primary-dark); color:#fff; }
+        .button-secondary { border-color:#cbd8e3; background:#fff; color:#334155; }
+        .button-secondary:hover { border-color:var(--primary); color:var(--primary-dark); }
+        .hero { position:relative; overflow:hidden; padding:72px 0 64px; background:linear-gradient(145deg,#f2fdfb 0%,#f8fafb 58%,#eaf9f6 100%); }
+        .hero::after { content:""; position:absolute; width:430px; height:430px; right:-190px; top:-180px; border:70px solid rgba(17,156,143,.06); border-radius:50%; }
+        .hero-grid { position:relative; z-index:1; display:grid; grid-template-columns:1.02fr .98fr; align-items:center; gap:64px; }
+        .eyebrow { display:inline-flex; align-items:center; gap:8px; margin-bottom:20px; color:var(--primary-dark); font-size:.72rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+        .hero h1 { max-width:650px; margin:0 0 22px; color:#14213d; font-size:clamp(2.45rem,4.3vw,3.75rem); line-height:1.06; letter-spacing:-.05em; }
+        .hero h1 span { color:var(--primary-dark); }
+        .hero-copy { max-width:610px; margin:0 0 30px; color:var(--muted); font-size:1.04rem; line-height:1.75; }
+        .hero-actions { display:flex; flex-wrap:wrap; gap:12px; }
+        .hero-note { display:flex; flex-wrap:wrap; gap:16px; margin-top:26px; color:#607084; font-size:.76rem; font-weight:600; }
+        .hero-note span { display:flex; align-items:center; gap:7px; }
+        .hero-note i { color:var(--primary-dark); }
+        .app-preview { padding:16px; border:1px solid #dce7ee; border-radius:22px; background:#fff; }
+        .preview-bar { display:flex; align-items:center; gap:6px; padding:3px 2px 14px; }
+        .preview-dot { width:8px; height:8px; border-radius:50%; background:#d7e0e8; }
+        .preview-layout { min-height:410px; display:grid; grid-template-columns:118px 1fr; overflow:hidden; border:1px solid var(--border); border-radius:14px; }
+        .preview-sidebar { padding:18px 12px; border-right:1px solid var(--border); background:#fff; }
+        .preview-logo { width:31px; height:31px; display:grid; place-items:center; margin-bottom:22px; border-radius:8px; background:var(--primary); color:white; }
+        .preview-menu { display:grid; gap:5px; }
+        .preview-link { display:flex; align-items:center; gap:6px; padding:7px 6px; border-radius:6px; color:#6b7a8c; font-size:.52rem; font-weight:600; }
+        .preview-link i { width:11px; color:#91a1b1; text-align:center; }
+        .preview-link.active { background:var(--primary-soft); color:var(--primary-dark); }
+        .preview-link.active i { color:var(--primary-dark); }
+        .preview-content { padding:25px 22px; background:#f8fafc; }
+        .preview-content-head { display:flex; align-items:start; justify-content:space-between; gap:10px; margin-bottom:20px; }
+        .preview-content-head strong { display:block; color:#263553; font-size:.73rem; }
+        .preview-content-head span { color:#91a1b1; font-size:.49rem; }
+        .demo-badge { padding:4px 6px; border:1px solid #bde6df; border-radius:5px; background:#effbf9; color:var(--primary-dark)!important; font-weight:700; }
+        .preview-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+        .preview-card { min-height:92px; padding:12px; border:1px solid var(--border); border-radius:10px; background:white; }
+        .preview-card i { color:var(--primary-dark); }
+        .preview-card-label { display:block; margin:8px 0 5px; color:#8492a3; font-size:.48rem; }
+        .preview-card strong { display:block; color:#223253; font-size:.7rem; }
+        .preview-card small { display:block; margin-top:4px; color:#159b70; font-size:.42rem; }
+        .preview-line { width:72%; height:6px; border-radius:3px; background:#d5dfe8; }
+        .preview-table { margin-top:14px; padding:16px; border:1px solid var(--border); border-radius:11px; background:white; }
+        .preview-lower { display:grid; grid-template-columns:.9fr 1.1fr; gap:10px; }
+        .preview-chart { margin-top:14px; padding:16px; border:1px solid var(--border); border-radius:11px; background:white; }
+        .preview-panel-title { color:#31405c; font-size:.55rem; font-weight:700; }
+        .preview-donut { width:82px; height:82px; margin:14px auto 10px; border-radius:50%; background:conic-gradient(var(--primary) 0 34%,#334b78 34% 57%,#79d7ce 57% 78%,#d7ece9 78%); position:relative; }
+        .preview-donut::after { content:""; position:absolute; inset:22px; border-radius:50%; background:white; }
+        .preview-legend { display:grid; grid-template-columns:1fr 1fr; gap:4px; color:#8390a0; font-size:.4rem; }
+        .preview-legend span::before { content:""; display:inline-block; width:5px; height:5px; margin-right:4px; border-radius:50%; background:var(--primary); }
+        .preview-row { display:grid; grid-template-columns:10px 1fr auto; gap:7px; align-items:start; padding:9px 0; border-bottom:1px solid #edf1f5; }
+        .preview-row:last-child { border:0; }
+        .preview-row i { color:var(--primary-dark); font-size:.48rem; }
+        .preview-row strong { display:block; color:#4c5b6f; font-size:.46rem; font-weight:600; }
+        .preview-row span { color:#9aa6b4; font-size:.39rem; }
+        .preview-row time { color:#8794a4; font-size:.37rem; white-space:nowrap; }
+        .trust-strip { border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:white; }
+        .trust-inner { min-height:92px; display:flex; align-items:center; justify-content:center; gap:42px; flex-wrap:wrap; color:#506074; font-size:.79rem; font-weight:700; }
+        .trust-inner span { display:flex; align-items:center; gap:9px; }
+        .trust-inner i { color:var(--primary-dark); font-size:1rem; }
+        .section { padding:70px 0; }
+        .section-white { background:white; }
+        .section-head { max-width:680px; margin:0 auto 46px; text-align:center; }
+        .section-label { color:var(--primary-dark); font-size:.72rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+        .section h2 { margin:10px 0 14px; color:#16213b; font-size:clamp(2rem,3.5vw,3rem); letter-spacing:-.04em; }
+        .section-head p { margin:0; color:var(--muted); line-height:1.7; }
+        .features { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
+        .feature { padding:24px 18px; border:1px solid var(--border); border-radius:15px; background:white; text-align:center; }
+        .feature-icon { width:46px; height:46px; display:grid; place-items:center; margin:0 auto 18px; border:1px solid rgba(17,156,143,.22); border-radius:11px; background:var(--primary-soft); color:var(--primary-dark); }
+        .feature h3 { margin:0 0 9px; color:#23304c; font-size:1rem; }
+        .feature p { margin:0; color:var(--muted); font-size:.84rem; line-height:1.65; }
+        .workflow { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; counter-reset:steps; }
+        .step { position:relative; padding:26px 22px; border-top:2px solid var(--primary); background:white; }
+        .step::before { counter-increment:steps; content:"0" counter(steps); display:block; margin-bottom:24px; color:var(--primary-dark); font-size:.73rem; font-weight:800; letter-spacing:.08em; }
+        .step h3 { margin:0 0 8px; font-size:.95rem; }
+        .step p { margin:0; color:var(--muted); font-size:.8rem; line-height:1.6; }
+        .results { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:52px; }
+        .result-card { padding:24px; border:1px solid var(--border); border-radius:14px; background:linear-gradient(145deg,#fff,#f7fcfd); }
+        .result-card i { color:var(--primary-dark); font-size:1.15rem; }
+        .result-card strong { display:block; margin:18px 0 6px; color:#172554; font-size:1.05rem; }
+        .result-card span { color:var(--muted); font-size:.78rem; line-height:1.55; }
+        .integrations { display:grid; grid-template-columns:1fr 1.15fr; align-items:center; gap:60px; }
+        .integration-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+        .integration-item { padding:22px; border:1px solid var(--border); border-radius:13px; background:white; }
+        .integration-item i { width:38px; height:38px; display:grid; place-items:center; margin-bottom:15px; border-radius:9px; background:var(--primary-soft); color:var(--primary-dark); }
+        .integration-item strong { display:block; margin-bottom:5px; font-size:.88rem; }
+        .integration-item span { color:var(--muted); font-size:.76rem; line-height:1.5; }
+        .ecf-showcase { display:grid; grid-template-columns:.9fr 1.1fr; align-items:center; gap:54px; }
+        .ecf-copy h2 { margin:10px 0 16px; }
+        .ecf-copy .hero-copy { margin-bottom:22px; }
+        .ecf-points { display:grid; gap:11px; margin:0; padding:0; list-style:none; }
+        .ecf-points li { display:flex; align-items:flex-start; gap:10px; color:var(--muted); font-size:.82rem; line-height:1.5; }
+        .ecf-points i { margin-top:3px; color:var(--primary-dark); }
+        .ecf-panel { padding:28px; border:1px solid var(--border); border-radius:18px; background:var(--surface); }
+        .ecf-panel-head { display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:18px; border-bottom:1px solid var(--border); }
+        .ecf-panel-head strong { color:#22304c; font-size:1rem; }
+        .ecf-badge { padding:6px 9px; border:1px solid #8dd8cf; border-radius:7px; background:var(--primary-soft); color:var(--primary-dark); font-size:.68rem; font-weight:800; }
+        .ecf-flow { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:18px; }
+        .ecf-flow-item { display:grid; grid-template-columns:36px 1fr; align-items:center; gap:10px; padding:13px; border:1px solid var(--border); border-radius:10px; }
+        .ecf-flow-item i { width:34px; height:34px; display:grid; place-items:center; border-radius:8px; background:var(--primary-soft); color:var(--primary-dark); }
+        .ecf-flow-item strong { display:block; margin-bottom:2px; color:#334155; font-size:.76rem; }
+        .ecf-flow-item span { display:block; color:var(--muted); font-size:.65rem; line-height:1.35; }
+        .ecf-note { margin-top:16px; padding:12px 14px; border-left:3px solid var(--primary); background:#f1faf8; color:#526274; font-size:.72rem; line-height:1.5; }
+        .security-grid { display:grid; grid-template-columns:.85fr 1.15fr; align-items:center; gap:72px; }
+        .security-panel { padding:34px; border:1px solid var(--border); border-radius:18px; background:linear-gradient(150deg,#172554,#1d335e); color:white; }
+        .security-shield { width:64px; height:64px; display:grid; place-items:center; margin-bottom:48px; border:1px solid rgba(255,255,255,.2); border-radius:15px; background:rgba(255,255,255,.07); color:#67e8f9; font-size:1.45rem; }
+        .security-panel h3 { margin:0 0 12px; font-size:1.45rem; }
+        .security-panel p { margin:0; color:#b9c8dd; line-height:1.7; }
+        .check-list { display:grid; gap:18px; padding:0; list-style:none; }
+        .check-list li { display:grid; grid-template-columns:38px 1fr; gap:13px; align-items:start; }
+        .check-list i { width:36px; height:36px; display:grid; place-items:center; border:1px solid rgba(17,156,143,.22); border-radius:9px; background:var(--primary-soft); color:var(--primary-dark); }
+        .check-list strong { display:block; margin-bottom:5px; color:#26334e; font-size:.9rem; }
+        .check-list span { color:var(--muted); font-size:.8rem; line-height:1.55; }
+        .security-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+        .security-card { padding:25px; border:1px solid var(--border); border-radius:15px; background:white; }
+        .security-card i { width:42px; height:42px; display:grid; place-items:center; margin-bottom:20px; border:1px solid rgba(17,156,143,.2); border-radius:11px; background:var(--primary-soft); color:var(--primary-dark); }
+        .security-card h3 { margin:0 0 8px; color:#24314d; font-size:.92rem; }
+        .security-card p { margin:0; color:var(--muted); font-size:.78rem; line-height:1.6; }
+        .security-note { margin-top:18px; padding:13px 16px; border-left:3px solid var(--primary); background:#f1faf8; color:#526274; font-size:.78rem; text-align:center; }
+        .security-note i { margin-right:8px; color:var(--primary-dark); }
+        .plans-intro { max-width:720px; margin:0 auto 34px; text-align:center; }
+        .plans-intro h2 { margin:10px 0 12px; }
+        .plans-intro p { margin:0; color:var(--muted); line-height:1.7; }
+        .billing-switch { width:max-content; max-width:100%; display:flex; gap:5px; margin:24px auto 0; padding:5px; border:1px solid var(--border); border-radius:10px; background:white; }
+        .billing-option { min-height:35px; padding:0 13px; border:0; border-radius:7px; background:transparent; color:#64748b; font:700 .73rem "Inter",sans-serif; cursor:pointer; }
+        .billing-option.active { background:var(--primary); color:white; }
+        .billing-option small { margin-left:5px; font-size:.62rem; }
+        .plan-options { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
+        .plan-option { padding:28px; border:1px solid var(--border); border-radius:16px; background:white; }
+        .plan-option.featured { border-color:#80cfc5; background:linear-gradient(180deg,#f1fcfa,#fff 38%); }
+        .plan-option-icon { width:46px; height:46px; display:grid; place-items:center; margin-bottom:20px; border-radius:11px; background:var(--primary-soft); color:var(--primary-dark); }
+        .plan-option h3 { margin:0 0 8px; color:#21304c; font-size:1.05rem; }
+        .plan-option > p { min-height:42px; margin:0 0 18px; color:var(--muted); font-size:.78rem; line-height:1.55; }
+        .plan-price { min-height:68px; margin-bottom:18px; padding-bottom:17px; border-bottom:1px solid var(--border); }
+        .plan-price strong { color:#172554; font-size:1.75rem; letter-spacing:-.04em; }
+        .plan-price span { color:var(--muted); font-size:.7rem; }
+        .annual-detail { display:none; margin-top:4px; color:var(--primary-dark); font-size:.63rem; font-weight:700; }
+        .annual-mode .annual-detail { display:block; }
+        .plan-limits { display:grid; gap:10px; padding:0; margin:0; list-style:none; }
+        .plan-limits li { display:flex; align-items:center; gap:9px; color:#526174; font-size:.75rem; }
+        .plan-limits i { width:17px; color:var(--primary-dark); text-align:center; }
+        .reference-note { max-width:790px; margin:24px auto 0; padding:12px 15px; border:1px solid #cbe8e3; border-radius:9px; background:#f3fbfa; color:#607083; font-size:.72rem; line-height:1.5; text-align:center; }
+        .plans-action { margin-top:26px; text-align:center; }
+        .coming { display:inline-flex; align-items:center; gap:8px; margin-bottom:14px; padding:7px 10px; border:1px solid rgba(17,156,143,.25); border-radius:8px; background:white; color:var(--primary-dark); font-size:.72rem; font-weight:800; }
+        .cta { padding:30px 0 76px; background:white; }
+        .cta-card { padding:46px 52px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:34px; border:1px solid #bce9ee; border-radius:20px; background:linear-gradient(130deg,#ecfeff 0%,#f8ffff 62%,#dff9f7 100%); }
+        .cta h2 { margin:0 0 12px; color:#172554; }
+        .cta p { max-width:650px; margin:0; color:var(--muted); line-height:1.7; }
+        .cta-actions { display:grid; gap:9px; min-width:210px; }
+        footer { padding:48px 0 24px; border-top:1px solid var(--border); background:white; color:#7c8a9b; font-size:.75rem; }
+        .footer-grid { display:grid; grid-template-columns:1.7fr repeat(3,1fr); gap:48px; padding-bottom:34px; }
+        .footer-brand p { max-width:300px; margin:14px 0 0; line-height:1.65; }
+        .footer-title { display:block; margin-bottom:14px; color:#334155; font-size:.76rem; }
+        .footer-links { display:grid; gap:9px; }
+        .footer-links a { text-decoration:none; }
+        .footer-links a:hover { color:var(--primary-dark); }
+        .footer-bottom { display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; padding-top:20px; border-top:1px solid var(--border); }
+        .whatsapp-float { position:fixed; z-index:40; right:24px; bottom:24px; width:56px; height:56px; display:grid; place-items:center; border:1px solid #159447; border-radius:50%; background:#25d366; color:white; font-size:1.65rem; text-decoration:none; }
+        .whatsapp-float:hover { background:#1fb958; color:white; }
+        html[data-color-mode="dark"] { --text:#e7edf6; --muted:#9eacbd; --border:#27354a; --surface:#111a2b; --background:#0b1220; color-scheme:dark; }
+        html[data-color-mode="dark"] body,
+        html[data-color-mode="dark"] .section { background:#0b1220; color:var(--text); }
+        html[data-color-mode="dark"] .site-nav,
+        html[data-color-mode="dark"] .section-white,
+        html[data-color-mode="dark"] footer,
+        html[data-color-mode="dark"] .trust-strip { background:#101929; border-color:var(--border); }
+        html[data-color-mode="dark"] .hero { background:linear-gradient(145deg,#102128,#0b1220 58%,#10231f); }
+        html[data-color-mode="dark"] :is(.hero h1,.section h2,.feature h3,.step h3,.result-card strong,.integration-item strong,.security-card h3,.plan-option h3,.plan-price strong,.cta h2,.footer-title) { color:#edf3fa; }
+        html[data-color-mode="dark"] :is(.app-preview,.preview-sidebar,.preview-card,.preview-chart,.preview-table,.feature,.step,.result-card,.integration-item,.security-card,.plan-option,.billing-switch,.ecf-panel,.ecf-flow-item) { background:#111a2b; border-color:var(--border); }
+        html[data-color-mode="dark"] :is(.ecf-panel-head strong,.ecf-flow-item strong) { color:#dce7f2; }
+        html[data-color-mode="dark"] .preview-content { background:#0d1625; }
+        html[data-color-mode="dark"] .preview-layout,
+        html[data-color-mode="dark"] .preview-sidebar,
+        html[data-color-mode="dark"] .preview-row,
+        html[data-color-mode="dark"] .plan-price { border-color:var(--border); }
+        html[data-color-mode="dark"] .preview-donut::after { background:#111a2b; }
+        html[data-color-mode="dark"] .preview-content-head strong,
+        html[data-color-mode="dark"] .preview-card strong,
+        html[data-color-mode="dark"] .preview-panel-title { color:#dce7f2; }
+        html[data-color-mode="dark"] .plans-card,
+        html[data-color-mode="dark"] .plan-option.featured,
+        html[data-color-mode="dark"] .cta-card { background:linear-gradient(145deg,#102722,#111a2b); border-color:#285349; }
+        html[data-color-mode="dark"] .button-secondary { background:#121d2f; border-color:#35455c; color:#dbe5ef; }
+        html[data-color-mode="dark"] .reference-note,
+        html[data-color-mode="dark"] .ecf-note,
+        html[data-color-mode="dark"] .security-note { background:#10241f; border-color:#285349; color:#a9b7c7; }
+        html[data-color-mode="dark"] .brand { background:#fff; border-radius:8px; }
+        html[data-color-mode="dark"] .footer-links a,
+        html[data-color-mode="dark"] .footer-brand,
+        html[data-color-mode="dark"] .footer-bottom { color:#9eacbd; }
+        @media(max-width:1100px){.features{grid-template-columns:repeat(3,1fr)}.security-cards{grid-template-columns:repeat(2,1fr)}}
+        @media(max-width:960px){ .nav-links{display:none}.hero{padding-top:64px}.hero-grid,.security-grid,.integrations,.ecf-showcase{grid-template-columns:1fr}.app-preview{max-width:620px}.features{grid-template-columns:repeat(2,1fr)}.workflow{grid-template-columns:repeat(2,1fr)}.results{grid-template-columns:repeat(2,1fr)}.footer-grid{grid-template-columns:1.4fr repeat(2,1fr)} }
+        @media(max-width:620px){ .container{width:min(100% - 28px,1160px)}.brand{width:145px}.brand img{width:238px;top:-87px;left:-46px}.nav-inner{min-height:66px}.button{padding:0 15px}.nav-actions .button-secondary{display:none}.nav-actions .theme-button{display:inline-flex;padding:0}.hero{padding:52px 0}.hero-grid{gap:42px}.hero h1{font-size:2.55rem}.preview-layout{grid-template-columns:72px 1fr;min-height:350px}.preview-cards{grid-template-columns:1fr}.preview-card:nth-child(n+2){display:none}.features,.workflow,.results,.integration-grid,.security-cards,.plan-options,.footer-grid,.ecf-flow{grid-template-columns:1fr}.section{padding:66px 0}.cta-card{padding:30px 24px;grid-template-columns:1fr}.trust-inner{gap:18px;padding:20px 0}.nav-login span{display:none}.cta-actions{min-width:0}.whatsapp-float{right:16px;bottom:16px;width:52px;height:52px}.ecf-panel{padding:20px} }
+    </style>
+</head>
+<body>
+    <nav class="site-nav" aria-label="Navegación principal">
+        <div class="container nav-inner">
+            <a class="brand" href="{{ url_for('index') }}" aria-label="ARSFlow inicio"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="ARSFlow"></a>
+            <div class="nav-links"><a href="#inicio">Inicio</a><a href="#beneficios">Características</a><a href="#facturacion-electronica">e-CF</a><a href="#integraciones">Integraciones</a><a href="#planes">Precios</a><a href="#contacto">Contacto</a></div>
+            <div class="nav-actions">
+                <button class="button button-secondary theme-button" type="button" data-theme-toggle aria-label="Activar modo oscuro" title="Modo oscuro"><i class="fas fa-moon" data-theme-icon></i></button>
+                {% if not current_user.is_authenticated %}<a class="button button-secondary" href="{{ url_for('login') }}">Iniciar sesión</a>{% endif %}
+                <a class="button button-primary nav-login" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}"><i class="fas {{ 'fa-table-columns' if current_user.is_authenticated else 'fa-user-plus' }}"></i><span>{{ 'Ir al panel' if current_user.is_authenticated else 'Crear cuenta' }}</span></a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <section class="hero" id="inicio">
+            <div class="container hero-grid">
+                <div>
+                    <span class="eyebrow"><i class="fas fa-shield-heart"></i> Plataforma médica integral</span>
+                    <h1>Centraliza tu gestión médica y facturación <span>en un solo lugar.</span></h1>
+                    <p class="hero-copy">ARSFlow conecta pacientes, historia clínica, citas, facturación tradicional y electrónica e-CF, reclamaciones y pagos para que tu institución trabaje con orden y rapidez.</p>
+                    <div class="hero-actions">
+                        <a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Crear cuenta gratis' }} <i class="fas fa-arrow-right"></i></a>
+                        {% if not current_user.is_authenticated %}<a class="button button-secondary" href="{{ url_for('login') }}"><i class="fas fa-arrow-right-to-bracket"></i> Iniciar sesión</a>{% endif %}
+                    </div>
+                    <div class="hero-note"><span><i class="fas fa-check-circle"></i> Interfaz sencilla</span><span><i class="fas fa-check-circle"></i> Información conectada</span><span><i class="fas fa-check-circle"></i> Acceso seguro</span></div>
+                </div>
+                <div class="app-preview" aria-label="Vista previa de ARSFlow">
+                    <div class="preview-bar"><span class="preview-dot"></span><span class="preview-dot"></span><span class="preview-dot"></span></div>
+                    <div class="preview-layout">
+                        <aside class="preview-sidebar">
+                            <div class="preview-logo"><i class="fas fa-plus"></i></div>
+                            <div class="preview-menu">
+                                <div class="preview-link active"><i class="fas fa-house"></i>Inicio</div>
+                                <div class="preview-link"><i class="fas fa-user-group"></i>Pacientes</div>
+                                <div class="preview-link"><i class="fas fa-notes-medical"></i>Consultas</div>
+                                <div class="preview-link"><i class="fas fa-calendar-days"></i>Agenda</div>
+                                <div class="preview-link"><i class="fas fa-file-invoice"></i>Facturación</div>
+                                <div class="preview-link"><i class="fas fa-file-signature"></i>Reclamaciones</div>
+                                <div class="preview-link"><i class="fas fa-credit-card"></i>Pagos</div>
+                            </div>
+                        </aside>
+                        <div class="preview-content">
+                            <div class="preview-content-head"><div><strong>Resumen general</strong><span>Viernes, 11 de septiembre</span></div><span class="demo-badge">Datos demostrativos</span></div>
+                            <div class="preview-cards">
+                                <div class="preview-card"><i class="fas fa-user-group"></i><span class="preview-card-label">Pacientes activos</span><strong>128</strong><small>12 nuevos este mes</small></div>
+                                <div class="preview-card"><i class="fas fa-calendar-check"></i><span class="preview-card-label">Citas para hoy</span><strong>8</strong><small>6 confirmadas</small></div>
+                                <div class="preview-card"><i class="fas fa-file-invoice"></i><span class="preview-card-label">Facturado este mes</span><strong>RD$ 245,000</strong><small>18 facturas emitidas</small></div>
+                            </div>
+                            <div class="preview-lower">
+                                <div class="preview-chart"><div class="preview-panel-title">Facturación por ARS</div><div class="preview-donut"></div><div class="preview-legend"><span>Universal 34%</span><span>Humano 23%</span><span>Senasa 21%</span><span>Otras 22%</span></div></div>
+                                <div class="preview-table">
+                                    <div class="preview-panel-title">Actividad reciente</div>
+                                    <div class="preview-row"><i class="fas fa-calendar-check"></i><div><strong>Cita confirmada</strong><span>María Rodríguez · Cardiología</span></div><time>10:30</time></div>
+                                    <div class="preview-row"><i class="fas fa-file-medical"></i><div><strong>Historia clínica registrada</strong><span>Consulta completada</span></div><time>09:45</time></div>
+                                    <div class="preview-row"><i class="fas fa-file-invoice-dollar"></i><div><strong>Factura emitida</strong><span>ARS Humano · B02</span></div><time>09:12</time></div>
+                                    <div class="preview-row"><i class="fas fa-prescription"></i><div><strong>Receta médica creada</strong><span>Seguimiento ambulatorio</span></div><time>08:40</time></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="trust-strip"><div class="container trust-inner"><span><i class="fas fa-hospital-user"></i> Paciente 360°</span><span><i class="fas fa-notes-medical"></i> Gestión clínica</span><span><i class="fas fa-file-signature"></i> Facturación electrónica</span><span><i class="fas fa-chart-line"></i> Operación organizada</span></div></div>
+
+        <section class="section section-white" id="beneficios">
+            <div class="container">
+                <header class="section-head"><span class="section-label">Todo conectado</span><h2>Todo lo que necesitas en una sola plataforma</h2><p>Herramientas diseñadas para simplificar la gestión médica y financiera de tu institución.</p></header>
+                <div class="features">
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-hospital-user"></i></div><h3>Pacientes y ARS</h3><p>Expediente 360, aseguradoras y datos del paciente siempre conectados.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-notes-medical"></i></div><h3>Gestión clínica</h3><p>Historias, consultas, emergencias, citas, recetas y licencias médicas.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-shield-halved"></i></div><h3>Validaciones inteligentes</h3><p>Detecta duplicados y revisa datos importantes antes de continuar.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-file-invoice-dollar"></i></div><h3>Facturación y e-CF</h3><p>Emite facturas tradicionales o electrónicas y consulta su estado.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-chart-column"></i></div><h3>Control visible</h3><p>Dashboard, notificaciones y buscador global para decidir con claridad.</p></article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="facturacion-electronica">
+            <div class="container ecf-showcase">
+                <div class="ecf-copy">
+                    <span class="section-label">Facturación electrónica DGII</span>
+                    <h2>Del servicio médico al e-CF, sin duplicar procesos</h2>
+                    <p class="hero-copy">Genera la factura electrónica desde el mismo flujo de facturación. ARSFlow prepara el e-CF 31, firma el documento y conserva el seguimiento de su respuesta.</p>
+                    <ul class="ecf-points">
+                        <li><i class="fas fa-circle-check"></i><span>Factura tradicional y electrónica dentro del mismo módulo.</span></li>
+                        <li><i class="fas fa-circle-check"></i><span>Certificado digital independiente y protegido para cada cliente.</span></li>
+                        <li><i class="fas fa-circle-check"></i><span>Estados separados para enviado, aceptado, rechazado y errores.</span></li>
+                        <li><i class="fas fa-circle-check"></i><span>XML firmado, respuesta DGII, código QR y representación impresa.</span></li>
+                    </ul>
+                </div>
+                <div class="ecf-panel" aria-label="Flujo de facturación electrónica">
+                    <div class="ecf-panel-head">
+                        <strong>Proceso electrónico integrado</strong>
+                        <span class="ecf-badge">e-CF 31</span>
+                    </div>
+                    <div class="ecf-flow">
+                        <div class="ecf-flow-item"><i class="fas fa-file-circle-plus"></i><div><strong>Generar factura</strong><span>Usa los datos clínicos y administrativos existentes.</span></div></div>
+                        <div class="ecf-flow-item"><i class="fas fa-hashtag"></i><div><strong>Asignar e-NCF</strong><span>Reserva una secuencia única por cliente.</span></div></div>
+                        <div class="ecf-flow-item"><i class="fas fa-code"></i><div><strong>Validar XML</strong><span>Comprueba la estructura oficial antes del envío.</span></div></div>
+                        <div class="ecf-flow-item"><i class="fas fa-file-signature"></i><div><strong>Firma digital</strong><span>Utiliza el certificado correspondiente al RNC emisor.</span></div></div>
+                        <div class="ecf-flow-item"><i class="fas fa-building-columns"></i><div><strong>Respuesta DGII</strong><span>Diferencia recepción y aceptación fiscal.</span></div></div>
+                        <div class="ecf-flow-item"><i class="fas fa-qrcode"></i><div><strong>QR y comprobante</strong><span>Conserva la trazabilidad y representación impresa.</span></div></div>
+                    </div>
+                    <div class="ecf-note"><i class="fas fa-circle-info"></i> Disponibilidad sujeta a certificado digital, secuencias autorizadas, configuración y certificación de la DGII.</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="modulos">
+            <div class="container">
+                <header class="section-head"><span class="section-label">Para profesionales y clínicas</span><h2>Más control para tu práctica médica</h2><p>Trabaja con claridad tanto si ejerces de forma independiente como si gestionas una clínica o centro médico.</p></header>
+                <div class="results">
+                    <article class="result-card"><i class="fas fa-bolt"></i><strong>Trabajo más ágil</strong><span>Accesos rápidos y procesos conectados para reducir pasos innecesarios.</span></article>
+                    <article class="result-card"><i class="fas fa-shield-halved"></i><strong>Menos reprocesos</strong><span>Validaciones que ayudan a detectar duplicados y datos incompletos.</span></article>
+                    <article class="result-card"><i class="fas fa-chart-line"></i><strong>Mayor seguimiento</strong><span>Notificaciones, estados e historial para saber qué requiere atención.</span></article>
+                    <article class="result-card"><i class="fas fa-lock"></i><strong>Control y trazabilidad</strong><span>Usuarios, permisos y registros organizados para cada entorno de trabajo.</span></article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section section-white" id="integraciones">
+            <div class="container integrations">
+                <div><span class="section-label">Información conectada</span><h2>Clínica y administración trabajan juntas</h2><p class="hero-copy">Cada módulo alimenta el siguiente proceso para evitar que los datos del paciente se queden aislados.</p><a class="button button-secondary" href="#planes">Conocer disponibilidad</a></div>
+                <div class="integration-grid">
+                    <article class="integration-item"><i class="fas fa-heart-pulse"></i><strong>Historia Clínica</strong><span>Consultas, evolución, diagnósticos y seguimiento.</span></article>
+                    <article class="integration-item"><i class="fas fa-calendar-check"></i><strong>Agenda Médica</strong><span>Citas manuales o creadas desde la consulta.</span></article>
+                    <article class="integration-item"><i class="fas fa-building-shield"></i><strong>ARS, e-CF y reclamaciones</strong><span>Facturación tradicional o electrónica organizada por aseguradora y estado.</span></article>
+                    <article class="integration-item"><i class="fas fa-file-excel"></i><strong>Importación de datos</strong><span>Carga y validación para acelerar tareas administrativas.</span></article>
+                </div>
+            </div>
+        </section>
+
+        <section class="section" id="seguridad">
+            <div class="container">
+                <header class="section-head"><span class="section-label">Confianza en cada registro</span><h2>Tu información siempre bajo control</h2><p>Herramientas de acceso y trazabilidad que funcionan para médicos independientes, consultorios y clínicas.</p></header>
+                <div class="security-cards">
+                    <article class="security-card"><i class="fas fa-user-lock"></i><h3>Acceso por usuario</h3><p>Cada persona entra con sus propias credenciales y perfil de acceso.</p></article>
+                    <article class="security-card"><i class="fas fa-building-shield"></i><h3>Entornos separados</h3><p>La información de cada profesional o centro permanece dentro de su espacio.</p></article>
+                    <article class="security-card"><i class="fas fa-clock-rotate-left"></i><h3>Historial conservado</h3><p>Consultas, evoluciones y documentos mantienen su continuidad en el tiempo.</p></article>
+                    <article class="security-card"><i class="fas fa-file-circle-check"></i><h3>Documentos trazables</h3><p>Licencias y recetas anuladas permanecen registradas sin desaparecer del historial.</p></article>
+                </div>
+                <div class="security-note"><i class="fas fa-shield-halved"></i>La seguridad también depende de una configuración adecuada, usuarios responsables y respaldos periódicos.</div>
+            </div>
+        </section>
+
+        <section class="section" id="planes">
+            <div class="container">
+                <div class="plans-intro">
+                    <span class="section-label">Propuesta de planes</span>
+                    <h2>Una renta según el tamaño de tu operación</h2>
+                    <p>Todos los planes incluyen pacientes y facturas ilimitadas. La cantidad de usuarios diferencia cada opción y el pago anual incluye descuento.</p>
+                    <div class="billing-switch" aria-label="Modalidad de pago">
+                        <button class="billing-option active" type="button" data-period="monthly">Pago mensual</button>
+                        <button class="billing-option" type="button" data-period="annual">Pago anual <small>15% menos</small></button>
+                    </div>
+                </div>
+                <div class="plan-options" id="pricingOptions">
+                    <article class="plan-option">
+                        <div class="plan-option-icon"><i class="fas fa-user-doctor"></i></div>
+                        <h3>Independiente</h3>
+                        <p>Para un profesional que gestiona directamente su consulta.</p>
+                        <div class="plan-price" data-monthly="US$ 20" data-annual="US$ 17"><strong>US$ 20</strong> <span>/ mes</span><div class="annual-detail">US$ 204 facturados anualmente</div></div>
+                        <ul class="plan-limits"><li><i class="fas fa-user"></i>1 usuario</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-hospital-user"></i>Pacientes ilimitados</li><li><i class="fas fa-check"></i>Gestión clínica y administrativa</li></ul>
+                    </article>
+                    <article class="plan-option featured">
+                        <div class="plan-option-icon"><i class="fas fa-house-medical"></i></div>
+                        <h3>Consultorio</h3>
+                        <p>Para equipos pequeños con varios profesionales y pacientes.</p>
+                        <div class="plan-price" data-monthly="US$ 40" data-annual="US$ 34"><strong>US$ 40</strong> <span>/ mes</span><div class="annual-detail">US$ 408 facturados anualmente</div></div>
+                        <ul class="plan-limits"><li><i class="fas fa-users"></i>Hasta 3 usuarios</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-hospital-user"></i>Pacientes ilimitados</li><li><i class="fas fa-check"></i>Agenda y operación compartida</li></ul>
+                    </article>
+                    <article class="plan-option">
+                        <div class="plan-option-icon"><i class="fas fa-hospital"></i></div>
+                        <h3>Clínica</h3>
+                        <p>Para centros con mayor volumen clínico y administrativo.</p>
+                        <div class="plan-price" data-monthly="US$ 100" data-annual="US$ 85"><strong>US$ 100</strong> <span>/ mes</span><div class="annual-detail">US$ 1,020 facturados anualmente</div></div>
+                        <ul class="plan-limits"><li><i class="fas fa-users"></i>Hasta 10 usuarios</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-hospital-user"></i>Pacientes ilimitados</li><li><i class="fas fa-check"></i>Múltiples áreas y profesionales</li></ul>
+                    </article>
+                </div>
+                <div class="reference-note"><strong>Usuario adicional: US$ 5 al mes.</strong><br><i class="fas fa-circle-info"></i> Precios, límites y descuento mostrados únicamente como propuesta visual. No constituyen una oferta comercial definitiva.</div>
+                <div class="plans-action"><a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Comenzar gratis' }} <i class="fas fa-arrow-right"></i></a></div>
+            </div>
+        </section>
+
+        <section class="cta"><div class="container"><div class="cta-card"><div><h2>¿Listo para transformar tu gestión médica?</h2><p>Reúne la atención clínica, la agenda y la facturación en una herramienta clara y conectada.</p></div><div class="cta-actions"><a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Crear cuenta gratis' }} <i class="fas fa-arrow-right"></i></a>{% if not current_user.is_authenticated %}<a class="button button-secondary" href="{{ url_for('login') }}">Ya tengo una cuenta</a>{% endif %}</div></div></div></section>
+    </main>
+
+    <a class="whatsapp-float" href="https://wa.me/18098446360?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20ARSFlow" target="_blank" rel="noopener noreferrer" aria-label="Contactar ARSFlow por WhatsApp" title="Escríbenos por WhatsApp"><i class="fab fa-whatsapp"></i></a>
+
+    <footer id="contacto"><div class="container">
+        <div class="footer-grid">
+            <div class="footer-brand"><strong>ARSFlow</strong><p>Plataforma para centralizar la gestión clínica, administrativa y financiera de profesionales y centros médicos.</p></div>
+            <div><strong class="footer-title">Producto</strong><div class="footer-links"><a href="#beneficios">Características</a><a href="#integraciones">Integraciones</a><a href="#planes">Planes</a></div></div>
+            <div><strong class="footer-title">Recursos</strong><div class="footer-links"><a href="{{ url_for('login') }}">Centro de acceso</a><a href="{{ url_for('registro') }}">Crear cuenta</a><a href="#seguridad">Seguridad</a></div></div>
+            <div><strong class="footer-title">Plataforma</strong><div class="footer-links"><a href="#modulos">Cómo funciona</a><a href="#contacto">Contacto</a><a href="{{ url_for('login') }}">Soporte</a></div></div>
+        </div>
+        <div class="footer-bottom"><span>© {{ current_year }} ARSFlow. Todos los derechos reservados.</span><span>Gestión médica y facturación conectadas.</span></div>
+    </div></footer>
+    <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=1"></script>
+    <script>
+        (() => {
+            const buttons = document.querySelectorAll('.billing-option');
+            const pricing = document.getElementById('pricingOptions');
+            buttons.forEach(button => button.addEventListener('click', () => {
+                const annual = button.dataset.period === 'annual';
+                buttons.forEach(option => {
+                    option.classList.toggle('active', option === button);
+                    option.setAttribute('aria-pressed', option === button ? 'true' : 'false');
+                });
+                pricing.classList.toggle('annual-mode', annual);
+                pricing.querySelectorAll('.plan-price').forEach(price => {
+                    price.querySelector('strong').textContent = annual ? price.dataset.annual : price.dataset.monthly;
+                });
+            }));
+        })();
+    </script>
+</body>
+</html>

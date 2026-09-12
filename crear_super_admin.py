@@ -9,6 +9,7 @@ import pymysql
 import os
 import re
 import sys
+from getpass import getpass
 from dotenv import load_dotenv
 from werkzeug.security import generate_password_hash
 
@@ -67,20 +68,23 @@ def crear_super_admin():
         print("="*60)
     
     # Solicitar datos del usuario
-    print("\n📝 Ingrese los datos del Super Administrador:")
-    print("   (Presione Enter para usar valores por defecto)\n")
+    print("\n📝 Ingrese los datos del Super Administrador:\n")
     
     nombre = input("Nombre [Super Administrador]: ").strip() or "Super Administrador"
-    email = input("Email [superadmin@facturacion.com]: ").strip() or "superadmin@facturacion.com"
-    password = input("Contraseña [SuperAdmin123!]: ").strip() or "SuperAdmin123!"
+    email = input("Email: ").strip().lower()
+    password = getpass("Contraseña temporal (mínimo 12 caracteres): ")
+    password_confirm = getpass("Confirma la contraseña: ")
     perfil = "Administrador"
+
+    if not email or len(password) < 12 or password != password_confirm:
+        print("Email inválido, contraseña corta o confirmación diferente.")
+        return
     
     print(f"\n📝 Datos del usuario:")
     print(f"  Nombre: {nombre}")
     print(f"  Email: {email}")
     print(f"  Perfil: {perfil}")
     print(f"  Tenant ID: NULL (Super Admin - puede gestionar todas las empresas)")
-    print(f"  Contraseña: {password}")
     print()
     
     confirmar = input("¿Desea continuar? (s/n): ").strip().lower()

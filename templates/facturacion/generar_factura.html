@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Generar Factura - Paso 1{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -204,6 +204,35 @@
             Configuración de la Factura
         </h3>
 
+        <!-- Tipo de Factura -->
+        <fieldset class="form-group mb-4">
+            <legend class="form-label">
+                <i class="fas fa-file-invoice"></i>
+                Tipo de factura
+                <span class="required">*</span>
+            </legend>
+            <div class="form-check mb-2">
+                <input class="form-check-input" type="radio" name="tipo_factura"
+                       id="tipo_tradicional" value="TRADICIONAL" checked
+                       onchange="actualizarTipoFactura(); checkForm()">
+                <label class="form-check-label" for="tipo_tradicional">
+                    Factura tradicional
+                </label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="tipo_factura"
+                       id="tipo_electronica" value="ELECTRONICA"
+                       onchange="actualizarTipoFactura(); checkForm()">
+                <label class="form-check-label" for="tipo_electronica">
+                    Factura electrónica (e-CF)
+                </label>
+            </div>
+            <small class="text-muted d-block mt-2">
+                La modalidad electrónica reservará un e-NCF E31. El envío a DGII
+                permanecerá pendiente hasta completar XML y firma.
+            </small>
+        </fieldset>
+
         <!-- ARS -->
         <div class="form-group mb-4">
             <label for="ars_id">
@@ -224,10 +253,10 @@
         </div>
 
         <!-- NCF -->
-        <div class="form-group mb-4">
+        <div class="form-group mb-4" id="ncf-tradicional-group">
             <label for="ncf_id">
                 <i class="fas fa-file-invoice"></i>
-                NCF (Número de Comprobante Fiscal)
+                NCF tradicional
                 <span class="required">*</span>
             </label>
             <select class="form-select" id="ncf_id" name="ncf_id" required onchange="checkForm()">
@@ -308,22 +337,39 @@
 
 <script>
 function checkForm() {
+    const tipo = document.querySelector('input[name="tipo_factura"]:checked').value;
     const ars = document.getElementById('ars_id').value;
     const ncf = document.getElementById('ncf_id').value;
     const medico = document.getElementById('medico_factura_id').value;
     const fecha = document.getElementById('fecha_factura').value;
     
     const btnContinuar = document.getElementById('btnContinuar');
-    if (ars && ncf && medico && fecha) {
+    if (ars && (tipo === 'ELECTRONICA' || ncf) && medico && fecha) {
         btnContinuar.disabled = false;
     } else {
         btnContinuar.disabled = true;
     }
 }
 
-// Función updateNCFInfo() eliminada - ya no es necesaria
+function actualizarTipoFactura() {
+    const tipo = document.querySelector('input[name="tipo_factura"]:checked').value;
+    const ncfGroup = document.getElementById('ncf-tradicional-group');
+    const ncfSelect = document.getElementById('ncf_id');
+    const esElectronica = tipo === 'ELECTRONICA';
+
+    ncfGroup.hidden = esElectronica;
+    ncfSelect.required = !esElectronica;
+    if (esElectronica) {
+        ncfSelect.value = '';
+    }
+}
 
 function seleccionarNCFporARS() {
+    const tipo = document.querySelector('input[name="tipo_factura"]:checked').value;
+    if (tipo === 'ELECTRONICA') {
+        checkForm();
+        return;
+    }
     const arsSelect = document.getElementById('ars_id');
     const arsOption = arsSelect.options[arsSelect.selectedIndex];
     const ncfSelect = document.getElementById('ncf_id');
@@ -379,35 +425,7 @@ function seleccionarNCFporARS() {
 
 // Verificar al cargar la página
 document.addEventListener('DOMContentLoaded', function() {
-    // Prefill automático si viene desde dashboard (auto=1)
-    const AUTO_MODE = {{ 'true' if auto_mode else 'false' }};
-    const ARS_PREFILL_ID = {{ ars_prefill_id if ars_prefill_id else 'null' }};
-    const NCF_PREFILL_ID = {{ ncf_prefill_id if ncf_prefill_id else 'null' }};
-    const MEDICO_PREFILL_ID = {{ medico_prefill_id if medico_prefill_id else 'null' }};
-    const FECHA_PREFILL = "{{ fecha_actual }}";
-    
-    if (AUTO_MODE) {
-        if (ARS_PREFILL_ID) {
-            const arsSelect = document.getElementById('ars_id');
-            arsSelect.value = ARS_PREFILL_ID;
-            seleccionarNCFporARS();
-        }
-        if (NCF_PREFILL_ID) {
-            const ncfSelect = document.getElementById('ncf_id');
-            ncfSelect.value = NCF_PREFILL_ID;
-        }
-        if (MEDICO_PREFILL_ID) {
-            const medicoSelect = document.getElementById('medico_factura_id');
-            if (medicoSelect) {
-                medicoSelect.value = MEDICO_PREFILL_ID;
-            }
-        }
-        const fechaInput = document.getElementById('fecha_factura');
-        if (fechaInput && !fechaInput.value) {
-            fechaInput.value = FECHA_PREFILL;
-        }
-    }
-    
+    actualizarTipoFactura();
     checkForm();
     
     // Si solo hay un médico habilitado, actualizar info visual

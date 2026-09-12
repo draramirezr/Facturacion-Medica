@@ -90,17 +90,14 @@
                     <select class="form-control" 
                            id="tipo" 
                            name="tipo" 
-                           {% if ncf %}disabled{% endif %}
+                           data-original="{{ ncf['tipo'] if ncf else '' }}"
                            required>
                         <option value="">Seleccione un tipo</option>
-                        <option value="B01" {% if ncf and ncf['tipo'] == 'B01' %}selected{% endif %}>B01 - Factura de Crédito Fiscal</option>
-                        <option value="B02" {% if ncf and ncf['tipo'] == 'B02' %}selected{% endif %}>B02 - Factura de Consumo</option>
-                        <option value="B14" {% if ncf and ncf['tipo'] == 'B14' %}selected{% endif %}>B14 - Registro Único de Ingresos</option>
-                        <option value="B15" {% if ncf and ncf['tipo'] == 'B15' %}selected{% endif %}>B15 - Gastos Menores</option>
+                        {% for codigo, descripcion in ncf_tipos.items() %}
+                        <option value="{{ codigo }}" {% if ncf and ncf['tipo'] == codigo %}selected{% endif %}>{{ codigo }} - {{ descripcion }}</option>
+                        {% endfor %}
+                        <option value="OTRO" {% if ncf and ncf['tipo'] not in ncf_tipos %}selected{% endif %}>Agregar otro tipo...</option>
                     </select>
-                    {% if ncf %}
-                    <input type="hidden" name="tipo" value="{{ ncf['tipo'] }}">
-                    {% endif %}
                 </div>
 
                 <div class="col-md-6 mb-3">
@@ -112,13 +109,37 @@
                            id="prefijo" 
                            name="prefijo" 
                            value="{{ ncf['prefijo'] if ncf else '' }}" 
-                           {% if ncf %}readonly{% endif %}
                            required
+                           readonly
+                           aria-readonly="true"
                            placeholder="Ej: B01"
                            maxlength="10">
-                    {% if ncf %}
-                    <input type="hidden" name="prefijo" value="{{ ncf['prefijo'] }}">
-                    {% endif %}
+                    <small class="text-muted">Se completa automáticamente según el tipo.</small>
+                </div>
+            </div>
+
+            <div class="row" id="tipoPersonalizadoRow" hidden>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="tipo_personalizado">
+                        Código del nuevo tipo <span class="required-asterisk">*</span>
+                    </label>
+                    <input type="text" class="form-control"
+                           id="tipo_personalizado" name="tipo_personalizado"
+                           value="{{ ncf['tipo'] if ncf and ncf['tipo'] not in ncf_tipos else '' }}"
+                           maxlength="3" pattern="B[0-9]{2}"
+                           placeholder="Ej: B18"
+                           style="text-transform: uppercase;">
+                    <small class="text-muted">Debe utilizar el formato B seguido de dos números.</small>
+                </div>
+                <div class="col-md-8 mb-3">
+                    <label class="form-label" for="descripcion_personalizada">
+                        Descripción <span class="required-asterisk">*</span>
+                    </label>
+                    <input type="text" class="form-control"
+                           id="descripcion_personalizada" name="descripcion_personalizada"
+                           value="{{ ncf['descripcion'] if ncf and ncf['tipo'] not in ncf_tipos else '' }}"
+                           maxlength="150"
+                           placeholder="Nombre descriptivo del comprobante">
                 </div>
             </div>
 
@@ -132,6 +153,7 @@
                            id="tamano_secuencia" 
                            name="tamano_secuencia" 
                            value="{{ ncf['tamano_secuencia'] if ncf else '' }}" 
+                           data-original="{{ ncf['tamano_secuencia'] if ncf else '' }}"
                            required
                            min="1"
                            placeholder="Ej: 8">
@@ -147,10 +169,12 @@
                            id="ultimo_numero" 
                            name="ultimo_numero" 
                            value="{{ ncf['ultimo_numero'] if ncf else '0' }}" 
+                           data-original="{{ ncf['ultimo_numero'] if ncf else '' }}"
                            min="0"
                            placeholder="0"
                            onchange="calcularProximo()">
                     <small class="text-muted">Último número utilizado</small>
+                    <small class="text-danger d-block mt-1" id="ncfNumeroError" hidden></small>
                 </div>
 
                 <div class="col-md-4 mb-3">
@@ -183,21 +207,13 @@
 
             <!-- Activar/Desactivar NCF -->
             <div class="mb-4">
-                <div class="form-check" style="padding: 1rem; background: {{ tema.primary }}10; border-radius: 10px; border-left: 4px solid {{ tema.primary }};">
-                    <input class="form-check-input" 
-                           type="checkbox" 
-                           id="activo" 
-                           name="activo" 
-                           value="1"
-                           {% if not ncf or ncf['activo'] %}checked{% endif %}
-                           style="width: 20px; height: 20px; margin-top: 0.25rem; cursor: pointer; accent-color: {{ tema.primary }};">
-                    <label class="form-check-label" for="activo" style="margin-left: 10px; cursor: pointer; font-weight: 600; color: {{ tema.primary_dark }};">
-                        <i class="fas fa-toggle-on me-2"></i>NCF Activo
-                    </label>
-                    <small class="d-block text-muted mt-2" style="margin-left: 30px;">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Si está desactivado, este NCF no aparecerá disponible para generar facturas
-                    </small>
+                <div class="ars-active-check">
+                    <input type="checkbox" id="activo" name="activo" value="1"
+                           {% if not ncf or ncf['activo'] %}checked{% endif %}>
+                    <div class="ars-active-check-copy">
+                        <label for="activo">NCF activo</label>
+                        <small>Desmárcalo para impedir su uso al generar facturas.</small>
+                    </div>
                 </div>
             </div>
 
@@ -222,7 +238,98 @@ function calcularProximo() {
 
 // Actualizar en tiempo real cuando se cambia el último número
 document.addEventListener('DOMContentLoaded', function() {
-    document.getElementById('ultimo_numero').addEventListener('input', calcularProximo);
+    const tipo = document.getElementById('tipo');
+    const prefijo = document.getElementById('prefijo');
+    const tamano = document.getElementById('tamano_secuencia');
+    const ultimoNumero = document.getElementById('ultimo_numero');
+    const numeroError = document.getElementById('ncfNumeroError');
+    const customRow = document.getElementById('tipoPersonalizadoRow');
+    const customType = document.getElementById('tipo_personalizado');
+    const customDescription = document.getElementById('descripcion_personalizada');
+    let validationTimer;
+
+    function effectiveType() {
+        return tipo.value === 'OTRO'
+            ? customType.value.trim().toUpperCase()
+            : tipo.value;
+    }
+
+    function toggleCustomType() {
+        const custom = tipo.value === 'OTRO';
+        customRow.hidden = !custom;
+        customType.required = custom;
+        customDescription.required = custom;
+    }
+
+    function actualizarPrefijo() {
+        prefijo.value = effectiveType();
+    }
+
+    function clearNumeroError() {
+        ultimoNumero.setCustomValidity('');
+        numeroError.hidden = true;
+        numeroError.textContent = '';
+    }
+
+    function sequenceIsUnchanged() {
+        return tipo.dataset.original
+            && effectiveType() === tipo.dataset.original
+            && ultimoNumero.value === ultimoNumero.dataset.original
+            && tamano.value === tamano.dataset.original;
+    }
+
+    function verificarNumero() {
+        clearTimeout(validationTimer);
+        clearNumeroError();
+
+        const selectedType = effectiveType();
+        if (!/^B\d{2}$/.test(selectedType) || ultimoNumero.value === '' || !tamano.value || sequenceIsUnchanged()) {
+            return;
+        }
+
+        validationTimer = setTimeout(async function () {
+            const params = new URLSearchParams({
+                tipo: selectedType,
+                numero: ultimoNumero.value,
+                tamano: tamano.value
+            });
+
+            try {
+                const response = await fetch(
+                    `{{ url_for('facturacion_ncf_verificar_numero') }}?${params.toString()}`
+                );
+                const result = await response.json();
+
+                if (result.exists) {
+                    const message = `El NCF ${result.ncf} ya existe en una factura.`;
+                    ultimoNumero.setCustomValidity(message);
+                    numeroError.textContent = message;
+                    numeroError.hidden = false;
+                }
+            } catch (error) {
+                clearNumeroError();
+            }
+        }, 250);
+    }
+
+    tipo.addEventListener('change', function () {
+        toggleCustomType();
+        actualizarPrefijo();
+        verificarNumero();
+    });
+    customType.addEventListener('input', function () {
+        const digits = customType.value.replace(/\D/g, '').slice(0, 2);
+        customType.value = customType.value ? `B${digits}` : '';
+        actualizarPrefijo();
+        verificarNumero();
+    });
+    toggleCustomType();
+    actualizarPrefijo();
+    ultimoNumero.addEventListener('input', function () {
+        calcularProximo();
+        verificarNumero();
+    });
+    tamano.addEventListener('input', verificarNumero);
 });
 </script>
 {% endblock %}

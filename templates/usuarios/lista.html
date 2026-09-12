@@ -27,7 +27,7 @@
     }
     
     .admin-header h1 {
-        color: #282828;
+        color: {{ tema.primary }};
         font-size: 28px;
         margin: 0;
     }
@@ -65,7 +65,7 @@
     }
     
     .btn-secondary {
-        background: #ACACAD !important;
+        background: {{ tema.primary }} !important;
         color: white !important;
     }
     
@@ -87,7 +87,7 @@
     }
     
     .btn-danger {
-        background: #ACACAD !important;
+        background: {{ tema.primary }} !important;
         color: white !important;
     }
     
@@ -116,7 +116,7 @@
     }
     
     .flash.success { background: {{ tema.primary }}15; color: {{ tema.primary_dark }}; border-left: 4px solid {{ tema.primary }}; }
-    .flash.error { background: #FEE2E2; color: #991B1B; border-left: 4px solid #DC2626; }
+    .flash.error { background: {{ tema.primary }}15; color: {{ tema.primary_dark }}; border-left: 4px solid {{ tema.primary }}; }
     .flash.warning { background: {{ tema.primary }}15; color: {{ tema.primary_dark }}; border-left: 4px solid {{ tema.primary }}; }
     .flash.info { background: {{ tema.primary }}15; color: {{ tema.primary_dark }}; border-left: 4px solid {{ tema.primary }}; }
     
@@ -144,7 +144,7 @@
     }
     
     tr:hover {
-        background-color: #F2E2E6;
+        background-color: {{ tema.primary }}0D;
     }
     
     .badge {
@@ -156,7 +156,7 @@
     }
     
     .badge-success {
-        background: #CEB0B7;
+        background: {{ tema.primary }};
         color: white;
     }
     
@@ -171,8 +171,8 @@
     }
     
     .badge-user {
-        background: {{ tema.background }};
-        color: #666666;
+        background: {{ tema.primary }}18;
+        color: {{ tema.primary_dark }};
     }
     
     .actions {
@@ -233,10 +233,10 @@
 
 <div class="admin-container">
     <div class="admin-header">
-        <h1>👥 Gestión de Usuarios</h1>
+        <h1><i class="fas fa-users me-2"></i>Gestión de Usuarios</h1>
         <div class="btn-container">
             <a href="{{ url_for('admin_usuarios_nuevo') }}" class="btn btn-success">
-                ➕ Nuevo Usuario
+                <i class="fas fa-plus"></i> Nuevo Usuario
             </a>
         </div>
     </div>
@@ -255,11 +255,9 @@
                 <thead>
                     <tr>
                         <th>Usuario</th>
-                        <th>Email</th>
                         <th>Perfil</th>
                         <th>Estado</th>
                         <th>Último Acceso</th>
-                        <th>Fecha Creación</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -274,21 +272,20 @@
                                 <strong>{{ usuario.nombre }}</strong>
                             </div>
                         </td>
-                        <td>{{ usuario.email }}</td>
                         <td>
                             {% if usuario.perfil == 'Administrador' %}
-                                <span class="badge badge-admin">🔑 Administrador</span>
+                                <span class="badge badge-admin"><i class="fas fa-key me-1"></i>Administrador</span>
                             {% elif usuario.perfil == 'Nivel 2' %}
-                                <span class="badge badge-admin" style="background: {{ tema.primary }};">⭐ Nivel 2</span>
+                                <span class="badge badge-admin"><i class="fas fa-star me-1"></i>Nivel 2</span>
                             {% else %}
-                                <span class="badge badge-user">📝 {{ usuario.perfil }}</span>
+                                <span class="badge badge-user"><i class="fas fa-file-pen me-1"></i>{{ usuario.perfil }}</span>
                             {% endif %}
                         </td>
                         <td>
                             {% if usuario.activo %}
-                                <span class="badge badge-success">✅ Activo</span>
+                                <span class="badge badge-success"><i class="fas fa-check me-1"></i>Activo</span>
                             {% else %}
-                                <span class="badge badge-danger">❌ Inactivo</span>
+                                <span class="badge badge-danger"><i class="fas fa-xmark me-1"></i>Inactivo</span>
                             {% endif %}
                         </td>
                         <td>
@@ -299,17 +296,10 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if usuario.created_at %}
-                                {{ usuario.created_at.strftime('%Y-%m-%d') if usuario.created_at is not string else usuario.created_at[:10] }}
-                            {% else %}
-                                <span style="color: #999;">N/A</span>
-                            {% endif %}
-                        </td>
-                        <td>
                             <div class="actions">
                                 <a href="{{ url_for('admin_usuarios_editar', usuario_id=usuario.id) }}" 
                                    class="btn btn-warning btn-sm">
-                                    ✏️ Editar
+                                    <i class="fas fa-pen"></i> Editar
                                 </a>
                             </div>
                         </td>
@@ -322,7 +312,7 @@
                 <h3>No hay usuarios registrados</h3>
                 <p>Crea el primer usuario para comenzar</p>
                 <a href="{{ url_for('admin_usuarios_nuevo') }}" class="btn btn-success" style="margin-top: 20px;">
-                    ➕ Crear Usuario
+                    <i class="fas fa-plus"></i> Crear Usuario
                 </a>
             </div>
         {% endif %}

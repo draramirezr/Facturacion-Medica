@@ -1,0 +1,28 @@
+{% if pagination and pagination.total_pages > 1 %}
+<nav class="d-flex flex-wrap align-items-center justify-content-between gap-2 mt-3"
+     aria-label="Paginación del listado">
+    <small class="text-muted">
+        Mostrando {{ pagination.first_item }}–{{ pagination.last_item }}
+        de {{ pagination.total }}
+    </small>
+    <div class="btn-group" role="group" aria-label="Cambiar página">
+        {% if pagination.previous_url %}
+        <a class="btn btn-outline-primary" href="{{ pagination.previous_url }}">
+            Anterior
+        </a>
+        {% else %}
+        <button class="btn btn-outline-primary" type="button" disabled>Anterior</button>
+        {% endif %}
+        <span class="btn btn-outline-secondary disabled" aria-current="page">
+            Página {{ pagination.page }} de {{ pagination.total_pages }}
+        </span>
+        {% if pagination.next_url %}
+        <a class="btn btn-outline-primary" href="{{ pagination.next_url }}">
+            Siguiente
+        </a>
+        {% else %}
+        <button class="btn btn-outline-primary" type="button" disabled>Siguiente</button>
+        {% endif %}
+    </div>
+</nav>
+{% endif %}

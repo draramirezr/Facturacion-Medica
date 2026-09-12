@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Receta Médica - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+{% set paciente_valor = form_data.get('paciente_id', consulta['paciente_id'] if consulta else paciente_preseleccionado or '') %}
+{% set medico_valor = form_data.get('medico_id', consulta['medico_id'] if consulta else '') %}
+{% set consulta_valor = form_data.get('consulta_id', consulta['id'] if consulta else '') %}
+{% set medicamentos_guardados = form_data.getlist('medicamento[]') if form_data else [''] %}
+<style>
+    .rx-form-shell { max-width:1050px; margin:0 auto; }
+    .rx-form-header,.rx-section { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
+    .rx-form-header { background:linear-gradient(135deg,{{ tema.primary }}12,white); }
+    .rx-section h2 { margin-bottom:1rem; padding-bottom:.65rem; border-bottom:1px solid var(--ars-shell-border); color:var(--primary-dark); font-size:1rem; }
+    .required::after { content:" *"; color:var(--primary-color); }
+    .medicine-row { padding:1rem; margin-bottom:.8rem; border:1px solid {{ tema.primary }}25; border-radius:12px; background:#fbfcfe; }
+    .medicine-number { display:inline-flex; width:26px; height:26px; align-items:center; justify-content:center; border-radius:50%; background:var(--primary-color); color:white; font-size:.72rem; font-weight:800; }
+</style>
+<div class="container py-4">
+    <div class="rx-form-shell">
+        <header class="rx-form-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div><h1 class="h3 mb-1"><i class="fas fa-prescription me-2"></i>Nueva receta médica</h1><p class="text-muted mb-0">{{ 'Relacionada con la Historia Clínica seleccionada.' if consulta else 'Puede asociarla a una Historia Clínica o emitirla directamente.' }}</p></div>
+            <a class="btn btn-outline-primary" href="{{ url_for('facturacion_recetas_medicas') }}"><i class="fas fa-arrow-left me-2"></i>Recetas</a>
+        </header>
+        <form method="POST" id="rxForm">
+            <section class="rx-section">
+                <h2>Paciente y consulta</h2>
+                <div class="row g-3">
+                    <div class="col-lg-6"><label class="form-label required">Paciente</label><select class="form-select" id="paciente_id" name="paciente_id" required><option value="">Seleccione</option>{% for p in pacientes %}<option value="{{ p['id'] }}" {% if paciente_valor|string==p['id']|string %}selected{% endif %}>{{ p['nombre'] }}{% if p['cedula'] %} · {{ p['cedula'] }}{% endif %}</option>{% endfor %}</select></div>
+                    <div class="col-lg-6"><label class="form-label required">Médico</label><select class="form-select" id="medico_id" name="medico_id" required><option value="">Seleccione</option>{% for m in medicos %}<option value="{{ m['id'] }}" {% if medico_valor|string==m['id']|string %}selected{% endif %}>{{ m['nombre'] }} · {{ m['especialidad'] }}</option>{% endfor %}</select></div>
+                    <div class="col-lg-8"><label class="form-label">Historia Clínica relacionada</label><select class="form-select" id="consulta_id" name="consulta_id"><option value="">Receta independiente</option>{% for c in consultas %}<option value="{{ c['id'] }}" data-paciente="{{ c['paciente_id'] }}" data-medico="{{ c['medico_id'] }}" data-diagnostico="{{ c['diagnostico_principal']|default('',true)|e }}" data-cie="{{ c['codigo_cie10']|default('',true)|e }}" {% if consulta_valor|string==c['id']|string %}selected{% endif %}>{{ c['fecha'] }} · {{ c['medico_nombre'] }} · {{ c['diagnostico_principal']|truncate(55) }}</option>{% endfor %}</select></div>
+                    <div class="col-lg-4"><label class="form-label required">Fecha de emisión</label><input class="form-control" type="date" name="fecha" value="{{ form_data.get('fecha',fecha_actual) }}" required></div>
+                    <div class="col-lg-8"><label class="form-label">Diagnóstico</label><input class="form-control" id="diagnostico" name="diagnostico" maxlength="5000" value="{{ form_data.get('diagnostico',consulta['diagnostico_principal'] if consulta else '') or '' }}"></div>
+                    <div class="col-lg-4"><label class="form-label">Código CIE-10</label><input class="form-control text-uppercase" id="codigo_cie10" name="codigo_cie10" maxlength="30" value="{{ form_data.get('codigo_cie10',consulta['codigo_cie10'] if consulta else '') or '' }}"></div>
+                </div>
+            </section>
+            <section class="rx-section">
+                <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="mb-0 border-0 pb-0">Medicamentos</h2><button class="btn btn-sm btn-outline-primary" id="addMedicine" type="button"><i class="fas fa-plus me-2"></i>Agregar medicamento</button></div>
+                <div id="medicineRows">
+                    {% for nombre in medicamentos_guardados %}
+                    {% set i=loop.index0 %}
+                    <div class="medicine-row">
+                        <div class="d-flex justify-content-between align-items-center mb-3"><span class="medicine-number">{{ loop.index }}</span><button class="btn btn-sm btn-outline-secondary remove-medicine" type="button" title="Quitar"><i class="fas fa-times"></i></button></div>
+                        <div class="row g-3">
+                            <div class="col-lg-5"><label class="form-label required">Medicamento</label><input class="form-control" name="medicamento[]" maxlength="250" value="{{ nombre }}" required></div>
+                            <div class="col-lg-3"><label class="form-label">Presentación</label><input class="form-control" name="presentacion[]" maxlength="150" value="{{ form_data.getlist('presentacion[]')[i] if form_data and i<form_data.getlist('presentacion[]')|length else '' }}" placeholder="Tabletas, jarabe..."></div>
+                            <div class="col-lg-2"><label class="form-label required">Dosis</label><input class="form-control" name="dosis[]" maxlength="150" value="{{ form_data.getlist('dosis[]')[i] if form_data and i<form_data.getlist('dosis[]')|length else '' }}" placeholder="1 tableta" required></div>
+                            <div class="col-lg-2"><label class="form-label">Vía</label><input class="form-control" name="via[]" maxlength="100" value="{{ form_data.getlist('via[]')[i] if form_data and i<form_data.getlist('via[]')|length else '' }}" placeholder="Oral"></div>
+                            <div class="col-lg-3"><label class="form-label required">Frecuencia</label><input class="form-control" name="frecuencia[]" maxlength="150" value="{{ form_data.getlist('frecuencia[]')[i] if form_data and i<form_data.getlist('frecuencia[]')|length else '' }}" placeholder="Cada 8 horas" required></div>
+                            <div class="col-lg-3"><label class="form-label required">Duración</label><input class="form-control" name="duracion[]" maxlength="150" value="{{ form_data.getlist('duracion[]')[i] if form_data and i<form_data.getlist('duracion[]')|length else '' }}" placeholder="7 días" required></div>
+                            <div class="col-lg-2"><label class="form-label">Cantidad</label><input class="form-control" name="cantidad[]" maxlength="100" value="{{ form_data.getlist('cantidad[]')[i] if form_data and i<form_data.getlist('cantidad[]')|length else '' }}" placeholder="21"></div>
+                            <div class="col-lg-4"><label class="form-label">Indicaciones</label><input class="form-control" name="indicaciones[]" maxlength="2000" value="{{ form_data.getlist('indicaciones[]')[i] if form_data and i<form_data.getlist('indicaciones[]')|length else '' }}" placeholder="Después de alimentos"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+            <section class="rx-section"><label class="form-label">Indicaciones generales</label><textarea class="form-control" name="indicaciones_generales" rows="3" maxlength="5000">{{ form_data.get('indicaciones_generales','') }}</textarea></section>
+            <div class="d-flex justify-content-end gap-2"><a class="btn btn-outline-secondary" href="{{ url_for('facturacion_recetas_medicas') }}">Cancelar</a><button class="btn btn-primary" type="submit"><i class="fas fa-file-signature me-2"></i>Emitir receta</button></div>
+        </form>
+    </div>
+</div>
+<script>
+(() => {
+    const rows = document.getElementById('medicineRows');
+    const consultation = document.getElementById('consulta_id');
+    function renumber() {
+        [...rows.querySelectorAll('.medicine-row')].forEach((row, i) => {
+            row.querySelector('.medicine-number').textContent = i + 1;
+            row.querySelector('.remove-medicine').disabled = rows.children.length === 1;
+        });
+    }
+    document.getElementById('addMedicine').addEventListener('click', () => {
+        const copy = rows.firstElementChild.cloneNode(true);
+        copy.querySelectorAll('input').forEach(input => input.value = '');
+        rows.appendChild(copy); renumber();
+    });
+    rows.addEventListener('click', event => {
+        const button = event.target.closest('.remove-medicine');
+        if (button && rows.children.length > 1) { button.closest('.medicine-row').remove(); renumber(); }
+    });
+    const patient = document.getElementById('paciente_id');
+    function filterConsultations() {
+        [...consultation.options].forEach((option, index) => {
+            if (!index) return;
+            option.hidden = option.dataset.paciente !== patient.value;
+            option.disabled = option.hidden;
+        });
+        if (consultation.selectedOptions[0]?.disabled) consultation.value = '';
+    }
+    patient.addEventListener('change', filterConsultations);
+    consultation.addEventListener('change', () => {
+        const option = consultation.selectedOptions[0];
+        if (!option?.value) return;
+        document.getElementById('paciente_id').value = option.dataset.paciente;
+        document.getElementById('medico_id').value = option.dataset.medico;
+        document.getElementById('diagnostico').value = option.dataset.diagnostico || '';
+        document.getElementById('codigo_cie10').value = option.dataset.cie || '';
+    });
+    filterConsultations(); renumber();
+})();
+</script>
+{% endblock %}

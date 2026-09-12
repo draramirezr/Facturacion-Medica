@@ -124,7 +124,7 @@
         <form method="GET" action="{{ url_for('facturacion_medicos') }}">
             <div class="row align-items-end">
                 <div class="col-md-10">
-                    <input type="text" name="search" class="form-control" placeholder="Buscar por nombre, cédula o especialidad..." value="{{ search }}" style="border-radius: 10px; height: 48px;">
+                    <input type="text" name="search" class="form-control" placeholder="Buscar por nombre, especialidad o teléfono..." value="{{ search }}" style="border-radius: 10px; height: 48px;">
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-buscar w-100" style="height: 48px;">
@@ -142,33 +142,21 @@
             <table class="table table-hover mb-0">
             <thead>
                 <tr>
-                    <th style="width: 5%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ID</th>
-                    <th style="width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Nombre</th>
-                    <th style="width: 15%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Especialidad</th>
-                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Cédula</th>
-                    <th style="width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Exequátur</th>
-                    <th style="width: 15%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Email</th>
-                    <th style="width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Estado</th>
-                    <th style="width: 14%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Acciones</th>
+                    <th style="width: 28%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Nombre</th>
+                    <th style="width: 24%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Especialidad</th>
+                    <th style="width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Teléfono</th>
+                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Estado</th>
+                    <th style="width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Acciones</th>
                 </tr>
             </thead>
             <tbody>
                 {% for medico in medicos_list %}
                 <tr>
-                    <td><strong>{{ medico['id'] }}</strong></td>
                     <td>{{ medico['nombre'] }}</td>
                     <td><span class="badge-especialidad">{{ medico['especialidad'] }}</span></td>
-                    <td>{{ medico['cedula'] }}</td>
                     <td>
-                        {% if medico['exequatur'] %}
-                            <strong>{{ medico['exequatur'] }}</strong>
-                        {% else %}
-                            <span class="text-muted"><i class="fas fa-minus"></i></span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        {% if medico['email'] %}
-                            <small>{{ medico['email'] }}</small>
+                        {% if medico['telefono'] %}
+                            {{ medico['telefono'] }}
                         {% else %}
                             <span class="text-muted"><i class="fas fa-minus"></i></span>
                         {% endif %}

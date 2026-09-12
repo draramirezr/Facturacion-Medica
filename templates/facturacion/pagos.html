@@ -47,21 +47,13 @@
         background-color: {{ tema.primary }}08;
         transition: all 0.3s ease;
     }
-</style>
 
-{% macro fecha_ddmmyyyy(fecha) -%}
-    {%- set f = (fecha|string) -%}
-    {%- if '-' in f -%}
-        {%- set p = f.split('-') -%}
-        {%- if p|length == 3 -%}
-            {{ p[2] }}/{{ p[1] }}/{{ p[0] }}
-        {%- else -%}
-            {{ fecha }}
-        {%- endif -%}
-    {%- else -%}
-        {{ fecha }}
-    {%- endif -%}
-{%- endmacro %}
+    .badge-cantidad {
+        background: {{ tema.primary }}20;
+        color: {{ tema.primary_dark }};
+        border: 1px solid {{ tema.primary }}40;
+    }
+</style>
 
 <div class="container mt-4">
     <div class="facturacion-hero">
@@ -84,47 +76,6 @@
         </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="card mb-3 shadow-sm border-0">
-        <div class="card-body">
-            <form method="GET" class="row g-2 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label mb-1">ARS</label>
-                    <select name="ars_id" class="form-select">
-                        <option value="">Todas</option>
-                        {% for ars in ars_list %}
-                        <option value="{{ ars.id }}" {% if ars_id and ars_id|int == ars.id %}selected{% endif %}>
-                            {{ ars.nombre }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label mb-1">NCF</label>
-                    <input type="text" name="ncf" value="{{ ncf or '' }}" class="form-control" placeholder="NCF">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label mb-1">Fecha desde</label>
-                    <input type="text" name="fecha_desde" id="fecha_desde" placeholder="dd/mm/aaaa"
-                           value="{{ fecha_ddmmyyyy(fecha_desde) if fecha_desde else '' }}"
-                           class="form-control">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label mb-1">Fecha hasta</label>
-                    <input type="text" name="fecha_hasta" id="fecha_hasta" placeholder="dd/mm/aaaa"
-                           value="{{ fecha_ddmmyyyy(fecha_hasta) if fecha_hasta else '' }}"
-                           class="form-control">
-                </div>
-                <div class="col-12 d-flex gap-2 mt-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search me-1"></i>Filtrar
-                    </button>
-                    <a href="{{ url_for('facturacion_pagos') }}" class="btn btn-outline-secondary">Limpiar</a>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Tabla -->
     <div class="table-facturacion">
         {% if pagos_list %}
@@ -144,19 +95,17 @@
                 <tbody>
                     {% for pago in pagos_list %}
                     <tr>
-                        {% set numero_pago = pago.get('numero_pago') or ('PAGO-' + "%06d"|format(pago.get('id', 0))) %}
-                        <td><strong>{{ numero_pago }}</strong></td>
-                        <td>{{ fecha_ddmmyyyy(pago['fecha_pago']) }}</td>
+                        <td><strong>{{ pago['numero_pago'] }}</strong></td>
+                        <td>{{ pago['fecha_pago'] }}</td>
                         <td>{{ pago['metodo_pago'] }}</td>
                         <td>
                             <small>{{ pago['facturas_numeros'] or 'Sin facturas' }}</small>
                         </td>
                         <td class="text-center">
-                            <span class="badge bg-info">{{ pago['cantidad_facturas'] or 0 }}</span>
+                            <span class="badge badge-cantidad">{{ pago['cantidad_facturas'] or 0 }}</span>
                         </td>
                         <td class="text-end">
-                            {% set monto_display = pago.get('monto_total') or pago.get('monto') or 0 %}
-                            <strong>${{ "{:,.2f}".format(monto_display) }}</strong>
+                            <strong>${{ "{:,.2f}".format(pago['monto_total']) }}</strong>
                         </td>
                         <td class="text-center">
                             <a href="#" class="btn btn-sm btn-outline-primary" title="Ver detalles">
@@ -177,34 +126,8 @@
         </div>
         {% endif %}
     </div>
+    {% include "_pagination.html" %}
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function toISO(fecha) {
-    if (!fecha) return '';
-    const p = fecha.split('/');
-    if (p.length === 3) {
-        const [dd, mm, yyyy] = p;
-        if (dd.length === 2 && mm.length === 2 && yyyy.length === 4) {
-            return `${yyyy}-${mm}-${dd}`;
-        }
-    }
-    return fecha;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
-    if (!form) return;
-    form.addEventListener('submit', function() {
-        const desde = document.getElementById('fecha_desde');
-        const hasta = document.getElementById('fecha_hasta');
-        if (desde) desde.value = toISO(desde.value.trim());
-        if (hasta) hasta.value = toISO(hasta.value.trim());
-    });
-});
-</script>
 {% endblock %}
 
 

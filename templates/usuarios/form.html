@@ -22,7 +22,7 @@
     }
     
     .form-header h1 {
-        color: #282828;
+        color: {{ tema.primary }};
         font-size: 28px;
         margin: 0;
     }
@@ -39,9 +39,13 @@
         font-weight: 500;
     }
     
-    .flash.success { background: #D4EDDA; color: #155724; border-left: 4px solid #28A745; }
-    .flash.error { background: #F8D7DA; color: #721C24; border-left: 4px solid #DC3545; }
-    .flash.warning { background: #FFF3CD; color: #856404; border-left: 4px solid #FFC107; }
+    .flash.success,
+    .flash.error,
+    .flash.warning {
+        background: {{ tema.primary }}15;
+        color: {{ tema.primary_dark }};
+        border-left: 4px solid {{ tema.primary }};
+    }
     
     .form-group {
         margin-bottom: 25px;
@@ -56,7 +60,7 @@
     }
     
     .form-group label .required {
-        color: #DC3545;
+        color: {{ tema.primary }};
         margin-left: 3px;
     }
     
@@ -107,27 +111,27 @@
     }
     
     .info-box {
-        background: #E7F3FF;
-        border-left: 4px solid #2196F3;
+        background: {{ tema.primary }}10;
+        border-left: 4px solid {{ tema.primary }};
         padding: 15px;
         border-radius: 8px;
         margin-bottom: 25px;
         font-size: 14px;
-        color: #0D47A1;
+        color: {{ tema.primary_dark }};
     }
     
     .warning-box {
-        background: #FFF3CD;
-        border-left: 4px solid #FFC107;
+        background: {{ tema.primary }}10;
+        border-left: 4px solid {{ tema.primary }};
         padding: 15px;
         border-radius: 8px;
         margin-bottom: 25px;
         font-size: 14px;
-        color: #856404;
+        color: {{ tema.primary_dark }};
     }
     
     .password-section {
-        background: #F8F9FA;
+        background: {{ tema.primary }}08;
         padding: 20px;
         border-radius: 8px;
         margin-top: 20px;
@@ -143,6 +147,7 @@
         gap: 15px;
         margin-top: 30px;
         flex-wrap: wrap;
+        width: 100%;
     }
     
     .btn {
@@ -160,25 +165,29 @@
     }
     
     .btn-primary {
-        background: #CEB0B7 !important;
+        background: {{ tema.primary }} !important;
         color: white !important;
         flex: 1;
         justify-content: center;
     }
     
     .btn-primary:hover {
-        background: #B89BA3 !important;
+        background: {{ tema.primary_dark }} !important;
         transform: translateY(-2px);
-        box-shadow: 0 4px 15px rgba(206, 176, 183, 0.4);
+        box-shadow: 0 4px 15px {{ tema.primary }}40;
     }
     
     .btn-secondary {
-        background: #ACACAD !important;
-        color: white !important;
+        flex: 1;
+        justify-content: center;
+        background: white !important;
+        border: 2px solid {{ tema.primary }} !important;
+        color: {{ tema.primary_dark }} !important;
     }
     
     .btn-secondary:hover {
-        background: #9A9A9B !important;
+        background: {{ tema.primary }}10 !important;
+        color: {{ tema.primary_dark }} !important;
     }
     
     @media (max-width: 768px) {
@@ -202,9 +211,9 @@
     <div class="form-header">
         <h1>
             {% if usuario %}
-                ✏️ Editar Usuario
+                <i class="fas fa-user-pen me-2"></i>Editar Usuario
             {% else %}
-                ➕ Nuevo Usuario
+                <i class="fas fa-user-plus me-2"></i>Nuevo Usuario
             {% endif %}
         </h1>
         <p>
@@ -226,7 +235,7 @@
     
     {% if not usuario %}
         <div class="info-box">
-            <strong>ℹ️ Información:</strong><br>
+            <strong><i class="fas fa-circle-info me-1"></i>Información:</strong><br>
             Los usuarios podrán acceder al panel administrativo con sus credenciales.<br>
             Recuerda enviar las credenciales de forma segura al usuario.
         </div>
@@ -235,7 +244,7 @@
     <form method="POST" id="userForm">
         <div class="form-group">
             <label for="nombre">
-                👤 Nombre Completo <span class="required">*</span>
+                <i class="fas fa-user me-1"></i>Nombre Completo <span class="required">*</span>
             </label>
             <input 
                 type="text" 
@@ -250,7 +259,7 @@
         
         <div class="form-group">
             <label for="email">
-                📧 Correo Electrónico <span class="required">*</span>
+                <i class="fas fa-envelope me-1"></i>Correo Electrónico <span class="required">*</span>
             </label>
             <input 
                 type="email" 
@@ -265,18 +274,18 @@
         
         <div class="form-group">
             <label for="perfil">
-                🔑 Perfil de Usuario <span class="required">*</span>
+                <i class="fas fa-key me-1"></i>Perfil de Usuario <span class="required">*</span>
             </label>
             <select id="perfil" name="perfil" required>
                 <option value="">-- Selecciona un perfil --</option>
                 <option value="Administrador" {% if usuario and usuario.perfil == 'Administrador' %}selected{% endif %}>
-                    🔑 Administrador (Acceso total)
+                    Administrador (Acceso total)
                 </option>
                 <option value="Nivel 2" {% if usuario and usuario.perfil == 'Nivel 2' %}selected{% endif %}>
-                    ⭐ Nivel 2 (Facturación completa + Generar facturas finales)
+                    Nivel 2 (Facturación completa + Generar facturas finales)
                 </option>
                 <option value="Registro de Facturas" {% if usuario and usuario.perfil == 'Registro de Facturas' %}selected{% endif %}>
-                    📝 Registro de Facturas (Solo registro, sin generación final)
+                    Registro de Facturas (Solo registro, sin generación final)
                 </option>
             </select>
             <small>
@@ -289,31 +298,20 @@
         {% if usuario %}
             <div class="form-group">
                 <label style="display: block; color: #282828; font-weight: 600; margin-bottom: 8px; font-size: 15px;">
-                    📊 Estado del Usuario
+                    <i class="fas fa-user-check me-1"></i>Estado del Usuario
                 </label>
-                <div style="padding: 1rem; background: {{ tema.primary }}10; border-radius: 10px; border-left: 4px solid {{ tema.primary }};">
-                <div class="checkbox-group">
-                    <input 
-                        type="checkbox" 
-                        id="activo" 
-                        name="activo" 
-                        value="1"
-                        {% if usuario.activo %}checked{% endif %}
-                            style="width: 20px; height: 20px; cursor: pointer; accent-color: {{ tema.primary }};"
-                    >
-                        <label for="activo" style="cursor: pointer; font-weight: 600; color: {{ tema.primary_dark }}; margin: 0;">
-                            <i class="fas fa-toggle-on me-2"></i>Usuario activo (puede iniciar sesión)
-                        </label>
+                <div class="ars-active-check">
+                    <input type="checkbox" id="activo" name="activo" value="1"
+                           {% if usuario.activo %}checked{% endif %}>
+                    <div class="ars-active-check-copy">
+                        <label for="activo">Usuario activo</label>
+                        <small>Desmárcalo para impedir que inicie sesión.</small>
                     </div>
-                    <small class="d-block text-muted mt-2" style="margin-left: 30px;">
-                        <i class="fas fa-info-circle me-1"></i>
-                        Si está desactivado, el usuario no podrá iniciar sesión en el sistema
-                    </small>
                 </div>
             </div>
             
             <div class="warning-box">
-                <strong>⚠️ Cambio de contraseña:</strong><br>
+                <strong><i class="fas fa-key me-1"></i>Cambio de contraseña:</strong><br>
                 Por defecto, la contraseña actual se mantiene. Solo ingresa una nueva contraseña si deseas cambiarla.
             </div>
             
@@ -325,7 +323,7 @@
                         name="cambiar_password_toggle"
                         onchange="togglePasswordSection()"
                     >
-                    <label for="cambiar_password_toggle">🔐 Cambiar contraseña</label>
+                    <label for="cambiar_password_toggle"><i class="fas fa-lock me-1"></i>Cambiar contraseña</label>
                 </div>
             </div>
             
@@ -334,7 +332,7 @@
                 
                 <div class="form-group">
                     <label for="password">
-                        🔒 Nueva Contraseña Temporal <span class="required">*</span>
+                        <i class="fas fa-lock me-1"></i>Nueva Contraseña Temporal <span class="required">*</span>
                     </label>
                     <div style="display: flex; gap: 10px; align-items: start;">
                         <div style="flex: 1;">
@@ -351,14 +349,14 @@
                             <small id="password-hint">Haz clic en "Generar Contraseña" para crear una contraseña temporal segura</small>
                         </div>
                         <button type="button" class="btn btn-secondary" onclick="generarPasswordTemporal()" style="white-space: nowrap; padding: 12px 20px;">
-                            🔑 Generar Contraseña
+                            <i class="fas fa-key"></i> Generar Contraseña
                         </button>
                     </div>
                 </div>
                 
                 <div class="info-box" id="password-info" style="display: none;">
                     <strong>📋 Contraseña Temporal Generada:</strong><br>
-                    <div style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: #0D47A1; margin: 10px 0; padding: 10px; background: white; border-radius: 5px; border: 2px dashed #2196F3;">
+                    <div style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: {{ tema.primary_dark }}; margin: 10px 0; padding: 10px; background: white; border-radius: 5px; border: 2px dashed {{ tema.primary }};">
                         <span id="password-display"></span>
                     </div>
                     <small>⚠️ <strong>IMPORTANTE:</strong> Esta contraseña se enviará automáticamente al usuario por email. El usuario deberá cambiarla en su primer inicio de sesión.</small>
@@ -380,7 +378,7 @@
         {% if not usuario or True %}
             <div class="form-group" {% if usuario %}style="display: none;"{% endif %}>
                 <label for="password_nuevo">
-                    🔒 Contraseña Temporal {% if usuario %} Nueva {% endif %} <span class="required">*</span>
+                    <i class="fas fa-lock me-1"></i>Contraseña Temporal {% if usuario %} Nueva {% endif %} <span class="required">*</span>
                 </label>
                 <div style="display: flex; gap: 10px; align-items: start;">
                     <div style="flex: 1;">
@@ -399,7 +397,7 @@
                     </div>
                     {% if not usuario %}
                     <button type="button" class="btn btn-secondary" onclick="generarPasswordTemporalNuevo()" style="white-space: nowrap; padding: 12px 20px;">
-                        🔑 Generar Contraseña
+                        <i class="fas fa-key"></i> Generar Contraseña
                     </button>
                     {% endif %}
                 </div>
@@ -408,7 +406,7 @@
             {% if not usuario %}
                 <div class="info-box" id="password-info-nuevo" style="display: none;">
                     <strong>📋 Contraseña Temporal Generada:</strong><br>
-                    <div style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: #0D47A1; margin: 10px 0; padding: 10px; background: white; border-radius: 5px; border: 2px dashed #2196F3;">
+                    <div style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: {{ tema.primary_dark }}; margin: 10px 0; padding: 10px; background: white; border-radius: 5px; border: 2px dashed {{ tema.primary }};">
                         <span id="password-display-nuevo"></span>
                     </div>
                     <small>⚠️ <strong>IMPORTANTE:</strong> Guarda esta contraseña y envíala al usuario de forma segura. El usuario deberá cambiarla en su primer inicio de sesión.</small>
@@ -416,20 +414,16 @@
             {% endif %}
         {% endif %}
         
-        {% if usuario %}
-            </div>
-        {% endif %}
-        
         <div class="btn-container">
             <button type="submit" class="btn btn-primary">
                 {% if usuario %}
-                    💾 Guardar Cambios
+                    <i class="fas fa-floppy-disk"></i> Guardar Cambios
                 {% else %}
-                    ✅ Crear Usuario
+                    <i class="fas fa-user-plus"></i> Crear Usuario
                 {% endif %}
             </button>
             <a href="{{ url_for('admin_usuarios') }}" class="btn btn-secondary">
-                ❌ Cancelar
+                <i class="fas fa-xmark"></i> Cancelar
             </a>
         </div>
     </form>
@@ -468,7 +462,7 @@
         document.getElementById('password').value = password;
         document.getElementById('password-display').textContent = password;
         document.getElementById('password-info').style.display = 'block';
-        document.getElementById('password-hint').innerHTML = '<span style="color: #28A745;">✅ Contraseña temporal generada correctamente</span>';
+        document.getElementById('password-hint').innerHTML = '<span style="color: {{ tema.primary_dark }};">Contraseña temporal generada correctamente</span>';
     }
     
     // Generar contraseña temporal segura (para modo nuevo usuario)
@@ -498,7 +492,7 @@
         document.getElementById('password_nuevo').value = password;
         document.getElementById('password-display-nuevo').textContent = password;
         document.getElementById('password-info-nuevo').style.display = 'block';
-        document.getElementById('password-hint-nuevo').innerHTML = '<span style="color: #28A745;">✅ Contraseña temporal generada correctamente</span>';
+        document.getElementById('password-hint-nuevo').innerHTML = '<span style="color: {{ tema.primary_dark }};">Contraseña temporal generada correctamente</span>';
     }
     
     {% if usuario %}

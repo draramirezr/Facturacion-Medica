@@ -53,18 +53,27 @@
     }
     
     .badge-basico {
-        background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-        color: white;
+        background: {{ tema.primary }}20;
+        color: {{ tema.primary_dark }};
+        border: 1px solid {{ tema.primary }}40;
     }
     
     .badge-profesional {
-        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%);
-        color: white;
+        background: {{ tema.primary }}20;
+        color: {{ tema.primary_dark }};
+        border: 1px solid {{ tema.primary }}40;
     }
     
     .badge-empresarial {
-        background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%);
-        color: white;
+        background: {{ tema.primary }}20;
+        color: {{ tema.primary_dark }};
+        border: 1px solid {{ tema.primary }}40;
+    }
+
+    .subscription-badge {
+        background: {{ tema.primary }}20 !important;
+        color: {{ tema.primary_dark }} !important;
+        border: 1px solid {{ tema.primary }}40;
     }
     
     .badge-estado {
@@ -75,18 +84,21 @@
     }
     
     .badge-activo {
-        background: #D4EDDA;
-        color: #155724;
+        background: {{ tema.primary }}20;
+        color: {{ tema.primary_dark }};
+        border: 1px solid {{ tema.primary }}40;
     }
     
     .badge-suspendido {
-        background: #FFF3CD;
-        color: #856404;
+        background: {{ tema.primary }}20;
+        color: {{ tema.primary_dark }};
+        border: 1px solid {{ tema.primary }}40;
     }
     
     .badge-inactivo {
-        background: #F8D7DA;
-        color: #721C24;
+        background: {{ tema.primary }}20;
+        color: {{ tema.primary_dark }};
+        border: 1px solid {{ tema.primary }}40;
     }
     
     .licencias-info {
@@ -171,25 +183,21 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th style="width: 5%;">ID</th>
                         <th style="width: 20%;">Nombre</th>
-                        <th style="width: 15%;">Razón Social</th>
-                        <th style="width: 10%;">RNC</th>
-                        <th style="width: 12%;">Licencias</th>
-                        <th style="width: 8%;">Usuarios</th>
-                        <th style="width: 12%;">Suscripción</th>
-                        <th style="width: 8%;">Plan</th>
+                        <th style="width: 18%;">Razón Social</th>
+                        <th style="width: 13%;">Licencias</th>
+                        <th style="width: 9%;">Usuarios</th>
+                        <th style="width: 14%;">Suscripción</th>
+                        <th style="width: 9%;">Plan</th>
                         <th style="width: 8%;">Estado</th>
-                        <th style="width: 12%;" class="text-center">Acciones</th>
+                        <th style="width: 9%;" class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for empresa in empresas %}
                     <tr>
-                        <td><strong>{{ empresa['id'] }}</strong></td>
                         <td><strong>{{ empresa['nombre'] }}</strong></td>
                         <td>{{ empresa['razon_social'] }}</td>
-                        <td>{{ empresa['rnc'] or 'N/A' }}</td>
                         <td>
                             <div class="licencias-info">
                                 <span style="font-size: 0.85rem; font-weight: 600;">
@@ -206,12 +214,12 @@
                         </td>
                         <td>
                             {% if empresa.get('fecha_fin') %}
-                                <span class="badge bg-{{ empresa['estado_clase'] }}" style="font-size: 0.75rem;">
+                                <span class="badge subscription-badge" style="font-size: 0.75rem;">
                                     <i class="fas fa-{{ empresa['estado_icono'] }}"></i> {{ empresa['estado_texto'] }}
                                 </span><br>
                                 <small class="text-muted">Vence: {{ empresa['fecha_fin'] }}</small>
                             {% else %}
-                                <span class="badge bg-secondary" style="font-size: 0.75rem;">
+                                <span class="badge subscription-badge" style="font-size: 0.75rem;">
                                     <i class="fas fa-calendar"></i> Sin fecha
                                 </span>
                             {% endif %}

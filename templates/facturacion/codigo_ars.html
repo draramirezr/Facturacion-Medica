@@ -152,7 +152,7 @@
         <form method="GET" action="{{ url_for('facturacion_codigo_ars') }}">
             <div class="row align-items-end">
                 <div class="col-md-10">
-                    <input type="text" name="search" class="form-control" placeholder="Buscar por médico, ARS o código..." value="{{ search or '' }}" style="border-radius: 10px; height: 48px;">
+                    <input type="text" name="search" class="form-control" placeholder="Buscar por {{ relacion.etiqueta|lower }}, ARS o código..." value="{{ search or '' }}" style="border-radius: 10px; height: 48px;">
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-buscar w-100" style="height: 48px;">
@@ -170,7 +170,7 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th style="width: 30%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Médico</th>
+                        <th style="width: 30%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">{{ relacion.etiqueta }}</th>
                         <th style="width: 25%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ARS</th>
                         <th style="width: 15%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Código</th>
                         <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Estado</th>
@@ -180,7 +180,16 @@
                 <tbody>
                     {% for codigo in codigos_list %}
                     <tr>
-                        <td>{{ codigo['nombre_medico'] or 'Sin médico' }}</td>
+                        <td>
+                            {% set entidad_nombre = codigo['nombre_centro'] if relacion.es_centro_salud else codigo['nombre_medico'] %}
+                            {% if entidad_nombre %}
+                                {{ entidad_nombre }}
+                            {% else %}
+                                <span class="text-warning">
+                                    <i class="fas fa-triangle-exclamation me-1"></i>Pendiente de asignar
+                                </span>
+                            {% endif %}
+                        </td>
                         <td>{{ codigo['nombre'] }}</td>
                         <td class="text-center"><span class="badge-codigo">{{ codigo['codigo'] }}</span></td>
                         <td class="text-center">

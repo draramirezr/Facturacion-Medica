@@ -99,57 +99,51 @@
                     <textarea class="form-control" id="direccion" name="direccion" rows="3" required maxlength="100">{{ centro['direccion'] if centro else '' }}</textarea>
                 </div>
 
-                <!-- RNC / Cédula -->
+                <!-- RNC -->
                 <div class="mb-3">
                     <label for="rnc" class="form-label">
                         <i class="fas fa-id-card me-2" style="color: var(--primary-color);"></i>
-                        RNC / Cédula*
+                        RNC*
                     </label>
                     <input type="text" class="form-control" id="rnc" name="rnc" 
                            value="{{ centro['rnc'] if centro else '' }}" required 
-                           placeholder="00000000000"
-                           maxlength="11"
-                           pattern="[0-9]{1,11}"
+                           placeholder="000000000"
+                           minlength="9"
+                           maxlength="9"
+                           pattern="[0-9]{9}"
+                           data-digits-only="9"
                            inputmode="numeric"
-                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,11)"
-                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
-                           title="Solo se permiten números (máx. 11 caracteres)">
+                           title="El RNC debe contener exactamente 9 números">
                 </div>
 
                 <!-- Teléfono -->
                 <div class="mb-4">
                     <label for="telefono" class="form-label">
                         <i class="fas fa-phone me-2" style="color: var(--primary-color);"></i>
-                        Teléfono
+                        Teléfono*
                     </label>
                     <input type="text" class="form-control" id="telefono" name="telefono" 
                            value="{{ centro['telefono'] if centro else '' }}"
+                           required
                            placeholder="8090000000"
+                           minlength="10"
                            maxlength="10"
                            pattern="[0-9]{10}"
+                           data-digits-only="10"
                            inputmode="numeric"
-                           oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,10)"
-                           onkeypress="return (event.charCode >= 48 && event.charCode <= 57)"
-                           title="Solo se permiten números (10 dígitos)">
+                           title="El teléfono debe contener exactamente 10 números">
                 </div>
 
                 <!-- Activar/Desactivar Centro -->
                 <div class="mb-4">
-                    <div class="form-check" style="padding: 1rem; background: {{ tema.primary }}10; border-radius: 10px; border-left: 4px solid {{ tema.primary }};">
-                        <input class="form-check-input" 
-                               type="checkbox" 
-                               id="activo" 
-                               name="activo" 
-                               value="1"
-                               {% if not centro or centro['activo'] %}checked{% endif %}
-                               style="width: 20px; height: 20px; margin-top: 0.25rem; cursor: pointer; accent-color: {{ tema.primary }};">
-                        <label class="form-check-label" for="activo" style="margin-left: 10px; cursor: pointer; font-weight: 600; color: {{ tema.primary_dark }};">
-                            <i class="fas fa-toggle-on me-2"></i>Centro Médico Activo
-                        </label>
-                        <small class="d-block text-muted mt-2" style="margin-left: 30px;">
-                            <i class="fas fa-info-circle me-1"></i>
-                            Si está desactivado, el centro no aparecerá en los formularios ni reportes del sistema
-                        </small>
+                    {% set centro_activo = not centro or centro['activo'] %}
+                    <div class="ars-active-check">
+                        <input type="checkbox" id="activo" name="activo" value="1"
+                               {% if centro_activo %}checked{% endif %}>
+                        <div class="ars-active-check-copy">
+                            <label for="activo">Centro médico activo</label>
+                            <small>Desmárcalo para ocultarlo de formularios y reportes.</small>
+                        </div>
                     </div>
                 </div>
 
@@ -166,4 +160,5 @@
         </div>
     </div>
 </div>
+
 {% endblock %}

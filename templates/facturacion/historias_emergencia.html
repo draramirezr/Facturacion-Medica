@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}Historias de Emergencia - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .emergency-hero { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 2rem; margin-bottom: 1.5rem; }
+    .emergency-table { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 4px 20px {{ tema.primary }}20; }
+    .emergency-table th { background: var(--primary-dark) !important; color: white !important; border: 0; padding: 1rem; }
+    .emergency-table td { padding: .9rem 1rem; vertical-align: middle; }
+    .emergency-action { color: var(--primary-color); text-decoration: none; font-weight: 700; margin-right: .8rem; white-space: nowrap; }
+</style>
+
+<div class="container py-4">
+    <div class="emergency-hero d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h1 class="mb-1"><i class="fas fa-truck-medical me-2"></i>Historias de Emergencia</h1>
+            <p class="text-muted mb-0">Registro clínico de atenciones realizadas en emergencia.</p>
+        </div>
+        <a href="{{ url_for('facturacion_historias_emergencia_nueva') }}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Nueva historia
+        </a>
+    </div>
+
+    <div class="emergency-table table-responsive">
+        {% if historias %}
+        <table class="table table-hover mb-0">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Paciente</th>
+                    <th>Edad</th>
+                    <th>Motivo</th>
+                    <th>Estatus</th>
+                    <th>Médico</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for historia in historias %}
+                <tr>
+                    <td>{{ historia['fecha'] }}<br><small class="text-muted">{{ historia['hora_servicio'] }}</small></td>
+                    <td><strong>{{ historia['nombre_paciente'] }}</strong></td>
+                    <td>{{ historia['edad'] if historia['edad'] is not none else 'N/D' }}</td>
+                    <td>{{ historia['motivo_emergencia']|truncate(55) }}</td>
+                    <td>{{ historia['estatus_paciente'] }}</td>
+                    <td>{{ historia['medico_nombre'] }}</td>
+                    <td>
+                        <a class="emergency-action" href="{{ url_for('facturacion_historia_emergencia_ver', historia_id=historia['id']) }}"><i class="fas fa-eye"></i> Ver</a>
+                        <a class="emergency-action" target="_blank" href="{{ url_for('facturacion_historia_emergencia_imprimir', historia_id=historia['id']) }}"><i class="fas fa-print"></i> Imprimir</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center py-5">
+            <i class="fas fa-notes-medical fa-3x text-muted mb-3"></i>
+            <p class="text-muted">No hay historias de emergencia registradas.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

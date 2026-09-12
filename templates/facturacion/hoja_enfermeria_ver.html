@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Hoja de Enfermería - {{ hoja['nombre_paciente'] }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .nursing-actions { max-width:920px; margin:1rem auto; }
+    .nursing-paper { max-width:920px; min-height:1050px; margin:1rem auto; padding:42px; border:1px solid #cfd6dd; background:white; color:#222; font-family:Arial,sans-serif; }
+    .document-head { text-align:center; margin-bottom:28px; }
+    .document-head h1 { margin:0 0 4px; font-size:1.25rem; font-weight:800; }
+    .document-head p { margin:2px 0; font-size:.72rem; }
+    .document-title { margin:22px 0 8px; padding:5px; border:1px solid #555; background:#f3f3f3; text-align:center; font-size:.8rem; font-weight:800; }
+    .patient-lines { display:grid; grid-template-columns:2fr .65fr .7fr; gap:6px 15px; font-size:.72rem; }
+    .patient-lines .wide { grid-column:span 2; }
+    .line-value { min-height:18px; padding:1px 4px; border-bottom:1px solid #555; }
+    .line-value b { margin-right:4px; font-size:.64rem; text-transform:uppercase; }
+    .supply-document { width:100%; border-collapse:collapse; table-layout:fixed; font-size:.66rem; }
+    .supply-document th,.supply-document td { height:30px; padding:4px; border:1px solid #666; vertical-align:top; }
+    .supply-document th { background:#f2f2f2; text-align:center; font-size:.6rem; text-transform:uppercase; }
+    .document-notes { margin-top:12px; font-size:.7rem; }
+    .document-signature { width:280px; margin:70px auto 0; border-top:1px solid #333; padding-top:5px; text-align:center; font-size:.68rem; font-weight:700; }
+    @media print {
+        @page { size:Letter portrait; margin:7mm; }
+        .ars-sidebar,.ars-topbar,.ars-mobile-topbar,.no-print,footer { display:none!important; }
+        .ars-main-column,.ars-content { margin:0!important; padding:0!important; }
+        body { background:white!important; }
+        .nursing-paper { width:100%; max-width:none; min-height:0; margin:0; padding:5mm; border:0; font-size:9pt; }
+        .document-head { margin-bottom:12px; }
+        .document-title { margin:10px 0 5px; }
+        .supply-document th,.supply-document td { height:25px; }
+        .document-signature { margin-top:40px; }
+    }
+</style>
+<div class="container no-print nursing-actions d-flex justify-content-between gap-2">
+    <a class="btn btn-outline-primary" href="{{ url_for('facturacion_hojas_enfermeria') }}"><i class="fas fa-arrow-left me-2"></i>Volver</a>
+    <a class="btn btn-primary" target="_blank" href="{{ url_for('facturacion_hoja_enfermeria_imprimir', hoja_id=hoja['id']) }}"><i class="fas fa-print me-2"></i>Imprimir</a>
+</div>
+<article class="nursing-paper">
+    <header class="document-head">
+        <h1>{{ centro['nombre'] if centro and centro.get('nombre') else empresa.empresa_nombre if empresa else 'Centro Médico' }}</h1>
+        {% if centro and centro.get('direccion') %}<p>{{ centro['direccion'] }}</p>{% endif %}
+        {% if centro and centro.get('telefono') %}<p>Tel.: {{ centro['telefono'] }}</p>{% endif %}
+    </header>
+    <div class="document-title">SERVICIO DE EMERGENCIA</div>
+    <div class="patient-lines">
+        <div class="line-value"><b>Nombres y apellidos:</b>{{ hoja['nombre_paciente'] }}</div>
+        <div class="line-value"><b>Edad:</b>{{ hoja['edad'] if hoja['edad'] is not none else '' }}</div>
+        <div class="line-value"><b>Sexo:</b>{{ hoja['sexo'] or '' }}</div>
+        <div class="line-value wide"><b>Dirección:</b>{{ hoja['direccion'] or '' }}</div>
+        <div class="line-value"><b>Fecha:</b>{{ hoja['fecha_servicio'] }}</div>
+        <div class="line-value wide"><b>Persona responsable:</b>{{ hoja['responsable'] }}</div>
+        <div class="line-value"><b>Tel.:</b>{{ hoja['telefono_responsable'] }}</div>
+        <div class="line-value wide"><b>ARS:</b>{{ hoja['ars_nombre'] or 'No asegurado' }}</div>
+        <div class="line-value"><b>Hora:</b>{{ hoja['hora_servicio'] }}</div>
+    </div>
+    <div class="document-title">MEDICAMENTOS Y MATERIALES MÉDICOS SUMINISTRADOS</div>
+    <table class="supply-document">
+        <colgroup><col style="width:11%"><col style="width:9%"><col style="width:25%"><col style="width:10%"><col style="width:14%"><col style="width:18%"><col style="width:13%"></colgroup>
+        <thead><tr><th>Fecha</th><th>Hora</th><th>Medicamento o material</th><th>Cantidad</th><th>Dosis / vía</th><th>Observaciones</th><th>Responsable</th></tr></thead>
+        <tbody>
+            {% for item in hoja['suministros'] %}
+            <tr><td>{{ item.get('fecha','') }}</td><td>{{ item.get('hora','') }}</td><td>{{ item.get('item','') }}</td><td>{{ item.get('cantidad','') }}</td><td>{{ item.get('dosis_via','') }}</td><td>{{ item.get('notas','') }}</td><td>{{ item.get('responsable','') }}</td></tr>
+            {% endfor %}
+            {% for _ in range([12 - hoja['suministros']|length, 0]|max) %}<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>{% endfor %}
+        </tbody>
+    </table>
+    {% if hoja['observaciones'] %}<div class="document-notes"><strong>Observaciones generales:</strong> {{ hoja['observaciones'] }}</div>{% endif %}
+    <div class="document-signature">{{ hoja['firma_responsable'] }}<br>FIRMA RESPONSABLE</div>
+</article>
+{% if imprimir %}<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),120));</script>{% endif %}
+{% endblock %}

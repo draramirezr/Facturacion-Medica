@@ -97,14 +97,11 @@ python app.py
 
 El sistema estará disponible en: `http://localhost:5000`
 
-## 👤 Usuario por Defecto
+## 👤 Usuario administrador
 
-El sistema creará un usuario administrador por defecto:
-
-- **Email**: admin@facturacion.com
-- **Contraseña**: Admin123!
-
-**IMPORTANTE**: Cambia esta contraseña inmediatamente después del primer login.
+El sistema no publica credenciales predeterminadas. Crea el primer administrador
+con `crear_admin.py`; el script solicitará el correo y la contraseña de forma
+interactiva.
 
 ## 📁 Estructura del Proyecto
 
@@ -207,7 +204,14 @@ EMAIL_FROM=tu_email_verificado@dominio.com
 2. Crear nuevo proyecto desde GitHub
 3. Agregar servicio MySQL
 4. Configurar variables de entorno
-5. Railway detectará automáticamente el `requirements.txt` y `app.py`
+5. Configurar el comando de inicio productivo:
+
+```bash
+waitress-serve --host=0.0.0.0 --port=$PORT app:app
+```
+
+`SECRET_KEY` y `APP_BASE_URL` son obligatorias en producción. El proceso
+validará también que las tablas principales tengan `tenant_id`.
 
 ### Otras plataformas
 
@@ -227,7 +231,7 @@ python app.py
 
 ### Debug mode
 
-El debug mode está activado automáticamente si `FLASK_ENV != production` en `.env`
+El debug mode solo se activa cuando `FLASK_ENV=development`.
 
 ## 📝 Notas Importantes
 

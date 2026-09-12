@@ -291,7 +291,11 @@
             </div>
             <div class="config-item">
                 <i class="fas fa-file-invoice"></i>
+                {% if tipo_factura == 'ELECTRONICA' %}
+                <span><strong>Comprobante:</strong> E31 - Crédito Fiscal Electrónico</span>
+                {% else %}
                 <span><strong>NCF:</strong> {{ ncf['tipo'] }} - {{ ncf['prefijo'] }}</span>
+                {% endif %}
             </div>
             <div class="config-item">
                 <i class="fas fa-user-md"></i>
@@ -342,6 +346,7 @@
     <!-- Tabla de Pacientes -->
     <form id="formGenerar" method="POST">
         <input type="hidden" name="step" value="2">
+        <input type="hidden" name="tipo_factura" value="{{ tipo_factura }}">
         <input type="hidden" name="pacientes_ids" id="pacientes_ids">
         <input type="hidden" name="ars_id" value="{{ ars['id'] }}">
         <input type="hidden" name="ncf_id" value="{{ ncf['id'] }}">

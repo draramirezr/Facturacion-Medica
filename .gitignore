@@ -35,6 +35,14 @@ instance/
 .env.local
 config_mysql.env
 
+# Certificados y secretos de facturación electrónica
+certificados/
+*.p12
+*.pfx
+*.pem
+*.key
+*certificate-password*
+
 # IDE
 .vscode/
 .idea/
@@ -61,5 +69,6 @@ Thumbs.db
 
 # Local dumps / downloads
 __remote_master/
+
 
 

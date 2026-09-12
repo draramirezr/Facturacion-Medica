@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Recuperar Contraseña - ARSFLOW Gestion de Factras Medicas</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
@@ -217,13 +218,14 @@
             }
         }
     </style>
+    <link href="{{ url_for('static', filename='css/auth-refresh.css') }}?v=2.0" rel="stylesheet">
 </head>
 <body>
     <div class="recovery-container">
         <div class="recovery-header">
-            <div class="recovery-icon">🔑</div>
-            <h1>Recuperar Contraseña</h1>
-            <p>ARSFLOW Gestion de Factras Medicas</p>
+            <div class="recovery-icon">AF</div>
+            <h1>Recuperar contraseña</h1>
+            <p>ARSFlow · Gestión de Facturas Médicas</p>
         </div>
         
         <div class="recovery-body">
@@ -240,10 +242,11 @@
             {% endwith %}
             
             <div class="info-text">
-                📧 Ingresa tu correo electrónico y te enviaremos un enlace para crear una nueva contraseña de forma segura.
+                Ingresa tu correo electrónico y te enviaremos un enlace para crear una nueva contraseña de forma segura.
             </div>
             
             <form method="POST" action="{{ url_for('solicitar_recuperacion') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">
                     <label for="email">Correo Electrónico</label>
                     <input 
@@ -258,7 +261,7 @@
                 </div>
                 
                 <button type="submit" class="btn-recovery">
-                    📨 Enviar Instrucciones
+                    Enviar instrucciones
                 </button>
             </form>
             
@@ -267,6 +270,7 @@
             </div>
         </div>
     </div>
+    <script src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
 </body>
 </html>
 

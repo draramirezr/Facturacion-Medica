@@ -1,6 +1,18 @@
 ﻿<!DOCTYPE html>
-<html lang="es">
+<html lang="es" data-font="{{ fuente_nombre|default('arsflow') }}">
 <head>
+    <script>
+        (() => {
+            try {
+                const saved = localStorage.getItem('arsflow-color-mode');
+                const mode = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.dataset.colorMode = mode;
+                document.documentElement.style.colorScheme = mode;
+            } catch (error) {
+                document.documentElement.dataset.colorMode = 'light';
+            }
+        })();
+    </script>
     <!-- Google Tag Manager - Optimizado para Performance -->
     <script>
     (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
@@ -21,6 +33,7 @@
     
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{% block title %}Dra. Shirley Ramírez - Ginecóloga y Obstetra en Santo Domingo | Salud Femenina{% endblock %}</title>
     
     <!-- Meta Tags SEO -->
@@ -141,7 +154,6 @@
     <!-- Preload de recursos críticos -->
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-theme.css') }}?v=1.0">
     <link rel="preload" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" as="script">
     
     <!-- Font Awesome Completo desde CDN -->
@@ -150,7 +162,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive-enhanced.min.css') }}?v=3.0">
     
     <!-- CSS local - Carga directa para prevenir FOUC -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}?v=2.1">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}?v=3.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-colors.css') }}?v=2.1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-design.css') }}?v=2.2">
     <!-- Archivos eliminados para permitir temas dinámicos:
@@ -164,6 +176,11 @@
     
     <!-- Botones Estandarizados - Todos los botones con tamaño consistente -->
     <link href="{{ url_for('static', filename='css/botones-estandarizados.min.css') }}?v=1.4" rel="stylesheet">
+
+    {% if current_user.is_authenticated %}
+    <!-- Shell autenticado ARSFlow -->
+    <link href="{{ url_for('static', filename='css/app-shell.css') }}?v=1.5" rel="stylesheet">
+    {% endif %}
     
     <!-- Estilos Críticos Inline - Prevenir FOUC (Flash of Unstyled Content) -->
     <style>
@@ -660,13 +677,6 @@
         .search-box i, .filtros-card i {
             color: var(--primary-color) !important;
         }
-
-        /* Borde/halo de inputs en cajas de búsqueda al color del tema */
-        .search-box .form-control:focus,
-        .search-box .form-control:hover {
-            border-color: var(--primary-color) !important;
-            box-shadow: 0 0 0 0.2rem {{ tema.primary }}40 !important;
-        }
         
         /* Iconos en badges de estado (solo si no tienen color específico) */
         .badge i:not(.fa-exclamation-triangle):not(.fa-times):not(.fa-check) {
@@ -1099,101 +1109,308 @@
     <!-- Bloque para scripts adicionales de páginas específicas -->
     {% block extra_head %}{% endblock %}
 </head>
-<body>
-    {% if 'facturacion' in request.path %}
-    <div class="topbar" style="position: sticky; top: 0; z-index: 10;">
-        <div style="display:flex;align-items:center;gap:10px;flex:1;">
-            <img src="{{ url_for('static', filename='img/logo-arsflow.png') }}" alt="ARSFlow" style="height:32px;">
-            <div style="flex:1;max-width:420px;">
-                <input type="text" placeholder="Buscar pacientes, facturas, ARS..." style="width:100%;padding:8px 10px;border:1px solid var(--border, #E2E8F0);border-radius:12px;font-size:13px;">
-            </div>
-        </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-            <div style="text-align:right;">
-                <div style="font-weight:700;font-size:13px;color:var(--secondary, #0F172A);">{{ current_user.nombre if current_user.is_authenticated else 'Invitado' }}</div>
-                <div style="font-size:12px;color:var(--muted, #64748B);">{{ current_user.email if current_user.is_authenticated else '' }}</div>
-            </div>
-            <div style="width:36px;height:36px;border-radius:50%;background:#ecfeff;display:grid;place-items:center;color:var(--primary,#14B8A6);font-weight:700;">
-                {{ current_user.nombre[:1]|upper if current_user.is_authenticated else '?' }}
-            </div>
-        </div>
-    </div>
-    {% endif %}
+<body{% if current_user.is_authenticated %} class="ars-app-body"{% endif %}>
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TW8956LR"
     height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
     
-    <!-- Header -->
     {% if current_user.is_authenticated %}
-    <!-- Navbar para ARSFLOW Gestion de Factras Medicas -->
-    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm" style="background: linear-gradient(135deg, {{ tema.gradient_start }} 0%, {{ tema.gradient_end}} 100%); padding: 0.2rem 0;">
-        <div class="container-fluid px-3">
-            <a class="navbar-brand d-flex align-items-center" href="{{ url_for('facturacion_menu') }}" style="font-weight: 700; font-size: 0.85rem;">
-                <i class="fas fa-file-invoice-dollar me-2" style="font-size: 0.8rem;"></i>
-                {% if empresa and empresa.empresa_nombre %}
-                    {{ empresa.empresa_nombre }}
-                {% else %}
-                    ARSFLOW Gestion de Factras Medicas
-                {% endif %}
+    {% set endpoint = request.endpoint or '' %}
+    {% set nombre_partes = current_user.nombre.split() %}
+    <div class="ars-app-shell">
+        <aside class="ars-sidebar" id="arsSidebar" aria-label="Navegación principal">
+            <a class="ars-sidebar-brand" href="{{ url_for('facturacion_menu') }}" aria-label="Ir al inicio de ARSFlow">
+                <span class="ars-brand-crop">
+                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ARSFlow Gestión de Facturas Médicas">
+                </span>
             </a>
-            
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Toggle navigation" style="padding: 0.2rem 0.4rem; font-size: 0.8rem;">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav ms-auto align-items-center" style="font-size: 0.8rem;">
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('facturacion_menu') }}">
-                            <i class="fas fa-home me-1" style="font-size: 0.75rem;"></i> Inicio
-                        </a>
-                    </li>
-                    {% if current_user.perfil == 'Administrador' %}
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_usuarios') }}">
-                            <i class="fas fa-users-cog me-1" style="font-size: 0.75rem;"></i> Usuarios
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('admin_empresas') }}">
-                            <i class="fas fa-building me-1" style="font-size: 0.75rem;"></i> Empresas
-                        </a>
-                    </li>
+
+            <nav class="ars-sidebar-scroll">
+                <button class="ars-nav-section ars-nav-group-toggle" type="button"
+                        data-nav-target="nav-principal" aria-expanded="false" aria-controls="nav-principal">
+                    <span>Principal</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="ars-nav-group collapsed" id="nav-principal">
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'facturacion_dashboard' else '' }}"
+                       href="{{ url_for('facturacion_dashboard') }}">
+                        <i class="fas fa-chart-pie"></i>
+                        <span>Dashboard</span>
+                    </a>
+                </div>
+
+                {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+                <button class="ars-nav-section ars-nav-group-toggle" type="button"
+                        data-nav-target="nav-administracion" aria-expanded="false" aria-controls="nav-administracion">
+                    <span>Administración</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="ars-nav-group collapsed" id="nav-administracion">
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_centros_medicos') else '' }}"
+                       href="{{ url_for('facturacion_centros_medicos') }}">
+                        <i class="fas fa-hospital"></i>
+                        <span>Centros médicos</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_medicos') or endpoint.startswith('facturacion_medico_centro') else '' }}"
+                       href="{{ url_for('facturacion_medicos') }}">
+                        <i class="fas fa-user-doctor"></i>
+                        <span>Médicos</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_ars') else '' }}"
+                       href="{{ url_for('facturacion_ars') }}">
+                        <i class="fas fa-shield-heart"></i>
+                        <span>ARS</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_codigo_ars') else '' }}"
+                       href="{{ url_for('facturacion_codigo_ars') }}">
+                        <i class="fas fa-barcode"></i>
+                        <span>Códigos ARS</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_servicios') else '' }}"
+                       href="{{ url_for('facturacion_servicios') }}">
+                        <i class="fas fa-list-check"></i>
+                        <span>Servicios</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_ncf') else '' }}"
+                       href="{{ url_for('facturacion_ncf') }}">
+                        <i class="fas fa-receipt"></i>
+                        <span>NCF</span>
+                    </a>
+                </div>
+                {% endif %}
+
+                <button class="ars-nav-section ars-nav-group-toggle" type="button"
+                        data-nav-target="nav-gestion" aria-expanded="false" aria-controls="nav-gestion">
+                    <span>Gestión</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="ars-nav-group collapsed" id="nav-gestion">
+                    <a class="ars-nav-link {{ 'active' if endpoint in ['facturacion_pacientes', 'facturacion_pacientes_nuevo', 'facturacion_paciente_acciones', 'facturacion_pacientes_editar'] else '' }}"
+                       href="{{ url_for('facturacion_pacientes') }}">
+                        <i class="fas fa-user-injured"></i>
+                        <span>Pacientes</span>
+                    </a>
+                    {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_cita') else '' }}"
+                       href="{{ url_for('facturacion_citas') }}">
+                        <i class="fas fa-calendar-days"></i>
+                        <span>Agenda Médica</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_receta') else '' }}"
+                       href="{{ url_for('facturacion_recetas_medicas') }}">
+                        <i class="fas fa-prescription"></i>
+                        <span>Recetas Médicas</span>
+                    </a>
                     {% endif %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-user-circle me-1" style="font-size: 0.75rem;"></i> {{ current_user.nombre }}
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
-                            <li><h6 class="dropdown-header">{{ current_user.email }}</h6></li>
-                            <li><span class="dropdown-item-text"><small>Perfil: {{ current_user.perfil }}</small></span></li>
-                            {% if empresa and empresa.empresa_nombre %}
-                            <li><span class="dropdown-item-text"><small><i class="fas fa-building me-1"></i>{{ empresa.empresa_nombre }}</small></span></li>
-                            {% endif %}
-                            <li><hr class="dropdown-divider"></li>
-                            <li>
-                                <a class="dropdown-item" href="{{ url_for('perfil_configuracion') }}">
-                                    <i class="fas fa-palette me-2"></i> Personalizar Tema
-                                </a>
-                            </li>
-                            <li>
-                                <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
-                                    <i class="fas fa-sign-out-alt me-2"></i> Cerrar Sesión
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                </ul>
+                    <a class="ars-nav-link {{ 'active' if endpoint in ['facturacion_facturas_nueva', 'facturacion_procesar_excel'] else '' }}"
+                       href="{{ url_for('facturacion_facturas_nueva') }}">
+                        <i class="fas fa-file-circle-plus"></i>
+                        <span>Registrar consultas</span>
+                    </a>
+                    {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_historia_clinica') else '' }}"
+                       href="{{ url_for('facturacion_historia_clinica') }}">
+                        <i class="fas fa-notes-medical"></i>
+                        <span>Historia Clínica</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_historias_emergencia') or endpoint.startswith('facturacion_historia_emergencia_') else '' }}"
+                       href="{{ url_for('facturacion_historias_emergencia') }}">
+                        <i class="fas fa-truck-medical"></i>
+                        <span>Historia de emergencia</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_hoja') else '' }}"
+                       href="{{ url_for('facturacion_hojas_enfermeria') }}">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Hoja de Enfermería</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_licencia') or endpoint.startswith('facturacion_tipo_licencia') else '' }}"
+                       href="{{ url_for('facturacion_licencias_medicas') }}">
+                        <i class="fas fa-file-medical"></i>
+                        <span>Licencias Médicas</span>
+                    </a>
+                    {% endif %}
+                </div>
+
+                <button class="ars-nav-section ars-nav-group-toggle" type="button"
+                        data-nav-target="nav-facturacion" aria-expanded="false" aria-controls="nav-facturacion">
+                    <span>Facturación</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="ars-nav-group collapsed" id="nav-facturacion">
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_pacientes_pendientes') else '' }}"
+                       href="{{ url_for('facturacion_pacientes_pendientes') }}">
+                        <i class="fas fa-clipboard-list"></i>
+                        <span>Facturación pendiente</span>
+                    </a>
+                    {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+                    <a class="ars-nav-link {{ 'active' if endpoint in ['facturacion_generar', 'facturacion_generar_step2', 'facturacion_vista_previa', 'facturacion_generar_final'] else '' }}"
+                       href="{{ url_for('facturacion_generar') }}">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span>Generar factura</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_reclamaciones') else '' }}"
+                       href="{{ url_for('facturacion_reclamaciones') }}">
+                        <i class="fas fa-triangle-exclamation"></i>
+                        <span>Reclamaciones</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_pagos') else '' }}"
+                       href="{{ url_for('facturacion_pagos') }}">
+                        <i class="fas fa-money-check-dollar"></i>
+                        <span>Pagos</span>
+                    </a>
+                    {% endif %}
+                </div>
+
+                {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+                <button class="ars-nav-section ars-nav-group-toggle" type="button"
+                        data-nav-target="nav-reportes" aria-expanded="false" aria-controls="nav-reportes">
+                    <span>Reportes</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="ars-nav-group collapsed" id="nav-reportes">
+                    <a class="ars-nav-link {{ 'active' if endpoint in ['facturacion_historico', 'facturacion_ver_factura', 'facturacion_editar_factura'] else '' }}"
+                       href="{{ url_for('facturacion_historico') }}">
+                        <i class="fas fa-clock-rotate-left"></i>
+                        <span>Histórico</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'facturacion_reporte_pacientes_360' else '' }}"
+                       href="{{ url_for('facturacion_reporte_pacientes_360') }}">
+                        <i class="fas fa-address-card"></i>
+                        <span>Vista 360</span>
+                    </a>
+                </div>
+                {% endif %}
+
+                <button class="ars-nav-section ars-nav-group-toggle" type="button"
+                        data-nav-target="nav-cuenta" aria-expanded="false" aria-controls="nav-cuenta">
+                    <span>Cuenta</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="ars-nav-group collapsed" id="nav-cuenta">
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'perfil_configuracion' else '' }}"
+                       href="{{ url_for('perfil_configuracion') }}">
+                        <i class="fas fa-gear"></i>
+                        <span>Configuración</span>
+                    </a>
+                    {% if current_user.perfil == 'Administrador' %}
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('admin_usuarios') else '' }}"
+                       href="{{ url_for('admin_usuarios') }}">
+                        <i class="fas fa-users-gear"></i>
+                        <span>Usuarios</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('admin_empresas') else '' }}"
+                       href="{{ url_for('admin_empresas') }}">
+                        <i class="fas fa-building"></i>
+                        <span>Empresas</span>
+                    </a>
+                    {% endif %}
+                </div>
+            </nav>
+
+            <div class="ars-sidebar-footer">
+                <a class="ars-help-card" href="mailto:soporte@arsflow.com">
+                    <i class="far fa-circle-question"></i>
+                    <span>
+                        <strong>Centro de ayuda</strong>
+                        <small>Soporte y asistencia</small>
+                    </span>
+                </a>
             </div>
-        </div>
-    </nav>
+        </aside>
+
+        <div class="ars-sidebar-overlay" id="arsSidebarOverlay" aria-hidden="true"></div>
+
+        <div class="ars-main-column">
+            <header class="ars-topbar">
+                <button class="ars-sidebar-toggle" id="arsSidebarToggle" type="button"
+                        aria-label="Abrir menú" aria-controls="arsSidebar" aria-expanded="false">
+                    <i class="fas fa-bars"></i>
+                </button>
+
+                <div class="ars-search" role="search">
+                    <input id="arsModuleSearch" type="search"
+                           placeholder="Buscador global"
+                           aria-label="Buscar en todo el sistema" autocomplete="off">
+                    <kbd>Ctrl K</kbd>
+                    <div class="ars-search-results" id="arsSearchResults" aria-live="polite"></div>
+                </div>
+
+                <div class="ars-topbar-spacer"></div>
+
+                <button class="ars-icon-button" type="button" data-theme-toggle
+                        aria-label="Activar modo oscuro" title="Modo oscuro">
+                    <i class="fas fa-moon" data-theme-icon></i>
+                </button>
+
+                <div class="dropdown">
+                    <button class="ars-icon-button" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false" aria-label="Notificaciones">
+                        <i class="far fa-bell"></i>
+                        {% if total_notificaciones %}
+                        <span class="ars-notification-count">{{ total_notificaciones }}</span>
+                        {% endif %}
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end ars-notification-menu">
+                        <div class="ars-notification-title">
+                            <strong>Notificaciones</strong>
+                            {% if total_notificaciones %}<span>{{ total_notificaciones }}</span>{% endif %}
+                        </div>
+                        {% if notificaciones %}
+                            {% for notificacion in notificaciones %}
+                            <a class="ars-notification-item" href="{{ notificacion['url'] }}">
+                                <i class="fas {{ 'fa-file-invoice-dollar' if notificacion['tipo'] == 'facturacion' else 'fa-calendar-xmark' }}"></i>
+                                <span>
+                                    <strong>{{ notificacion['titulo'] }}</strong>
+                                    <small>{{ notificacion['detalle'] }}{% if notificacion['fecha'] %} · {{ notificacion['fecha'] }}{% endif %}</small>
+                                </span>
+                            </a>
+                            {% endfor %}
+                        {% else %}
+                        <div class="ars-notification-empty">
+                            <i class="far fa-bell mb-2 d-block"></i>
+                            No tienes notificaciones nuevas
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="dropdown">
+                    <button class="ars-user-menu dropdown-toggle" type="button" data-bs-toggle="dropdown"
+                            aria-expanded="false" aria-label="Abrir menú de usuario">
+                        <span class="ars-user-avatar">
+                            {{ nombre_partes[0][0] }}{% if nombre_partes|length > 1 %}{{ nombre_partes[-1][0] }}{% endif %}
+                        </span>
+                        <span class="ars-user-copy">
+                            <strong>{{ current_user.nombre }}</strong>
+                            <small>{{ current_user.perfil }}</small>
+                        </span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><h6 class="dropdown-header">{{ current_user.email }}</h6></li>
+                        {% if empresa and empresa.empresa_nombre %}
+                        <li><span class="dropdown-item-text"><small><i class="fas fa-building me-2"></i>{{ empresa.empresa_nombre }}</small></span></li>
+                        {% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('perfil_configuracion') }}">
+                                <i class="fas fa-palette me-2"></i> Personalizar tema
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item text-danger" href="{{ url_for('logout') }}">
+                                <i class="fas fa-arrow-right-from-bracket me-2"></i> Cerrar sesión
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </header>
     {% endif %}
 
     <!-- Flash Messages -->
     {% with messages = get_flashed_messages(with_categories=true) %}
         {% if messages %}
-            <div class="container mt-3">
+            <div class="{{ 'ars-flash-area' if current_user.is_authenticated else 'container mt-3' }}">
                 {% for category, message in messages %}
                     <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
                         {{ message }}
@@ -1205,9 +1422,19 @@
     {% endwith %}
 
     <!-- Main Content -->
-    <main>
+    <main{% if current_user.is_authenticated %} class="ars-content"{% endif %}>
         {% block content %}{% endblock %}
     </main>
+
+    {% if current_user.is_authenticated %}
+    <link href="{{ url_for('static', filename='css/visual-refresh.css') }}?v=2.1" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/dark-mode.css') }}?v=1" rel="stylesheet">
+    {% endif %}
+
+    {% if current_user.is_authenticated %}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Footer - Solo visible si NO está autenticado -->
     {% if not current_user.is_authenticated %}
@@ -1361,16 +1588,22 @@
         <i class="fab fa-instagram"></i>
     </a>
 
-    <!-- Citas Button (deshabilitado: endpoint no existe) -->
-    {# <a href="{{ url_for('request_appointment') }}" 
+    <!-- Citas Button -->
+    <a href="{{ url_for('request_appointment') }}" 
        class="float-button citas-float"
        title="Solicitar Cita">
         <i class="fas fa-calendar-plus"></i>
-    </a> #}
+    </a>
     {% endif %}
 
     <!-- JavaScript - Carga optimizada con defer para máxima velocidad -->
+    <script src="{{ url_for('static', filename='js/csrf.js') }}?v=1" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
+
+    {% if current_user.is_authenticated %}
+    <script src="{{ url_for('static', filename='js/app-shell.js') }}?v=1.4" defer></script>
+    {% endif %}
+    <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=1" defer></script>
     
     <!-- Script de optimización de rendimiento -->
     <script src="{{ url_for('static', filename='js/performance.js') }}?v=2" defer></script>

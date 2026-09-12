@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if consulta else 'Nueva' }} Consulta Clínica - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+{% set ea = consulta.enfermedad_actual if consulta else {} %}
+{% set ap = consulta.antecedentes_personales if consulta else {} %}
+{% set af = consulta.antecedentes_familiares if consulta else {} %}
+{% set sv = consulta.signos_vitales if consulta else {} %}
+{% set ef = consulta.examen_fisico if consulta else {} %}
+{% set plan = consulta.plan_tratamiento if consulta else {} %}
+<style>
+    .hc-form-shell { max-width: 1100px; margin: 0 auto; }
+    .hc-patient-bar, .hc-form-card { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.3rem; }
+    .hc-form-card { border-top-left-radius: 0; }
+    .hc-tabs { border-bottom: 0; gap: .35rem; }
+    .hc-tabs .nav-link { color: var(--ars-shell-muted); border: 1px solid #e5eaf0; background: #f8fafc; font-weight: 700; }
+    .hc-tabs .nav-link.active { color: var(--primary-dark); border-color: {{ tema.primary }}35; border-bottom-color: white; background: white; }
+    .hc-section-title { font-size: 1rem; font-weight: 800; margin: .5rem 0 1rem; color: var(--primary-dark); }
+    .hc-checks { display: flex; flex-wrap: wrap; gap: .8rem 1.25rem; }
+    .hc-checks label { display: inline-flex; align-items: center; gap: .4rem; }
+    .hc-checks input { width: 18px; height: 18px; accent-color: var(--primary-color); }
+</style>
+
+<div class="container py-4">
+    <div class="hc-form-shell">
+        <div class="d-flex justify-content-between align-items-start mb-3 gap-3">
+            <div>
+                <h1>{{ 'Editar consulta clínica' if consulta else 'Nueva consulta clínica' }}</h1>
+                <p class="text-muted mb-0">Cada consulta se conserva como parte del expediente.</p>
+            </div>
+            <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=paciente['paciente_id'] if consulta else paciente['id']) }}">Volver</a>
+        </div>
+
+        <div class="hc-patient-bar mb-3">
+            <strong>{{ paciente['paciente_nombre'] if consulta else paciente['nombre'] }}</strong>
+            <span class="text-muted ms-2">{{ paciente['cedula'] or 'Sin documento' }}</span>
+        </div>
+
+        <form method="POST" id="clinicalForm">
+            <ul class="nav nav-tabs hc-tabs" role="tablist">
+                <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-consulta" type="button">Consulta</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-antecedentes" type="button">Antecedentes</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-examen" type="button">Signos y examen</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-diagnostico" type="button">Diagnóstico</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-plan" type="button">Plan</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-seguimiento" type="button">Seguimiento</button></li>
+            </ul>
+
+            <div class="tab-content hc-form-card">
+                <div class="tab-pane fade show active" id="tab-consulta">
+                    <div class="row">
+                        <div class="col-md-3 mb-3"><label class="form-label">Fecha *</label><input type="date" class="form-control" name="fecha" value="{{ fecha_actual }}" required></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Hora *</label><input type="time" class="form-control" name="hora" value="{{ hora_actual }}" required></div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label">Médico responsable *</label>
+                            <select class="form-select" name="medico_id" required>
+                                <option value="">Seleccione...</option>
+                                {% for medico in medicos %}
+                                <option value="{{ medico['id'] }}" {% if consulta and consulta['medico_id'] == medico['id'] %}selected{% endif %}>{{ medico['nombre'] }}{% if medico.get('especialidad') %} · {{ medico['especialidad'] }}{% endif %}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Ocupación</label><input class="form-control" name="ocupacion" maxlength="150" value="{{ paciente['ocupacion'] or '' }}"></div>
+                        <div class="col-12 mb-3"><label class="form-label">Motivo de consulta *</label><textarea class="form-control" name="motivo_consulta" rows="2" required>{{ consulta['motivo_consulta'] if consulta else '' }}</textarea></div>
+                    </div>
+                    <h2 class="hc-section-title">Enfermedad actual</h2>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Inicio de los síntomas</label><textarea class="form-control" name="inicio_sintomas" rows="2">{{ ea.get('inicio_sintomas','') }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Evolución</label><textarea class="form-control" name="evolucion" rows="2">{{ ea.get('evolucion','') }}</textarea></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Intensidad</label><input class="form-control" name="intensidad" value="{{ ea.get('intensidad','') }}" placeholder="Ej: 7/10"></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Factores que agravan</label><textarea class="form-control" name="factores_agravan" rows="2">{{ ea.get('factores_agravan','') }}</textarea></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Factores que alivian</label><textarea class="form-control" name="factores_alivian" rows="2">{{ ea.get('factores_alivian','') }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Síntomas asociados</label><textarea class="form-control" name="sintomas_asociados" rows="2">{{ ea.get('sintomas_asociados','') }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Tratamientos utilizados previamente</label><textarea class="form-control" name="tratamientos_previos" rows="2">{{ ea.get('tratamientos_previos','') }}</textarea></div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-antecedentes">
+                    <h2 class="hc-section-title">Antecedentes personales</h2>
+                    <div class="row">
+                        {% for campo, etiqueta in [('enfermedades_previas','Enfermedades previas'),('cirugias','Cirugías'),('hospitalizaciones','Hospitalizaciones'),('alergias','Alergias'),('medicamentos_actuales','Medicamentos actuales'),('habitos','Hábitos'),('otros','Otros antecedentes relevantes')] %}
+                        <div class="col-md-6 mb-3"><label class="form-label">{{ etiqueta }}</label><textarea class="form-control" name="{{ 'otros_antecedentes' if campo == 'otros' else campo }}" rows="2">{{ ap.get(campo,'') }}</textarea></div>
+                        {% endfor %}
+                    </div>
+                    <h2 class="hc-section-title">Antecedentes familiares</h2>
+                    <div class="hc-checks mb-3">
+                        <label><input type="checkbox" name="familiar_diabetes" value="1" {% if af.get('diabetes') %}checked{% endif %}> Diabetes</label>
+                        <label><input type="checkbox" name="familiar_hipertension" value="1" {% if af.get('hipertension') %}checked{% endif %}> Hipertensión</label>
+                        <label><input type="checkbox" name="familiar_cardiacas" value="1" {% if af.get('cardiacas') %}checked{% endif %}> Enfermedades cardíacas</label>
+                        <label><input type="checkbox" name="familiar_cancer" value="1" {% if af.get('cancer') %}checked{% endif %}> Cáncer</label>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Enfermedades hereditarias</label><textarea class="form-control" name="familiar_hereditarias" rows="2">{{ af.get('hereditarias','') }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Otros</label><textarea class="form-control" name="otros_antecedentes_familiares" rows="2">{{ af.get('otros','') }}</textarea></div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-examen">
+                    <h2 class="hc-section-title">Signos vitales</h2>
+                    <div class="row">
+                        <div class="col-md-3 mb-3"><label class="form-label">Presión arterial</label><input class="form-control" name="presion_arterial" value="{{ sv.get('presion_arterial','') }}" placeholder="120/80"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Frecuencia cardíaca</label><input type="number" class="form-control" name="frecuencia_cardiaca" min="1" max="300" value="{{ sv.get('frecuencia_cardiaca') or '' }}"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Frecuencia respiratoria</label><input type="number" class="form-control" name="frecuencia_respiratoria" min="1" max="100" value="{{ sv.get('frecuencia_respiratoria') or '' }}"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Temperatura °C</label><input type="number" step="0.1" class="form-control" name="temperatura" min="25" max="45" value="{{ sv.get('temperatura') or '' }}"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Saturación de oxígeno %</label><input type="number" step="0.1" class="form-control" name="saturacion_oxigeno" min="0" max="100" value="{{ sv.get('saturacion_oxigeno') or '' }}"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Peso (kg)</label><input type="number" step="0.01" class="form-control" id="peso" name="peso" min="0.1" max="500" value="{{ sv.get('peso') or '' }}"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Talla (m)</label><input type="number" step="0.01" class="form-control" id="talla" name="talla" min="0.3" max="2.5" value="{{ sv.get('talla') or '' }}"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">IMC</label><input class="form-control" id="imc" value="{{ sv.get('imc') or '' }}" readonly></div>
+                    </div>
+                    <h2 class="hc-section-title">Examen físico</h2>
+                    <div class="row">
+                        {% for campo, etiqueta in [('estado_general','Estado general'),('cabeza_cuello','Cabeza y cuello'),('cardiovascular','Cardiovascular'),('respiratorio','Respiratorio'),('abdomen','Abdomen'),('extremidades','Extremidades'),('neurologico','Neurológico'),('otros','Otros hallazgos')] %}
+                        <div class="col-md-6 mb-3"><label class="form-label">{{ etiqueta }}</label><textarea class="form-control" name="{{ 'otros_hallazgos' if campo == 'otros' else campo }}" rows="2">{{ ef.get(campo,'') }}</textarea></div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-diagnostico">
+                    <div class="mb-3"><label class="form-label">Diagnóstico principal *</label><textarea class="form-control" name="diagnostico_principal" rows="3">{{ consulta['diagnostico_principal'] if consulta else '' }}</textarea></div>
+                    <div class="mb-3"><label class="form-label">Diagnósticos secundarios</label><textarea class="form-control" name="diagnosticos_secundarios" rows="2">{{ consulta['diagnosticos_secundarios'] if consulta else '' }}</textarea></div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Diagnóstico presuntivo</label><textarea class="form-control" name="diagnostico_presuntivo" rows="2">{{ consulta['diagnostico_presuntivo'] if consulta else '' }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Diagnóstico diferencial</label><textarea class="form-control" name="diagnostico_diferencial" rows="2">{{ consulta['diagnostico_diferencial'] if consulta else '' }}</textarea></div>
+                        <div class="col-md-4 mb-3"><label class="form-label">Código CIE-10</label><input class="form-control text-uppercase" name="codigo_cie10" maxlength="30" value="{{ consulta['codigo_cie10'] if consulta else '' }}"></div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-plan">
+                    <div class="row">
+                        <div class="col-md-6 mb-3"><label class="form-label">Medicamentos</label><textarea class="form-control" name="plan_medicamentos" rows="3">{{ plan.get('medicamentos','') }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Dosis</label><textarea class="form-control" name="plan_dosis" rows="3">{{ plan.get('dosis','') }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Frecuencia</label><textarea class="form-control" name="plan_frecuencia" rows="2">{{ plan.get('frecuencia','') }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Duración</label><textarea class="form-control" name="plan_duracion" rows="2">{{ plan.get('duracion','') }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Estudios de laboratorio</label><textarea class="form-control" name="estudios_laboratorio" rows="2">{{ plan.get('laboratorios','') }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Estudios de imágenes</label><textarea class="form-control" name="estudios_imagenes" rows="2">{{ plan.get('imagenes','') }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Procedimientos</label><textarea class="form-control" name="procedimientos" rows="2">{{ plan.get('procedimientos','') }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Recomendaciones</label><textarea class="form-control" name="recomendaciones" rows="2">{{ plan.get('recomendaciones','') }}</textarea></div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-seguimiento">
+                    <div class="mb-3"><label class="form-label">Nota de evolución de esta consulta</label><textarea class="form-control" name="nota_evolucion_inicial" rows="4">{{ consulta['nota_evolucion_inicial'] if consulta else '' }}</textarea></div>
+                    <h2 class="hc-section-title">Próxima cita</h2>
+                    <div class="row">
+                        <div class="col-md-3 mb-3"><label class="form-label">Fecha</label><input type="date" class="form-control" name="proxima_cita" value="{{ consulta['proxima_cita'] if consulta and consulta['proxima_cita'] else '' }}"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Hora</label><input type="time" class="form-control" name="proxima_hora" value="{{ consulta['proxima_hora']|hora_input if consulta and consulta['proxima_hora'] else '09:00' }}"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Especialidad</label><input class="form-control" name="proxima_especialidad" value="{{ consulta['proxima_especialidad'] if consulta else '' }}"></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Motivo</label><textarea class="form-control" name="proxima_motivo" rows="2">{{ consulta['proxima_motivo'] if consulta else '' }}</textarea></div>
+                        <div class="col-md-6 mb-3"><label class="form-label">Indicaciones de seguimiento</label><textarea class="form-control" name="indicaciones_seguimiento" rows="2">{{ consulta['indicaciones_seguimiento'] if consulta else '' }}</textarea></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end mt-3">
+                <button class="btn btn-primary px-4" type="submit"><i class="fas fa-save me-2"></i>{{ 'Guardar nueva versión' if consulta else 'Registrar consulta' }}</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const peso = document.getElementById('peso');
+    const talla = document.getElementById('talla');
+    const imc = document.getElementById('imc');
+    function calcularIMC() {
+        const p = parseFloat(peso.value);
+        const t = parseFloat(talla.value);
+        imc.value = p > 0 && t > 0 ? (p / (t * t)).toFixed(2) : '';
+    }
+    peso.addEventListener('input', calcularIMC);
+    talla.addEventListener('input', calcularIMC);
+    calcularIMC();
+});
+</script>
+{% endblock %}

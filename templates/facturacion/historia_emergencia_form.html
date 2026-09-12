@@ -1,0 +1,232 @@
+{% extends "base.html" %}
+
+{% block title %}Nueva Historia de Emergencia - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .emergency-form { max-width: 1100px; margin: 0 auto; }
+    .clinical-card { background: white; border: 1px solid {{ tema.primary }}25; border-radius: 15px; padding: 1.5rem; margin-bottom: 1.25rem; }
+    .clinical-card h2 { font-size: 1.05rem; font-weight: 800; padding-bottom: .7rem; margin-bottom: 1rem; border-bottom: 2px solid {{ tema.primary }}25; }
+    .clinical-options { display: flex; flex-wrap: wrap; gap: .75rem 1.3rem; }
+    .clinical-options label { display: inline-flex; align-items: center; gap: .4rem; cursor: pointer; }
+    .clinical-options input { width: 17px; height: 17px; accent-color: var(--primary-color); }
+    textarea.form-control { text-transform: none; }
+</style>
+
+<div class="container py-4">
+    <div class="emergency-form">
+        <div class="d-flex justify-content-between align-items-center mb-4 gap-3">
+            <div>
+                <h1 class="mb-1"><i class="fas fa-truck-medical me-2"></i>Historia Clínica de Emergencia</h1>
+                <p class="text-muted mb-0">Complete la evaluación y atención del paciente.</p>
+            </div>
+            <a href="{{ url_for('facturacion_historias_emergencia') }}" class="btn btn-outline-primary">Volver</a>
+        </div>
+
+        <form method="POST">
+            <section class="clinical-card">
+                <h2>Datos del servicio</h2>
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label" for="fecha">Fecha *</label>
+                        <input class="form-control" type="date" id="fecha" name="fecha" value="{{ fecha_actual }}" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label" for="hora_servicio">Hora del servicio *</label>
+                        <input class="form-control" type="time" id="hora_servicio" name="hora_servicio" value="{{ hora_actual }}" required>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label" for="autorizacion">Autorización</label>
+                        <input class="form-control" type="text" id="autorizacion" name="autorizacion" maxlength="100">
+                    </div>
+                </div>
+            </section>
+
+            <section class="clinical-card">
+                <h2>Información del paciente</h2>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="paciente_id">Paciente *</label>
+                        <select class="form-select" id="paciente_id" name="paciente_id" required>
+                            <option value="">Seleccione...</option>
+                            {% for paciente in pacientes %}
+                            <option value="{{ paciente['id'] }}" {% if paciente_preseleccionado == paciente['id'] %}selected{% endif %}
+                                    data-fecha="{{ paciente['fecha_nacimiento'] or '' }}"
+                                    data-sexo="{{ paciente['sexo'] or '' }}"
+                                    data-ars="{{ paciente['ars_nombre'] or '' }}"
+                                    data-nss="{{ paciente['nss'] or '' }}">
+                                {{ paciente['nombre'] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label" for="edad">Edad *</label>
+                        <input class="form-control" type="number" id="edad" name="edad" min="0" max="130" required>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label" for="sexo_historia">Sexo *</label>
+                        <select class="form-select" id="sexo_historia" name="sexo_historia" required>
+                            <option value="">Seleccione...</option>
+                            <option value="M">M</option>
+                            <option value="F">F</option>
+                            <option value="Otro">Otro</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2 mb-3">
+                        <label class="form-label" for="ars">ARS</label>
+                        <input class="form-control" id="ars" readonly>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="numero_afiliado">Número de afiliado</label>
+                        <input class="form-control" id="numero_afiliado" name="numero_afiliado" maxlength="100">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="nss">NSS</label>
+                        <input class="form-control" id="nss" readonly>
+                    </div>
+                </div>
+            </section>
+
+            <section class="clinical-card">
+                <h2>Evaluación clínica</h2>
+                <div class="mb-3">
+                    <label class="form-label" for="motivo_emergencia">Motivo de emergencia *</label>
+                    <textarea class="form-control" id="motivo_emergencia" name="motivo_emergencia" rows="2" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="historia_enfermedad">Historia de la enfermedad actual *</label>
+                    <textarea class="form-control" id="historia_enfermedad" name="historia_enfermedad" rows="4" required></textarea>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label d-block">¿Atenciones previas?</label>
+                        <div class="clinical-options">
+                            <label><input type="radio" name="atenciones_previas" value="no" checked> No</label>
+                            <label><input type="radio" name="atenciones_previas" value="si"> Sí</label>
+                        </div>
+                        <input class="form-control mt-2" name="atenciones_previas_donde" placeholder="¿Dónde?" maxlength="500">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label d-block">¿Alergias?</label>
+                        <div class="clinical-options">
+                            <label><input type="radio" name="alergias" value="no" checked> No</label>
+                            <label><input type="radio" name="alergias" value="si"> Sí</label>
+                        </div>
+                        <input class="form-control mt-2" name="alergias_detalle" placeholder="¿A qué?" maxlength="500">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="antecedentes">Antecedentes</label>
+                    <textarea class="form-control" id="antecedentes" name="antecedentes" rows="2"></textarea>
+                </div>
+                <div>
+                    <label class="form-label" for="hallazgos_examen">Hallazgos positivos al examen físico</label>
+                    <textarea class="form-control" id="hallazgos_examen" name="hallazgos_examen" rows="3"></textarea>
+                </div>
+            </section>
+
+            <section class="clinical-card">
+                <h2>Signos vitales y pruebas diagnósticas</h2>
+                <div class="row">
+                    <div class="col-md-3 mb-3"><label class="form-label">Tensión arterial</label><input class="form-control" name="ta" placeholder="Ej: 120/80"></div>
+                    <div class="col-md-3 mb-3"><label class="form-label">Frecuencia cardíaca</label><input class="form-control" name="fc" placeholder="L/M"></div>
+                    <div class="col-md-3 mb-3"><label class="form-label">Frecuencia respiratoria</label><input class="form-control" name="fr" placeholder="R/M"></div>
+                    <div class="col-md-3 mb-3"><label class="form-label">Temperatura</label><input class="form-control" name="temperatura" placeholder="°C"></div>
+                </div>
+                <label class="form-label d-block">Pruebas diagnósticas</label>
+                <div class="clinical-options mb-3">
+                    {% for prueba in ['Hemograma', 'Examen de orina', 'HCG suero', 'Glucosa', 'Radiografía', 'Sonografía', 'EKG'] %}
+                    <label><input type="checkbox" name="pruebas" value="{{ prueba }}"> {{ prueba }}</label>
+                    {% endfor %}
+                </div>
+                <input class="form-control" name="otras_pruebas" placeholder="Otras pruebas">
+            </section>
+
+            <section class="clinical-card">
+                <h2>Manejo terapéutico en emergencia</h2>
+                <div class="clinical-options mb-3">
+                    {% for manejo in ['Hidratación', 'Nebulizaciones', 'RCP', 'Cura', 'Inmovilización', 'Oxígeno', 'Sutura'] %}
+                    <label><input type="checkbox" name="manejos" value="{{ manejo }}"> {{ manejo }}</label>
+                    {% endfor %}
+                </div>
+                <div class="row">
+                    <div class="col-md-4 mb-3"><label class="form-label">Oxígeno: hora de inicio</label><input type="time" class="form-control" name="oxigeno_inicio"></div>
+                    <div class="col-md-4 mb-3"><label class="form-label">Hora final</label><input type="time" class="form-control" name="oxigeno_final"></div>
+                    <div class="col-md-4 mb-3"><label class="form-label">Total / hora</label><input class="form-control" name="oxigeno_total_hora"></div>
+                </div>
+                <label class="form-label" for="medicamentos">Medicamentos</label>
+                <textarea class="form-control" id="medicamentos" name="medicamentos" rows="3"></textarea>
+            </section>
+
+            <section class="clinical-card">
+                <h2>Diagnóstico y disposición</h2>
+                <div class="mb-3">
+                    <label class="form-label" for="diagnostico_impresion">Diagnóstico de impresión *</label>
+                    <textarea class="form-control" id="diagnostico_impresion" name="diagnostico_impresion" rows="3" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label d-block">Estatus del paciente *</label>
+                    <div class="clinical-options">
+                        {% for estado in ['Dado de alta', 'Referido', 'Alta a petición', 'Admitido', 'Fallecido'] %}
+                        <label><input type="radio" name="estatus_paciente" value="{{ estado }}" required> {{ estado }}</label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label d-block">Origen de la enfermedad *</label>
+                    <div class="clinical-options">
+                        {% for origen in ['Enfermedad común', 'Accidente de tránsito', 'Maternidad', 'Accidente laboral'] %}
+                        <label><input type="radio" name="origen_enfermedad" value="{{ origen }}" required> {{ origen }}</label>
+                        {% endfor %}
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="observaciones">Observaciones</label>
+                    <textarea class="form-control" id="observaciones" name="observaciones" rows="3"></textarea>
+                </div>
+                <div>
+                    <label class="form-label" for="medico_id">Médico responsable / firma *</label>
+                    <select class="form-select" id="medico_id" name="medico_id" required>
+                        <option value="">Seleccione...</option>
+                        {% for medico in medicos %}
+                        <option value="{{ medico['id'] }}">{{ medico['nombre'] }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </section>
+
+            <div class="d-flex justify-content-between gap-3 mb-5">
+                <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historias_emergencia') }}">Cancelar</a>
+                <button class="btn btn-primary px-4" type="submit"><i class="fas fa-save me-2"></i>Guardar historia</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const pacientes = document.getElementById('paciente_id');
+    function edad(fecha) {
+        if (!fecha) return '';
+        const nacimiento = new Date(fecha + 'T00:00:00');
+        const hoy = new Date();
+        let valor = hoy.getFullYear() - nacimiento.getFullYear();
+        if (hoy.getMonth() < nacimiento.getMonth() ||
+            (hoy.getMonth() === nacimiento.getMonth() && hoy.getDate() < nacimiento.getDate())) valor--;
+        return valor;
+    }
+    function actualizarPaciente() {
+        const opcion = this.options[this.selectedIndex];
+        document.getElementById('edad').value = edad(opcion.dataset.fecha);
+        document.getElementById('sexo_historia').value = opcion.dataset.sexo || '';
+        document.getElementById('ars').value = opcion.dataset.ars || 'Sin ARS';
+        document.getElementById('nss').value = opcion.dataset.nss || '';
+        document.getElementById('numero_afiliado').value = opcion.dataset.nss || '';
+    }
+    pacientes.addEventListener('change', actualizarPaciente);
+    if (pacientes.value) actualizarPaciente.call(pacientes);
+});
+</script>
+{% endblock %}

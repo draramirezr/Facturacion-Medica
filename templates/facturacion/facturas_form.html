@@ -336,7 +336,7 @@
                     <select class="form-select" id="ars_id" name="ars_id" required>
                         <option value="">Seleccione un ARS</option>
                         {% for ars in ars_list %}
-                        <option value="{{ ars['id'] }}">{{ ars['nombre'] }}</option>
+                        <option value="{{ ars['id'] }}" {% if paciente_preseleccionado and paciente_preseleccionado['ars_id'] == ars['id'] %}selected{% endif %}>{{ ars['nombre'] }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -460,9 +460,15 @@ centrosPorMedico[{{ centro['medico_id'] }}].push({
 
 console.log('📍 Centros por médico cargados:', centrosPorMedico);
 
-function actualizarCentrosPorMedico(medicoId) {
+// Event listener para cambio de médico
+document.getElementById('medico_id').addEventListener('change', function() {
+    const medicoId = parseInt(this.value);
     const centroSelect = document.getElementById('centro_medico_id');
-    if (!centroSelect) return;
+    
+    console.log('🔍 Médico seleccionado:', medicoId);
+    console.log('📋 Centros disponibles:', centrosPorMedico[medicoId]);
+    
+    // Limpiar opciones
     centroSelect.innerHTML = '<option value="">Seleccione un centro médico...</option>';
     
     if (medicoId && centrosPorMedico[medicoId]) {
@@ -482,25 +488,15 @@ function actualizarCentrosPorMedico(medicoId) {
             centroSelect.appendChild(option);
         });
         
+        // Preseleccionar el centro por defecto
         if (centroDefectoId) {
             centroSelect.value = centroDefectoId;
+            console.log('✅ Centro por defecto preseleccionado:', centroDefectoId);
         }
     } else {
         centroSelect.innerHTML = '<option value="">No hay centros médicos asociados</option>';
+        console.log('⚠️ No hay centros para este médico');
     }
-}
-
-// Event listener para cambio de médico
-document.getElementById('medico_id').addEventListener('change', function() {
-    const medicoId = parseInt(this.value);
-    const centroSelect = document.getElementById('centro_medico_id');
-    
-    console.log('🔍 Médico seleccionado:', medicoId);
-    console.log('📋 Centros disponibles:', centrosPorMedico[medicoId]);
-    
-    // Limpiar opciones
-    centroSelect.innerHTML = '<option value="">Seleccione un centro médico...</option>';
-    actualizarCentrosPorMedico(medicoId);
 });
 
 let numeroLinea = 0;
@@ -532,7 +528,7 @@ function agregarLinea() {
             <div id="sugerencia-${numeroLinea}"></div>
         </td>
         <td><input type="text" class="form-control form-control-sm" data-campo="nombre" placeholder="NOMBRE COMPLETO"></td>
-        <td><input type="date" class="form-control form-control-sm" data-campo="fecha" value="${HOY_ISO}" min="${MIN_45_ISO}" max="${HOY_ISO}"></td>
+        <td><input type="date" class="form-control form-control-sm" data-campo="fecha" value="${new Date().toISOString().split('T')[0]}" max="${new Date().toISOString().split('T')[0]}"></td>
         <td>
             <input type="text" 
                    class="form-control form-control-sm" 
@@ -564,7 +560,7 @@ function agregarLinea() {
         <td class="text-center" style="width: 6%; min-width: 60px;">
             <div class="d-flex flex-column justify-content-center align-items-center gap-1" style="flex-wrap: nowrap;">
                 <button type="button" class="btn btn-agregar-linea-mini" onclick="agregarLinea()" title="Agregar línea nueva (Ctrl+Enter)" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-plus" style="font-size: 0.7rem;"></i>
+                    <i class="fas fa-pencil-alt" style="font-size: 0.7rem;"></i>
                 </button>
                 <button type="button" class="btn btn-eliminar-linea" onclick="eliminarLinea(${numeroLinea})" title="Eliminar línea" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
                     <i class="fas fa-trash" style="font-size: 0.7rem;"></i>
@@ -675,49 +671,6 @@ document.addEventListener('input', function(e) {
         e.target.value = e.target.value.toUpperCase();
     }
 });
-
-// Cargar ARS según médico seleccionado
-async function cargarArsPorMedico(medicoId) {
-    const arsSelect = document.getElementById('ars_id');
-    if (!arsSelect) return;
-    arsSelect.innerHTML = '<option value="">Cargando ARS...</option>';
-    if (!medicoId) {
-        arsSelect.innerHTML = '<option value="">Seleccione un ARS</option>';
-        return;
-    }
-    try {
-        const resp = await fetch(`/api/medicos/${medicoId}/ars`);
-        const data = await resp.json();
-        const arsLista = data.ars || [];
-        let opciones = '<option value="">Seleccione un ARS</option>';
-        arsLista.forEach(ars => {
-            opciones += `<option value="${ars.id}">${ars.nombre}</option>`;
-        });
-        arsSelect.innerHTML = opciones;
-    } catch (err) {
-        console.error('Error cargando ARS por médico', err);
-        arsSelect.innerHTML = '<option value="">Seleccione un ARS</option>';
-    }
-}
-
-// Evento de cambio en médico
-document.getElementById('medico_id')?.addEventListener('change', function() {
-    const medicoId = this.value;
-    cargarArsPorMedico(medicoId);
-});
-
-function hoyLocalISO() {
-    const d = new Date();
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    return d.toISOString().split('T')[0];
-}
-const HOY_ISO = hoyLocalISO();
-const MIN_45_ISO = (() => {
-    const d = new Date();
-    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
-    d.setDate(d.getDate() - 45);
-    return d.toISOString().split('T')[0];
-})();
 
 // Procesar archivo Excel cargado
 async function procesarExcel(input) {
@@ -935,7 +888,6 @@ async function procesarExcel(input) {
         
         // Agregar cada paciente del Excel
         let pacientesAgregados = 0;
-        const totalExcel = data.total_excel || data.total || data.pacientes.length;
         for (const paciente of data.pacientes) {
             numeroLinea++;
             const tr = document.createElement('tr');
@@ -954,7 +906,7 @@ async function procesarExcel(input) {
                     <div id="sugerencia-${numeroLinea}"></div>
                 </td>
                 <td><input type="text" class="form-control form-control-sm" data-campo="nombre" placeholder="NOMBRE COMPLETO" value="${paciente.nombre}"></td>
-                <td><input type="date" class="form-control form-control-sm" data-campo="fecha" value="${paciente.fecha}" min="${MIN_45_ISO}" max="${HOY_ISO}"></td>
+                <td><input type="date" class="form-control form-control-sm" data-campo="fecha" value="${paciente.fecha}" max="${new Date().toISOString().split('T')[0]}"></td>
                 <td>
                     <input type="text" 
                            class="form-control form-control-sm" 
@@ -988,7 +940,7 @@ async function procesarExcel(input) {
                 <td class="text-center" style="width: 6%; min-width: 60px;">
                     <div class="d-flex flex-column justify-content-center align-items-center gap-1" style="flex-wrap: nowrap;">
                         <button type="button" class="btn btn-agregar-linea-mini" onclick="agregarLinea()" title="Agregar línea nueva (Ctrl+Enter)" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-plus" style="font-size: 0.7rem;"></i>
+                            <i class="fas fa-pencil-alt" style="font-size: 0.7rem;"></i>
                         </button>
                         <button type="button" class="btn btn-eliminar-linea" onclick="eliminarLinea(${numeroLinea})" title="Eliminar línea" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
                             <i class="fas fa-trash" style="font-size: 0.7rem;"></i>
@@ -1007,11 +959,7 @@ async function procesarExcel(input) {
         // Mostrar mensaje de éxito (solo si NO hay errores)
         document.getElementById('loading-excel').remove();
         
-        // Crear modal de éxito con comparación vs total Excel
-        const resumenTexto = (pacientesAgregados === totalExcel)
-            ? `${pacientesAgregados} de ${totalExcel} paciente(s) cargados.`
-            : `${pacientesAgregados} de ${totalExcel} paciente(s) cargados. ¿Deseas continuar o revisar el Excel?`;
-        
+        // Crear modal de éxito
         let mensajeHTML = `
             <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
                         background: white; padding: 2.5rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); 
@@ -1030,35 +978,18 @@ async function procesarExcel(input) {
                         <i class="fas fa-users me-2"></i>${pacientesAgregados} paciente(s)
                     </p>
                     <p style="color: #666; font-size: 0.9rem; margin: 0.5rem 0 0 0;">
-                        ${resumenTexto}
+                        Cargados correctamente en la tabla
                     </p>
                 </div>
                 <p style="color: #666; font-size: 0.9rem; margin-bottom: 1.5rem;">
-                    ${pacientesAgregados === totalExcel
-                        ? 'Los pacientes están listos para ser agregados como pendientes de facturación.'
-                        : 'Hay diferencia entre los pacientes en el Excel y los cargados. Puedes revisar el Excel o continuar de todos modos.'}
+                    Los pacientes están listos para ser agregados como pendientes de facturación.
                 </p>
-                ${pacientesAgregados === totalExcel
-                    ? `<button onclick="cerrarModal()" 
-                            style="background: var(--gradient-primary); 
-                                   color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; 
-                                   font-weight: 600; cursor: pointer; width: 100%; font-size: 1rem;">
-                        <i class="fas fa-check me-2"></i>Entendido
-                      </button>`
-                    : `<div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                           <button onclick="cerrarModal()" 
-                                   style="background: var(--gradient-primary); 
-                                          color: white; border: none; padding: 0.8rem 1.5rem; border-radius: 10px; 
-                                          font-weight: 600; cursor: pointer; flex: 1; min-width: 140px; font-size: 0.95rem;">
-                               <i class="fas fa-check me-2"></i>Continuar
-                           </button>
-                           <button onclick="cerrarModal(); document.getElementById('archivo_excel').click();" 
-                                   style="background: #f1f5f9; color: #1f2937; border: 1px solid #cbd5e1; 
-                                          padding: 0.8rem 1.5rem; border-radius: 10px; font-weight: 600; cursor: pointer; 
-                                          flex: 1; min-width: 140px; font-size: 0.95rem;">
-                               <i class="fas fa-file-excel me-2"></i>Revisar Excel
-                           </button>
-                       </div>`}
+                <button onclick="cerrarModal()" 
+                        style="background: var(--gradient-primary); 
+                               color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; 
+                               font-weight: 600; cursor: pointer; width: 100%; font-size: 1rem;">
+                    <i class="fas fa-check me-2"></i>Entendido
+                </button>
             </div>
             <div onclick="cerrarModal()" 
                  style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
@@ -1134,11 +1065,9 @@ async function procesarExcel(input) {
 // Validar que la autorización sea única en toda la factura
 function validarAutorizacionUnica(input) {
     const autorizacion = input.value.trim();
-    const arsSelect = document.getElementById('ars_id');
-    const arsId = arsSelect ? (arsSelect.value || '').trim() : '';
     
-    // Si está vacío o no hay ARS seleccionada aún, no validar
-    if (!autorizacion || !arsId) {
+    // Si está vacío, no validar
+    if (!autorizacion) {
         return;
     }
     
@@ -1163,7 +1092,7 @@ function validarAutorizacionUnica(input) {
         // Mostrar error
         input.style.borderColor = '#dc3545';
         input.style.backgroundColor = '#ffe6e6';
-        errorElement.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Esta autorización ya existe para esta ARS. Debe ser única.';
+        errorElement.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Esta autorización ya existe. Debe ser única.';
         errorElement.style.display = 'block';
         
         // Limpiar el campo después de 2 segundos
@@ -1179,33 +1108,6 @@ function validarAutorizacionUnica(input) {
         input.style.backgroundColor = '';
         errorElement.style.display = 'none';
     }
-}
-
-function validarAutorizacionesEnFormulario() {
-    const arsSelect = document.getElementById('ars_id');
-    const arsId = arsSelect ? (arsSelect.value || '').trim() : '';
-    if (!arsId) return true; // sin ARS no aplicamos validación
-    
-    const seen = new Set();
-    let esValido = true;
-    
-    document.querySelectorAll('#tbody-lineas tr[id^="linea-"]').forEach(tr => {
-        const autorizacion = tr.querySelector('[data-campo="autorizacion"]').value.trim();
-        if (!autorizacion) return;
-        
-        const key = `${arsId}::${autorizacion}`;
-        if (seen.has(key)) {
-            esValido = false;
-        } else {
-            seen.add(key);
-        }
-    });
-    
-    if (!esValido) {
-        alert('No puedes repetir el mismo número de Autorización para la misma ARS. Corrige las líneas duplicadas.');
-    }
-    
-    return esValido;
 }
 
 document.getElementById('formFactura').addEventListener('submit', function(e) {
@@ -1236,11 +1138,6 @@ document.getElementById('formFactura').addEventListener('submit', function(e) {
             alert(`La línea ${i + 1} tiene campos vacíos. Complete NSS, Nombre, Servicio y Monto.`);
             return false;
         }
-    }
-    
-    // Validar duplicados de autorización por ARS
-    if (!validarAutorizacionesEnFormulario()) {
-        return false;
     }
     
     // Guardar JSON en campo oculto
@@ -1289,32 +1186,17 @@ document.querySelectorAll('#formFactura input, #formFactura select').forEach(inp
     });
 });
 
-// Prefill automático desde dashboard (auto=1&ars_id=...)
-const AUTO_MODE = {{ 'true' if auto_mode else 'false' }};
-const ARS_PREFILL_ID = {{ ars_prefill_id if ars_prefill_id else 'null' }};
-const MEDICO_PREFILL_ID = {{ medico_prefill_id if medico_prefill_id else 'null' }};
+// Agregar primera línea al cargar la página
+window.addEventListener('DOMContentLoaded', agregarLinea);
 
+{% if paciente_preseleccionado %}
 window.addEventListener('DOMContentLoaded', function() {
-    // Si ya hay médico seleccionado (prefill), cargar centros y ARS
-    const medSelect = document.getElementById('medico_id');
-    if (medSelect && medSelect.value) {
-        medSelect.dispatchEvent(new Event('change'));
-    }
-
-    if (AUTO_MODE) {
-        if (MEDICO_PREFILL_ID) {
-            const medSelect = document.getElementById('medico_id');
-            medSelect.value = MEDICO_PREFILL_ID;
-            medSelect.dispatchEvent(new Event('change'));
-        }
-        if (ARS_PREFILL_ID) {
-            const arsSelect = document.getElementById('ars_id');
-            arsSelect.value = ARS_PREFILL_ID;
-        }
-    }
-    // Agregar primera línea al cargar la página
-    agregarLinea();
+    const primeraLinea = document.querySelector('#tbody-lineas tr[id^="linea-"]');
+    if (!primeraLinea) return;
+    primeraLinea.querySelector('[data-campo="nss"]').value = {{ (paciente_preseleccionado['nss'] or '')|tojson }};
+    primeraLinea.querySelector('[data-campo="nombre"]').value = {{ paciente_preseleccionado['nombre']|tojson }}.toUpperCase();
 });
+{% endif %}
 </script>
 {% endblock %}
 

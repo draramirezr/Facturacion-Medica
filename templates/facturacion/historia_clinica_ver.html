@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}Consulta Clínica - {{ consulta['paciente_nombre'] }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .hc-view { max-width: 1100px; margin: 0 auto; }
+    .hc-summary, .hc-block { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.25rem; margin-bottom: 1rem; }
+    .hc-summary { background: linear-gradient(135deg, {{ tema.primary }}12, white); }
+    .hc-block h2 { font-size: 1rem; font-weight: 800; color: var(--primary-dark); border-bottom: 1px solid {{ tema.primary }}25; padding-bottom: .6rem; }
+    .detail-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: .8rem 1rem; }
+    .detail-grid span, .detail-label { display: block; color: var(--ars-shell-muted); font-size: .72rem; text-transform: uppercase; font-weight: 700; }
+    .detail-wide { grid-column: span 2; }
+    .evolution { border-left: 3px solid var(--primary-color); padding: .9rem 1rem; background: #f9fbfd; margin-bottom: .8rem; border-radius: 0 10px 10px 0; }
+    @media (max-width: 767px) { .detail-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+
+<div class="container py-4">
+    <div class="hc-view">
+        <div class="hc-summary">
+            <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
+                <div>
+                    <a href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=consulta['paciente_id']) }}" class="text-decoration-none"><i class="fas fa-arrow-left me-1"></i>Expediente</a>
+                    <h1 class="mt-2 mb-1">{{ consulta['paciente_nombre'] }}</h1>
+                    <p class="text-muted mb-0">Consulta del {{ consulta['fecha'] }} a las {{ consulta['hora'] }} · {{ consulta['medico_nombre'] }}</p>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <a class="btn btn-primary" href="{{ url_for('facturacion_recetas_medicas_nueva', consulta_id=consulta['id']) }}"><i class="fas fa-prescription me-2"></i>Crear receta</a>
+                    <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_editar', consulta_id=consulta['id']) }}"><i class="fas fa-pen me-2"></i>Editar con trazabilidad</a>
+                </div>
+            </div>
+            <div class="detail-grid mt-4">
+                <div><span>Nacimiento</span>{{ consulta['fecha_nacimiento'] or 'N/D' }}</div>
+                <div><span>Edad en consulta</span>{{ consulta['edad'] if consulta['edad'] is not none else 'N/D' }}</div>
+                <div><span>Sexo</span>{{ consulta['sexo'] or 'N/D' }}</div>
+                <div><span>Documento</span>{{ consulta['cedula'] or 'N/D' }}</div>
+                <div><span>Teléfono</span>{{ consulta['telefono'] or 'N/D' }}</div>
+                <div><span>Correo</span>{{ consulta['email'] or 'N/D' }}</div>
+                <div><span>Ocupación</span>{{ consulta['ocupacion'] or 'N/D' }}</div>
+                <div><span>Versión</span>{{ consulta['version'] }}</div>
+                <div class="detail-wide"><span>Dirección</span>{{ consulta['direccion'] or 'N/D' }}</div>
+            </div>
+        </div>
+
+        <div class="hc-block">
+            <h2>Motivo y enfermedad actual</h2>
+            <p><span class="detail-label">Motivo de consulta</span>{{ consulta['motivo_consulta'] }}</p>
+            <div class="detail-grid">
+                {% for campo, etiqueta in [('inicio_sintomas','Inicio de síntomas'),('evolucion','Evolución'),('intensidad','Intensidad'),('factores_agravan','Factores que agravan'),('factores_alivian','Factores que alivian'),('sintomas_asociados','Síntomas asociados'),('tratamientos_previos','Tratamientos previos')] %}
+                <div class="detail-wide"><span>{{ etiqueta }}</span>{{ consulta.enfermedad_actual.get(campo) or 'N/D' }}</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="hc-block">
+            <h2>Antecedentes</h2>
+            <div class="detail-grid">
+                {% for campo, etiqueta in [('enfermedades_previas','Enfermedades previas'),('cirugias','Cirugías'),('hospitalizaciones','Hospitalizaciones'),('alergias','Alergias'),('medicamentos_actuales','Medicamentos actuales'),('habitos','Hábitos'),('otros','Otros')] %}
+                <div class="detail-wide"><span>{{ etiqueta }}</span>{{ consulta.antecedentes_personales.get(campo) or 'N/D' }}</div>
+                {% endfor %}
+                <div class="detail-wide"><span>Familiares</span>
+                    {% set af = consulta.antecedentes_familiares %}
+                    {% if af.get('diabetes') %}Diabetes; {% endif %}
+                    {% if af.get('hipertension') %}Hipertensión; {% endif %}
+                    {% if af.get('cardiacas') %}Enfermedades cardíacas; {% endif %}
+                    {% if af.get('cancer') %}Cáncer; {% endif %}
+                    {{ af.get('hereditarias') or '' }}{% if af.get('hereditarias') and af.get('otros') %}; {% endif %}{{ af.get('otros') or '' }}
+                    {% if not af.get('diabetes') and not af.get('hipertension') and not af.get('cardiacas') and not af.get('cancer') and not af.get('hereditarias') and not af.get('otros') %}N/D{% endif %}
+                </div>
+            </div>
+        </div>
+
+        <div class="hc-block">
+            <h2>Signos vitales y examen físico</h2>
+            <div class="detail-grid mb-3">
+                {% for campo, etiqueta in [('presion_arterial','Presión arterial'),('frecuencia_cardiaca','Frecuencia cardíaca'),('frecuencia_respiratoria','Frecuencia respiratoria'),('temperatura','Temperatura'),('saturacion_oxigeno','Saturación O₂'),('peso','Peso kg'),('talla','Talla m'),('imc','IMC')] %}
+                <div><span>{{ etiqueta }}</span>{{ consulta.signos_vitales.get(campo) if consulta.signos_vitales.get(campo) is not none else 'N/D' }}</div>
+                {% endfor %}
+            </div>
+            <div class="detail-grid">
+                {% for campo, etiqueta in [('estado_general','Estado general'),('cabeza_cuello','Cabeza y cuello'),('cardiovascular','Cardiovascular'),('respiratorio','Respiratorio'),('abdomen','Abdomen'),('extremidades','Extremidades'),('neurologico','Neurológico'),('otros','Otros hallazgos')] %}
+                <div class="detail-wide"><span>{{ etiqueta }}</span>{{ consulta.examen_fisico.get(campo) or 'N/D' }}</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="hc-block">
+            <h2>Diagnóstico</h2>
+            <div class="detail-grid">
+                <div class="detail-wide"><span>Principal</span>{{ consulta['diagnostico_principal'] }}</div>
+                <div><span>CIE-10</span>{{ consulta['codigo_cie10'] or 'N/D' }}</div>
+                <div class="detail-wide"><span>Secundarios</span>{{ consulta['diagnosticos_secundarios'] or 'N/D' }}</div>
+                <div class="detail-wide"><span>Presuntivo</span>{{ consulta['diagnostico_presuntivo'] or 'N/D' }}</div>
+                <div class="detail-wide"><span>Diferencial</span>{{ consulta['diagnostico_diferencial'] or 'N/D' }}</div>
+            </div>
+        </div>
+
+        <div class="hc-block">
+            <h2>Plan y tratamiento</h2>
+            <div class="detail-grid">
+                {% for campo, etiqueta in [('medicamentos','Medicamentos'),('dosis','Dosis'),('frecuencia','Frecuencia'),('duracion','Duración'),('laboratorios','Laboratorios'),('imagenes','Imágenes'),('procedimientos','Procedimientos'),('recomendaciones','Recomendaciones')] %}
+                <div class="detail-wide"><span>{{ etiqueta }}</span>{{ consulta.plan_tratamiento.get(campo) or 'N/D' }}</div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="hc-block">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h2 class="mb-0">Recetas médicas</h2>
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_recetas_medicas_nueva', consulta_id=consulta['id']) }}">Nueva receta</a>
+            </div>
+            {% for receta in recetas %}
+            <div class="d-flex justify-content-between align-items-center gap-2 py-2 border-bottom">
+                <div><strong>{{ receta['codigo'] }}</strong><small class="d-block text-muted">{{ receta['fecha'] }} · {{ receta['medicamentos'] }} medicamento(s) · {{ receta['estado'] }}</small></div>
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_receta_medica_ver',receta_id=receta['id']) }}">Ver</a>
+            </div>
+            {% else %}<p class="text-muted mb-0">No hay recetas emitidas desde esta consulta.</p>{% endfor %}
+        </div>
+
+        <div class="hc-block">
+            <h2>Evolución</h2>
+            {% if consulta['nota_evolucion_inicial'] %}
+            <div class="evolution"><strong>{{ consulta['fecha'] }} · {{ consulta['medico_nombre'] }}</strong><p class="mb-0 mt-2">{{ consulta['nota_evolucion_inicial'] }}</p></div>
+            {% endif %}
+            {% for evolucion in evoluciones %}
+            <div class="evolution">
+                <strong>{{ evolucion['fecha'] }} {{ evolucion['hora'] }} · {{ evolucion['medico_nombre'] }}</strong>
+                <p class="my-2">{{ evolucion['nota_evolucion'] }}</p>
+                {% if evolucion['diagnostico'] %}<small><b>Diagnóstico:</b> {{ evolucion['diagnostico'] }}</small><br>{% endif %}
+                {% if evolucion['tratamiento'] %}<small><b>Tratamiento:</b> {{ evolucion['tratamiento'] }}</small>{% endif %}
+            </div>
+            {% endfor %}
+
+            <form method="POST" action="{{ url_for('facturacion_historia_clinica_evolucion', consulta_id=consulta['id']) }}" class="mt-4">
+                <h3 class="h6">Agregar nueva nota sin sobrescribir las anteriores</h3>
+                <div class="row">
+                    <div class="col-md-3 mb-3"><input type="date" class="form-control" name="fecha_evolucion" value="{{ fecha_actual }}" required></div>
+                    <div class="col-md-3 mb-3"><input type="time" class="form-control" name="hora_evolucion" value="{{ hora_actual }}" required></div>
+                    <div class="col-md-6 mb-3"><select class="form-select" name="medico_evolucion" required><option value="">Médico...</option>{% for medico in medicos %}<option value="{{ medico['id'] }}">{{ medico['nombre'] }}</option>{% endfor %}</select></div>
+                    <div class="col-12 mb-3"><textarea class="form-control" name="nota_evolucion" rows="3" placeholder="Nota de evolución" required></textarea></div>
+                    <div class="col-md-6 mb-3"><textarea class="form-control" name="diagnostico_evolucion" rows="2" placeholder="Diagnóstico actualizado"></textarea></div>
+                    <div class="col-md-6 mb-3"><textarea class="form-control" name="tratamiento_evolucion" rows="2" placeholder="Tratamiento actualizado"></textarea></div>
+                </div>
+                <button class="btn btn-primary" type="submit">Agregar evolución</button>
+            </form>
+        </div>
+
+        <div class="hc-block">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <h2 class="mb-0">Próxima cita y trazabilidad</h2>
+                {% if cita_agenda %}
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_cita_editar',cita_id=cita_agenda['id']) }}"><i class="fas fa-calendar-check me-2"></i>Ver en agenda</a>
+                {% else %}
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_citas_nueva',consulta_id=consulta['id']) }}"><i class="fas fa-calendar-plus me-2"></i>Programar en agenda</a>
+                {% endif %}
+            </div>
+            <div class="detail-grid">
+                <div><span>Fecha</span>{{ consulta['proxima_cita'] or 'No programada' }}</div>
+                <div><span>Hora</span>{{ consulta['proxima_hora']|hora_input if consulta['proxima_hora'] else 'No programada' }}</div>
+                <div><span>Especialidad</span>{{ consulta['proxima_especialidad'] or 'N/D' }}</div>
+                <div class="detail-wide"><span>Motivo</span>{{ consulta['proxima_motivo'] or 'N/D' }}</div>
+                <div class="detail-wide"><span>Indicaciones</span>{{ consulta['indicaciones_seguimiento'] or 'N/D' }}</div>
+                <div class="detail-wide"><span>Historial de cambios</span>{{ auditoria|length }} modificación(es) registrada(s){% for cambio in auditoria %}<br><small>Versión {{ cambio['version_anterior'] }} · {{ cambio['created_at'] }} · {{ cambio['usuario_nombre'] or 'Usuario' }}</small>{% endfor %}</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

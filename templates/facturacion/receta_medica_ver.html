@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}Receta {{ receta['codigo'] }} - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .rx-paper { max-width:900px; margin:1.5rem auto; padding:2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; position:relative; }
+    .rx-title { margin-bottom:1.4rem; padding-bottom:1rem; border-bottom:2px solid var(--primary-color); text-align:center; }
+    .rx-title h1 { color:var(--primary-dark); font-size:1.7rem; }
+    .rx-info { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+    .rx-info-item { padding-bottom:.45rem; border-bottom:1px solid var(--ars-shell-border); }
+    .rx-info-item span { display:block; color:var(--ars-shell-muted); font-size:.74rem; }
+    .rx-medicine { padding:1rem 0; border-bottom:1px solid var(--ars-shell-border); }
+    .rx-medicine:last-child { border-bottom:0; }
+    .rx-order { display:inline-flex; width:27px; height:27px; align-items:center; justify-content:center; margin-right:.5rem; border-radius:50%; background:var(--primary-color); color:white; font-size:.72rem; font-weight:800; }
+    .rx-signature { margin-top:4rem; text-align:center; }
+    .rx-signature-line { width:290px; margin:0 auto .4rem; border-top:1px solid #222; }
+    .rx-annulled { position:absolute; inset:42% 0 auto; transform:rotate(-18deg); color:rgba(100,100,100,.14); font-size:5rem; font-weight:900; text-align:center; pointer-events:none; }
+    @media(max-width:700px){.rx-info{grid-template-columns:1fr}.rx-paper{padding:1.2rem;margin:.5rem}}
+    @media print {
+        @page { size:Letter portrait; margin:10mm; }
+        .ars-shell-sidebar,.ars-shell-topbar,.ars-mobile-topbar,.no-print,footer{display:none!important}
+        .ars-shell-main,.ars-shell-content{margin:0!important;padding:0!important}
+        body{background:white!important}
+        .rx-paper{max-width:none;margin:0;padding:0;border:0;border-radius:0;font-size:10pt;box-shadow:none}
+        .rx-medicine{padding:7px 0}.rx-signature{margin-top:35px}
+    }
+</style>
+<div class="container py-3 no-print">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <a class="btn btn-outline-primary" href="{{ url_for('facturacion_recetas_medicas') }}"><i class="fas fa-arrow-left me-2"></i>Recetas</a>
+        <div class="d-flex gap-2">
+            <a class="btn btn-primary" target="_blank" href="{{ url_for('facturacion_receta_medica_imprimir',receta_id=receta['id']) }}"><i class="fas fa-print me-2"></i>Imprimir</a>
+            {% if receta['estado']!='Anulada' %}<button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#annulModal"><i class="fas fa-ban me-2"></i>Anular</button>{% endif %}
+        </div>
+    </div>
+</div>
+<article class="rx-paper">
+    {% if receta['estado']=='Anulada' %}<div class="rx-annulled">ANULADA</div>{% endif %}
+    <header class="rx-title">
+        <h1>Receta Médica</h1>
+        <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ARSFlow' }}</div>
+        <strong>{{ receta['codigo'] }}</strong>
+    </header>
+    <div class="rx-info">
+        <div class="rx-info-item"><span>Paciente</span><strong>{{ receta['paciente_nombre'] }}</strong></div>
+        <div class="rx-info-item"><span>Identificación</span>{{ receta['cedula'] or 'No registrada' }}</div>
+        <div class="rx-info-item"><span>Edad</span>{{ receta['edad'] if receta['edad'] is not none else '—' }} años</div>
+        <div class="rx-info-item"><span>Fecha de emisión</span>{{ receta['fecha'] }}</div>
+        <div class="rx-info-item"><span>Médico</span><strong>{{ receta['medico_nombre'] }}</strong></div>
+        <div class="rx-info-item"><span>Especialidad</span>{{ receta['especialidad'] or 'No indicada' }}</div>
+    </div>
+    {% if receta['diagnostico'] or receta['codigo_cie10'] %}<section class="mt-4"><h2 class="h6">Diagnóstico</h2><p>{{ receta['diagnostico'] or 'No indicado' }}{% if receta['codigo_cie10'] %} · CIE-10 {{ receta['codigo_cie10'] }}{% endif %}</p></section>{% endif %}
+    <section class="mt-4">
+        <h2 class="h5">Tratamiento indicado</h2>
+        {% for item in receta['medicamentos'] %}
+        <div class="rx-medicine">
+            <div><span class="rx-order">{{ loop.index }}</span><strong>{{ item['medicamento'] }}</strong>{% if item['presentacion'] %} · {{ item['presentacion'] }}{% endif %}</div>
+            <div class="mt-2"><strong>Dosis:</strong> {{ item['dosis'] }} · <strong>Vía:</strong> {{ item['via'] or 'No indicada' }} · <strong>Frecuencia:</strong> {{ item['frecuencia'] }} · <strong>Duración:</strong> {{ item['duracion'] }}{% if item['cantidad'] %} · <strong>Cantidad:</strong> {{ item['cantidad'] }}{% endif %}</div>
+            {% if item['indicaciones'] %}<div class="text-muted mt-1">{{ item['indicaciones'] }}</div>{% endif %}
+        </div>
+        {% endfor %}
+    </section>
+    {% if receta['indicaciones_generales'] %}<section class="mt-4"><h2 class="h6">Indicaciones generales</h2><p>{{ receta['indicaciones_generales'] }}</p></section>{% endif %}
+    {% if receta['consulta_id'] %}<p class="no-print mt-3"><a href="{{ url_for('facturacion_historia_clinica_ver',consulta_id=receta['consulta_id']) }}">Abrir Historia Clínica relacionada</a></p>{% endif %}
+    {% if receta['estado']=='Anulada' %}<section class="mt-4"><h2 class="h6">Anulación</h2><p>{{ receta['fecha_anulacion'] }} · {{ receta['motivo_anulacion'] }}</p></section>{% endif %}
+    <div class="rx-signature"><div class="rx-signature-line"></div><strong>{{ receta['medico_nombre'] }}</strong><br><span>{{ receta['especialidad'] or '' }} · Exequátur {{ receta['exequatur'] or '—' }}</span></div>
+</article>
+{% if receta['estado']!='Anulada' %}
+<div class="modal fade" id="annulModal" tabindex="-1"><div class="modal-dialog"><form class="modal-content" method="POST" action="{{ url_for('facturacion_receta_medica_anular',receta_id=receta['id']) }}"><div class="modal-header"><h2 class="modal-title fs-5">Anular receta</h2><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label required">Motivo</label><textarea class="form-control" name="motivo_anulacion" rows="4" maxlength="2000" required></textarea></div><div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Confirmar</button></div></form></div></div>
+{% endif %}
+{% if imprimir %}<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),150));</script>{% endif %}
+{% endblock %}

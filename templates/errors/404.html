@@ -80,11 +80,12 @@
             50% { transform: translateY(-20px); }
         }
     </style>
+    <link href="{{ url_for('static', filename='css/error-refresh.css') }}?v=2.0" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="error-container">
-        <div class="icon">🔍</div>
+        <div class="icon"><i class="fas fa-magnifying-glass"></i></div>
         <div class="error-code">404</div>
         <h1 class="error-message">Página No Encontrada</h1>
         <p class="error-description">

@@ -1,11 +1,7 @@
 /* Tipografías personalizadas del sistema */
 
-/* Importar fuentes de Google Fonts */
-@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&display=swap');
-
-/* BLANKERS no está disponible en Google Fonts, así que usaremos una alternativa elegante y similar */
-/* Como alternativa profesional a BLANKERS, usaremos Montserrat que tiene características similares */
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap');
+/* Familias disponibles en la personalización del usuario. */
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@300;400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
 
 /* Si tienes los archivos de la fuente BLANKERS, descomenta y configura esto: */
 /*
@@ -70,6 +66,24 @@
     --letter-spacing-wide: 0.025em;
     --letter-spacing-wider: 0.05em;
     --letter-spacing-widest: 0.1em;
+}
+
+html[data-font="inter"] {
+    --font-titles: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-titles-light: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html[data-font="manrope"] {
+    --font-titles: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-titles-light: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-body: 'Manrope', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+html[data-font="jakarta"] {
+    --font-titles: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-titles-light: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 }
 
 /* Aplicar tipografía base al body - BE VIETNAM para texto */

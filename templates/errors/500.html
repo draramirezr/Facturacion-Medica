@@ -99,11 +99,12 @@
             75% { transform: rotate(5deg); }
         }
     </style>
+    <link href="{{ url_for('static', filename='css/error-refresh.css') }}?v=2.0" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>
     <div class="error-container">
-        <div class="icon">⚠️</div>
+        <div class="icon"><i class="fas fa-triangle-exclamation"></i></div>
         <div class="error-code">500</div>
         <h1 class="error-message">Error del Servidor</h1>
         <p class="error-description">

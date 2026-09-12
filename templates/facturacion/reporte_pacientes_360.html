@@ -1,0 +1,127 @@
+{% extends "base.html" %}
+
+{% block title %}Vista 360 de pacientes - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style>
+    .report-360-shell { max-width: 1180px; margin: 0 auto; padding: 1.5rem; }
+    .report-360-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.35rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--ars-shell-border);
+        border-radius: 15px;
+        background: var(--ars-shell-surface, #fff);
+    }
+    .report-360-header h1 { margin: 0 0 .35rem; color: var(--ars-shell-text); font-size: 1.55rem; font-weight: 800; }
+    .report-360-header p { margin: 0; color: var(--ars-shell-muted); font-size: .82rem; }
+    .report-360-search {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: .65rem;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border: 1px solid var(--ars-shell-border);
+        border-radius: 13px;
+        background: var(--ars-shell-surface, #fff);
+    }
+    .report-360-table {
+        overflow: hidden;
+        border: 1px solid var(--ars-shell-border);
+        border-radius: 13px;
+        background: var(--ars-shell-surface, #fff);
+    }
+    .report-360-table table { width: 100%; margin: 0; border-collapse: collapse; }
+    .report-360-table th {
+        padding: .8rem;
+        border-bottom: 1px solid var(--ars-shell-border);
+        background: color-mix(in srgb, var(--primary-color) 8%, var(--ars-shell-surface, #fff));
+        color: var(--ars-shell-muted);
+        font-size: .69rem;
+        letter-spacing: .04em;
+        text-align: left;
+        text-transform: uppercase;
+    }
+    .report-360-table td { padding: .85rem .8rem; border-bottom: 1px solid var(--ars-shell-border); color: var(--ars-shell-text); font-size: .8rem; vertical-align: middle; }
+    .report-360-table tbody tr:last-child td { border-bottom: 0; }
+    .patient-name { display: block; font-weight: 800; }
+    .patient-meta { display: block; margin-top: .2rem; color: var(--ars-shell-muted); font-size: .7rem; }
+    .empty-360 { padding: 3rem 1rem; color: var(--ars-shell-muted); text-align: center; }
+    @media (max-width: 760px) {
+        .report-360-shell { padding: .8rem; }
+        .report-360-header { flex-direction: column; }
+        .report-360-search { grid-template-columns: 1fr; }
+        .report-360-table { overflow-x: auto; }
+        .report-360-table table { min-width: 760px; }
+    }
+</style>
+
+<div class="report-360-shell">
+    <header class="report-360-header">
+        <div>
+            <h1><i class="fas fa-address-card me-2" style="color: var(--primary-color);"></i>Vista 360 de pacientes</h1>
+            <p>Consulta datos básicos, historias, emergencias, citas, recetas, licencias, consultas y facturas.</p>
+        </div>
+        <a href="{{ url_for('facturacion_menu') }}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Volver al inicio
+        </a>
+    </header>
+
+    <form class="report-360-search" method="GET">
+        <input class="form-control" type="search" name="search" value="{{ search }}"
+               placeholder="Buscar por nombre, cédula o teléfono"
+               aria-label="Buscar paciente para vista 360">
+        <button class="btn btn-primary" type="submit">
+            <i class="fas fa-search me-2"></i>Buscar
+        </button>
+    </form>
+
+    <div class="report-360-table">
+        {% if pacientes %}
+        <table>
+            <thead>
+                <tr>
+                    <th>Paciente</th>
+                    <th>Cédula</th>
+                    <th>Teléfono</th>
+                    <th>Edad</th>
+                    <th>Consultas clínicas</th>
+                    <th>Última consulta</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for paciente in pacientes %}
+                <tr>
+                    <td>
+                        <span class="patient-name">{{ paciente.nombre }}</span>
+                        <span class="patient-meta">{{ paciente.sexo or 'Sexo no registrado' }}</span>
+                    </td>
+                    <td>{{ paciente.cedula or 'Sin cédula' }}</td>
+                    <td>{{ paciente.telefono or 'Sin teléfono' }}</td>
+                    <td>{{ paciente.edad if paciente.edad is not none else 'N/D' }}</td>
+                    <td>{{ paciente.total_consultas }}</td>
+                    <td>{{ paciente.ultima_consulta or 'Sin consultas' }}</td>
+                    <td>
+                        <a class="btn btn-sm btn-primary"
+                           href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=paciente.id) }}">
+                            <i class="fas fa-eye me-1"></i>Ver 360
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-360">
+            <i class="fas fa-user-slash fa-2x mb-3"></i>
+            <div>No se encontraron pacientes.</div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

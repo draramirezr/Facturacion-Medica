@@ -35,7 +35,6 @@
         position: sticky;
         top: 0;
         z-index: 10;
-        white-space: nowrap;
     }
     
     .table-facturacion td {
@@ -62,7 +61,7 @@
     }
     
     .badge-procesada {
-        background: #198754; /* verde bootstrap */
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%);
         color: white;
     }
     
@@ -71,20 +70,6 @@
         color: white;
     }
 </style>
-
-{% macro fecha_ddmmyyyy(fecha) -%}
-    {%- set f = (fecha|string) -%}
-    {%- if '-' in f -%}
-        {%- set p = f.split('-') -%}
-        {%- if p|length == 3 -%}
-            {{ p[2] }}/{{ p[1] }}/{{ p[0] }}
-        {%- else -%}
-            {{ fecha }}
-        {%- endif -%}
-    {%- else -%}
-        {{ fecha }}
-    {%- endif -%}
-{%- endmacro %}
 
 <div class="container mt-4">
     <div class="facturacion-hero">
@@ -107,49 +92,6 @@
         </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="card mb-3 shadow-sm border-0">
-        <div class="card-body">
-            <form method="GET" class="row g-2 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label mb-1">NCF</label>
-                    <input type="text" name="ncf" value="{{ ncf or '' }}" class="form-control" placeholder="NCF">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label mb-1">ARS</label>
-                    <select name="ars_id" class="form-select">
-                        <option value="">Todas</option>
-                        {% for ars in ars_list %}
-                        <option value="{{ ars.id }}" {% if ars_id and ars_id|int == ars.id %}selected{% endif %}>
-                            {{ ars.nombre }}{% if ars.rnc %} ({{ ars.rnc }}){% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label mb-1">Fecha desde</label>
-                    <input type="text" name="fecha_desde" id="fecha_desde" placeholder="dd/mm/aaaa"
-                           value="{{ fecha_ddmmyyyy(fecha_desde) if fecha_desde else '' }}"
-                           class="form-control">
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label mb-1">Fecha hasta</label>
-                    <input type="text" name="fecha_hasta" id="fecha_hasta" placeholder="dd/mm/aaaa"
-                           value="{{ fecha_ddmmyyyy(fecha_hasta) if fecha_hasta else '' }}"
-                           class="form-control">
-                </div>
-                <div class="col-12 d-flex gap-2 mt-2">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search me-1"></i>Filtrar
-                    </button>
-                    <a href="{{ url_for('facturacion_reclamaciones') }}" class="btn btn-outline-secondary">
-                        Limpiar
-                    </a>
-                </div>
-            </form>
-        </div>
-    </div>
-
     <!-- Tabla -->
     <div class="table-facturacion">
         {% if reclamaciones_list %}
@@ -157,21 +99,25 @@
             <table class="table mb-0">
                 <thead>
                     <tr>
-                        <th style="width: 16%;">ARS</th>
-                        <th style="width: 16%;">NCF</th>
-                        <th style="width: 16%;" class="text-end">Monto reclamado</th>
-                        <th style="width: 16%;">Fecha reclamación</th>
-                        <th style="width: 18%;" class="text-center">Estado</th>
-                        <th style="width: 18%;" class="text-center">Acciones</th>
+                        <th style="width: 12%;">Número Factura</th>
+                        <th style="width: 20%;">Paciente</th>
+                        <th style="width: 15%;">ARS</th>
+                        <th style="width: 12%;" class="text-end">Total Factura</th>
+                        <th style="width: 12%;" class="text-end">Monto Reclamado</th>
+                        <th style="width: 12%;">Fecha</th>
+                        <th style="width: 10%;" class="text-center">Estado</th>
+                        <th style="width: 7%;" class="text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for reclamacion in reclamaciones_list %}
                     <tr>
+                        <td><strong>{{ reclamacion['numero_factura'] }}</strong></td>
+                        <td>{{ reclamacion['nombre_paciente'] }}</td>
                         <td>{{ reclamacion['nombre_ars'] or 'Sin ARS' }}</td>
-                        <td><strong>{{ reclamacion['ncf'] or '-' }}</strong></td>
+                        <td class="text-end">${{ "{:,.2f}".format(reclamacion['total_factura']) }}</td>
                         <td class="text-end"><strong>${{ "{:,.2f}".format(reclamacion['monto_reclamado']) }}</strong></td>
-                        <td>{{ fecha_ddmmyyyy(reclamacion['fecha_reclamacion']) }}</td>
+                        <td>{{ reclamacion['fecha_reclamacion'] }}</td>
                         <td class="text-center">
                             {% if reclamacion['estado'] == 'Pendiente' %}
                                 <span class="badge-estado badge-pendiente">Pendiente</span>
@@ -182,7 +128,7 @@
                             {% endif %}
                         </td>
                         <td class="text-center">
-                            <a href="{{ url_for('facturacion_reclamacion_detalle', reclamacion_id=reclamacion['id']) }}" class="btn btn-sm btn-outline-primary" title="Ver detalles">
+                            <a href="#" class="btn btn-sm btn-outline-primary" title="Ver detalles">
                                 <i class="fas fa-eye"></i>
                             </a>
                         </td>
@@ -200,34 +146,8 @@
         </div>
         {% endif %}
     </div>
+    {% include "_pagination.html" %}
 </div>
-{% endblock %}
-
-{% block scripts %}
-<script>
-function toISO(fecha) {
-    if (!fecha) return '';
-    const p = fecha.split('/');
-    if (p.length === 3) {
-        const [dd, mm, yyyy] = p;
-        if (dd.length === 2 && mm.length === 2 && yyyy.length === 4) {
-            return `${yyyy}-${mm}-${dd}`;
-        }
-    }
-    return fecha;
-}
-
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.querySelector('form');
-    if (!form) return;
-    form.addEventListener('submit', function() {
-        const desde = document.getElementById('fecha_desde');
-        const hasta = document.getElementById('fecha_hasta');
-        if (desde) desde.value = toISO(desde.value.trim());
-        if (hasta) hasta.value = toISO(hasta.value.trim());
-    });
-});
-</script>
 {% endblock %}
 
 

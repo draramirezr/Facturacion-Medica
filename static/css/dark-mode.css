@@ -1,0 +1,175 @@
+/* Modo oscuro compartido por la aplicación autenticada */
+html[data-color-mode="dark"] {
+    --ars-shell-bg: #0b1220;
+    --ars-shell-surface: #111a2b;
+    --ars-shell-border: #263349;
+    --ars-shell-text: #e6edf7;
+    --ars-shell-muted: #9aa9bc;
+    --text-dark: #e6edf7;
+    --text-gray: #a8b4c5;
+    --background-light: #0b1220;
+    color-scheme: dark;
+}
+
+html[data-color-mode="dark"] body.ars-app-body,
+html[data-color-mode="dark"] .ars-app-shell,
+html[data-color-mode="dark"] .ars-main-column,
+html[data-color-mode="dark"] .ars-content {
+    background: var(--ars-shell-bg) !important;
+    color: var(--ars-shell-text) !important;
+}
+
+html[data-color-mode="dark"] .ars-sidebar,
+html[data-color-mode="dark"] .ars-topbar,
+html[data-color-mode="dark"] .ars-notification-menu,
+html[data-color-mode="dark"] .dropdown-menu,
+html[data-color-mode="dark"] .modal-content {
+    background: var(--ars-shell-surface) !important;
+    border-color: var(--ars-shell-border) !important;
+    color: var(--ars-shell-text) !important;
+}
+
+html[data-color-mode="dark"] .ars-sidebar-brand {
+    background: #fff;
+}
+
+html[data-color-mode="dark"] .ars-nav-link,
+html[data-color-mode="dark"] .ars-help-card,
+html[data-color-mode="dark"] .ars-user-menu,
+html[data-color-mode="dark"] .ars-icon-button,
+html[data-color-mode="dark"] .ars-sidebar-toggle {
+    color: #b8c3d2;
+    border-color: var(--ars-shell-border);
+}
+
+html[data-color-mode="dark"] .ars-nav-link:hover,
+html[data-color-mode="dark"] .ars-nav-link:focus-visible,
+html[data-color-mode="dark"] .ars-nav-link.active {
+    color: #e7fbff;
+    background: color-mix(in srgb, var(--primary-color) 20%, #111a2b) !important;
+}
+
+html[data-color-mode="dark"] .ars-search input,
+html[data-color-mode="dark"] .form-control,
+html[data-color-mode="dark"] .form-select,
+html[data-color-mode="dark"] textarea,
+html[data-color-mode="dark"] input:not([type="checkbox"]):not([type="radio"]) {
+    background-color: #0f1828 !important;
+    border-color: #314057 !important;
+    color: #e8eef7 !important;
+}
+
+html[data-color-mode="dark"] .form-control::placeholder,
+html[data-color-mode="dark"] input::placeholder,
+html[data-color-mode="dark"] textarea::placeholder {
+    color: #738197 !important;
+}
+
+html[data-color-mode="dark"] .form-control:disabled,
+html[data-color-mode="dark"] .form-control[readonly],
+html[data-color-mode="dark"] .form-select:disabled {
+    background-color: #182235 !important;
+    color: #9ba9bb !important;
+}
+
+html[data-color-mode="dark"] .ars-content :is(
+    .card,
+    [class$="-card"],
+    [class*="-card "],
+    [class$="-section"],
+    [class*="-section "],
+    [class$="-surface"],
+    [class*="-surface "],
+    [class$="-paper"],
+    [class*="-paper "],
+    [class$="-summary"],
+    [class*="-summary "],
+    [class$="-block"],
+    [class*="-block "]
+) {
+    background-color: var(--ars-shell-surface) !important;
+    background-image: none !important;
+    border-color: var(--ars-shell-border) !important;
+    color: var(--ars-shell-text);
+    box-shadow: none !important;
+}
+
+html[data-color-mode="dark"] .ars-content :is(
+    h1, h2, h3, h4, h5, h6, strong, label, .form-label, .card-title
+) {
+    color: #e8eef7;
+}
+
+html[data-color-mode="dark"] .text-muted,
+html[data-color-mode="dark"] small,
+html[data-color-mode="dark"] .record-meta,
+html[data-color-mode="dark"] .detail-label {
+    color: var(--ars-shell-muted) !important;
+}
+
+html[data-color-mode="dark"] .table,
+html[data-color-mode="dark"] table {
+    --bs-table-bg: transparent;
+    --bs-table-color: #dbe4ef;
+    --bs-table-border-color: var(--ars-shell-border);
+    color: #dbe4ef !important;
+}
+
+html[data-color-mode="dark"] .table thead,
+html[data-color-mode="dark"] table thead,
+html[data-color-mode="dark"] .calendar-weekday {
+    background: #162135 !important;
+    color: #aab8c9 !important;
+}
+
+html[data-color-mode="dark"] .table tbody tr:hover,
+html[data-color-mode="dark"] table tbody tr:hover {
+    background: #152034 !important;
+}
+
+html[data-color-mode="dark"] .dropdown-item,
+html[data-color-mode="dark"] .dropdown-item-text,
+html[data-color-mode="dark"] .dropdown-header {
+    color: #dbe4ef;
+}
+
+html[data-color-mode="dark"] .dropdown-item:hover,
+html[data-color-mode="dark"] .dropdown-item:focus {
+    background: #1a273b;
+    color: #fff;
+}
+
+html[data-color-mode="dark"] .dropdown-divider,
+html[data-color-mode="dark"] hr,
+html[data-color-mode="dark"] .border,
+html[data-color-mode="dark"] .border-bottom,
+html[data-color-mode="dark"] .border-top {
+    border-color: var(--ars-shell-border) !important;
+}
+
+html[data-color-mode="dark"] .bg-white,
+html[data-color-mode="dark"] .bg-light {
+    background-color: var(--ars-shell-surface) !important;
+}
+
+html[data-color-mode="dark"] .calendar-day,
+html[data-color-mode="dark"] .medicine-row,
+html[data-color-mode="dark"] .evolution {
+    background: #101a2b !important;
+    border-color: var(--ars-shell-border) !important;
+}
+
+html[data-color-mode="dark"] .calendar-day.other-month {
+    background: #0d1523 !important;
+    color: #65738a;
+}
+
+html[data-color-mode="dark"] .alert {
+    background: #172338;
+    border-color: #30405a;
+    color: #dce6f2;
+}
+
+html[data-color-mode="dark"] .btn-close {
+    filter: invert(1) grayscale(1);
+}

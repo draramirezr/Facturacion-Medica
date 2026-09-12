@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+
+{% block title %}{{ 'Editar' if cita else 'Nueva' }} Cita - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+{% set paciente_valor = form_data.get('paciente_id', consulta_origen['paciente_id'] if consulta_origen else paciente_preseleccionado|default('')) %}
+{% set medico_valor = form_data.get('medico_id', consulta_origen['medico_id'] if consulta_origen else medico_preseleccionado|default('')) %}
+{% set fecha_valor = form_data.get('fecha', consulta_origen['proxima_cita'] if consulta_origen else fecha_actual|default('')) %}
+{% set hora_valor = form_data.get('hora', consulta_origen['proxima_hora'] if consulta_origen and consulta_origen['proxima_hora'] else '09:00') %}
+<style>
+    .appointment-shell { max-width:950px; margin:0 auto; }
+    .appointment-header,.appointment-card { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
+    .appointment-header { background:linear-gradient(135deg,{{ tema.primary }}12,white); }
+    .appointment-card h2 { margin-bottom:1rem; padding-bottom:.65rem; border-bottom:1px solid var(--ars-shell-border); color:var(--primary-dark); font-size:1rem; }
+    .required::after { content:" *"; color:var(--primary-color); }
+    .origin-note { padding:.8rem; border:1px solid {{ tema.primary }}25; border-radius:10px; background:{{ tema.primary }}09; color:var(--ars-shell-muted); font-size:.78rem; }
+</style>
+<div class="container py-4">
+    <div class="appointment-shell">
+        <header class="appointment-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div><h1 class="h3 mb-1"><i class="fas fa-calendar-plus me-2"></i>{{ 'Editar cita' if cita else 'Nueva cita' }}</h1><p class="text-muted mb-0">Programa el horario, médico y motivo de la consulta.</p></div>
+            <a class="btn btn-outline-primary" href="{{ url_for('facturacion_citas') }}"><i class="fas fa-arrow-left me-2"></i>Agenda</a>
+        </header>
+        {% if consulta_origen %}<div class="origin-note mb-3"><i class="fas fa-notes-medical me-2"></i>Esta cita se creará desde el seguimiento registrado en Historia Clínica.</div>{% endif %}
+        <form method="POST">
+            {% if consulta_origen %}<input type="hidden" name="consulta_origen_id" value="{{ consulta_origen['id'] }}">{% endif %}
+            <section class="appointment-card">
+                <h2>Paciente y médico</h2>
+                <div class="row g-3">
+                    <div class="col-md-6"><label class="form-label required">Paciente</label><select class="form-select" name="paciente_id" required><option value="">Seleccione</option>{% for p in pacientes %}<option value="{{ p['id'] }}" {% if paciente_valor|string==p['id']|string %}selected{% endif %}>{{ p['nombre'] }}{% if p['cedula'] %} · {{ p['cedula'] }}{% endif %}</option>{% endfor %}</select></div>
+                    <div class="col-md-6"><label class="form-label required">Médico</label><select class="form-select" id="medico_id" name="medico_id" required><option value="">Seleccione</option>{% for m in medicos %}<option value="{{ m['id'] }}" data-especialidad="{{ m['especialidad'] or '' }}" {% if medico_valor|string==m['id']|string %}selected{% endif %}>{{ m['nombre'] }} · {{ m['especialidad'] }}</option>{% endfor %}</select></div>
+                    <div class="col-12"><label class="form-label">Especialidad</label><input class="form-control" id="especialidad" name="especialidad" maxlength="150" value="{{ form_data.get('especialidad', consulta_origen['proxima_especialidad'] if consulta_origen else '') or '' }}"></div>
+                </div>
+            </section>
+            <section class="appointment-card">
+                <h2>Horario</h2>
+                <div class="row g-3">
+                    <div class="col-md-4"><label class="form-label required">Fecha</label><input class="form-control" type="date" name="fecha" value="{{ fecha_valor }}" required></div>
+                    <div class="col-md-4"><label class="form-label required">Hora</label><input class="form-control" type="time" name="hora" value="{{ hora_valor|hora_input }}" required></div>
+                    <div class="col-md-4"><label class="form-label required">Duración</label><select class="form-select" name="duracion_minutos" required>{% for minutos in [15,20,30,45,60,90,120] %}<option value="{{ minutos }}" {% if form_data.get('duracion_minutos',30)|int==minutos %}selected{% endif %}>{{ minutos }} minutos</option>{% endfor %}</select></div>
+                    {% if cita %}<div class="col-md-4"><label class="form-label">Estado</label><select class="form-select" name="estado">{% if cita['estado']=='Cancelada' %}<option value="Cancelada" selected>Cancelada</option>{% endif %}{% for e in ['Programada','Confirmada','Completada','No asistió','Vencida'] %}<option value="{{ e }}" {% if form_data.get('estado','Programada')==e %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>{% else %}<input type="hidden" name="estado" value="Programada">{% endif %}
+                </div>
+            </section>
+            <section class="appointment-card">
+                <h2>Detalles</h2>
+                <div class="mb-3"><label class="form-label required">Motivo de la cita</label><textarea class="form-control" name="motivo" rows="3" maxlength="2000" required>{{ form_data.get('motivo', consulta_origen['proxima_motivo'] if consulta_origen else '') or '' }}</textarea></div>
+                <div><label class="form-label">Indicaciones o notas</label><textarea class="form-control" name="notas" rows="3" maxlength="3000">{{ form_data.get('notas', consulta_origen['indicaciones_seguimiento'] if consulta_origen else '') or '' }}</textarea></div>
+            </section>
+            <div class="d-flex justify-content-end gap-2"><a class="btn btn-outline-secondary" href="{{ url_for('facturacion_citas') }}">Descartar</a><button class="btn btn-primary" type="submit"><i class="fas fa-save me-2"></i>{{ 'Guardar cambios' if cita else 'Programar cita' }}</button></div>
+        </form>
+        {% if cita and cita['estado'] not in ['Cancelada','Completada','Vencida'] %}
+        <section class="appointment-card mt-4">
+            <h2>Cancelar cita</h2>
+            <form class="d-flex gap-2 align-items-end flex-wrap" method="POST" action="{{ url_for('facturacion_cita_estado',cita_id=cita['id']) }}">
+                <input type="hidden" name="estado" value="Cancelada">
+                <div class="flex-grow-1"><label class="form-label required">Motivo de cancelación</label><input class="form-control" name="motivo_cancelacion" maxlength="1000" required></div>
+                <button class="btn btn-outline-secondary" type="submit">Cancelar cita</button>
+            </form>
+        </section>
+        {% endif %}
+    </div>
+</div>
+<script>
+(() => {
+    const doctor = document.getElementById('medico_id');
+    const specialty = document.getElementById('especialidad');
+    doctor.addEventListener('change', () => {
+        specialty.value = doctor.options[doctor.selectedIndex]?.dataset.especialidad || '';
+    });
+    if (!specialty.value && doctor.value) specialty.value = doctor.options[doctor.selectedIndex]?.dataset.especialidad || '';
+})();
+</script>
+{% endblock %}
