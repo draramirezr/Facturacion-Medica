@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html>
 <html lang="es" data-font="{{ fuente_nombre|default('arsflow') }}">
 <head>
-    <script>
+    <script nonce="{{ csp_nonce }}">
         (() => {
             try {
                 const saved = localStorage.getItem('arsflow-color-mode');
@@ -14,7 +14,7 @@
         })();
     </script>
     <!-- Google Tag Manager - Optimizado para Performance -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
     (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
     new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
     j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
@@ -59,7 +59,7 @@
     <meta property="twitter:image" content="{{ url_for('static', filename='logos/logo-dra-shirley.png', _external=True) }}">
     
     <!-- Schema.org Structured Data para SEO Médico - Optimizado para Google -->
-    <script type="application/ld+json">
+    <script type="application/ld+json" nonce="{{ csp_nonce }}">
     {
       "@context": "https://schema.org",
       "@type": ["Physician", "MedicalBusiness", "LocalBusiness"],
@@ -1589,7 +1589,7 @@
     </a>
 
     <!-- Citas Button -->
-    <a href="{{ url_for('request_appointment') }}" 
+    <a href="{{ url_for('redirects') }}"
        class="float-button citas-float"
        title="Solicitar Cita">
         <i class="fas fa-calendar-plus"></i>
@@ -1609,7 +1609,7 @@
     <script src="{{ url_for('static', filename='js/performance.js') }}?v=2" defer></script>
     
     <!-- Auto-hide flash messages después de 5 segundos -->
-    <script>
+    <script nonce="{{ csp_nonce }}">
         document.addEventListener('DOMContentLoaded', function() {
             // Obtener todos los mensajes flash (alertas)
             const alerts = document.querySelectorAll('.alert.alert-dismissible');

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <script>
+    <script nonce="{{ csp_nonce }}">
         (() => {
             try {
                 const saved = localStorage.getItem('arsflow-color-mode');
@@ -457,7 +457,7 @@
 
     <script src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
     <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=1"></script>
-    <script>
+    <script nonce="{{ csp_nonce }}">
         const form = document.getElementById('loginForm');
         const submitButton = document.getElementById('submitBtn');
         const password = document.getElementById('password');

@@ -1,6 +1,6 @@
 # ARSFLOW Gestion de Factras Medicas
 
-from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response, send_file, session
+from flask import Flask, render_template, request, redirect, url_for, flash, jsonify, make_response, send_file, session, g
 from flask_login import LoginManager, UserMixin, login_user, login_required, logout_user, current_user
 from flask_wtf.csrf import CSRFError, CSRFProtect
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -125,6 +125,18 @@ app.config['ECF_CONFIG'] = ECFConfig.from_env()
 csrf = CSRFProtect(app)
 
 
+@app.before_request
+def generate_csp_nonce():
+    """Crear un nonce distinto para cada respuesta HTML."""
+    g.csp_nonce = secrets.token_urlsafe(18)
+
+
+@app.context_processor
+def inject_csp_nonce():
+    """Permitir que las plantillas autoricen scripts durante la migración CSP."""
+    return {'csp_nonce': g.get('csp_nonce', '')}
+
+
 @app.errorhandler(CSRFError)
 def handle_csrf_error(error):
     """Responder sin filtrar detalles cuando falta o vence el token CSRF."""
@@ -153,14 +165,33 @@ def set_security_headers(response):
     
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; "
         "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
         "img-src 'self' data: https:; "
         "connect-src 'self' https://www.googletagmanager.com; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
         "frame-ancestors 'self';"
     )
     response.headers['Content-Security-Policy'] = csp
+
+    nonce = g.get('csp_nonce', '')
+    report_only_csp = (
+        "default-src 'self'; "
+        f"script-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; "
+        "script-src-attr 'none'; "
+        "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "style-src-attr 'unsafe-inline'; "
+        "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
+        "img-src 'self' data: https:; "
+        "connect-src 'self' https://www.googletagmanager.com; "
+        "object-src 'none'; "
+        "base-uri 'self'; "
+        "frame-ancestors 'self'; "
+        "report-uri /api/csp-report;"
+    )
+    response.headers['Content-Security-Policy-Report-Only'] = report_only_csp
     
     if request.path.startswith('/static/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000'
@@ -169,7 +200,6 @@ def set_security_headers(response):
     
     return response
 
-from flask import g
 import gzip
 
 @app.after_request
@@ -1659,6 +1689,23 @@ def rate_limit(max_requests=10, window=60):
             return f(*args, **kwargs)
         return wrapper
     return decorator
+
+
+@app.route('/api/csp-report', methods=['POST'])
+@csrf.exempt
+@rate_limit(max_requests=120, window=60)
+def receive_csp_report():
+    """Registrar únicamente los datos necesarios de una violación CSP."""
+    payload = request.get_json(silent=True) or {}
+    report = payload.get('csp-report', payload)
+    if isinstance(report, dict):
+        logger.warning(
+            'CSP report: directive=%s blocked=%s document=%s',
+            report.get('effective-directive') or report.get('violated-directive'),
+            report.get('blocked-uri'),
+            report.get('document-uri'),
+        )
+    return '', 204
 
 
 @app.route('/')
@@ -7390,6 +7437,86 @@ def facturacion_reclamaciones_nueva():
     
     fecha_actual = datetime.now().strftime('%Y-%m-%d')
     return render_template('facturacion/reclamacion_form.html', facturas_list=facturas_list, fecha_actual=fecha_actual)
+
+
+@app.route('/facturacion/reclamaciones/<int:reclamacion_id>')
+@login_required
+@roles_required('Administrador', 'Nivel 2')
+def facturacion_reclamacion_detalle(reclamacion_id):
+    """Mostrar una reclamación perteneciente a la empresa activa."""
+    tenant_id = get_current_tenant_id()
+    reclamacion = execute_query('''
+        SELECT r.*, f.numero_factura, f.ncf, f.nombre_ars,
+               f.total AS total_factura, f.estado AS estado_factura
+        FROM reclamaciones r
+        JOIN facturas f
+          ON f.id = r.factura_id AND f.tenant_id = r.tenant_id
+        WHERE r.id = %s AND r.tenant_id = %s
+    ''', (reclamacion_id, tenant_id))
+    if not reclamacion:
+        flash('Reclamación no encontrada', 'error')
+        return redirect(url_for('facturacion_reclamaciones'))
+    return render_template(
+        'facturacion/reclamacion_detalle.html',
+        reclamacion=reclamacion,
+    )
+
+
+@app.route(
+    '/facturacion/reclamaciones/<int:reclamacion_id>/estado',
+    methods=['POST'],
+)
+@login_required
+@roles_required('Administrador', 'Nivel 2')
+def facturacion_reclamacion_cambiar_estado(reclamacion_id):
+    """Actualizar el estado sin permitir acceso entre empresas."""
+    tenant_id = get_current_tenant_id()
+    estado = request.form.get('estado', '').strip()
+    observaciones = request.form.get('observaciones_estado', '').strip()
+    estados_permitidos = {'Pendiente', 'Procesada', 'Rechazada'}
+
+    if estado not in estados_permitidos:
+        flash('Estado de reclamación inválido', 'error')
+        return redirect(url_for(
+            'facturacion_reclamacion_detalle',
+            reclamacion_id=reclamacion_id,
+        ))
+    if estado == 'Rechazada' and not observaciones:
+        flash('Indique el motivo del rechazo', 'error')
+        return redirect(url_for(
+            'facturacion_reclamacion_detalle',
+            reclamacion_id=reclamacion_id,
+        ))
+
+    reclamacion = execute_query(
+        'SELECT id FROM reclamaciones WHERE id = %s AND tenant_id = %s',
+        (reclamacion_id, tenant_id),
+    )
+    if not reclamacion:
+        flash('Reclamación no encontrada', 'error')
+        return redirect(url_for('facturacion_reclamaciones'))
+
+    execute_update('''
+        UPDATE reclamaciones
+        SET estado = %s,
+            observaciones = CASE
+                WHEN %s <> '' THEN %s
+                ELSE observaciones
+            END
+        WHERE id = %s AND tenant_id = %s
+    ''', (
+        estado,
+        observaciones,
+        observaciones,
+        reclamacion_id,
+        tenant_id,
+    ))
+    flash('Estado de reclamación actualizado', 'success')
+    return redirect(url_for(
+        'facturacion_reclamacion_detalle',
+        reclamacion_id=reclamacion_id,
+    ))
+
 
 @app.route('/facturacion/pagos')
 @login_required

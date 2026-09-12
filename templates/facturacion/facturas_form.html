@@ -1147,16 +1147,6 @@ document.getElementById('formFactura').addEventListener('submit', function(e) {
     this.submit();
 });
 
-// Descargar PDF automáticamente si se acaba de agregar pacientes
-{% if descargar_pdf %}
-window.addEventListener('DOMContentLoaded', function() {
-    // Esperar un momento para que se muestre el flash message
-    setTimeout(function() {
-        window.location.href = "{{ url_for('facturacion_pacientes_agregados_pdf') }}";
-    }, 500);
-});
-{% endif %}
-
 // ========== PREVENIR ENTER NORMAL, PERMITIR CTRL+ENTER ==========
 document.addEventListener('keydown', function(e) {
     // Si es Enter dentro de la tabla de pacientes
