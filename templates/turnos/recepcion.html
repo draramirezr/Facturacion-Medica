@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Gestión de turnos - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .queue-shell { max-width: 1250px; margin: 0 auto; }
+    .queue-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
+    .queue-card { border:1px solid var(--ars-shell-border); border-radius:14px; padding:1rem; background:var(--ars-shell-surface,white); }
+    .queue-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
+    .queue-form-grid .wide { grid-column:1/-1; }
+    .queue-actions { display:flex; gap:.35rem; flex-wrap:wrap; }
+    .queue-table { width:100%; }
+    .queue-table th,.queue-table td { padding:.65rem; border-bottom:1px solid var(--ars-shell-border); vertical-align:middle; }
+    .queue-number { font-size:1.25rem; font-weight:800; color:var(--primary-color); }
+    .queue-state { font-size:.72rem; padding:.25rem .5rem; border-radius:999px; background:#e8eef5; }
+    .cancel-form { display:flex; gap:.3rem; min-width:220px; }
+    .cancel-form input { min-width:120px; }
+    @media(max-width:800px){.queue-grid,.queue-form-grid{grid-template-columns:1fr}.queue-table{display:block;overflow-x:auto}}
+</style>
+<div class="container py-4">
+<div class="queue-shell">
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-3">
+        <div><h1>Gestión de turnos</h1><p class="text-muted mb-0">Recepción y colas médicas del {{ fecha }}.</p></div>
+        {% if can('turnos.pantalla') %}<a class="btn btn-outline-primary" href="{{ url_for('turnos_pantallas') }}">Pantallas</a>{% endif %}
+    </div>
+
+    <div class="queue-grid mb-4">
+        <section class="queue-card">
+            <h2 class="h5">Paciente existente</h2>
+            <form class="d-flex gap-2 mb-3" method="GET">
+                <input class="form-control" name="q" value="{{ busqueda }}" placeholder="Nombre, cédula o teléfono">
+                <button class="btn btn-outline-primary" type="submit">Buscar</button>
+            </form>
+            <form method="POST" action="{{ url_for('turnos_nuevo') }}">
+                <div class="queue-form-grid">
+                    <select class="form-select wide" name="paciente_id" required>
+                        <option value="">Seleccione un paciente...</option>
+                        {% for paciente in pacientes %}
+                        <option value="{{ paciente['id'] }}">{{ paciente['nombre'] }} · {{ paciente['cedula'] or 'Sin cédula' }}</option>
+                        {% endfor %}
+                    </select>
+                    <select class="form-select" name="medico_id" required>
+                        <option value="">Médico...</option>
+                        {% for medico in medicos %}<option value="{{ medico['id'] }}">{{ medico['nombre'] }} · {{ medico['especialidad'] or 'General' }}</option>{% endfor %}
+                    </select>
+                    <input class="form-control" name="motivo" maxlength="1000" placeholder="Motivo de visita">
+                    <button class="btn btn-primary" type="submit">Asignar turno</button>
+                    <button class="btn btn-outline-primary" name="imprimir" value="1" type="submit">Asignar e imprimir</button>
+                </div>
+            </form>
+        </section>
+        <section class="queue-card">
+            <h2 class="h5">Alta rápida</h2>
+            <form method="POST" action="{{ url_for('turnos_nuevo') }}">
+                <div class="queue-form-grid">
+                    <input class="form-control" name="nombres" maxlength="100" required placeholder="Nombres">
+                    <input class="form-control" name="apellidos" maxlength="100" required placeholder="Apellidos">
+                    <input class="form-control" name="cedula" maxlength="20" required placeholder="Cédula">
+                    <input class="form-control" name="telefono" maxlength="20" placeholder="Teléfono (opcional)">
+                    <select class="form-select" name="medico_id" required>
+                        <option value="">Médico...</option>
+                        {% for medico in medicos %}<option value="{{ medico['id'] }}">{{ medico['nombre'] }} · {{ medico['especialidad'] or 'General' }}</option>{% endfor %}
+                    </select>
+                    <input class="form-control" name="motivo" maxlength="1000" placeholder="Motivo de visita">
+                    <button class="btn btn-primary" type="submit">Crear y asignar</button>
+                    <button class="btn btn-outline-primary" name="imprimir" value="1" type="submit">Crear e imprimir</button>
+                </div>
+            </form>
+        </section>
+    </div>
+
+    {% if citas %}
+    <section class="queue-card mb-4">
+        <h2 class="h5">Llegadas con cita de hoy</h2>
+        <div class="queue-actions">
+            {% for cita in citas %}
+            <form method="POST" action="{{ url_for('turnos_nuevo') }}">
+                <input type="hidden" name="cita_id" value="{{ cita['id'] }}">
+                <button class="btn btn-outline-primary" type="submit">{{ cita['hora'] }} · {{ cita['paciente_nombre'] }} con {{ cita['medico_nombre'] }}</button>
+            </form>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <section class="queue-card">
+        <div class="d-flex justify-content-between align-items-center gap-2 mb-3">
+            <h2 class="h5 mb-0">Colas de hoy</h2>
+            <form class="d-flex gap-2" method="GET">
+                <select class="form-select" name="medico_id">
+                    <option value="">Todos los médicos</option>
+                    {% for medico in medicos %}<option value="{{ medico['id'] }}" {% if medico_id == medico['id'] %}selected{% endif %}>{{ medico['nombre'] }}</option>{% endfor %}
+                </select>
+                <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
+            </form>
+        </div>
+        <div class="table-responsive">
+        <table class="queue-table">
+            <thead><tr><th>Turno</th><th>Paciente</th><th>Médico</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody>
+            {% for turno in turnos %}
+            <tr>
+                <td><span class="queue-number">{{ '%03d'|format(turno['numero']) }}</span><br><small>Pos. {{ turno['posicion'] }}</small></td>
+                <td>{{ turno['paciente_nombre'] }}<br><small>{{ turno['motivo'] or '' }}</small></td>
+                <td>{{ turno['medico_nombre'] }}<br><small>{{ turno['especialidad'] or 'General' }}</small></td>
+                <td><span class="queue-state">{{ turno['estado'] }}</span></td>
+                <td><div class="queue-actions">
+                    {% if turno['estado'] == 'EnEspera' %}
+                    <form method="POST" action="{{ url_for('turnos_accion', turno_id=turno['id']) }}"><button class="btn btn-sm btn-primary" name="accion" value="llamar">Llamar</button></form>
+                    {% elif turno['estado'] == 'Llamado' %}
+                    <form method="POST" action="{{ url_for('turnos_accion', turno_id=turno['id']) }}"><button class="btn btn-sm btn-success" name="accion" value="iniciar">Iniciar consulta</button></form>
+                    <form method="POST" action="{{ url_for('turnos_accion', turno_id=turno['id']) }}"><button class="btn btn-sm btn-outline-secondary" name="accion" value="no_presente">No presente</button></form>
+                    {% elif turno['estado'] == 'NoPresente' %}
+                    <form method="POST" action="{{ url_for('turnos_accion', turno_id=turno['id']) }}"><button class="btn btn-sm btn-outline-primary" name="accion" value="reinsertar">Reinsertar</button></form>
+                    {% endif %}
+                    {% if turno['estado'] in ['EnEspera','Llamado'] and can('turnos.administrar') %}
+                    <form method="POST" action="{{ url_for('turnos_accion', turno_id=turno['id']) }}"><button class="btn btn-sm btn-light" name="accion" value="subir" title="Subir">↑</button></form>
+                    <form method="POST" action="{{ url_for('turnos_accion', turno_id=turno['id']) }}"><button class="btn btn-sm btn-light" name="accion" value="bajar" title="Bajar">↓</button></form>
+                    <form class="cancel-form" method="POST" action="{{ url_for('turnos_accion', turno_id=turno['id']) }}">
+                        <input class="form-control form-control-sm" name="motivo" required placeholder="Motivo">
+                        <button class="btn btn-sm btn-outline-danger" name="accion" value="anular">Anular</button>
+                    </form>
+                    {% endif %}
+                    {% if can('turnos.imprimir') %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('turnos_ticket', turno_id=turno['id']) }}">Ticket</a>{% endif %}
+                </div></td>
+            </tr>
+            {% else %}<tr><td colspan="5">No hay turnos para el filtro seleccionado.</td></tr>{% endfor %}
+            </tbody>
+        </table>
+        </div>
+    </section>
+</div>
+</div>
+{% endblock %}

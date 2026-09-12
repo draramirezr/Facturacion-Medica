@@ -139,6 +139,20 @@
     .font-preview--manrope small { font-family: 'Manrope', sans-serif !important; }
     .font-preview--jakarta strong,
     .font-preview--jakarta small { font-family: 'Plus Jakarta Sans', sans-serif !important; }
+    .preference-option {
+        display: flex;
+        align-items: flex-start;
+        gap: .8rem;
+        padding: .95rem;
+        margin-top: .8rem;
+        border: 1px solid var(--ars-shell-border);
+        border-radius: 11px;
+        background: var(--ars-shell-surface, white);
+    }
+    .preference-option input { width: 19px; height: 19px; margin-top: 2px; accent-color: var(--primary-color); }
+    .preference-option strong, .preference-option small { display: block; }
+    .preference-option strong { color: var(--ars-shell-text); font-size: .82rem; }
+    .preference-option small { margin-top: .2rem; color: var(--ars-shell-muted); font-size: .7rem; }
     .theme-actions {
         display: flex;
         align-items: center;
@@ -294,6 +308,18 @@
                     </label>
                     {% endfor %}
                 </div>
+            </div>
+
+            <div class="theme-category">
+                <h3>Mensajería</h3>
+                <label class="preference-option" for="mostrar_chat">
+                    <input type="checkbox" id="mostrar_chat" name="mostrar_chat"
+                           value="1" {% if current_user.mostrar_chat %}checked{% endif %}>
+                    <span>
+                        <strong>Mostrar botón flotante del chat</strong>
+                        <small>Permite abrir la mensajería interna desde cualquier pantalla. Puedes ocultarlo y volver a activarlo cuando desees.</small>
+                    </span>
+                </label>
             </div>
 
             <div class="theme-actions">

@@ -22,11 +22,38 @@ html[data-color-mode="dark"] .ars-content {
 html[data-color-mode="dark"] .ars-sidebar,
 html[data-color-mode="dark"] .ars-topbar,
 html[data-color-mode="dark"] .ars-notification-menu,
+html[data-color-mode="dark"] .ars-chat-panel,
+html[data-color-mode="dark"] .ars-chat-conversation,
+html[data-color-mode="dark"] .ars-chat-compose,
 html[data-color-mode="dark"] .dropdown-menu,
 html[data-color-mode="dark"] .modal-content {
     background: var(--ars-shell-surface) !important;
     border-color: var(--ars-shell-border) !important;
     color: var(--ars-shell-text) !important;
+}
+
+html[data-color-mode="dark"] .ars-chat-contacts,
+html[data-color-mode="dark"] .ars-chat-messages {
+    background: #0f1828;
+    border-color: var(--ars-shell-border);
+}
+
+html[data-color-mode="dark"] .ars-chat-search,
+html[data-color-mode="dark"] .ars-chat-compose textarea,
+html[data-color-mode="dark"] .ars-chat-bubble {
+    background: var(--ars-shell-surface);
+    border-color: var(--ars-shell-border);
+    color: var(--ars-shell-text);
+}
+
+html[data-color-mode="dark"] .ars-chat-contact:hover,
+html[data-color-mode="dark"] .ars-chat-contact.active {
+    background: color-mix(in srgb, var(--primary-color) 18%, #111a2b);
+}
+
+html[data-color-mode="dark"] .ars-chat-message.sent .ars-chat-bubble {
+    background: var(--primary-color);
+    color: white;
 }
 
 html[data-color-mode="dark"] .ars-sidebar-brand {

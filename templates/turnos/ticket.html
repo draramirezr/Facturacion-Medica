@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Turno {{ '%03d'|format(turno['numero']) }}</title>
+    <style nonce="{{ csp_nonce }}">
+        @page { size: {{ ancho }}mm auto; margin: 3mm; }
+        * { box-sizing:border-box; }
+        body { margin:0; font-family:Arial,sans-serif; color:#111; }
+        .ticket { width:{{ ancho }}mm; max-width:100%; padding:3mm; text-align:center; }
+        .business { font-size:14px; font-weight:700; }
+        .label { margin-top:5mm; font-size:12px; text-transform:uppercase; }
+        .number { font-size:42px; line-height:1; font-weight:900; margin:2mm 0 4mm; }
+        .detail { font-size:13px; margin:1.5mm 0; }
+        .time { margin-top:5mm; font-size:11px; }
+        .actions { margin:12px; text-align:center; }
+        @media print { .actions { display:none; } }
+    </style>
+</head>
+<body>
+    <main class="ticket">
+        <div class="business">{{ empresa.get('nombre','Consultorio médico') }}</div>
+        <div class="label">Su turno</div>
+        <div class="number">{{ '%03d'|format(turno['numero']) }}</div>
+        <div class="detail"><strong>{{ turno['especialidad'] or 'Medicina general' }}</strong></div>
+        <div class="detail">{{ turno['medico_nombre'] }}</div>
+        <div class="time">{{ turno['llegada_at'].strftime('%d/%m/%Y %I:%M %p') if turno['llegada_at'] else turno['fecha'] }}</div>
+    </main>
+    <div class="actions"><button id="printTicket" type="button">Imprimir</button></div>
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', filename='js/turno-ticket.js') }}"></script>
+</body>
+</html>

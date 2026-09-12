@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}Roles y permisos - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .roles-shell { max-width: 1100px; margin: 0 auto; }
+    .roles-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 1rem; }
+    .role-card { padding: 1.2rem; border: 1px solid var(--ars-shell-border); border-radius: 14px; background: var(--ars-shell-surface,white); }
+    .role-meta { display: flex; gap: .8rem; color: var(--ars-shell-muted); font-size: .75rem; }
+    .role-actions { display: flex; gap: .5rem; flex-wrap: wrap; margin-top: 1rem; }
+    .clone-form { display: flex; gap: .4rem; width: 100%; margin-top: .7rem; }
+    .clone-form input { min-width: 0; flex: 1; }
+</style>
+<div class="container py-4">
+    <div class="roles-shell">
+        <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+            <div><h1>Roles y permisos</h1><p class="text-muted mb-0">Controla las ventanas y acciones disponibles para cada grupo.</p></div>
+            {% if can('roles.crear') %}<a class="btn btn-primary" href="{{ url_for('admin_roles_nuevo') }}">Nuevo rol</a>{% endif %}
+        </div>
+        <div class="roles-grid">
+            {% for rol in roles %}
+            <article class="role-card">
+                <div class="d-flex justify-content-between gap-2">
+                    <h2 class="h5">{{ rol['nombre'] }}</h2>
+                    {% if rol['es_sistema'] %}<span class="badge text-bg-secondary">Sistema</span>{% endif %}
+                </div>
+                <p class="text-muted">{{ rol['descripcion'] or 'Sin descripción' }}</p>
+                <div class="role-meta"><span>{{ rol['total_permisos'] }} permisos</span><span>{{ rol['total_usuarios'] }} usuarios</span></div>
+                <div class="role-actions">
+                    {% if not rol['es_sistema'] and can('roles.editar') %}
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_roles_editar', rol_id=rol['id']) }}">Editar</a>
+                    {% endif %}
+                    {% if not rol['es_sistema'] and not rol['total_usuarios'] and can('roles.eliminar') %}
+                    <form method="POST" action="{{ url_for('admin_roles_eliminar', rol_id=rol['id']) }}">
+                        <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
+                    </form>
+                    {% endif %}
+                </div>
+                {% if can('roles.crear') %}
+                <form class="clone-form" method="POST" action="{{ url_for('admin_roles_clonar', rol_id=rol['id']) }}">
+                    <input class="form-control form-control-sm" name="nombre" maxlength="100" required placeholder="Nombre de la copia">
+                    <button class="btn btn-sm btn-outline-secondary" type="submit">Clonar</button>
+                </form>
+                {% endif %}
+            </article>
+            {% else %}
+            <p>No hay roles disponibles.</p>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

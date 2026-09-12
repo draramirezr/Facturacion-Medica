@@ -1,11 +1,25 @@
 import re
 import unittest
-from contextlib import nullcontext
+from contextlib import contextmanager, nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import app as app_module
+import auth.decorators as auth_decorators
+import auth.routes as auth_routes
+import core.tenant as tenant_module
+import routes.billing as billing_routes
+
+
+@contextmanager
+def patch_current_user(user):
+    with (
+        patch.object(auth_decorators, 'current_user', user),
+        patch.object(auth_routes, 'current_user', user),
+        patch.object(tenant_module, 'current_user', user),
+    ):
+        yield
 
 
 URL_FOR_PATTERN = re.compile(r"""url_for\(\s*['"]([^'"]+)['"]""")
@@ -215,7 +229,7 @@ class CSPAndEndpointTests(unittest.TestCase):
             tenant_id=22,
             is_authenticated=True,
         )
-        handler = app_module.facturacion_reclamacion_detalle
+        handler = billing_routes.facturacion_reclamacion_detalle
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
 
@@ -223,9 +237,9 @@ class CSPAndEndpointTests(unittest.TestCase):
             '/facturacion/reclamaciones/91'
         ):
             with (
-                patch.object(app_module, 'current_user', user),
+                patch_current_user(user),
                 patch.object(
-                    app_module,
+                    billing_routes,
                     'execute_query',
                     return_value=None,
                 ) as query,
@@ -244,7 +258,7 @@ class CSPAndEndpointTests(unittest.TestCase):
             is_authenticated=True,
         )
         update = Mock()
-        handler = app_module.facturacion_reclamacion_cambiar_estado
+        handler = billing_routes.facturacion_reclamacion_cambiar_estado
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
 
@@ -254,13 +268,13 @@ class CSPAndEndpointTests(unittest.TestCase):
             data={'estado': 'Procesada'},
         ):
             with (
-                patch.object(app_module, 'current_user', user),
+                patch_current_user(user),
                 patch.object(
-                    app_module,
+                    billing_routes,
                     'execute_query',
                     return_value=None,
                 ) as query,
-                patch.object(app_module, 'execute_update', update),
+                patch.object(billing_routes, 'execute_update', update),
             ):
                 response = handler(91)
 
@@ -269,7 +283,7 @@ class CSPAndEndpointTests(unittest.TestCase):
         update.assert_not_called()
 
     def test_public_registration_requires_ten_digit_phone(self):
-        handler = app_module.registro
+        handler = auth_routes.registro
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
 
@@ -288,12 +302,12 @@ class CSPAndEndpointTests(unittest.TestCase):
         ):
             with (
                 patch.object(
-                    app_module,
+                    auth_routes,
                     'current_user',
                     SimpleNamespace(is_authenticated=False),
                 ),
-                patch.object(app_module, 'execute_query') as query,
-                patch.object(app_module, 'render_template', return_value='form'),
+                patch.object(auth_routes, 'execute_query') as query,
+                patch.object(auth_routes, 'render_template', return_value='form'),
             ):
                 response = handler()
 
@@ -301,7 +315,7 @@ class CSPAndEndpointTests(unittest.TestCase):
         query.assert_not_called()
 
     def test_public_registration_stores_company_phone(self):
-        handler = app_module.registro
+        handler = auth_routes.registro
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
         updates = Mock(side_effect=[12, 34])
@@ -321,14 +335,14 @@ class CSPAndEndpointTests(unittest.TestCase):
         ):
             with (
                 patch.object(
-                    app_module,
+                    auth_routes,
                     'current_user',
                     SimpleNamespace(is_authenticated=False),
                 ),
-                patch.object(app_module, 'execute_query', return_value=None),
-                patch.object(app_module, 'execute_update', updates),
+                patch.object(auth_routes, 'execute_query', return_value=None),
+                patch.object(auth_routes, 'execute_update', updates),
                 patch.object(
-                    app_module,
+                    auth_routes,
                     'database_transaction',
                     return_value=nullcontext(),
                 ),

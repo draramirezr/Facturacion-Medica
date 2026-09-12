@@ -20,10 +20,12 @@
             <p class="text-muted mb-0">Emisión, seguimiento e impresión de licencias de pacientes.</p>
         </div>
         <div class="d-flex gap-2">
-            {% if current_user.perfil == 'Administrador' %}
+            {% if can('licencias.configurar') %}
             <a class="btn btn-outline-primary" href="{{ url_for('facturacion_tipos_licencia_medica') }}"><i class="fas fa-list me-2"></i>Tipos</a>
             {% endif %}
+            {% if can('licencias.crear') %}
             <a class="btn btn-primary" href="{{ url_for('facturacion_licencias_medicas_nueva') }}"><i class="fas fa-plus me-2"></i>Nueva licencia</a>
+            {% endif %}
         </div>
     </div>
 

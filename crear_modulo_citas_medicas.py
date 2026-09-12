@@ -1,6 +1,7 @@
 """Crea la agenda médica e importa las próximas citas de Historia Clínica."""
 
-from app import app, execute_query, execute_update
+from app import app
+from core.database import execute_query, execute_update
 
 
 def crear_modulo():

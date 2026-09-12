@@ -39,6 +39,7 @@
                 <div><span>Correo</span>{{ consulta['email'] or 'N/D' }}</div>
                 <div><span>Ocupación</span>{{ consulta['ocupacion'] or 'N/D' }}</div>
                 <div><span>Versión</span>{{ consulta['version'] }}</div>
+                <div><span>Especialidad</span>{{ consulta['especialidad_consulta'] or consulta['medico_especialidad'] or 'General' }}</div>
                 <div class="detail-wide"><span>Dirección</span>{{ consulta['direccion'] or 'N/D' }}</div>
             </div>
         </div>
@@ -83,6 +84,23 @@
                 <div class="detail-wide"><span>{{ etiqueta }}</span>{{ consulta.examen_fisico.get(campo) or 'N/D' }}</div>
                 {% endfor %}
             </div>
+        </div>
+
+        <div class="hc-block">
+            <h2>{{ consulta.esquema_especialidad['label'] }} · Evaluación específica</h2>
+            {% for section in consulta.esquema_especialidad['sections'] %}
+            <h3 class="h6 mt-3">{{ section['title'] }}</h3>
+            <div class="detail-grid">
+                {% for field in section['fields'] %}
+                {% set value = consulta.datos_especialidad.get(field['name']) %}
+                <div class="detail-wide">
+                    <span>{{ field['label'] }}</span>
+                    {% if value is sameas true %}Sí{% elif value is sameas false %}No{% else %}{{ value if value is not none and value != '' else 'N/D' }}{% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% endfor %}
+            <small class="text-muted">Plantilla clínica versión {{ consulta.get('plantilla_version') or 1 }}</small>
         </div>
 
         <div class="hc-block">

@@ -1,6 +1,7 @@
 """Crea el almacenamiento de historias clínicas de emergencia."""
 
-from app import app, execute_update
+from app import app
+from core.database import execute_update
 
 
 def crear_tabla():

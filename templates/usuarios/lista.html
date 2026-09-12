@@ -276,12 +276,10 @@
                             </div>
                         </td>
                         <td>
-                            {% if usuario.perfil == 'Administrador' %}
-                                <span class="badge badge-admin"><i class="fas fa-key me-1"></i>Administrador</span>
-                            {% elif usuario.perfil == 'Nivel 2' %}
-                                <span class="badge badge-admin"><i class="fas fa-star me-1"></i>Nivel 2</span>
+                            {% if usuario.roles_nombres %}
+                                <span class="badge badge-admin"><i class="fas fa-user-shield me-1"></i>{{ usuario.roles_nombres }}</span>
                             {% else %}
-                                <span class="badge badge-user"><i class="fas fa-file-pen me-1"></i>{{ usuario.perfil }}</span>
+                                <span class="badge badge-user"><i class="fas fa-file-pen me-1"></i>{{ usuario.perfil }} (legacy)</span>
                             {% endif %}
                         </td>
                         <td>

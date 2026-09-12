@@ -4,7 +4,8 @@ import json
 import secrets
 from datetime import timedelta
 
-from app import app, execute_query, execute_update
+from app import app
+from core.database import execute_query, execute_update
 
 
 def crear_licencias(tenant_id=1):

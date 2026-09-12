@@ -3,7 +3,7 @@
 
 import pymysql
 
-from app import DATABASE_CONFIG
+from core.config import DATABASE_CONFIG
 
 
 INDEX_SPECS = (

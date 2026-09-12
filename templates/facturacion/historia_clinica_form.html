@@ -21,6 +21,8 @@
     .hc-checks { display: flex; flex-wrap: wrap; gap: .8rem 1.25rem; }
     .hc-checks label { display: inline-flex; align-items: center; gap: .4rem; }
     .hc-checks input { width: 18px; height: 18px; accent-color: var(--primary-color); }
+    .hc-specialty-intro { border-left: 4px solid var(--primary-color); background: #f8fafc; border-radius: 8px; padding: .85rem 1rem; }
+    .hc-specialty-empty { color: var(--ars-shell-muted); padding: 1rem 0; }
 </style>
 
 <div class="container py-4">
@@ -41,6 +43,7 @@
         <form method="POST" id="clinicalForm">
             <ul class="nav nav-tabs hc-tabs" role="tablist">
                 <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-consulta" type="button">Consulta</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-especialidad" type="button">Especialidad</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-antecedentes" type="button">Antecedentes</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-examen" type="button">Signos y examen</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-diagnostico" type="button">Diagnóstico</button></li>
@@ -53,17 +56,18 @@
                     <div class="row">
                         <div class="col-md-3 mb-3"><label class="form-label">Fecha *</label><input type="date" class="form-control" name="fecha" value="{{ fecha_actual }}" required></div>
                         <div class="col-md-3 mb-3"><label class="form-label">Hora *</label><input type="time" class="form-control" name="hora" value="{{ hora_actual }}" required></div>
+                        {% if turno_id %}<input type="hidden" name="turno_id" value="{{ turno_id }}">{% endif %}
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Médico responsable *</label>
-                            <select class="form-select" name="medico_id" required>
+                            <select class="form-select" id="medico_id" name="medico_id" required>
                                 <option value="">Seleccione...</option>
                                 {% for medico in medicos %}
-                                <option value="{{ medico['id'] }}" {% if consulta and consulta['medico_id'] == medico['id'] %}selected{% endif %}>{{ medico['nombre'] }}{% if medico.get('especialidad') %} · {{ medico['especialidad'] }}{% endif %}</option>
+                                <option value="{{ medico['id'] }}" {% if (consulta and consulta['medico_id'] == medico['id']) or (not consulta and medico_preseleccionado == medico['id']) %}selected{% endif %}>{{ medico['nombre'] }}{% if medico.get('especialidad') %} · {{ medico['especialidad'] }}{% endif %}</option>
                                 {% endfor %}
                             </select>
                         </div>
                         <div class="col-md-6 mb-3"><label class="form-label">Ocupación</label><input class="form-control" name="ocupacion" maxlength="150" value="{{ paciente['ocupacion'] or '' }}"></div>
-                        <div class="col-12 mb-3"><label class="form-label">Motivo de consulta *</label><textarea class="form-control" name="motivo_consulta" rows="2" required>{{ consulta['motivo_consulta'] if consulta else '' }}</textarea></div>
+                        <div class="col-12 mb-3"><label class="form-label">Motivo de consulta *</label><textarea class="form-control" name="motivo_consulta" rows="2" required>{{ consulta['motivo_consulta'] if consulta else motivo_preseleccionado|default('') }}</textarea></div>
                     </div>
                     <h2 class="hc-section-title">Enfermedad actual</h2>
                     <div class="row">
@@ -74,6 +78,63 @@
                         <div class="col-md-4 mb-3"><label class="form-label">Factores que alivian</label><textarea class="form-control" name="factores_alivian" rows="2">{{ ea.get('factores_alivian','') }}</textarea></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Síntomas asociados</label><textarea class="form-control" name="sintomas_asociados" rows="2">{{ ea.get('sintomas_asociados','') }}</textarea></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Tratamientos utilizados previamente</label><textarea class="form-control" name="tratamientos_previos" rows="2">{{ ea.get('tratamientos_previos','') }}</textarea></div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="tab-especialidad">
+                    <div
+                        id="specialtyFields"
+                        data-schema-url="{{ url_for('api_historia_clinica_plantilla_especialidad', medico_id=0) }}"
+                    >
+                        <div class="hc-specialty-intro mb-3">
+                            <strong id="specialtyTitle">{{ esquema_especialidad['label'] }}</strong>
+                            <div class="small text-muted">Formulario clínico versión {{ esquema_especialidad['version'] }}</div>
+                        </div>
+                        <div id="specialtySections">
+                            {% for section in esquema_especialidad['sections'] %}
+                            <section class="mb-4">
+                                <h2 class="hc-section-title">{{ section['title'] }}</h2>
+                                <div class="row">
+                                    {% for field in section['fields'] %}
+                                    {% set value = datos_especialidad.get(field['name']) %}
+                                    <div
+                                        class="{{ 'col-md-6' if field['type'] == 'textarea' else 'col-md-4' }} mb-3"
+                                        {% if field.get('depends_on') %}
+                                        data-depends-field="{{ field['depends_on']['field'] }}"
+                                        data-depends-value="{{ field['depends_on']['equals'] }}"
+                                        {% endif %}
+                                    >
+                                        <label class="form-label" for="especialidad_{{ field['name'] }}">
+                                            {{ field['label'] }}{% if field.get('required') %} *{% endif %}
+                                        </label>
+                                        {% if field['type'] == 'textarea' %}
+                                        <textarea class="form-control" id="especialidad_{{ field['name'] }}" name="especialidad_{{ field['name'] }}" rows="2" maxlength="{{ field.get('max_length', 5000) }}">{{ value if value is not none else '' }}</textarea>
+                                        {% elif field['type'] == 'select' %}
+                                        <select class="form-select" id="especialidad_{{ field['name'] }}" name="especialidad_{{ field['name'] }}">
+                                            <option value="">Seleccione...</option>
+                                            {% for option in field.get('options', []) %}
+                                            <option value="{{ option }}" {% if value == option %}selected{% endif %}>{{ option }}</option>
+                                            {% endfor %}
+                                        </select>
+                                        {% else %}
+                                        <input
+                                            class="form-control"
+                                            type="{{ field['type'] }}"
+                                            id="especialidad_{{ field['name'] }}"
+                                            name="especialidad_{{ field['name'] }}"
+                                            value="{{ value if value is not none else '' }}"
+                                            {% if field.get('min') is not none %}min="{{ field['min'] }}"{% endif %}
+                                            {% if field.get('max') is not none %}max="{{ field['max'] }}"{% endif %}
+                                            {% if field.get('step') is not none %}step="{{ field['step'] }}"{% endif %}
+                                            {% if field.get('max_length') %}maxlength="{{ field['max_length'] }}"{% endif %}
+                                        >
+                                        {% endif %}
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </section>
+                            {% endfor %}
+                        </div>
                     </div>
                 </div>
 
@@ -160,19 +221,5 @@
     </div>
 </div>
 
-<script nonce="{{ csp_nonce }}">
-document.addEventListener('DOMContentLoaded', function() {
-    const peso = document.getElementById('peso');
-    const talla = document.getElementById('talla');
-    const imc = document.getElementById('imc');
-    function calcularIMC() {
-        const p = parseFloat(peso.value);
-        const t = parseFloat(talla.value);
-        imc.value = p > 0 && t > 0 ? (p / (t * t)).toFixed(2) : '';
-    }
-    peso.addEventListener('input', calcularIMC);
-    talla.addEventListener('input', calcularIMC);
-    calcularIMC();
-});
-</script>
+<script src="{{ url_for('static', filename='js/historia-clinica.js') }}?v=1"></script>
 {% endblock %}

@@ -1,0 +1,137 @@
+"""Configuración de entorno y validaciones de arranque."""
+
+import os
+import re
+import secrets
+from datetime import timedelta
+from urllib.parse import urlparse
+
+import pymysql
+from dotenv import load_dotenv
+
+from ecf import ECFConfig
+
+load_dotenv()
+
+ENVIRONMENT = os.getenv('FLASK_ENV', 'development').strip().lower()
+IS_PRODUCTION = ENVIRONMENT == 'production'
+
+
+def parse_mysql_url(url):
+    """Parsear una URL MySQL en la configuración aceptada por PyMySQL."""
+    if not url:
+        return None
+    pattern = r'mysql://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)'
+    match = re.match(pattern, url)
+    if not match:
+        return None
+    return {
+        'user': match.group(1),
+        'password': match.group(2),
+        'host': match.group(3),
+        'port': int(match.group(4)),
+        'database': match.group(5),
+        'charset': 'utf8mb4',
+    }
+
+
+mysql_url = os.getenv('MYSQL_URL', '')
+if mysql_url:
+    DATABASE_CONFIG = parse_mysql_url(mysql_url)
+    if not DATABASE_CONFIG:
+        raise RuntimeError('MYSQL_URL inválida')
+else:
+    DATABASE_CONFIG = {
+        'host': os.getenv('MYSQL_HOST', 'localhost'),
+        'user': os.getenv('MYSQL_USER', 'root'),
+        'password': os.getenv('MYSQL_PASSWORD', ''),
+        'database': os.getenv('MYSQL_DATABASE', 'facturacion_medica'),
+        'port': int(os.getenv('MYSQL_PORT', '3306')),
+        'charset': 'utf8mb4',
+    }
+
+
+REQUIRED_TENANT_TABLES = (
+    'ars', 'auditoria_historia_clinica', 'auditoria_licencias_medicas',
+    'centros_medicos', 'citas_medicas', 'codigo_ars', 'consultas_clinicas',
+    'conversaciones_internas', 'ecf_configuraciones', 'ecf_eventos',
+    'ecf_outbox', 'ecf_secuencias', 'evoluciones_clinicas',
+    'factura_detalles', 'facturas', 'facturas_ecf', 'historias_emergencia',
+    'hojas_enfermeria', 'licencias_medicas', 'medico_centro', 'medicos',
+    'mensajes_internos', 'ncf', 'pacientes', 'pacientes_pendientes',
+    'pago_facturas', 'pagos', 'receta_medicamentos', 'recetas_medicas',
+    'reclamaciones', 'roles', 'rol_permisos', 'secuencias_turnos',
+    'servicios', 'pantallas_turnos', 'tipos_licencia_medica',
+    'turnos_atencion', 'turnos_eventos', 'usuario_medico', 'usuario_roles',
+    'usuarios',
+)
+
+
+def configure_app(app):
+    """Aplicar la configuración Flask sin registrar rutas."""
+    configured_secret_key = os.getenv('SECRET_KEY', '').strip()
+    if IS_PRODUCTION and (
+        len(configured_secret_key) < 32
+        or configured_secret_key == 'cambia_esto_por_una_clave_secreta'
+    ):
+        raise RuntimeError(
+            'SECRET_KEY debe configurarse con al menos 32 caracteres '
+            'en producción.'
+        )
+
+    app.secret_key = configured_secret_key or secrets.token_hex(32)
+    app.config.update(
+        SESSION_COOKIE_SECURE=IS_PRODUCTION,
+        SESSION_COOKIE_HTTPONLY=True,
+        SESSION_COOKIE_SAMESITE='Lax',
+        PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
+        SESSION_COOKIE_NAME='facturacion_session',
+        TEMPLATES_AUTO_RELOAD=not IS_PRODUCTION,
+        WTF_CSRF_TIME_LIMIT=8 * 60 * 60,
+        MAX_CONTENT_LENGTH=int(
+            os.getenv('MAX_UPLOAD_BYTES', str(10 * 1024 * 1024))
+        ),
+        ECF_CONFIG=ECFConfig.from_env(),
+    )
+
+
+def validate_required_tenant_schema(connection_factory=None):
+    """Fallar de forma segura si el esquema multiempresa está incompleto."""
+    factory = connection_factory or pymysql.connect
+    config = DATABASE_CONFIG.copy()
+    config['cursorclass'] = pymysql.cursors.DictCursor
+    connection = factory(**config)
+    try:
+        with connection.cursor() as cursor:
+            placeholders = ', '.join(['%s'] * len(REQUIRED_TENANT_TABLES))
+            cursor.execute(
+                f'''
+                SELECT TABLE_NAME
+                FROM information_schema.COLUMNS
+                WHERE TABLE_SCHEMA = %s
+                  AND COLUMN_NAME = 'tenant_id'
+                  AND TABLE_NAME IN ({placeholders})
+                ''',
+                (DATABASE_CONFIG['database'], *REQUIRED_TENANT_TABLES),
+            )
+            present = {row['TABLE_NAME'] for row in cursor.fetchall()}
+    finally:
+        connection.close()
+
+    missing = sorted(set(REQUIRED_TENANT_TABLES) - present)
+    if missing:
+        raise RuntimeError(
+            'Esquema multiempresa incompleto. Falta tenant_id en: '
+            + ', '.join(missing)
+        )
+
+
+def validate_production_startup():
+    """Validar controles que no pueden degradarse silenciosamente."""
+    public_base_url = os.getenv('APP_BASE_URL', '').strip()
+    parsed_url = urlparse(public_base_url)
+    if parsed_url.scheme != 'https' or not parsed_url.netloc:
+        raise RuntimeError(
+            'APP_BASE_URL debe ser una URL HTTPS completa en producción.'
+        )
+    validate_required_tenant_schema()

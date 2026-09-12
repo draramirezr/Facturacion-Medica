@@ -318,26 +318,34 @@
         </div>
         
         <div class="form-group">
-            <label for="perfil">
-                <i class="fas fa-key me-1"></i>Perfil de Usuario <span class="required">*</span>
+            <label for="rol_id">
+                <i class="fas fa-key me-1"></i>Rol de usuario <span class="required">*</span>
             </label>
-            <select id="perfil" name="perfil" required>
-                <option value="">-- Selecciona un perfil --</option>
-                <option value="Administrador" {% if usuario and usuario.perfil == 'Administrador' %}selected{% endif %}>
-                    Administrador (Acceso total)
+            <select id="rol_id" name="rol_id" required>
+                <option value="">-- Selecciona un rol --</option>
+                {% for rol in roles %}
+                <option value="{{ rol['id'] }}" data-requiere-medico="{{ 1 if rol['requiere_medico'] else 0 }}"
+                        {% if rol_seleccionado == rol['id'] %}selected{% endif %}>
+                    {{ rol['nombre'] }}
                 </option>
-                <option value="Nivel 2" {% if usuario and usuario.perfil == 'Nivel 2' %}selected{% endif %}>
-                    Nivel 2 (Facturación completa + Generar facturas finales)
-                </option>
-                <option value="Registro de Facturas" {% if usuario and usuario.perfil == 'Registro de Facturas' %}selected{% endif %}>
-                    Registro de Facturas (Solo registro, sin generación final)
-                </option>
+                {% endfor %}
             </select>
-            <small>
-                <strong>Administrador:</strong> Acceso completo a todas las funciones<br>
-                <strong>Nivel 2:</strong> Acceso completo a facturación + Puede generar facturas finales con NCF ⭐<br>
-                <strong>Registro de Facturas:</strong> Solo registro de facturas, no puede generar facturas finales
-            </small>
+            <small>Los permisos se configuran en Roles y permisos.</small>
+        </div>
+
+        <div class="form-group" id="medicoGroup">
+            <label for="medico_id">
+                <i class="fas fa-user-doctor me-1"></i>Médico vinculado
+            </label>
+            <select id="medico_id" name="medico_id">
+                <option value="">-- Selecciona un médico --</option>
+                {% for medico in medicos %}
+                <option value="{{ medico['id'] }}" {% if medico_seleccionado == medico['id'] %}selected{% endif %}>
+                    {{ medico['nombre'] }}{% if medico['especialidad'] %} — {{ medico['especialidad'] }}{% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            <small>Es obligatorio para roles que gestionan una cola médica propia.</small>
         </div>
         
         {% if usuario %}
@@ -475,6 +483,20 @@
 </div>
 
 <script nonce="{{ csp_nonce }}">
+    const roleSelect = document.getElementById('rol_id');
+    const medicoGroup = document.getElementById('medicoGroup');
+    const medicoSelect = document.getElementById('medico_id');
+
+    function syncMedicoRequirement() {
+        const option = roleSelect.options[roleSelect.selectedIndex];
+        const required = option && option.dataset.requiereMedico === '1';
+        medicoGroup.hidden = !required;
+        medicoSelect.required = required;
+    }
+
+    roleSelect.addEventListener('change', syncMedicoRequirement);
+    syncMedicoRequirement();
+
     // Generar contraseña temporal segura (para modo editar)
     function generarPasswordTemporal() {
         const mayusculas = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Sin I, O para evitar confusión

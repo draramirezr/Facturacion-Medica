@@ -3,7 +3,8 @@
 import json
 from datetime import date, time, timedelta
 
-from app import app, execute_query, execute_update
+from app import app
+from core.database import execute_query, execute_update
 
 
 PACIENTES = [

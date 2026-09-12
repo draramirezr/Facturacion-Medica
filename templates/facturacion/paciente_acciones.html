@@ -33,6 +33,7 @@
                 El paciente ya cumplió 18 años. Antes de registrar una nueva atención,
                 debe ingresar la cédula propia del paciente, no la del pariente o tutor.
             </p>
+            {% if can('pacientes.editar') %}
             <form method="POST" action="{{ url_for('facturacion_paciente_actualizar_cedula', paciente_id=paciente['id']) }}">
                 <label class="form-label" for="cedula">Cédula del paciente *</label>
                 <div class="d-flex gap-2">
@@ -43,49 +44,62 @@
                     <button class="btn btn-primary px-4" type="submit">Actualizar y continuar</button>
                 </div>
             </form>
+            {% else %}
+            <div class="alert alert-warning mb-0">No tienes permiso para actualizar la cédula del paciente.</div>
+            {% endif %}
         </div>
         {% else %}
         <h2 class="h5 text-center mt-4">¿Qué desea hacer ahora?</h2>
         <div class="next-step-grid">
-            {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+            {% if can('historia_clinica.ver') %}
             <a class="next-step-card next-step-wide" href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=paciente['id']) }}">
                 <i class="fas fa-address-card"></i>
                 <strong>Ver vista 360 del paciente</strong>
                 <small>Datos básicos, historias clínicas, emergencias, consultas, licencias y facturación.</small>
             </a>
+            {% endif %}
+            {% if can('historia_clinica.crear') %}
             <a class="next-step-card" href="{{ url_for('facturacion_historia_clinica_nueva', paciente_id=paciente['id']) }}">
                 <i class="fas fa-notes-medical"></i>
                 <strong>Registrar historia clínica</strong>
                 <small>Crear su primera consulta dentro del expediente clínico.</small>
             </a>
+            {% endif %}
+            {% if can('emergencia.crear') %}
             <a class="next-step-card" href="{{ url_for('facturacion_historias_emergencia_nueva', paciente_id=paciente['id']) }}">
                 <i class="fas fa-truck-medical"></i>
                 <strong>Historia de emergencia</strong>
                 <small>Registrar una atención clínica de emergencia.</small>
             </a>
+            {% endif %}
+            {% if can('enfermeria.crear') %}
             <a class="next-step-card" href="{{ url_for('facturacion_hojas_enfermeria_nueva', paciente_id=paciente['id']) }}">
                 <i class="fas fa-clipboard-list"></i>
                 <strong>Hoja de enfermería</strong>
                 <small>Registrar medicamentos y materiales suministrados.</small>
             </a>
             {% endif %}
+            {% if can('facturacion.crear') %}
             <a class="next-step-card" href="{{ url_for('facturacion_facturas_nueva', paciente_id=paciente['id']) }}">
                 <i class="fas fa-stethoscope"></i>
                 <strong>Registrar consulta</strong>
                 <small>Agregar servicios para facturación.</small>
             </a>
-            {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+            {% endif %}
+            {% if can('licencias.crear') %}
             <a class="next-step-card" href="{{ url_for('facturacion_licencias_medicas_nueva', paciente_id=paciente['id']) }}">
                 <i class="fas fa-file-medical"></i>
                 <strong>Registrar licencia médica</strong>
                 <small>Crear una licencia, asociarla a una consulta e imprimirla.</small>
             </a>
             {% endif %}
+            {% if can('pacientes.editar') %}
             <a class="next-step-card" href="{{ url_for('facturacion_pacientes_editar', paciente_id=paciente['id']) }}">
                 <i class="fas fa-user-pen"></i>
                 <strong>Actualizar datos</strong>
                 <small>Modificar los datos básicos y de contacto del paciente.</small>
             </a>
+            {% endif %}
         </div>
 
         <div class="text-center mt-4">

@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar' if rol else 'Nuevo' }} rol - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .role-form-shell { max-width: 950px; margin: 0 auto; }
+    .permission-group { padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--ars-shell-border); border-radius: 12px; background: var(--ars-shell-surface,white); }
+    .permission-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .65rem; margin-top: .8rem; }
+    .permission-item { display: flex; align-items: flex-start; gap: .55rem; padding: .55rem; border-radius: 8px; }
+    .permission-item:hover { background: color-mix(in srgb,var(--primary-color) 8%,white); }
+    .permission-item input { margin-top: .2rem; accent-color: var(--primary-color); }
+    .permission-item strong, .permission-item small { display: block; }
+    .permission-item small { color: var(--ars-shell-muted); }
+    @media (max-width: 700px) { .permission-grid { grid-template-columns: 1fr; } }
+</style>
+<div class="container py-4">
+    <div class="role-form-shell">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h1>{{ 'Editar' if rol else 'Nuevo' }} rol</h1>
+            <a class="btn btn-outline-secondary" href="{{ url_for('admin_roles') }}">Volver</a>
+        </div>
+        <form method="POST">
+            <div class="card p-3 mb-3">
+                <label class="form-label" for="nombre">Nombre *</label>
+                <input class="form-control mb-3" id="nombre" name="nombre" maxlength="100" required value="{{ rol['nombre'] if rol else '' }}">
+                <label class="form-label" for="descripcion">Descripción</label>
+                <textarea class="form-control" id="descripcion" name="descripcion" maxlength="500" rows="2">{{ rol['descripcion'] if rol else '' }}</textarea>
+            </div>
+            {% for grupo, permisos in permisos_por_grupo.items() %}
+            <section class="permission-group">
+                <h2 class="h6 text-capitalize">{{ grupo.replace('_',' ') }}</h2>
+                <div class="permission-grid">
+                    {% for codigo, nombre, descripcion in permisos %}
+                    <label class="permission-item">
+                        <input type="checkbox" name="permisos" value="{{ codigo }}" {% if codigo in seleccionados %}checked{% endif %}>
+                        <span><strong>{{ nombre }}</strong><small>{{ descripcion }}</small></span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </section>
+            {% endfor %}
+            <div class="d-flex justify-content-end">
+                <button class="btn btn-primary" type="submit">Guardar rol</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

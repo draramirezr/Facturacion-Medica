@@ -136,6 +136,7 @@
         <h2 class="ars-home-section-title" id="quick-access-title">Accesos rápidos de gestión</h2>
 
         <div class="ars-quick-grid">
+            {% if can('pacientes.ver') %}
             <a class="ars-quick-card" href="{{ url_for('facturacion_pacientes') }}">
                 <span class="ars-quick-icon"><i class="fas fa-user-injured"></i></span>
                 <span class="ars-quick-copy">
@@ -143,7 +144,9 @@
                     <p>Consulta y administra tus pacientes.</p>
                 </span>
             </a>
+            {% endif %}
 
+            {% if can('facturacion.crear') %}
             <a class="ars-quick-card" href="{{ url_for('facturacion_facturas_nueva') }}">
                 <span class="ars-quick-icon"><i class="fas fa-file-circle-plus"></i></span>
                 <span class="ars-quick-copy">
@@ -151,7 +154,9 @@
                     <p>Registra pacientes y servicios facturables.</p>
                 </span>
             </a>
+            {% endif %}
 
+            {% if can('facturacion.ver') %}
             <a class="ars-quick-card" href="{{ url_for('facturacion_pacientes_pendientes') }}">
                 <span class="ars-quick-icon"><i class="fas fa-clipboard-list"></i></span>
                 <span class="ars-quick-copy">
@@ -159,8 +164,9 @@
                     <p>Revisa los registros pendientes de procesar.</p>
                 </span>
             </a>
+            {% endif %}
 
-            {% if current_user.perfil in ['Administrador', 'Nivel 2'] %}
+            {% if can('facturacion.crear') %}
             <a class="ars-quick-card" href="{{ url_for('facturacion_generar') }}">
                 <span class="ars-quick-icon"><i class="fas fa-file-invoice-dollar"></i></span>
                 <span class="ars-quick-copy">
@@ -168,7 +174,9 @@
                     <p>Crea la factura final por ARS y período.</p>
                 </span>
             </a>
+            {% endif %}
 
+            {% if can('facturacion.ver') %}
             <a class="ars-quick-card" href="{{ url_for('facturacion_reclamaciones') }}">
                 <span class="ars-quick-icon"><i class="fas fa-triangle-exclamation"></i></span>
                 <span class="ars-quick-copy">

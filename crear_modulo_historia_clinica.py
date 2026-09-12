@@ -1,6 +1,7 @@
 """Crea las tablas del expediente clínico longitudinal."""
 
-from app import app, execute_query, execute_update
+from app import app
+from core.database import execute_query, execute_update
 
 
 def crear_modulo():
@@ -19,6 +20,9 @@ def crear_modulo():
                 tenant_id INT NOT NULL,
                 paciente_id INT NOT NULL,
                 medico_id INT NOT NULL,
+                especialidad_consulta VARCHAR(150) NULL,
+                plantilla_version INT NOT NULL DEFAULT 1,
+                datos_especialidad LONGTEXT NULL,
                 fecha DATE NOT NULL,
                 hora TIME NOT NULL,
                 motivo_consulta TEXT NOT NULL,
@@ -49,6 +53,31 @@ def crear_modulo():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """
         )
+
+        columnas_consulta = execute_query(
+            "SHOW COLUMNS FROM consultas_clinicas", fetch="all"
+        ) or []
+        columnas_consulta = {
+            columna["Field"] for columna in columnas_consulta
+        }
+        if "especialidad_consulta" not in columnas_consulta:
+            execute_update(
+                "ALTER TABLE consultas_clinicas "
+                "ADD COLUMN especialidad_consulta VARCHAR(150) NULL "
+                "AFTER medico_id"
+            )
+        if "plantilla_version" not in columnas_consulta:
+            execute_update(
+                "ALTER TABLE consultas_clinicas "
+                "ADD COLUMN plantilla_version INT NOT NULL DEFAULT 1 "
+                "AFTER especialidad_consulta"
+            )
+        if "datos_especialidad" not in columnas_consulta:
+            execute_update(
+                "ALTER TABLE consultas_clinicas "
+                "ADD COLUMN datos_especialidad LONGTEXT NULL "
+                "AFTER plantilla_version"
+            )
 
         execute_update(
             """

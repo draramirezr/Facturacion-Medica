@@ -1,6 +1,7 @@
 """Crea las tablas para recetas médicas y sus medicamentos."""
 
-from app import app, execute_query, execute_update
+from app import app
+from core.database import execute_query, execute_update
 
 
 def crear_modulo():

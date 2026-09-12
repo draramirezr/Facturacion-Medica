@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Mi cola - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .doctor-queue { max-width:1050px; margin:0 auto; }
+    .doctor-hero { padding:1.2rem; border-radius:16px; background:linear-gradient(135deg,var(--primary-color),var(--secondary-color)); color:white; }
+    .doctor-turn { display:grid; grid-template-columns:90px 1fr auto; align-items:center; gap:1rem; padding:1rem; margin-top:.8rem; border:1px solid var(--ars-shell-border); border-radius:14px; background:var(--ars-shell-surface,white); }
+    .doctor-number { font-size:1.7rem; font-weight:900; color:var(--primary-color); }
+    .doctor-actions { display:flex; flex-wrap:wrap; gap:.4rem; }
+    @media(max-width:650px){.doctor-turn{grid-template-columns:70px 1fr}.doctor-actions{grid-column:1/-1}}
+</style>
+<div class="container py-4">
+<div class="doctor-queue">
+    <section class="doctor-hero d-flex justify-content-between align-items-center gap-3">
+        <div><h1 class="h3 mb-1">Mi cola</h1><p class="mb-0">{{ medico['nombre'] }} · {{ medico['especialidad'] or 'Medicina general' }}</p></div>
+        <form method="POST" action="{{ url_for('turnos_siguiente') }}">
+            <input type="hidden" name="medico_id" value="{{ medico['id'] }}">
+            <button class="btn btn-light" type="submit">Llamar siguiente</button>
+        </form>
+    </section>
+    {% for turno in turnos %}
+    {% if turno['estado'] in ['EnEspera','Llamado','EnConsulta','NoPresente'] %}
+    <article class="doctor-turn">
+        <div class="doctor-number">{{ '%03d'|format(turno['numero']) }}</div>
+        <div><strong>{{ turno['paciente_nombre'] }}</strong><br><small>{{ turno['estado'] }} · {{ turno['motivo'] or 'Sin motivo informado' }}</small></div>
+        <div class="doctor-actions">
+            {% if turno['estado'] == 'EnEspera' %}
+            <form method="POST" action="{{ url_for('turnos_accion', turno_id=turno['id']) }}"><button class="btn btn-primary btn-sm" name="accion" value="llamar">Llamar</button></form>
+            {% elif turno['estado'] == 'Llamado' %}
+            <form method="POST" action="{{ url_for('turnos_accion', turno_id=turno['id']) }}"><button class="btn btn-success btn-sm" name="accion" value="iniciar">Iniciar historia</button></form>
+            <form method="POST" action="{{ url_for('turnos_accion', turno_id=turno['id']) }}"><button class="btn btn-outline-secondary btn-sm" name="accion" value="no_presente">No presente</button></form>
+            {% elif turno['estado'] == 'NoPresente' %}
+            <form method="POST" action="{{ url_for('turnos_accion', turno_id=turno['id']) }}"><button class="btn btn-outline-primary btn-sm" name="accion" value="reinsertar">Reinsertar</button></form>
+            {% elif turno['estado'] == 'EnConsulta' %}
+            <a class="btn btn-success btn-sm" href="{{ url_for('facturacion_historia_clinica_nueva', paciente_id=turno['paciente_id'], turno_id=turno['id'], medico_id=medico['id']) }}">Continuar historia</a>
+            {% endif %}
+        </div>
+    </article>
+    {% endif %}
+    {% else %}<div class="text-center text-muted py-5">No hay pacientes en la cola.</div>{% endfor %}
+</div>
+</div>
+{% endblock %}

@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+{% block title %}Pantallas de turnos - ARSFlow{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .screens-shell { max-width:1000px; margin:0 auto; }
+    .screens-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; }
+    .screen-card { padding:1rem; border:1px solid var(--ars-shell-border); border-radius:14px; background:var(--ars-shell-surface,white); }
+    .created-url { padding:1rem; border:2px solid var(--primary-color); border-radius:12px; background:#ecfeff; overflow-wrap:anywhere; }
+</style>
+<div class="container py-4">
+<div class="screens-shell">
+    <div class="d-flex justify-content-between align-items-center gap-3 mb-4">
+        <div><h1>Pantallas de turnos</h1><p class="text-muted mb-0">Crea enlaces revocables para las salas de espera.</p></div>
+        <a class="btn btn-outline-secondary" href="{{ url_for('turnos_recepcion') }}">Volver</a>
+    </div>
+    {% if url_creada %}
+    <div class="created-url mb-3">
+        <strong>Guarda este enlace ahora; el token no se volverá a mostrar.</strong><br>
+        <a href="{{ url_creada }}" target="_blank" rel="noopener">{{ url_creada }}</a>
+    </div>
+    {% endif %}
+    <div class="screens-grid mb-4">
+        <section class="screen-card">
+            <h2 class="h5">Nueva pantalla</h2>
+            <form method="POST">
+                <label class="form-label" for="nombre">Nombre</label>
+                <input class="form-control mb-2" id="nombre" name="nombre" maxlength="150" required placeholder="Sala de espera principal">
+                <label class="form-label" for="medico_id">Filtro</label>
+                <select class="form-select mb-3" id="medico_id" name="medico_id">
+                    <option value="">Todos los médicos</option>
+                    {% for medico in medicos %}<option value="{{ medico['id'] }}">{{ medico['nombre'] }} · {{ medico['especialidad'] or 'General' }}</option>{% endfor %}
+                </select>
+                <button class="btn btn-primary" type="submit">Crear enlace</button>
+            </form>
+        </section>
+        <section class="screen-card">
+            <h2 class="h5">Formato del ticket</h2>
+            <form method="POST" action="{{ url_for('turnos_configuracion_ticket') }}">
+                <label class="form-label" for="ancho">Ancho de impresora</label>
+                <select class="form-select mb-3" id="ancho" name="ancho">
+                    <option value="80" {% if ancho == '80' %}selected{% endif %}>80 mm (predeterminado)</option>
+                    <option value="58" {% if ancho == '58' %}selected{% endif %}>58 mm</option>
+                </select>
+                <button class="btn btn-outline-primary" type="submit">Guardar</button>
+            </form>
+        </section>
+    </div>
+    <div class="screens-grid">
+        {% for pantalla in pantallas %}
+        <article class="screen-card">
+            <div class="d-flex justify-content-between gap-2">
+                <h2 class="h5">{{ pantalla['nombre'] }}</h2>
+                <span class="badge {{ 'text-bg-success' if pantalla['activo'] else 'text-bg-secondary' }}">{{ 'Activa' if pantalla['activo'] else 'Revocada' }}</span>
+            </div>
+            <p>{{ pantalla['medico_nombre'] or 'Todos los médicos' }}</p>
+            {% if pantalla['activo'] %}
+            <form method="POST" action="{{ url_for('turnos_pantalla_revocar', pantalla_id=pantalla['id']) }}">
+                <button class="btn btn-sm btn-outline-danger" type="submit">Revocar acceso</button>
+            </form>
+            {% endif %}
+        </article>
+        {% else %}<p>No se han creado pantallas.</p>{% endfor %}
+    </div>
+</div>
+</div>
+{% endblock %}

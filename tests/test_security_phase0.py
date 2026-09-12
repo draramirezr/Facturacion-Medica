@@ -1,10 +1,37 @@
 import unittest
 import re
+from contextlib import contextmanager
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 import app as app_module
+import auth.decorators as auth_decorators
+import auth.routes as auth_routes
+import core.database as database_module
+import core.tenant as tenant_module
+import routes.admin_companies as company_routes
+import routes.billing as billing_routes
+import routes.catalogs as catalog_routes
+import routes.patients as patient_routes
+import routes.search as search_routes
+import routes.support as route_support
+import routes.users_roles as user_routes
+from rbac_catalog import PERMISOS_ROLES_SISTEMA
+
+
+@contextmanager
+def patch_current_user(user):
+    with (
+        patch.object(auth_decorators, 'current_user', user),
+        patch.object(auth_routes, 'current_user', user),
+        patch.object(tenant_module, 'current_user', user),
+        patch.object(company_routes, 'current_user', user),
+        patch.object(billing_routes, 'current_user', user),
+        patch.object(search_routes, 'current_user', user),
+        patch.object(user_routes, 'current_user', user),
+    ):
+        yield
 
 
 class _FakeCursor:
@@ -97,20 +124,20 @@ class PhaseZeroSecurityTests(unittest.TestCase):
 
         with self.flask_app.test_request_context('/admin/empresas'):
             with (
-                patch.object(app_module, 'current_user', self.user),
-                patch.object(app_module, 'execute_query', side_effect=fake_query),
+                patch_current_user(self.user),
+                patch.object(company_routes, 'execute_query', side_effect=fake_query),
                 patch.object(
-                    app_module,
+                    company_routes,
                     'verificar_suscripciones_vencidas',
                     return_value=0,
                 ),
                 patch.object(
-                    app_module,
+                    company_routes,
                     'render_template',
                     side_effect=lambda template, **context: context,
                 ),
             ):
-                app_module.admin_empresas.__wrapped__()
+                company_routes.admin_empresas.__wrapped__()
 
         self.assertEqual(len(queries), 1)
         self.assertIn('WHERE e.id = %s', queries[0][0])
@@ -127,15 +154,15 @@ class PhaseZeroSecurityTests(unittest.TestCase):
 
         with self.flask_app.test_request_context('/facturacion/dashboard'):
             with (
-                patch.object(app_module, 'current_user', self.user),
-                patch.object(app_module, 'execute_query', side_effect=fake_query),
+                patch_current_user(self.user),
+                patch.object(billing_routes, 'execute_query', side_effect=fake_query),
                 patch.object(
-                    app_module,
+                    billing_routes,
                     'render_template',
                     side_effect=lambda template, **context: context,
                 ),
             ):
-                app_module.facturacion_dashboard.__wrapped__()
+                billing_routes.facturacion_dashboard.__wrapped__()
 
         protected_queries = [
             (query, params)
@@ -155,11 +182,11 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         update = Mock()
         with self.flask_app.test_request_context('/admin/usuarios/99/editar'):
             with (
-                patch.object(app_module, 'current_user', self.user),
-                patch.object(app_module, 'execute_query', return_value=None) as query,
-                patch.object(app_module, 'execute_update', update),
+                patch_current_user(self.user),
+                patch.object(user_routes, 'execute_query', return_value=None) as query,
+                patch.object(user_routes, 'execute_update', update),
             ):
-                response = app_module.admin_usuarios_editar.__wrapped__(99)
+                response = user_routes.admin_usuarios_editar.__wrapped__(99)
 
         sql, params = query.call_args.args
         self.assertIn('tenant_id = %s', sql)
@@ -199,11 +226,11 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             data=form,
         ):
             with (
-                patch.object(app_module, 'current_user', self.user),
-                patch.object(app_module, 'execute_query', side_effect=fake_query),
-                patch.object(app_module, 'execute_update', side_effect=fake_update),
+                patch_current_user(self.user),
+                patch.object(user_routes, 'execute_query', side_effect=fake_query),
+                patch.object(user_routes, 'execute_update', side_effect=fake_update),
             ):
-                response = app_module.admin_usuarios_editar.__wrapped__(99)
+                response = user_routes.admin_usuarios_editar.__wrapped__(99)
 
         self.assertEqual(response.status_code, 302)
         for query, params in queries + updates:
@@ -230,6 +257,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             'citas_medicas',
             'codigo_ars',
             'consultas_clinicas',
+            'conversaciones_internas',
             'ecf_configuraciones',
             'ecf_eventos',
             'ecf_outbox',
@@ -243,6 +271,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             'licencias_medicas',
             'medico_centro',
             'medicos',
+            'mensajes_internos',
             'ncf',
             'pacientes',
             'pacientes_pendientes',
@@ -251,8 +280,16 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             'receta_medicamentos',
             'recetas_medicas',
             'reclamaciones',
+            'roles',
+            'rol_permisos',
+            'secuencias_turnos',
             'servicios',
+            'pantallas_turnos',
             'tipos_licencia_medica',
+            'turnos_atencion',
+            'turnos_eventos',
+            'usuario_medico',
+            'usuario_roles',
             'usuarios',
         }
         self.assertEqual(set(app_module.REQUIRED_TENANT_TABLES), expected_tables)
@@ -261,9 +298,9 @@ class PhaseZeroSecurityTests(unittest.TestCase):
     def test_relational_catalog_access_uses_tenant_whitelist(self):
         with self.flask_app.test_request_context('/'):
             with (
-                patch.object(app_module, 'current_user', self.user),
+                patch.object(tenant_module, 'current_user', self.user),
                 patch.object(
-                    app_module,
+                    tenant_module,
                     'execute_query',
                     return_value={'count': 1},
                 ) as query,
@@ -292,7 +329,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
                 return {'id': 8}
             return None
 
-        handler = app_module.facturacion_medico_centro_nuevo
+        handler = catalog_routes.facturacion_medico_centro_nuevo
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
 
@@ -305,13 +342,13 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             },
         ):
             with (
-                patch.object(app_module, 'current_user', self.user),
+                patch_current_user(self.user),
                 patch.object(
-                    app_module,
+                    catalog_routes,
                     'execute_query',
                     side_effect=fake_query,
                 ),
-                patch.object(app_module, 'execute_update', update),
+                patch.object(catalog_routes, 'execute_update', update),
             ):
                 response = handler()
 
@@ -329,16 +366,16 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             method='POST',
         ):
             with (
-                patch.object(app_module, 'current_user', self.user),
+                patch_current_user(self.user),
                 patch.object(
-                    app_module,
+                    patient_routes,
                     'execute_query',
                     return_value={'id': 91},
                 ) as query,
-                patch.object(app_module, 'execute_update', updates),
+                patch.object(patient_routes, 'execute_update', updates),
             ):
                 response = (
-                    app_module.facturacion_pacientes_pendientes_eliminar
+                    patient_routes.facturacion_pacientes_pendientes_eliminar
                     .__wrapped__(91)
                 )
 
@@ -359,15 +396,15 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             '/api/facturacion/pacientes-pendientes/91'
         ):
             with (
-                patch.object(app_module, 'current_user', self.user),
+                patch_current_user(self.user),
                 patch.object(
-                    app_module,
+                    patient_routes,
                     'execute_query',
                     return_value=stored_patient,
                 ) as query,
             ):
                 response = (
-                    app_module.api_facturacion_pacientes_pendientes_get
+                    patient_routes.api_facturacion_pacientes_pendientes_get
                     .__wrapped__(91)
                 )
 
@@ -391,16 +428,16 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             json=payload,
         ):
             with (
-                patch.object(app_module, 'current_user', self.user),
+                patch_current_user(self.user),
                 patch.object(
-                    app_module,
+                    patient_routes,
                     'execute_query',
                     return_value=None,
                 ) as query,
-                patch.object(app_module, 'execute_update', update),
+                patch.object(patient_routes, 'execute_update', update),
             ):
                 response, status = (
-                    app_module.api_facturacion_pacientes_pendientes_update
+                    patient_routes.api_facturacion_pacientes_pendientes_update
                     .__wrapped__(91)
                 )
 
@@ -410,7 +447,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         update.assert_not_called()
 
     def test_runtime_code_has_no_tenant_column_fallbacks(self):
-        source = Path(app_module.__file__).read_text(encoding='utf-8')
+        source = Path(billing_routes.__file__).read_text(encoding='utf-8')
         self.assertNotIn('tiene_tenant_id', source)
         self.assertNotIn('OR tenant_id IS NULL', source)
         self.assertNotIn('def add_tenant_filter(', source)
@@ -425,27 +462,33 @@ class PhaseZeroSecurityTests(unittest.TestCase):
 
     def test_pdf_download_rejects_invoice_outside_tenant(self):
         generator = Mock()
+        handler = billing_routes.facturacion_descargar_pdf
+        while hasattr(handler, '__wrapped__'):
+            handler = handler.__wrapped__
+
         with self.flask_app.test_request_context(
             '/facturacion/facturas/91/pdf'
         ):
             with (
-                patch.object(app_module, 'current_user', self.user),
-                patch.object(app_module, 'REPORTLAB_AVAILABLE', True),
+                patch_current_user(self.user),
                 patch.object(
-                    app_module,
+                    auth_decorators,
+                    'user_has_permission',
+                    return_value=True,
+                ),
+                patch.object(billing_routes, 'REPORTLAB_AVAILABLE', True),
+                patch.object(
+                    tenant_module,
                     'execute_query',
                     return_value=None,
                 ) as query,
                 patch.object(
-                    app_module,
+                    billing_routes,
                     'generar_pdf_factura_vista_previa',
                     generator,
                 ),
             ):
-                response = (
-                    app_module.facturacion_descargar_pdf
-                    .__wrapped__(91)
-                )
+                response = handler(91)
 
         self.assertEqual(response.status_code, 302)
         sql, params = query.call_args.args
@@ -515,7 +558,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
 
         app_module.request_counts.clear()
         with patch.object(
-            app_module,
+            auth_routes,
             'verificar_suscripciones_vencidas',
             return_value=0,
         ):
@@ -544,44 +587,47 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         )(lambda: 'allowed')
 
         with self.flask_app.test_request_context('/facturacion/historia-clinica'):
-            with patch.object(app_module, 'current_user', billing_user):
+            with patch.object(auth_decorators, 'current_user', billing_user):
                 response = protected()
 
         self.assertEqual(response.status_code, 302)
 
-    def test_billing_profile_cannot_open_sensitive_financial_routes(self):
-        billing_user = SimpleNamespace(
-            id=30,
-            perfil='Registro de Facturas',
+    def test_billing_role_uses_rbac_for_financial_routes(self):
+        billing_user = app_module.User(
+            30,
+            'Facturación',
+            'facturacion@example.test',
+            'Registro de Facturas',
             tenant_id=22,
-            is_authenticated=True,
-            get_id=lambda: '30',
+            permissions=PERMISOS_ROLES_SISTEMA['Registro de Facturas'],
+            rbac_roles={'Registro de Facturas'},
+            rbac_role_count=1,
         )
         endpoints = {
-            'facturacion_reclamaciones': (),
-            'facturacion_reclamaciones_nueva': (),
-            'facturacion_pagos': (),
-            'facturacion_pagos_nuevo': (),
-            'facturacion_pacientes_exportar_excel': (),
-            'facturacion_historico': (),
-            'facturacion_ver_xml_ecf': (1,),
-            'facturacion_qr_ecf': (1,),
-            'facturacion_representacion_impresa_ecf': (1,),
-            'facturacion_editar_factura': (1,),
-            'facturacion_enviar_email': (1,),
-            'facturacion_pacientes_eliminar': (1,),
-            'admin_usuarios_eliminar': (1,),
+            'facturacion_reclamaciones': True,
+            'facturacion_reclamaciones_nueva': True,
+            'facturacion_pagos': True,
+            'facturacion_pagos_nuevo': True,
+            'facturacion_pacientes_exportar_excel': True,
+            'facturacion_historico': True,
+            'facturacion_ver_xml_ecf': True,
+            'facturacion_qr_ecf': True,
+            'facturacion_representacion_impresa_ecf': True,
+            'facturacion_editar_factura': True,
+            'facturacion_enviar_email': True,
+            'facturacion_pacientes_eliminar': False,
+            'admin_usuarios_eliminar': False,
         }
 
-        for endpoint, args in endpoints.items():
+        for endpoint, expected in endpoints.items():
             with self.subTest(endpoint=endpoint):
-                with self.flask_app.test_request_context('/protected'):
-                    with patch.object(app_module, 'current_user', billing_user):
-                        role_wrapper = self.flask_app.view_functions[
-                            endpoint
-                        ].__wrapped__
-                        response = role_wrapper(*args)
-                self.assertEqual(response.status_code, 302)
+                view = self.flask_app.view_functions[endpoint]
+                permission = getattr(view, 'required_permission', None)
+                self.assertIsNotNone(permission)
+                self.assertEqual(
+                    app_module.user_has_permission(billing_user, permission),
+                    expected,
+                )
 
     def test_billing_global_search_does_not_query_clinical_tables(self):
         billing_user = SimpleNamespace(
@@ -599,10 +645,10 @@ class PhaseZeroSecurityTests(unittest.TestCase):
 
         with self.flask_app.test_request_context('/api/busqueda-global?q=ana'):
             with (
-                patch.object(app_module, 'current_user', billing_user),
-                patch.object(app_module, 'execute_query', side_effect=fake_query),
+                patch_current_user(billing_user),
+                patch.object(search_routes, 'execute_query', side_effect=fake_query),
             ):
-                response = app_module.api_busqueda_global.__wrapped__()
+                response = search_routes.api_busqueda_global.__wrapped__()
 
         self.assertEqual(response.status_code, 200)
         combined = ' '.join(queries)
@@ -616,7 +662,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         connection = _DatabaseConnection(result={'value': 1})
         with self.flask_app.app_context():
             with patch.object(
-                app_module,
+                database_module,
                 'get_db_connection',
                 return_value=connection,
             ):
@@ -629,7 +675,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         connection = _DatabaseConnection()
         with self.flask_app.app_context():
             with patch.object(
-                app_module,
+                database_module,
                 'get_db_connection',
                 return_value=connection,
             ):
@@ -644,7 +690,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         connection = _DatabaseConnection()
         with self.flask_app.app_context():
             with patch.object(
-                app_module,
+                database_module,
                 'get_db_connection',
                 return_value=connection,
             ):
@@ -665,7 +711,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
 
         with self.flask_app.test_request_context('/workflow', method='POST'):
             with patch.object(
-                app_module,
+                database_module,
                 'get_db_connection',
                 return_value=connection,
             ):
@@ -712,11 +758,11 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             '/facturacion/pacientes?search=ana&page=2&per_page=25'
         ):
             with patch.object(
-                app_module,
+                route_support,
                 'execute_query',
                 side_effect=fake_query,
             ):
-                rows, pagination = app_module.execute_paginated_query(
+                rows, pagination = route_support.execute_paginated_query(
                     'SELECT id FROM pacientes WHERE tenant_id=%s',
                     (22,),
                     'id',

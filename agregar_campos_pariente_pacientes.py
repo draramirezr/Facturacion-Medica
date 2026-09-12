@@ -1,6 +1,7 @@
 """Agrega los campos del responsable para pacientes menores de edad."""
 
-from app import app, execute_query, execute_update
+from app import app
+from core.database import execute_query, execute_update
 
 
 def agregar_campos_pariente():

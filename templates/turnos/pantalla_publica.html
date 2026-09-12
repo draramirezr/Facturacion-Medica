@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>{{ pantalla['nombre'] }}</title>
+    <style nonce="{{ csp_nonce }}">
+        * { box-sizing:border-box; }
+        body { margin:0; min-height:100vh; color:#effcff; font-family:system-ui,sans-serif; background:radial-gradient(circle at top,#164e63,#07151d 60%); }
+        header { display:flex; justify-content:space-between; align-items:center; padding:2rem 3vw; border-bottom:1px solid #ffffff26; }
+        h1 { margin:0; font-size:clamp(1.5rem,3vw,3rem); }
+        #updated { color:#a5f3fc; }
+        #queues { display:grid; grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); gap:2vw; padding:3vw; }
+        .queue { padding:2rem; border:1px solid #ffffff30; border-radius:24px; background:#ffffff12; box-shadow:0 20px 60px #0005; }
+        .queue h2 { margin:0; font-size:clamp(1.3rem,2.2vw,2.2rem); }
+        .specialty { color:#a5f3fc; font-size:1.1rem; }
+        .turns { display:grid; grid-template-columns:1fr 1fr; gap:1rem; margin-top:2rem; text-align:center; }
+        .turn-label { text-transform:uppercase; letter-spacing:.12em; color:#bae6fd; }
+        .turn-number { display:block; margin-top:.5rem; font-size:clamp(3rem,8vw,7rem); line-height:1; font-weight:900; }
+        .current .turn-number { color:#67e8f9; }
+        .empty { text-align:center; color:#bae6fd; font-size:1.5rem; padding:10vh 2rem; }
+    </style>
+</head>
+<body data-feed-url="{{ url_for('turnos_pantalla_feed', token=token) }}">
+    <header><h1>{{ pantalla['nombre'] }}</h1><span id="updated">Conectando…</span></header>
+    <main id="queues" aria-live="polite"><p class="empty">Cargando turnos…</p></main>
+    <script nonce="{{ csp_nonce }}" src="{{ url_for('static', filename='js/turnos-pantalla.js') }}"></script>
+</body>
+</html>
