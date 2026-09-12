@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     /* Ocultar flechas de incremento/decremento en campos number */
     input[type="number"].no-spinner::-webkit-outer-spin-button,
     input[type="number"].no-spinner::-webkit-inner-spin-button {
@@ -291,26 +291,101 @@
             font-size: 0.8rem;
         }
     }
+
+    /* Utilidades locales migradas desde atributos style para CSP. */
+    .csp-u-001 { color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem; }
+    .csp-u-002 { color: #666; margin: 0; }
+    .csp-u-003 { background: var(--primary-color) !important; color: white !important; padding: 0.75rem 1.5rem; border-radius: 15px; text-decoration: none; }
+    .csp-u-004 { color: white !important; }
+    .csp-u-005 { border-left: 4px solid {{ tema.primary }}; background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(240, 253, 250, 0.5) 100%); color: #666; }
+    .csp-u-006 { background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(240, 253, 250, 0.5) 100%); border-left: 4px solid {{ tema.primary }}; border-radius: 10px; margin-top: 1.5rem; }
+    .csp-u-007 { color: var(--primary-color); font-weight: 700; margin-bottom: 1rem; }
+    .csp-u-008 { background: white; border: 2px solid var(--primary-color); color: var(--primary-color); border-radius: 10px; font-weight: 600; }
+    .csp-u-009 { background: var(--gradient-primary); color: white; border: none; border-radius: 10px; font-weight: 600; margin: 0; cursor: pointer; }
+    .csp-u-010 { display: none; }
+    .csp-u-011 { color: #666; display: block; margin-top: 0.5rem; }
+    .csp-u-012 { color: var(--primary-color); margin-bottom: 1rem; }
+    .csp-u-013 { width: 4%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-014 { width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-015 { width: 22%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-016 { width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-017 { width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-018 { width: 6%; min-width: 80px; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-019 { color: #666; margin: 0; font-size: 1.1rem; font-weight: 600; }
+    .csp-u-020 { color: #999; margin: 0; font-size: 0.85rem; }
+    .csp-u-021 { background: var(--primary-color) !important; color: white !important; border-radius: 15px; padding: 0.8rem 2rem; text-decoration: none; }
+    .csp-u-022 { background: var(--primary-color) !important; color: white !important; border-radius: 15px; padding: 0.8rem 2rem; text-decoration: none; border: none; }
+    .csp-u-023 { text-transform: uppercase; color: #333; }
+    .csp-u-024 { display: none; color: #dc3545; font-size: 0.75rem; margin-top: 0.25rem; }
+    .csp-u-025 { width: 6%; min-width: 60px; }
+    .csp-u-026 { flex-wrap: nowrap; }
+    .csp-u-027 { flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; }
+    .csp-u-028 { font-size: 0.7rem; }
+    .csp-u-029 { background: rgba(240, 253, 250, 0.6); border-left-color: var(--primary-color); }
+    .csp-u-030 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 3rem; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 9999; max-width: 500px; text-align: center; border: 3px solid {{ tema.primary }}; }
+    .csp-u-031 { background: var(--gradient-primary); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; }
+    .csp-u-032 { font-size: 3rem; color: white; }
+    .csp-u-033 { color: {{ tema.primary_dark }}; font-weight: 800; margin-bottom: 1rem; font-size: 1.5rem; }
+    .csp-u-034 { color: #666; font-size: 1.1rem; line-height: 1.6; margin-bottom: 1.5rem; }
+    .csp-u-035 { background: rgba(240, 253, 250, 0.7); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid #E0F2FE; }
+    .csp-u-036 { margin: 0; color: #666; font-size: 0.9rem; }
+    .csp-u-037 { color: var(--primary-color); }
+    .csp-u-038 { background: var(--gradient-primary); color: white; border: none; padding: 1rem 3rem; border-radius: 15px; font-weight: 700; cursor: pointer; font-size: 1.1rem; width: 100%; box-shadow: 0 4px 15px {{ tema.primary }}60; }
+    .csp-u-039 { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9998; }
+    .csp-u-040 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 9999; }
+    .csp-u-041 { text-align: center; }
+    .csp-u-042 { font-size: 3rem; color: var(--primary-color); }
+    .csp-u-043 { margin-top: 1rem; color: #666; font-weight: 600; }
+    .csp-u-044 { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; }
+    .csp-u-045 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); z-index: 9999; max-width: 700px; max-height: 85vh; overflow-y: auto; }
+    .csp-u-046 { text-align: center; margin-bottom: 1.5rem; }
+    .csp-u-047 { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; }
+    .csp-u-048 { color: #dc3545; font-weight: 800; margin-bottom: 0.5rem; }
+    .csp-u-049 { color: #666; font-size: 1rem; }
+    .csp-u-050 { color: #999; font-size: 0.85rem; margin-top: 0.5rem; }
+    .csp-u-051 { background: var(--gradient-primary); color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; }
+    .csp-u-052 { background: #f8d7da; border-left: 4px solid #dc3545; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; }
+    .csp-u-053 { color: #721c24; font-weight: 700; margin-bottom: 1rem; }
+    .csp-u-054 { max-height: 300px; overflow-y: auto; font-size: 0.9rem; }
+    .csp-u-055 { margin: 0.5rem 0; color: #721c24; font-weight: 500; }
+    .csp-u-056 { margin: 0; color: #666; font-size: 0.9rem; line-height: 1.6; }
+    .csp-u-057 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2.5rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); z-index: 9999; max-width: 500px; text-align: center; }
+    .csp-u-058 { color: var(--primary-color); margin-bottom: 1rem; font-weight: 800; }
+    .csp-u-059 { background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(240, 253, 250, 0.5) 100%); padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; }
+    .csp-u-060 { color: var(--primary-color); font-weight: 700; font-size: 1.3rem; margin: 0; }
+    .csp-u-061 { color: #666; font-size: 0.9rem; margin: 0.5rem 0 0 0; }
+    .csp-u-062 { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .csp-u-063 { background: var(--gradient-primary); color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; font-size: 1rem; }
+    .csp-u-064 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); z-index: 9999; max-width: 600px; }
+    .csp-u-065 { color: #666; font-size: 1rem; margin-bottom: 0.5rem; }
+    .csp-u-066 { color: #999; font-size: 0.85rem; }
+    .autorizacion-duplicada {
+        border-color: #dc3545 !important;
+        background-color: #ffe6e6 !important;
+    }
+    .error-autorizacion-visible {
+        display: block !important;
+    }
 </style>
 
 <div class="container">
     <div class="mb-4 d-flex justify-content-between align-items-center">
         <div>
-            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+            <h1 class="csp-u-001">
                 <i class="fas fa-users me-2"></i>
                 Pacientes a Facturar
             </h1>
-            <p style="color: #666; margin: 0;">Agregue todos los pacientes que formarán parte de la factura</p>
+            <p class="csp-u-002">Agregue todos los pacientes que formarán parte de la factura</p>
         </div>
-        <a href="{{ url_for('facturacion_menu') }}" class="btn" style="background: var(--primary-color) !important; color: white !important; padding: 0.75rem 1.5rem; border-radius: 15px; text-decoration: none;">
-            <i class="fas fa-arrow-left me-2" style="color: white !important;"></i>Volver al Menú
+        <a href="{{ url_for('facturacion_menu') }}" class="btn csp-u-003">
+            <i class="fas fa-arrow-left me-2 csp-u-004"></i>Volver al Menú
         </a>
     </div>
 
     <form id="formFactura" method="POST">
         <!-- Encabezado de Factura -->
         <div class="form-container">
-            <div class="alert alert-info" style="border-left: 4px solid {{ tema.primary }}; background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(240, 253, 250, 0.5) 100%); color: #666;">
+            <div class="alert alert-info csp-u-005">
                 <i class="fas fa-info-circle me-2"></i>
                 Los pacientes se agregarán con estado <strong>"PENDIENTE DE FACTURACIÓN"</strong>. 
                 Luego podrás generar la factura seleccionando los pacientes pendientes.
@@ -352,24 +427,24 @@
             </div>
             
             <!-- Carga Masiva desde Excel -->
-            <div class="alert" style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(240, 253, 250, 0.5) 100%); border-left: 4px solid {{ tema.primary }}; border-radius: 10px; margin-top: 1.5rem;">
-                <h6 style="color: var(--primary-color); font-weight: 700; margin-bottom: 1rem;">
+            <div class="alert csp-u-006">
+                <h6 class="csp-u-007">
                     <i class="fas fa-file-excel me-2"></i>Carga Masiva de Pacientes desde Excel
                 </h6>
                 <div class="row">
                     <div class="col-md-6 mb-2">
-                        <a href="{{ url_for('descargar_plantilla_excel') }}" class="btn btn-excel-download w-100" style="background: white; border: 2px solid var(--primary-color); color: var(--primary-color); border-radius: 10px; font-weight: 600;">
+                        <a href="{{ url_for('descargar_plantilla_excel') }}" class="btn btn-excel-download w-100 csp-u-008">
                             <i class="fas fa-download me-2"></i>Descargar Plantilla Excel
                         </a>
                     </div>
                     <div class="col-md-6 mb-2">
-                        <label for="archivo_excel" class="btn btn-excel-upload w-100" style="background: var(--gradient-primary); color: white; border: none; border-radius: 10px; font-weight: 600; margin: 0; cursor: pointer;">
+                        <label for="archivo_excel" class="btn btn-excel-upload w-100 csp-u-009">
                             <i class="fas fa-upload me-2"></i>Cargar Excel con Pacientes
                         </label>
-                        <input type="file" id="archivo_excel" accept=".xlsx,.xls" style="display: none;" onchange="procesarExcel(this)">
+                        <input type="file" id="archivo_excel" accept=".xlsx,.xls" data-csp-change="procesarExcel" data-csp-pass="element" class="csp-u-010">
                     </div>
                 </div>
-                <small style="color: #666; display: block; margin-top: 0.5rem;">
+                <small class="csp-u-011">
                     <i class="fas fa-info-circle me-1"></i>
                     Primero seleccione <strong>Médico y ARS</strong>, luego cargue el Excel. Los pacientes se agregarán automáticamente a la tabla.
                 </small>
@@ -378,7 +453,7 @@
 
         <!-- Tabla de Pacientes -->
         <div class="form-container">
-            <h4 style="color: var(--primary-color); margin-bottom: 1rem;">
+            <h4 class="csp-u-012">
                 <i class="fas fa-users me-2"></i>Pacientes en la Factura
             </h4>
             
@@ -387,14 +462,14 @@
                     <table class="table mb-0">
                         <thead>
                             <tr>
-                                <th style="width: 4%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">No</th>
-                                <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">NSS</th>
-                                <th style="width: 22%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Nombre</th>
-                                <th style="width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Fecha de Consulta</th>
-                                <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Autorización</th>
-                                <th style="width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Servicio</th>
-                                <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Monto</th>
-                                <th style="width: 6%; min-width: 80px; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Acciones</th>
+                                <th class="csp-u-013">No</th>
+                                <th class="csp-u-014">NSS</th>
+                                <th class="csp-u-015">Nombre</th>
+                                <th class="csp-u-016">Fecha de Consulta</th>
+                                <th class="csp-u-014">Autorización</th>
+                                <th class="csp-u-017">Servicio</th>
+                                <th class="csp-u-014">Monto</th>
+                                <th class="csp-u-018">Acciones</th>
                             </tr>
                         </thead>
                         <tbody id="tbody-lineas">
@@ -411,9 +486,9 @@
 
         <!-- Total -->
         <div class="total-factura">
-            <p style="color: #666; margin: 0; font-size: 1.1rem; font-weight: 600;">TOTAL PENDIENTE</p>
+            <p class="csp-u-019">TOTAL PENDIENTE</p>
             <p class="total-factura-valor"> <span id="total-valor">0.00</span></p>
-            <p style="color: #999; margin: 0; font-size: 0.85rem;"><i class="fas fa-clock me-1"></i>Estos pacientes quedarán pendientes hasta generar la factura</p>
+            <p class="csp-u-020"><i class="fas fa-clock me-1"></i>Estos pacientes quedarán pendientes hasta generar la factura</p>
         </div>
 
         <!-- Campo oculto con JSON de líneas -->
@@ -432,17 +507,17 @@
 
         <!-- Botones -->
         <div class="d-flex justify-content-between">
-            <a href="{{ url_for('facturacion_menu') }}" class="btn" style="background: var(--primary-color) !important; color: white !important; border-radius: 15px; padding: 0.8rem 2rem; text-decoration: none;">
-                <i class="fas fa-times me-2" style="color: white !important;"></i>Cancelar
+            <a href="{{ url_for('facturacion_menu') }}" class="btn csp-u-021">
+                <i class="fas fa-times me-2 csp-u-004"></i>Cancelar
             </a>
-            <button type="submit" class="btn btn-guardar-factura" style="background: var(--primary-color) !important; color: white !important; border-radius: 15px; padding: 0.8rem 2rem; text-decoration: none; border: none;">
-                <i class="fas fa-clock me-2" style="color: white !important;"></i>Agregar como Pendientes
+            <button type="submit" class="btn btn-guardar-factura csp-u-022">
+                <i class="fas fa-clock me-2 csp-u-004"></i>Agregar como Pendientes
             </button>
         </div>
     </form>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 // Datos de centros médicos por médico (del backend)
 const centrosPorMedico = {};
 
@@ -453,7 +528,7 @@ if (!centrosPorMedico[{{ centro['medico_id'] }}]) {
 }
 centrosPorMedico[{{ centro['medico_id'] }}].push({
     id: {{ centro['centro_id'] }},
-    nombre: "{{ centro['centro_nombre'] }}",
+    nombre: {{ centro['centro_nombre']|tojson }},
     es_defecto: {{ centro['es_defecto'] }}
 });
 {% endfor %}
@@ -522,8 +597,10 @@ function agregarLinea() {
         <td>
             <input type="text" class="form-control form-control-sm" data-campo="nss" 
                    placeholder="NSS" 
-                   onblur="buscarPaciente(this, ${numeroLinea})"
-                   oninput="this.value = this.value.replace(/[^0-9-]/g, '')"
+                   data-csp-blur="buscarPaciente"
+                   data-csp-args='[${numeroLinea}]'
+                   data-csp-pass="element-first"
+                   data-input-filter="digits-hyphen"
                    maxlength="20">
             <div id="sugerencia-${numeroLinea}"></div>
         </td>
@@ -531,13 +608,13 @@ function agregarLinea() {
         <td><input type="date" class="form-control form-control-sm" data-campo="fecha" value="${new Date().toISOString().split('T')[0]}" max="${new Date().toISOString().split('T')[0]}"></td>
         <td>
             <input type="text" 
-                   class="form-control form-control-sm" 
+                   class="form-control form-control-sm csp-u-023"
                    data-campo="autorizacion" 
                    placeholder="AUTORIZACIÓN" 
                    maxlength="50"
-                   onblur="validarAutorizacionUnica(this)"
-                   style="text-transform: uppercase; color: #333;">
-            <small class="error-autorizacion" style="display: none; color: #dc3545; font-size: 0.75rem; margin-top: 0.25rem;"></small>
+                   data-csp-blur="validarAutorizacionUnica"
+                   data-csp-pass="element">
+            <small class="error-autorizacion csp-u-024"></small>
         </td>
         <td>
             <input type="text" 
@@ -547,7 +624,7 @@ function agregarLinea() {
                    value="CONSULTA"
                    list="servicios-list"
                    autocomplete="off"
-                   oninput="this.value = this.value.replace(/[0-9]/g, '');">
+                   data-input-filter="no-digits">
         </td>
         <td>
             <input type="number" 
@@ -555,15 +632,15 @@ function agregarLinea() {
                    data-campo="monto" 
                    placeholder="0.00" 
                    step="0.01" 
-                   onchange="calcularTotal()">
+                   data-csp-change="calcularTotal">
         </td>
-        <td class="text-center" style="width: 6%; min-width: 60px;">
-            <div class="d-flex flex-column justify-content-center align-items-center gap-1" style="flex-wrap: nowrap;">
-                <button type="button" class="btn btn-agregar-linea-mini" onclick="agregarLinea()" title="Agregar línea nueva (Ctrl+Enter)" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-pencil-alt" style="font-size: 0.7rem;"></i>
+        <td class="text-center csp-u-025">
+            <div class="d-flex flex-column justify-content-center align-items-center gap-1 csp-u-026">
+                <button type="button" class="btn btn-agregar-linea-mini csp-u-027" data-csp-click="agregarLinea" title="Agregar línea nueva (Ctrl+Enter)">
+                    <i class="fas fa-pencil-alt csp-u-028"></i>
                 </button>
-                <button type="button" class="btn btn-eliminar-linea" onclick="eliminarLinea(${numeroLinea})" title="Eliminar línea" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-trash" style="font-size: 0.7rem;"></i>
+                <button type="button" class="btn btn-eliminar-linea csp-u-027" data-csp-click="eliminarLinea" data-csp-args='[${numeroLinea}]' title="Eliminar línea">
+                    <i class="fas fa-trash csp-u-028"></i>
                 </button>
             </div>
         </td>
@@ -600,7 +677,7 @@ async function buscarPaciente(input, numero) {
     
     if (!arsId) {
         sugerenciaDiv.innerHTML = `
-            <div class="autocomplete-sugerencia" style="background: rgba(240, 253, 250, 0.6); border-left-color: var(--primary-color);">
+            <div class="autocomplete-sugerencia csp-u-029">
                 ⚠️ Seleccione primero un ARS para buscar el paciente
             </div>
         `;
@@ -635,7 +712,7 @@ async function buscarPaciente(input, numero) {
             
             if (dataOtroArs.encontrado) {
                 sugerenciaDiv.innerHTML = `
-                    <div class="autocomplete-sugerencia" style="background: rgba(240, 253, 250, 0.6); border-left-color: var(--primary-color);">
+                    <div class="autocomplete-sugerencia csp-u-029">
                         ⚠️ Este NSS existe con otro ARS (${dataOtroArs.ars_nombre}). Se creará un nuevo registro.
                     </div>
                 `;
@@ -681,37 +758,27 @@ async function procesarExcel(input) {
     if (!medicoId || !arsId) {
         // Mostrar modal de advertencia grande y visible
         const alertaHTML = `
-            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                        background: white; padding: 3rem; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); 
-                        z-index: 9999; max-width: 500px; text-align: center; border: 3px solid {{ tema.primary }};">
-                <div style="background: var(--gradient-primary); 
-                            width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1.5rem; 
-                            display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-exclamation-triangle" style="font-size: 3rem; color: white;"></i>
+            <div class="csp-u-030">
+                <div class="csp-u-031">
+                    <i class="fas fa-exclamation-triangle csp-u-032"></i>
                 </div>
-                <h3 style="color: {{ tema.primary_dark }}; font-weight: 800; margin-bottom: 1rem; font-size: 1.5rem;">
+                <h3 class="csp-u-033">
                     ¡Atención!
                 </h3>
-                <p style="color: #666; font-size: 1.1rem; line-height: 1.6; margin-bottom: 1.5rem;">
+                <p class="csp-u-034">
                     Por favor, seleccione primero el <strong>Médico</strong> y <strong>ARS</strong> antes de cargar el Excel.
                 </p>
-                <div style="background: rgba(240, 253, 250, 0.7); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid #E0F2FE;">
-                    <p style="margin: 0; color: #666; font-size: 0.9rem;">
-                        <i class="fas fa-info-circle me-2" style="color: var(--primary-color);"></i>
+                <div class="csp-u-035">
+                    <p class="csp-u-036">
+                        <i class="fas fa-info-circle me-2 csp-u-037"></i>
                         Estos campos son <strong>obligatorios</strong> para procesar el archivo correctamente.
                     </p>
                 </div>
-                <button onclick="cerrarAlerta()" 
-                        style="background: var(--gradient-primary); 
-                               color: white; border: none; padding: 1rem 3rem; border-radius: 15px; 
-                               font-weight: 700; cursor: pointer; font-size: 1.1rem; width: 100%;
-                               box-shadow: 0 4px 15px {{ tema.primary }}60;">
+                <button data-csp-click="cerrarAlerta" class="csp-u-038">
                     <i class="fas fa-check me-2"></i>Entendido
                 </button>
             </div>
-            <div onclick="cerrarAlerta()" 
-                 style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                        background: rgba(0,0,0,0.7); z-index: 9998;"></div>
+            <div data-csp-click="cerrarAlerta" class="csp-u-039"></div>
         `;
         
         const alertaDiv = document.createElement('div');
@@ -735,14 +802,13 @@ async function procesarExcel(input) {
     const loading = document.createElement('div');
     loading.id = 'loading-excel';
     loading.innerHTML = `
-        <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                    background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 9999;">
-            <div style="text-align: center;">
-                <i class="fas fa-spinner fa-spin" style="font-size: 3rem; color: var(--primary-color);"></i>
-                <p style="margin-top: 1rem; color: #666; font-weight: 600;">Procesando Excel...</p>
+        <div class="csp-u-040">
+            <div class="csp-u-041">
+                <i class="fas fa-spinner fa-spin csp-u-042"></i>
+                <p class="csp-u-043">Procesando Excel...</p>
             </div>
         </div>
-        <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998;"></div>
+        <div class="csp-u-044"></div>
     `;
     document.body.appendChild(loading);
     
@@ -764,35 +830,26 @@ async function procesarExcel(input) {
             document.getElementById('loading-excel').remove();
             
             let errorHTML = `
-                <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                            background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); 
-                            z-index: 9999; max-width: 700px; max-height: 85vh; overflow-y: auto;">
-                    <div style="text-align: center; margin-bottom: 1.5rem;">
-                        <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
-                                    width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1rem; 
-                                    display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-times-circle" style="font-size: 3rem; color: white;"></i>
+                <div class="csp-u-045">
+                    <div class="csp-u-046">
+                        <div class="csp-u-047">
+                            <i class="fas fa-times-circle csp-u-032"></i>
                         </div>
-                        <h4 style="color: #dc3545; font-weight: 800; margin-bottom: 0.5rem;">
+                        <h4 class="csp-u-048">
                             ❌ Error al Procesar el Archivo
                         </h4>
-                        <p style="color: #666; font-size: 1rem;">
+                        <p class="csp-u-049">
                             El servidor respondió con un error. Por favor, intente nuevamente.
                         </p>
-                        <p style="color: #999; font-size: 0.85rem; margin-top: 0.5rem;">
+                        <p class="csp-u-050">
                             Código de error: ${response.status}
                         </p>
                     </div>
-                    <button onclick="cerrarModalError()" 
-                            style="background: var(--gradient-primary); 
-                                   color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; 
-                                   font-weight: 600; cursor: pointer; width: 100%;">
+                    <button data-csp-click="cerrarModalError" class="csp-u-051">
                         <i class="fas fa-check me-2"></i>Cerrar
                     </button>
                 </div>
-                <div onclick="cerrarModalError()" 
-                     style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                            background: rgba(0,0,0,0.7); z-index: 9998;"></div>
+                <div data-csp-click="cerrarModalError" class="csp-u-039"></div>
             `;
             
             const errorDiv = document.createElement('div');
@@ -816,55 +873,46 @@ async function procesarExcel(input) {
             document.getElementById('loading-excel').remove();
             
             let errorHTML = `
-                <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                            background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); 
-                            z-index: 9999; max-width: 700px; max-height: 85vh; overflow-y: auto;">
-                    <div style="text-align: center; margin-bottom: 1.5rem;">
-                        <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
-                                    width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1rem; 
-                                    display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-times-circle" style="font-size: 3rem; color: white;"></i>
+                <div class="csp-u-045">
+                    <div class="csp-u-046">
+                        <div class="csp-u-047">
+                            <i class="fas fa-times-circle csp-u-032"></i>
                         </div>
-                        <h4 style="color: #dc3545; font-weight: 800; margin-bottom: 0.5rem;">
+                        <h4 class="csp-u-048">
                             ❌ No se Cargó Ningún Paciente
                         </h4>
-                        <p style="color: #666; font-size: 1rem;">
+                        <p class="csp-u-049">
                             Debe corregir TODOS los errores en la plantilla Excel antes de cargar
                         </p>
                     </div>
                     
-                    <div style="background: #f8d7da; border-left: 4px solid #dc3545; padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem;">
-                        <h6 style="color: #721c24; font-weight: 700; margin-bottom: 1rem;">
+                    <div class="csp-u-052">
+                        <h6 class="csp-u-053">
                             <i class="fas fa-exclamation-triangle me-2"></i>Errores Encontrados (${data.total_errores || data.errores.length})
                         </h6>
-                        <div style="max-height: 300px; overflow-y: auto; font-size: 0.9rem;">
+                        <div class="csp-u-054">
             `;
             
             data.errores.forEach(error => {
-                errorHTML += `<p style="margin: 0.5rem 0; color: #721c24; font-weight: 500;">${error}</p>`;
+                errorHTML += `<p class="csp-u-055">${error}</p>`;
             });
             
             errorHTML += `
                         </div>
                     </div>
                     
-                    <div style="background: rgba(240, 253, 250, 0.7); padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; border: 1px solid #E0F2FE;">
-                        <p style="margin: 0; color: #666; font-size: 0.9rem; line-height: 1.6;">
-                            <i class="fas fa-info-circle me-2" style="color: var(--primary-color);"></i>
+                    <div class="csp-u-035">
+                        <p class="csp-u-056">
+                            <i class="fas fa-info-circle me-2 csp-u-037"></i>
                             <strong>Instrucciones:</strong> Abra nuevamente su archivo Excel, corrija los errores indicados arriba, guarde el archivo y vuelva a cargarlo.
                         </p>
                     </div>
                     
-                    <button onclick="cerrarModalError()" 
-                            style="background: var(--gradient-primary); 
-                                   color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; 
-                                   font-weight: 600; cursor: pointer; width: 100%;">
+                    <button data-csp-click="cerrarModalError" class="csp-u-051">
                         <i class="fas fa-check me-2"></i>Entendido, Voy a Corregir
                     </button>
                 </div>
-                <div onclick="cerrarModalError()" 
-                     style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                            background: rgba(0,0,0,0.7); z-index: 9998;"></div>
+                <div data-csp-click="cerrarModalError" class="csp-u-039"></div>
             `;
             
             const errorDiv = document.createElement('div');
@@ -900,8 +948,10 @@ async function procesarExcel(input) {
                     <input type="text" class="form-control form-control-sm" data-campo="nss" 
                            placeholder="NSS" 
                            value="${paciente.nss}"
-                           onblur="buscarPaciente(this, ${numeroLinea})"
-                           oninput="this.value = this.value.replace(/[^0-9-]/g, '')"
+                           data-csp-blur="buscarPaciente"
+                           data-csp-args='[${numeroLinea}]'
+                           data-csp-pass="element-first"
+                           data-input-filter="digits-hyphen"
                            maxlength="20">
                     <div id="sugerencia-${numeroLinea}"></div>
                 </td>
@@ -909,14 +959,14 @@ async function procesarExcel(input) {
                 <td><input type="date" class="form-control form-control-sm" data-campo="fecha" value="${paciente.fecha}" max="${new Date().toISOString().split('T')[0]}"></td>
                 <td>
                     <input type="text" 
-                           class="form-control form-control-sm" 
+                           class="form-control form-control-sm csp-u-023"
                            data-campo="autorizacion" 
                            placeholder="AUTORIZACIÓN" 
                            value="${paciente.autorizacion || ''}"
                            maxlength="50"
-                           onblur="validarAutorizacionUnica(this)"
-                           style="text-transform: uppercase; color: #333;">
-                    <small class="error-autorizacion" style="display: none; color: #dc3545; font-size: 0.75rem; margin-top: 0.25rem;"></small>
+                           data-csp-blur="validarAutorizacionUnica"
+                           data-csp-pass="element">
+                    <small class="error-autorizacion csp-u-024"></small>
                 </td>
                 <td>
                     <input type="text" 
@@ -926,7 +976,7 @@ async function procesarExcel(input) {
                            value="${paciente.servicio}"
                            list="servicios-list"
                            autocomplete="off"
-                           oninput="this.value = this.value.replace(/[0-9]/g, '');">
+                           data-input-filter="no-digits">
                 </td>
                 <td>
                     <input type="number" 
@@ -935,15 +985,15 @@ async function procesarExcel(input) {
                            placeholder="0.00" 
                            value="${paciente.monto}" 
                            step="0.01" 
-                           onchange="calcularTotal()">
+                           data-csp-change="calcularTotal">
                 </td>
-                <td class="text-center" style="width: 6%; min-width: 60px;">
-                    <div class="d-flex flex-column justify-content-center align-items-center gap-1" style="flex-wrap: nowrap;">
-                        <button type="button" class="btn btn-agregar-linea-mini" onclick="agregarLinea()" title="Agregar línea nueva (Ctrl+Enter)" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-pencil-alt" style="font-size: 0.7rem;"></i>
+                <td class="text-center csp-u-025">
+                    <div class="d-flex flex-column justify-content-center align-items-center gap-1 csp-u-026">
+                        <button type="button" class="btn btn-agregar-linea-mini csp-u-027" data-csp-click="agregarLinea" title="Agregar línea nueva (Ctrl+Enter)">
+                            <i class="fas fa-pencil-alt csp-u-028"></i>
                         </button>
-                        <button type="button" class="btn btn-eliminar-linea" onclick="eliminarLinea(${numeroLinea})" title="Eliminar línea" style="flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center;">
-                            <i class="fas fa-trash" style="font-size: 0.7rem;"></i>
+                        <button type="button" class="btn btn-eliminar-linea csp-u-027" data-csp-click="eliminarLinea" data-csp-args='[${numeroLinea}]' title="Eliminar línea">
+                            <i class="fas fa-trash csp-u-028"></i>
                         </button>
                     </div>
                 </td>
@@ -961,39 +1011,29 @@ async function procesarExcel(input) {
         
         // Crear modal de éxito
         let mensajeHTML = `
-            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                        background: white; padding: 2.5rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); 
-                        z-index: 9999; max-width: 500px; text-align: center;">
-                <div style="background: var(--gradient-primary); 
-                            width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1.5rem; 
-                            display: flex; align-items: center; justify-content: center;">
-                    <i class="fas fa-check-circle" style="font-size: 3rem; color: white;"></i>
+            <div class="csp-u-057">
+                <div class="csp-u-031">
+                    <i class="fas fa-check-circle csp-u-032"></i>
                 </div>
-                <h4 style="color: var(--primary-color); margin-bottom: 1rem; font-weight: 800;">
+                <h4 class="csp-u-058">
                     ✅ ¡Carga Exitosa!
                 </h4>
-                <div style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(240, 253, 250, 0.5) 100%); 
-                            padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem;">
-                    <p style="color: var(--primary-color); font-weight: 700; font-size: 1.3rem; margin: 0;">
+                <div class="csp-u-059">
+                    <p class="csp-u-060">
                         <i class="fas fa-users me-2"></i>${pacientesAgregados} paciente(s)
                     </p>
-                    <p style="color: #666; font-size: 0.9rem; margin: 0.5rem 0 0 0;">
+                    <p class="csp-u-061">
                         Cargados correctamente en la tabla
                     </p>
                 </div>
-                <p style="color: #666; font-size: 0.9rem; margin-bottom: 1.5rem;">
+                <p class="csp-u-062">
                     Los pacientes están listos para ser agregados como pendientes de facturación.
                 </p>
-                <button onclick="cerrarModal()" 
-                        style="background: var(--gradient-primary); 
-                               color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; 
-                               font-weight: 600; cursor: pointer; width: 100%; font-size: 1rem;">
+                <button data-csp-click="cerrarModal" class="csp-u-063">
                     <i class="fas fa-check me-2"></i>Entendido
                 </button>
             </div>
-            <div onclick="cerrarModal()" 
-                 style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                        background: rgba(0,0,0,0.5); z-index: 9998;"></div>
+            <div data-csp-click="cerrarModal" class="csp-u-044"></div>
         `;
         
         const modalDiv = document.createElement('div');
@@ -1017,35 +1057,26 @@ async function procesarExcel(input) {
         
         // Mostrar modal de error
         let errorHTML = `
-            <div style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                        background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); 
-                        z-index: 9999; max-width: 600px;">
-                <div style="text-align: center; margin-bottom: 1.5rem;">
-                    <div style="background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); 
-                                width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1rem; 
-                                display: flex; align-items: center; justify-content: center;">
-                        <i class="fas fa-times-circle" style="font-size: 3rem; color: white;"></i>
+            <div class="csp-u-064">
+                <div class="csp-u-046">
+                    <div class="csp-u-047">
+                        <i class="fas fa-times-circle csp-u-032"></i>
                     </div>
-                    <h4 style="color: #dc3545; font-weight: 800; margin-bottom: 0.5rem;">
+                    <h4 class="csp-u-048">
                         ❌ Error al Procesar el Archivo
                     </h4>
-                    <p style="color: #666; font-size: 1rem; margin-bottom: 0.5rem;">
+                    <p class="csp-u-065">
                         ${error.message || 'Error desconocido al procesar el archivo Excel'}
                     </p>
-                    <p style="color: #999; font-size: 0.85rem;">
+                    <p class="csp-u-066">
                         Por favor, verifique que el archivo sea válido e intente nuevamente.
                     </p>
                 </div>
-                <button onclick="cerrarModalError()" 
-                        style="background: var(--gradient-primary); 
-                               color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; 
-                               font-weight: 600; cursor: pointer; width: 100%;">
+                <button data-csp-click="cerrarModalError" class="csp-u-051">
                     <i class="fas fa-check me-2"></i>Cerrar
                 </button>
             </div>
-            <div onclick="cerrarModalError()" 
-                 style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
-                        background: rgba(0,0,0,0.7); z-index: 9998;"></div>
+            <div data-csp-click="cerrarModalError" class="csp-u-039"></div>
         `;
         
         const errorDiv = document.createElement('div');
@@ -1090,23 +1121,20 @@ function validarAutorizacionUnica(input) {
     
     if (autorizacionDuplicada) {
         // Mostrar error
-        input.style.borderColor = '#dc3545';
-        input.style.backgroundColor = '#ffe6e6';
+        input.classList.add('autorizacion-duplicada');
         errorElement.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>Esta autorización ya existe. Debe ser única.';
-        errorElement.style.display = 'block';
+        errorElement.classList.add('error-autorizacion-visible');
         
         // Limpiar el campo después de 2 segundos
         setTimeout(() => {
             input.value = '';
-            input.style.borderColor = '';
-            input.style.backgroundColor = '';
-            errorElement.style.display = 'none';
+            input.classList.remove('autorizacion-duplicada');
+            errorElement.classList.remove('error-autorizacion-visible');
         }, 3000);
     } else {
         // Limpiar cualquier error previo
-        input.style.borderColor = '';
-        input.style.backgroundColor = '';
-        errorElement.style.display = 'none';
+        input.classList.remove('autorizacion-duplicada');
+        errorElement.classList.remove('error-autorizacion-visible');
     }
 }
 

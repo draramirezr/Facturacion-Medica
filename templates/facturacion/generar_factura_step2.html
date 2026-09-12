@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .facturacion-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
         border: 2px solid {{ tema.primary }};
@@ -224,6 +224,39 @@
         top: 0;
         z-index: 10;
     }
+
+    /* Utilidades locales migradas desde atributos style para CSP. */
+    .csp-u-001 { color: {{ tema.primary }}; font-weight: 800; font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .csp-u-002 { color: {{ tema.primary_dark }}; margin: 0; font-size: 1.1rem; font-weight: 600; }
+    .csp-u-003 { color: {{ tema.primary_dark }}; font-weight: 600; }
+    .csp-u-004 { color: {{ tema.primary }}; font-weight: 600; }
+    .csp-u-005 { color: #999; font-weight: 600; }
+    .csp-u-006 { color: {{ tema.primary_dark }}; font-weight: 700; margin-bottom: 1rem; }
+    .csp-u-007 { color: {{ tema.primary }}; font-weight: 700; }
+    .csp-u-008 { color: {{ tema.primary_dark }}; font-weight: 700; margin-bottom: 1.5rem; }
+    .csp-u-009 { color: #666; font-weight: 600; margin-bottom: 0.5rem; }
+    .csp-u-010 { background: {{ tema.primary }}12; border-color: {{ tema.primary }}; color: #333; }
+    .csp-u-011 { width: 3%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-012 { width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-013 { width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-014 { width: 9%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-015 { width: 12%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-016 { width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-017 { width: 15%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; cursor: pointer; user-select: none; }
+    .csp-u-018 { font-size: 0.8rem; margin-left: 5px; }
+    .csp-u-019 { background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px; }
+    .csp-u-020 { color: #666; }
+    .csp-u-021 { padding: 3rem; }
+    .csp-u-022 { font-size: 3rem; color: #ccc; margin-bottom: 1rem; }
+    .csp-u-023 { color: #999; margin: 0; }
+    .csp-u-024 { color: #999; font-size: 0.9rem; }
+    .csp-u-025 { color: #666; margin: 0; font-size: 1.1rem; font-weight: 600; }
+    .csp-u-026 { color: #999; margin: 0; font-size: 0.85rem; }
+    .csp-u-027 { background: {{ tema.primary }}; color: white; }
+    .csp-u-028 { color: white; }
+    .fila-filtrada {
+        display: none;
+    }
 </style>
 
 {% macro fecha_ddmmyyyy(fecha) -%}
@@ -244,11 +277,11 @@
     <!-- Hero Section -->
     <div class="facturacion-hero">
         <div class="text-center">
-            <h1 style="color: {{ tema.primary }}; font-weight: 800; font-size: 2.5rem; margin-bottom: 0.5rem;">
+            <h1 class="csp-u-001">
                 <i class="fas fa-file-invoice-dollar me-2"></i>
                 Generar Factura
             </h1>
-            <p style="color: {{ tema.primary_dark }}; margin: 0; font-size: 1.1rem; font-weight: 600;">
+            <p class="csp-u-002">
                 Selecciona los pacientes para incluir en la factura
             </p>
         </div>
@@ -260,27 +293,27 @@
             <div class="step-number completed">
                 <i class="fas fa-check"></i>
             </div>
-            <span style="color: {{ tema.primary_dark }}; font-weight: 600;">Configuración</span>
+            <span class="csp-u-003">Configuración</span>
         </div>
         <div class="step-arrow">
             <i class="fas fa-chevron-right"></i>
         </div>
         <div class="step">
             <div class="step-number">2</div>
-            <span style="color: {{ tema.primary }}; font-weight: 600;">Selección de Pacientes</span>
+            <span class="csp-u-004">Selección de Pacientes</span>
         </div>
         <div class="step-arrow">
             <i class="fas fa-chevron-right"></i>
         </div>
         <div class="step">
             <div class="step-number inactive">3</div>
-            <span style="color: #999; font-weight: 600;">Generación</span>
+            <span class="csp-u-005">Generación</span>
         </div>
     </div>
 
     <!-- Resumen de Configuración -->
     <div class="config-summary">
-        <h5 style="color: {{ tema.primary_dark }}; font-weight: 700; margin-bottom: 1rem;">
+        <h5 class="csp-u-006">
             <i class="fas fa-info-circle me-2"></i>
             Configuración Actual
         </h5>
@@ -307,23 +340,23 @@
             </div>
             <div class="config-item">
                 <i class="fas fa-users"></i>
-                <span><strong>Total Pacientes Disponibles:</strong> <span style="color: {{ tema.primary }}; font-weight: 700;">{{ pendientes|length }}</span></span>
+                <span><strong>Total Pacientes Disponibles:</strong> <span class="csp-u-007">{{ pendientes|length }}</span></span>
             </div>
         </div>
     </div>
 
     <!-- Filtros -->
     <div class="filters-card">
-        <h5 style="color: {{ tema.primary_dark }}; font-weight: 700; margin-bottom: 1.5rem;">
+        <h5 class="csp-u-008">
             <i class="fas fa-filter me-2"></i>
             Filtros de Búsqueda
         </h5>
         <div class="row">
             <div class="col-md-12 mb-3">
-                <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                <label class="csp-u-009">
                     <i class="fas fa-user-md"></i> Médico
                 </label>
-                <select class="form-select" id="filtroMedico" onchange="aplicarFiltros()">
+                <select class="form-select" id="filtroMedico" data-csp-change="aplicarFiltros">
                     <option value="">Todos los médicos</option>
                     {% for medico in medicos %}
                     <option value="{{ medico['id'] }}">{{ medico['nombre'] }}</option>
@@ -332,11 +365,11 @@
             </div>
         </div>
         <div class="text-end">
-            <button class="filter-btn clear" onclick="limpiarFiltros()">
+            <button class="filter-btn clear" data-csp-click="limpiarFiltros">
                 <i class="fas fa-times-circle me-1"></i>
                 Limpiar Filtros
             </button>
-            <button class="filter-btn" onclick="toggleSelectAll()">
+            <button class="filter-btn" data-csp-click="toggleSelectAll">
                 <i class="fas fa-check-double me-1"></i>
                 Seleccionar Todos (Filtrados)
             </button>
@@ -353,7 +386,7 @@
         <input type="hidden" name="medico_factura_id" value="{{ medico_factura_id }}">
         <input type="hidden" name="fecha_factura" value="{{ fecha_factura }}">
         
-        <div class="alert alert-info mb-3" style="background: {{ tema.primary }}12; border-color: {{ tema.primary }}; color: #333;">
+        <div class="alert alert-info mb-3 csp-u-010">
             <i class="fas fa-info-circle me-2"></i>
             <strong>Tip:</strong> Haz doble click en cualquier paciente para editarlo rápidamente.
         </div>
@@ -362,18 +395,18 @@
             <table class="table tabla-pacientes">
                 <thead>
                     <tr>
-                        <th style="width: 3%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">
-                            <input type="checkbox" class="checkbox-custom" id="selectAllMain" onclick="toggleSelectAllMain(this)">
+                        <th class="csp-u-011">
+                            <input type="checkbox" class="checkbox-custom" id="selectAllMain" data-csp-click="toggleSelectAllMain" data-csp-pass="element">
                         </th>
-                        <th style="width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">NSS</th>
-                        <th style="width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Nombre</th>
-                        <th style="width: 9%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Fecha de Consulta</th>
-                        <th style="width: 12%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Autorización</th>
-                        <th style="width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Servicio</th>
-                        <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Monto</th>
-                        <th style="width: 15%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; cursor: pointer; user-select: none;" onclick="ordenarPorMedico()" title="Click para ordenar">
+                        <th class="csp-u-012">NSS</th>
+                        <th class="csp-u-013">Nombre</th>
+                        <th class="csp-u-014">Fecha de Consulta</th>
+                        <th class="csp-u-015">Autorización</th>
+                        <th class="csp-u-013">Servicio</th>
+                        <th class="text-center csp-u-016">Monto</th>
+                        <th data-csp-click="ordenarPorMedico" title="Click para ordenar" class="csp-u-017">
                             Médico Paciente 
-                            <i class="fas fa-sort" style="font-size: 0.8rem; margin-left: 5px;" id="iconoOrdenMedico"></i>
+                            <i class="fas fa-sort csp-u-018" id="iconoOrdenMedico"></i>
                         </th>
                     </tr>
                 </thead>
@@ -387,22 +420,22 @@
                             <input type="checkbox" class="checkbox-custom paciente-check" 
                                    value="{{ paciente['id'] }}" 
                                    data-monto="{{ monto_paciente }}"
-                                   onchange="calcularTotal()">
+                                   data-csp-change="calcularTotal">
                         </td>
                         <td>{{ paciente['nss'] }}</td>
                         <td><strong>{{ paciente['paciente_nombre_completo'] }}</strong></td>
                         <td>{{ fecha_ddmmyyyy(paciente['fecha_servicio']) }}</td>
-                        <td><code style="background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px;">{{ paciente['autorizacion'] }}</code></td>
+                        <td><code class="csp-u-019">{{ paciente['autorizacion'] }}</code></td>
                         <td>{{ paciente['descripcion_servicio'] }}</td>
                         <td class="text-center"><strong> {{ "{:,.2f}".format(monto_paciente) }}</strong></td>
-                        <td><small style="color: #666;">{{ paciente['medico_nombre'] }}</small></td>
+                        <td><small class="csp-u-020">{{ paciente['medico_nombre'] }}</small></td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="8" class="text-center" style="padding: 3rem;">
-                            <i class="fas fa-inbox" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-                            <p style="color: #999; margin: 0;">No hay pacientes pendientes para esta ARS</p>
-                            <p style="color: #999; font-size: 0.9rem;">Verifique que haya registros pendientes de facturación</p>
+                        <td colspan="8" class="text-center csp-u-021">
+                            <i class="fas fa-inbox csp-u-022"></i>
+                            <p class="csp-u-023">No hay pacientes pendientes para esta ARS</p>
+                            <p class="csp-u-024">Verifique que haya registros pendientes de facturación</p>
                         </td>
                     </tr>
                     {% endfor %}
@@ -412,9 +445,9 @@
 
         <!-- Total Seleccionado -->
         <div class="total-seleccionado">
-            <p style="color: #666; margin: 0; font-size: 1.1rem; font-weight: 600;">TOTAL DE LA FACTURA</p>
+            <p class="csp-u-025">TOTAL DE LA FACTURA</p>
             <p class="total-valor"> <span id="total-valor">0.00</span></p>
-            <p style="color: #999; margin: 0; font-size: 0.85rem;">
+            <p class="csp-u-026">
                 <i class="fas fa-check-circle me-1"></i>
                 <span id="num-pacientes">0</span> paciente(s) seleccionado(s)
             </p>
@@ -436,7 +469,7 @@
     </form>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 let todasLasFilas = [];
 let ordenMedicoAscendente = true; // Para alternar entre ascendente y descendente
 
@@ -467,7 +500,7 @@ function aplicarFiltros() {
             mostrar = false;
         }
         
-        fila.style.display = mostrar ? '' : 'none';
+        fila.classList.toggle('fila-filtrada', !mostrar);
     });
     
     // Recalcular total después de filtrar
@@ -478,7 +511,7 @@ function limpiarFiltros() {
     document.getElementById('filtroMedico').value = '';
     
     todasLasFilas.forEach(fila => {
-        fila.style.display = '';
+        fila.classList.remove('fila-filtrada');
     });
     
     calcularTotal();
@@ -529,14 +562,14 @@ function toggleSelectAll() {
     
     checkboxes.forEach(cb => {
         const fila = cb.closest('tr');
-        if (fila.style.display !== 'none' && !cb.checked) {
+        if (!fila.classList.contains('fila-filtrada') && !cb.checked) {
             allChecked = false;
         }
     });
     
     checkboxes.forEach(cb => {
         const fila = cb.closest('tr');
-        if (fila.style.display !== 'none') {
+        if (!fila.classList.contains('fila-filtrada')) {
             cb.checked = !allChecked;
             if (cb.checked) {
                 fila.classList.add('selected');
@@ -553,7 +586,7 @@ function toggleSelectAllMain(checkbox) {
     const checkboxes = document.querySelectorAll('.paciente-check');
     checkboxes.forEach(cb => {
         const fila = cb.closest('tr');
-        if (fila.style.display !== 'none') {
+        if (!fila.classList.contains('fila-filtrada')) {
             cb.checked = checkbox.checked;
             if (checkbox.checked) {
                 fila.classList.add('selected');
@@ -572,7 +605,7 @@ function calcularTotal() {
     
     checkboxes.forEach(cb => {
         const fila = cb.closest('tr');
-        if (cb.checked && fila.style.display !== 'none') {
+        if (cb.checked && !fila.classList.contains('fila-filtrada')) {
             total += parseFloat(cb.dataset.monto);
             count++;
             fila.classList.add('selected');
@@ -603,7 +636,7 @@ document.getElementById('formGenerar').addEventListener('submit', function(e) {
     
     checkboxes.forEach(cb => {
         const fila = cb.closest('tr');
-        if (fila.style.display !== 'none') {
+        if (!fila.classList.contains('fila-filtrada')) {
             ids.push(parseInt(cb.value));
         }
     });
@@ -685,13 +718,13 @@ function guardarEdicionPaciente() {
                 celdas[1].innerText = payload.nss;
                 celdas[2].innerText = payload.nombre_paciente;
                 celdas[3].innerText = payload.fecha_servicio;
-                celdas[4].innerHTML = `<code style="background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px;">${payload.autorizacion || ''}</code>`;
+                celdas[4].innerHTML = `<code class="csp-u-019">${payload.autorizacion || ''}</code>`;
                 const servicioLimpio = (payload.servicio.split(' - Autorización:')[0] || '').trim();
                 celdas[5].innerText = servicioLimpio;
                 celdas[6].innerHTML = `<strong>${payload.monto_estimado.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}</strong>`;
                 const medicoSelect = document.getElementById('editMedico');
                 const medicoNombre = medicoSelect && medicoSelect.options[medicoSelect.selectedIndex] ? medicoSelect.options[medicoSelect.selectedIndex].text : '';
-                celdas[7].innerHTML = `<small style="color: #666;">${medicoNombre}</small>`;
+                celdas[7].innerHTML = `<small class="csp-u-020">${medicoNombre}</small>`;
                 fila.dataset.medico = payload.medico_id || '';
                 fila.dataset.medicoNombre = medicoNombre;
                 fila.dataset.fecha = payload.fecha_servicio || '';
@@ -716,8 +749,8 @@ function guardarEdicionPaciente() {
 <div class="modal fade" id="modalEditarPaciente" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog">
     <div class="modal-content">
-      <div class="modal-header" style="background: {{ tema.primary }}; color: white;">
-        <h5 class="modal-title" style="color: white;"><i class="fas fa-user-edit me-2"></i>Editar consulta</h5>
+      <div class="modal-header csp-u-027">
+        <h5 class="modal-title csp-u-028"><i class="fas fa-user-edit me-2"></i>Editar consulta</h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
       <div class="modal-body">
@@ -757,7 +790,7 @@ function guardarEdicionPaciente() {
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-primary" onclick="guardarEdicionPaciente()">Guardar cambios</button>
+        <button type="button" class="btn btn-primary" data-csp-click="guardarEdicionPaciente">Guardar cambios</button>
       </div>
     </div>
   </div>

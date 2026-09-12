@@ -8,7 +8,7 @@
 {% set medico_valor = form_data.get('medico_id', consulta_origen['medico_id'] if consulta_origen else medico_preseleccionado|default('')) %}
 {% set fecha_valor = form_data.get('fecha', consulta_origen['proxima_cita'] if consulta_origen else fecha_actual|default('')) %}
 {% set hora_valor = form_data.get('hora', consulta_origen['proxima_hora'] if consulta_origen and consulta_origen['proxima_hora'] else '09:00') %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .appointment-shell { max-width:950px; margin:0 auto; }
     .appointment-header,.appointment-card { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
     .appointment-header { background:linear-gradient(135deg,{{ tema.primary }}12,white); }
@@ -61,7 +61,7 @@
         {% endif %}
     </div>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 (() => {
     const doctor = document.getElementById('medico_id');
     const specialty = document.getElementById('especialidad');

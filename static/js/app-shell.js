@@ -117,7 +117,7 @@
             sidebar.classList.remove('open');
             overlay?.classList.remove('show');
             toggle?.setAttribute('aria-expanded', 'false');
-            document.body.style.overflow = '';
+            document.body.classList.remove('csp-scroll-locked');
         };
 
         const openSidebar = () => {
@@ -126,7 +126,7 @@
             toggle?.setAttribute('aria-expanded', 'true');
 
             if (window.innerWidth < 1200) {
-                document.body.style.overflow = 'hidden';
+                document.body.classList.add('csp-scroll-locked');
             }
         };
 

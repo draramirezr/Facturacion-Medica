@@ -8,7 +8,7 @@
 {% set medico_valor = form_data.get('medico_id', consulta['medico_id'] if consulta else '') %}
 {% set consulta_valor = form_data.get('consulta_id', consulta['id'] if consulta else '') %}
 {% set medicamentos_guardados = form_data.getlist('medicamento[]') if form_data else [''] %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .rx-form-shell { max-width:1050px; margin:0 auto; }
     .rx-form-header,.rx-section { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
     .rx-form-header { background:linear-gradient(135deg,{{ tema.primary }}12,white); }
@@ -61,7 +61,7 @@
         </form>
     </div>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 (() => {
     const rows = document.getElementById('medicineRows');
     const consultation = document.getElementById('consulta_id');

@@ -4,14 +4,14 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .facturacion-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
         border-radius: 20px;
         padding: 2rem;
         margin-bottom: 2rem;
     }
-    
+
     .search-box {
         background: white;
         border-radius: 15px;
@@ -19,43 +19,43 @@
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         margin-bottom: 2rem;
     }
-    
+
     .table-facturacion {
         background: white;
         border-radius: 15px;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         overflow: hidden;
     }
-    
+
     .table-responsive-wrapper {
         max-height: 400px; /* Altura aproximada para 5 registros */
         overflow-x: auto;
         overflow-y: auto;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar {
         width: 10px;
         height: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-track {
         background: #f1f1f1;
         border-radius: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-thumb {
         background: {{ tema.primary_dark }};
         border-radius: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
         background: {{ tema.primary }};
     }
-    
+
     .table-facturacion table {
         min-width: 800px;
     }
-    
+
     .table-facturacion th {
         background: {{ tema.primary_dark }} !important;
         background-color: {{ tema.primary_dark }} !important;
@@ -67,11 +67,11 @@
         top: 0;
         z-index: 10;
     }
-    
+
     .table-facturacion thead th {
         color: #FFFFFF !important;
     }
-    
+
     .table-facturacion td {
         padding: 1rem;
         vertical-align: middle;
@@ -83,23 +83,41 @@
         border-color: var(--primary-color) !important;
         box-shadow: 0 0 0 0.2rem {{ tema.primary }}40 !important;
     }
-    
+
     .table-facturacion tbody tr:hover {
         background-color: {{ tema.primary }}08;
     }
-    
+
     /* Los estilos de botones están en botones-estandarizados.css */
 
-    
+
     /* Los estilos de botones ahora están en botones-estandarizados.css */
     /* Esto garantiza que todos los botones tengan el mismo tamaño */
+    .fi-centros-medicos-inline-1 {
+        color: var(--primary-color); font-weight: 700; margin: 0;
+    }
+    .fi-centros-medicos-inline-2 {
+        border-radius: 10px; height: 48px;
+    }
+    .fi-centros-medicos-inline-3 {
+        height: 48px;
+    }
+    .fi-centros-medicos-inline-4 {
+        width: 100px;
+    }
+    .fi-centros-medicos-inline-5 {
+        width: 150px;
+    }
+    .fi-centros-medicos-inline-7 {
+        background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 2rem;
+    }
 </style>
 
 <div class="container py-5">
     <!-- Hero Section -->
     <div class="facturacion-hero">
         <div class="d-flex justify-content-between align-items-center">
-            <h2 style="color: var(--primary-color); font-weight: 700; margin: 0;">
+            <h2 class="fi-centros-medicos-inline-1">
                 <i class="fas fa-hospital-alt me-2"></i>
                 Centros Médicos
             </h2>
@@ -119,11 +137,11 @@
         <form method="GET">
             <div class="row align-items-end">
                 <div class="col-md-10">
-                    <input type="text" class="form-control" name="search" 
-                           placeholder="Buscar por nombre o RNC..." value="{{ search or '' }}" style="border-radius: 10px; height: 48px;">
+                    <input type="text" class="form-control fi-centros-medicos-inline-2" name="search"
+                           placeholder="Buscar por nombre o RNC..." value="{{ search or '' }}">
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-buscar w-100" style="height: 48px;">
+                    <button type="submit" class="btn btn-buscar w-100 fi-centros-medicos-inline-3">
                         <i class="fas fa-search me-2"></i>Buscar
                     </button>
                 </div>
@@ -142,8 +160,8 @@
                         <th>Dirección</th>
                         <th>RNC</th>
                         <th>Teléfono</th>
-                        <th style="width: 100px;">Estado</th>
-                        <th style="width: 150px;">Acciones</th>
+                        <th class="fi-centros-medicos-inline-4">Estado</th>
+                        <th class="fi-centros-medicos-inline-5">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -162,16 +180,17 @@
                         </td>
                         <td>
                             <div class="d-flex justify-content-center gap-2">
-                                <a href="{{ url_for('facturacion_centros_medicos_editar', centro_id=centro['id']) }}" 
+                                <a href="{{ url_for('facturacion_centros_medicos_editar', centro_id=centro['id']) }}"
                                    class="btn btn-accion-editar" title="Editar">
                                     <i class="fas fa-edit"></i> Editar
                                 </a>
-                                <a href="#" 
-                                   onclick="if(confirm('¿Está seguro de eliminar este centro médico?')) { document.getElementById('delete-form-{{ centro['id'] }}').submit(); } return false;"
+                                <a href="#"
+                                   data-confirm-submit="¿Está seguro de eliminar este centro médico?"
+                                   data-submit-target="delete-form-{{ centro['id'] }}"
                                    class="btn btn-accion-editar" title="Eliminar">
                                     <i class="fas fa-trash"></i> Eliminar
                                 </a>
-                                <form id="delete-form-{{ centro['id'] }}" method="POST" action="{{ url_for('facturacion_centros_medicos_eliminar', centro_id=centro['id']) }}" style="display: none;">
+                                <form id="delete-form-{{ centro['id'] }}" method="POST" action="{{ url_for('facturacion_centros_medicos_eliminar', centro_id=centro['id']) }}" class="d-none">
                                 </form>
                             </div>
                         </td>
@@ -182,7 +201,7 @@
         </div>
     </div>
     {% else %}
-    <div class="alert alert-info" style="background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 2rem;">
+    <div class="alert alert-info fi-centros-medicos-inline-7">
         <i class="fas fa-info-circle me-2"></i>
         No hay centros médicos registrados. Haz clic en "Agregar Centro" para comenzar.
     </div>

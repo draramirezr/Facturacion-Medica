@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .facturacion-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
         border-radius: 20px;
@@ -244,6 +244,38 @@
         transform: translateY(-2px);
         box-shadow: 0 6px 20px {{ tema.primary }}50;
     }
+
+    /* Utilidades locales migradas desde atributos style para CSP. */
+    .csp-u-001 { color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem; }
+    .csp-u-002 { background: white; border-radius: 15px; box-shadow: 0 4px 20px rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.2); }
+    .csp-u-003 { color: var(--primary-color); font-weight: 700; margin-bottom: 1rem; }
+    .csp-u-004 { font-weight: 600; color: #666; }
+    .csp-u-005 { color: var(--primary-color); }
+    .csp-u-006 { border: 2px solid var(--primary-color)33; border-radius: 10px; font-weight: 600; }
+    .csp-u-007 { border: 2px solid var(--primary-color)33; border-radius: 10px; }
+    .csp-u-008 { font-weight: 600; color: #666; visibility: hidden; }
+    .csp-u-009 { flex-wrap: nowrap; }
+    .csp-u-010 { min-width: 0 !important; width: 0; flex: 1 1 0; height: 48px; text-decoration: none; font-size: 0.75rem; padding: 0.4rem 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .csp-u-011 { min-width: 0 !important; width: 0; flex: 1 1 0; height: 48px; font-size: 0.75rem; padding: 0.4rem 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .csp-u-012 { width: 5%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-013 { width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-014 { width: 15%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-015 { width: 9%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-016 { width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-017 { width: 13%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
+    .csp-u-018 { gap: 4px; flex-wrap: nowrap; }
+    .csp-u-019 { display: inline-block; margin: 0; padding: 0; width: 28px; height: 28px; }
+    .csp-u-020 { width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; max-width: 28px !important; max-height: 28px !important; padding: 0 !important; margin: 0 !important; border: none !important; background: var(--primary-color) !important; color: white !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; border-radius: 4px !important; box-sizing: border-box !important; }
+    .csp-u-021 { font-size: 0.65rem !important; color: white !important; line-height: 1 !important; }
+    .csp-u-022 { padding: 3rem; }
+    .csp-u-023 { font-size: 3rem; color: #ccc; margin-bottom: 1rem; }
+    .csp-u-024 { color: #999; margin: 0; }
+    .csp-u-025 { color: #999; font-size: 0.9rem; }
+    .csp-u-026 { background: white; border-bottom: 1px solid #dee2e6; }
+    .csp-u-027 { color: black; font-weight: 600; }
+    .csp-u-028 { color: black; }
+    .csp-u-029 { color: black; opacity: 1; }
+    .csp-u-030 { background-color: #e9ecef; }
 </style>
 
 <div class="container py-5">
@@ -251,7 +283,7 @@
     <div class="facturacion-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                <h1 class="csp-u-001">
                     <i class="fas fa-clipboard-list me-2"></i>
                     Estado de Facturación
                 </h1>
@@ -266,27 +298,27 @@
     </div>
 
     <!-- Filtros -->
-    <div class="card mb-4" style="background: white; border-radius: 15px; box-shadow: 0 4px 20px rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.2);">
+    <div class="card mb-4 csp-u-002">
         <div class="card-body">
-            <h5 style="color: var(--primary-color); font-weight: 700; margin-bottom: 1rem;">
+            <h5 class="csp-u-003">
                 <i class="fas fa-filter me-2"></i>Filtros
             </h5>
             <form method="GET" action="{{ url_for('facturacion_pacientes_pendientes') }}">
                 <div class="row g-3">
                     <div class="col-md-3">
-                        <label for="estado" class="form-label" style="font-weight: 600; color: #666;">
-                            <i class="fas fa-clipboard-check me-1" style="color: var(--primary-color);"></i>Estado
+                        <label for="estado" class="form-label csp-u-004">
+                            <i class="fas fa-clipboard-check me-1 csp-u-005"></i>Estado
                         </label>
-                        <select name="estado" id="estado" class="form-select" style="border: 2px solid var(--primary-color)33; border-radius: 10px; font-weight: 600;">
+                        <select name="estado" id="estado" class="form-select csp-u-006">
                             <option value="pendiente" {% if estado_filtro == 'pendiente' %}selected{% endif %}>🕐 Pendientes</option>
                             <option value="facturado" {% if estado_filtro == 'facturado' %}selected{% endif %}>✅ Facturadas</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label for="medico_id" class="form-label" style="font-weight: 600; color: #666;">
-                            <i class="fas fa-user-md me-1" style="color: var(--primary-color);"></i>Médico
+                        <label for="medico_id" class="form-label csp-u-004">
+                            <i class="fas fa-user-md me-1 csp-u-005"></i>Médico
                         </label>
-                        <select name="medico_id" id="medico_id" class="form-select" style="border: 2px solid var(--primary-color)33; border-radius: 10px;">
+                        <select name="medico_id" id="medico_id" class="form-select csp-u-007">
                             <option value="">-- Todos --</option>
                             {% for medico in medicos %}
                             <option value="{{ medico['id'] }}" {% if medico_id_filtro == medico['id'] %}selected{% endif %}>
@@ -296,10 +328,10 @@
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <label for="ars_id" class="form-label" style="font-weight: 600; color: #666;">
-                            <i class="fas fa-hospital me-1" style="color: var(--primary-color);"></i>ARS
+                        <label for="ars_id" class="form-label csp-u-004">
+                            <i class="fas fa-hospital me-1 csp-u-005"></i>ARS
                         </label>
-                        <select name="ars_id" id="ars_id" class="form-select" style="border: 2px solid var(--primary-color)33; border-radius: 10px;">
+                        <select name="ars_id" id="ars_id" class="form-select csp-u-007">
                             <option value="">-- Todas --</option>
                             {% for ars in ars_list %}
                             <option value="{{ ars['id'] }}" {% if ars_id_filtro == ars['id'] %}selected{% endif %}>
@@ -309,14 +341,14 @@
                         </select>
                     </div>
                     <div class="col-md-3 d-flex flex-column justify-content-end">
-                        <label class="form-label" style="font-weight: 600; color: #666; visibility: hidden;">
+                        <label class="form-label csp-u-008">
                             <i class="fas fa-filter me-1"></i>Acciones
                         </label>
-                        <div class="d-flex gap-2 w-100" style="flex-wrap: nowrap;">
-                            <a href="{{ url_for('facturacion_pacientes_pendientes') }}" class="btn btn-buscar flex-fill" style="min-width: 0 !important; width: 0; flex: 1 1 0; height: 48px; text-decoration: none; font-size: 0.75rem; padding: 0.4rem 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                        <div class="d-flex gap-2 w-100 csp-u-009">
+                            <a href="{{ url_for('facturacion_pacientes_pendientes') }}" class="btn btn-buscar flex-fill csp-u-010">
                                 <i class="fas fa-times me-1"></i><span>Limpiar</span>
                             </a>
-                            <button type="submit" class="btn btn-buscar flex-fill" style="min-width: 0 !important; width: 0; flex: 1 1 0; height: 48px; font-size: 0.75rem; padding: 0.4rem 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                            <button type="submit" class="btn btn-buscar flex-fill csp-u-011">
                                 <i class="fas fa-search me-1"></i><span>Aplicar</span>
                             </button>
                         </div>
@@ -332,15 +364,15 @@
             <table class="table mb-0">
             <thead>
                 <tr>
-                    <th style="width: 5%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ID</th>
-                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">NSS</th>
-                    <th style="width: 15%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Nombre</th>
-                    <th style="width: 9%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Fecha de Consulta</th>
-                    <th style="width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Monto</th>
-                    <th style="width: 13%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Médico</th>
-                    <th style="width: 9%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ARS</th>
-                    <th style="width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Estado</th>
-                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Acciones</th>
+                    <th class="csp-u-012">ID</th>
+                    <th class="csp-u-013">NSS</th>
+                    <th class="csp-u-014">Nombre</th>
+                    <th class="csp-u-015">Fecha de Consulta</th>
+                    <th class="text-center csp-u-016">Monto</th>
+                    <th class="csp-u-017">Médico</th>
+                    <th class="csp-u-015">ARS</th>
+                    <th class="text-center csp-u-016">Estado</th>
+                    <th class="text-center csp-u-013">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -366,19 +398,18 @@
                         {% endif %}
                     </td>
                     <td class="text-center">
-                        <div class="d-flex flex-column justify-content-center align-items-center" style="gap: 4px; flex-wrap: nowrap;">
+                        <div class="d-flex flex-column justify-content-center align-items-center csp-u-018">
                             <button type="button" 
                                     class="btn-accion-editar" 
                                     title="Modificar"
-                                    onclick="abrirModalEditar({{ paciente['id'] }})">
+                                    data-csp-click="abrirModalEditar"
+                                    data-csp-args='[{{ paciente["id"] }}]'>
                                 <i class="fas fa-pencil-alt"></i>
                             </button>
-                            <form method="POST" action="{{ url_for('facturacion_pacientes_pendientes_eliminar', paciente_id=paciente['id']) }}" 
-                                  style="display: inline-block; margin: 0; padding: 0; width: 28px; height: 28px;" 
-                                  onsubmit="return confirm('¿Está seguro de eliminar este registro?');">
-                                <button type="submit" class="btn-accion-eliminar" title="Eliminar" 
-                                        style="width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; max-width: 28px !important; max-height: 28px !important; padding: 0 !important; margin: 0 !important; border: none !important; background: var(--primary-color) !important; color: white !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; border-radius: 4px !important; box-sizing: border-box !important;">
-                                    <i class="fas fa-trash" style="font-size: 0.65rem !important; color: white !important; line-height: 1 !important;"></i>
+                            <form method="POST" action="{{ url_for('facturacion_pacientes_pendientes_eliminar', paciente_id=paciente['id']) }}"
+                                  data-confirm-submit="¿Está seguro de eliminar este registro?" class="csp-u-019">
+                                <button type="submit" class="btn-accion-eliminar csp-u-020" title="Eliminar">
+                                    <i class="fas fa-trash csp-u-021"></i>
                                 </button>
                             </form>
                         </div>
@@ -386,10 +417,10 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="10" class="text-center" style="padding: 3rem;">
-                        <i class="fas fa-inbox" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-                        <p style="color: #999; margin: 0;">No hay pacientes pendientes</p>
-                        <p style="color: #999; font-size: 0.9rem;">Click en "Agregar Pacientes" para empezar</p>
+                    <td colspan="10" class="text-center csp-u-022">
+                        <i class="fas fa-inbox csp-u-023"></i>
+                        <p class="csp-u-024">No hay pacientes pendientes</p>
+                        <p class="csp-u-025">Click en "Agregar Pacientes" para empezar</p>
                     </td>
                 </tr>
                 {% endfor %}
@@ -404,11 +435,11 @@
 <div class="modal fade" id="modalEditarPaciente" tabindex="-1" aria-labelledby="modalEditarPacienteLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
-            <div class="modal-header" style="background: white; border-bottom: 1px solid #dee2e6;">
-                <h5 class="modal-title" id="modalEditarPacienteLabel" style="color: black; font-weight: 600;">
-                    <i class="fas fa-edit me-2" style="color: black;"></i>Editar Paciente Pendiente
+            <div class="modal-header csp-u-026">
+                <h5 class="modal-title csp-u-027" id="modalEditarPacienteLabel">
+                    <i class="fas fa-edit me-2 csp-u-028"></i>Editar Paciente Pendiente
                 </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" style="color: black; opacity: 1;"></button>
+                <button type="button" class="btn-close csp-u-029" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
                 <form id="formEditarPaciente">
@@ -443,7 +474,7 @@
                                 <label for="edit_medico_display" class="form-label">
                                     <i class="fas fa-user-md me-1"></i>Médico (no editable)
                                 </label>
-                                <input type="text" class="form-control" id="edit_medico_display" readonly style="background-color: #e9ecef;">
+                                <input type="text" class="form-control csp-u-030" id="edit_medico_display" readonly>
                                 <input type="hidden" id="edit_medico_id" name="medico_id">
                             </div>
                         </div>
@@ -471,7 +502,7 @@
                                 <label for="edit_ars_display" class="form-label">
                                     <i class="fas fa-hospital me-1"></i>ARS (no editable)
                                 </label>
-                                <input type="text" class="form-control" id="edit_ars_display" readonly style="background-color: #e9ecef;">
+                                <input type="text" class="form-control csp-u-030" id="edit_ars_display" readonly>
                                 <input type="hidden" id="edit_ars_id" name="ars_id">
                             </div>
                         </div>
@@ -482,7 +513,7 @@
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                     <i class="fas fa-times me-2"></i>Cancelar
                 </button>
-                <button type="button" class="btn btn-primary" onclick="guardarEdicion()">
+                <button type="button" class="btn btn-primary" data-csp-click="guardarEdicion">
                     <i class="fas fa-save me-2"></i>Guardar Cambios
                 </button>
             </div>
@@ -490,7 +521,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 let modalEditar = null;
 
 document.addEventListener('DOMContentLoaded', function() {

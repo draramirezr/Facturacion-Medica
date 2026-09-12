@@ -4,6 +4,11 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
+<style nonce="{{ csp_nonce }}">
+    .fi-ncf-electronico-form-inline-1 {
+        max-width: 820px; margin: 0 auto;
+    }
+</style>
 <div class="container py-4">
     <div class="ars-page-header mb-4">
         <div>
@@ -18,7 +23,7 @@
         </a>
     </div>
 
-    <div class="ars-form-card" style="max-width: 820px; margin: 0 auto;">
+    <div class="ars-form-card fi-ncf-electronico-form-inline-1">
         <div class="alert alert-info mb-4">
             El e-NCF tendrá 13 posiciones: <strong>E</strong> + <strong id="tipoFormato">31</strong>
             + una secuencia de <strong>10 dígitos</strong>.
@@ -142,7 +147,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 const tipoEcf = document.getElementById('tipo_ecf');
 const vistaPrevia = document.getElementById('vista_previa');
 const tipoFormato = document.getElementById('tipoFormato');

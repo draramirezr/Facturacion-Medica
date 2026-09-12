@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <script>
+    <script nonce="{{ csp_nonce }}">
         (() => {
             try {
                 const saved = localStorage.getItem('arsflow-color-mode');
                 const mode = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
                 document.documentElement.dataset.colorMode = mode;
-                document.documentElement.style.colorScheme = mode;
             } catch (error) {
                 document.documentElement.dataset.colorMode = 'light';
             }
@@ -21,7 +20,9 @@
     <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <style>
+    <style nonce="{{ csp_nonce }}">
+        html { color-scheme: light; }
+        html[data-color-mode="dark"] { color-scheme: dark; }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
             font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -115,7 +116,9 @@
         }
     </style>
     <link href="{{ url_for('static', filename='css/auth-refresh.css') }}?v=2.0" rel="stylesheet">
-    <style>
+    <style nonce="{{ csp_nonce }}">
+        html { color-scheme: light; }
+        html[data-color-mode="dark"] { color-scheme: dark; }
         .register-theme-toggle { position:fixed; z-index:10; top:18px; right:18px; width:42px; height:42px; display:grid; place-items:center; border:1px solid #dce5ed; border-radius:10px; background:white; color:#24324a; cursor:pointer; }
         html[data-color-mode="dark"] body { background:#0b1220 !important; color:#e7edf6; }
         html[data-color-mode="dark"] .register-container,
@@ -174,6 +177,15 @@
                     <label for="email">Correo electrónico</label>
                     <input type="email" id="email" name="email" required
                            placeholder="tu.email@ejemplo.com" value="{{ request.form.email if request.form else '' }}">
+                </div>
+
+                <div class="form-group">
+                    <label for="telefono">Número telefónico</label>
+                    <input type="tel" id="telefono" name="telefono" required
+                           inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10"
+                           autocomplete="tel" placeholder="8095551234"
+                           value="{{ request.form.telefono if request.form else '' }}">
+                    <p class="hint">Ingresa 10 números, sin espacios ni guiones</p>
                 </div>
 
                 <div class="form-group">

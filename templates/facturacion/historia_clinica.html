@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .hc-hero { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 2rem; margin-bottom: 1.5rem; }
     .hc-search, .hc-list { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.25rem; margin-bottom: 1.25rem; }
     .hc-patient { display: grid; grid-template-columns: minmax(220px,2fr) 1fr 1fr auto; align-items: center; gap: 1rem; padding: 1rem; border-bottom: 1px solid #edf1f5; }

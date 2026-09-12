@@ -8,7 +8,7 @@
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
     
-    <style>
+    <style nonce="{{ csp_nonce }}">
         * {
             margin: 0;
             padding: 0;
@@ -218,7 +218,7 @@
             }
         }
     </style>
-    <link href="{{ url_for('static', filename='css/auth-refresh.css') }}?v=2.0" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/auth-refresh.css') }}?v=2.1" rel="stylesheet">
 </head>
 <body>
     <div class="recovery-container">

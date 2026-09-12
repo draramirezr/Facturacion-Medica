@@ -5,37 +5,37 @@
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/facturacion-responsive.css') }}">
-<style>
+<style nonce="{{ csp_nonce }}">
     .form-container {
         max-width: 1200px;
         margin: 0 auto;
     }
-    
+
     .form-card {
         background: white;
         border-radius: 20px;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         padding: 2.5rem;
     }
-    
+
     .form-label {
         font-weight: 600;
         color: var(--text-dark);
         margin-bottom: 0.5rem;
     }
-    
+
     .form-control, .form-select {
         border-radius: 10px;
         border: 2px solid {{ tema.primary }}50;
         padding: 0.75rem 1rem;
         transition: all 0.3s ease;
     }
-    
+
     .form-control:focus, .form-select:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 0.2rem {{ tema.primary }}40;
     }
-    
+
     .btn-guardar {
         background: white;
         border: 2px solid var(--primary-color);
@@ -45,14 +45,14 @@
         font-weight: 600;
         transition: all 0.3s ease;
     }
-    
+
     .btn-guardar:hover {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
         color: white;
         transform: translateY(-2px);
         box-shadow: 0 6px 20px {{ tema.primary }}50;
     }
-    
+
     .btn-cancelar {
         background: white;
         border: 2px solid var(--text-muted);
@@ -62,17 +62,17 @@
         font-weight: 600;
         transition: all 0.3s ease;
     }
-    
+
     .btn-cancelar:hover {
         background: var(--text-muted);
         color: white;
     }
-    
+
     .required-asterisk {
         color: var(--primary-color) !important;
         font-weight: bold;
     }
-    
+
     .factura-item {
         background: {{ tema.primary }}08;
         border: 2px solid {{ tema.primary }}30;
@@ -80,17 +80,17 @@
         padding: 1rem;
         margin-bottom: 1rem;
     }
-    
+
     .factura-item.selected {
         border-color: {{ tema.primary }};
         background: {{ tema.primary }}15;
     }
-    
+
     .monto-disponible {
         color: #666;
         font-size: 0.9rem;
     }
-    
+
     .total-pago {
         background: {{ tema.primary }}15;
         border: 2px solid {{ tema.primary }};
@@ -100,12 +100,18 @@
         font-weight: 700;
         color: var(--primary-color);
     }
+    .fi-pago-form-inline-1 {
+        color: var(--primary-color); font-weight: 800; font-size: 2rem;
+    }
+    .fi-pago-form-inline-2 {
+        font-weight: 600;
+    }
 </style>
 
 <div class="container py-5">
     <div class="form-container">
         <div class="mb-4">
-            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
+            <h1 class="fi-pago-form-inline-1">
                 <i class="fas fa-money-check-alt me-2"></i>
                 Nuevo Pago
             </h1>
@@ -119,10 +125,10 @@
                         <label for="fecha_pago" class="form-label">
                             <i class="fas fa-calendar me-2 text-primary"></i>Fecha de Pago <span class="required-asterisk">*</span>
                         </label>
-                        <input type="date" 
-                               class="form-control" 
-                               id="fecha_pago" 
-                               name="fecha_pago" 
+                        <input type="date"
+                               class="form-control"
+                               id="fecha_pago"
+                               name="fecha_pago"
                                value="{{ fecha_actual }}"
                                required>
                     </div>
@@ -146,10 +152,10 @@
                         <label for="referencia" class="form-label">
                             <i class="fas fa-hashtag me-2 text-primary"></i>Referencia
                         </label>
-                        <input type="text" 
-                               class="form-control" 
-                               id="referencia" 
-                               name="referencia" 
+                        <input type="text"
+                               class="form-control"
+                               id="referencia"
+                               name="referencia"
                                placeholder="Número de referencia, cheque, etc."
                                maxlength="100">
                     </div>
@@ -164,28 +170,29 @@
                         {% set monto_disponible = factura['total'] - factura['monto_pagado'] %}
                         <div class="factura-item">
                             <div class="form-check mb-2">
-                                <input class="form-check-input factura-checkbox" 
-                                       type="checkbox" 
-                                       id="factura_{{ factura['id'] }}" 
+                                <input class="form-check-input factura-checkbox"
+                                       type="checkbox"
+                                       id="factura_{{ factura['id'] }}"
                                        value="{{ factura['id'] }}"
-                                       onchange="toggleFactura({{ factura['id'] }})">
-                                <label class="form-check-label" for="factura_{{ factura['id'] }}" style="font-weight: 600;">
-                                    <strong>{{ factura['numero_factura'] }}</strong> - {{ factura['nombre_paciente'] }} 
+                                       data-csp-change="toggleFactura"
+                                       data-csp-args='[{{ factura["id"] }}]'>
+                                <label class="form-check-label fi-pago-form-inline-2" for="factura_{{ factura['id'] }}">
+                                    <strong>{{ factura['numero_factura'] }}</strong> - {{ factura['nombre_paciente'] }}
                                     ({{ factura['nombre_ars'] or 'Sin ARS' }})
                                 </label>
                             </div>
                             <div class="row">
                                 <div class="col-md-6">
                                     <small class="monto-disponible">
-                                        Total: ${{ "{:,.2f}".format(factura['total']) }} | 
-                                        Pagado: ${{ "{:,.2f}".format(factura['monto_pagado']) }} | 
+                                        Total: ${{ "{:,.2f}".format(factura['total']) }} |
+                                        Pagado: ${{ "{:,.2f}".format(factura['monto_pagado']) }} |
                                         Disponible: <strong>${{ "{:,.2f}".format(monto_disponible) }}</strong>
                                     </small>
                                 </div>
                                 <div class="col-md-6">
-                                    <input type="number" 
-                                           class="form-control form-control-sm monto-input" 
-                                           id="monto_{{ factura['id'] }}" 
+                                    <input type="number"
+                                           class="form-control form-control-sm monto-input"
+                                           id="monto_{{ factura['id'] }}"
                                            name="montos[]"
                                            data-factura-id="{{ factura['id'] }}"
                                            data-max="{{ monto_disponible }}"
@@ -194,7 +201,7 @@
                                            max="{{ monto_disponible }}"
                                            placeholder="0.00"
                                            disabled
-                                           onchange="calcularTotal()">
+                                           data-csp-change="calcularTotal">
                                     <input type="hidden" name="facturas_ids[]" id="factura_id_{{ factura['id'] }}" value="">
                                 </div>
                             </div>
@@ -207,10 +214,10 @@
                     <label for="observaciones" class="form-label">
                         <i class="fas fa-comment me-2 text-primary"></i>Observaciones
                     </label>
-                    <textarea class="form-control" 
-                              id="observaciones" 
-                              name="observaciones" 
-                              rows="3" 
+                    <textarea class="form-control"
+                              id="observaciones"
+                              name="observaciones"
+                              rows="3"
                               placeholder="Observaciones sobre el pago..."></textarea>
                 </div>
 
@@ -234,13 +241,13 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function toggleFactura(facturaId) {
     const checkbox = document.getElementById('factura_' + facturaId);
     const montoInput = document.getElementById('monto_' + facturaId);
     const facturaIdInput = document.getElementById('factura_id_' + facturaId);
     const facturaItem = checkbox.closest('.factura-item');
-    
+
     if (checkbox.checked) {
         montoInput.disabled = false;
         montoInput.required = true;
@@ -278,7 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const today = new Date().toISOString().split('T')[0];
         fechaInput.value = today;
     }
-    
+
     // Validar montos al enviar
     document.getElementById('pagoForm').addEventListener('submit', function(e) {
         let hasError = false;
@@ -287,14 +294,14 @@ document.addEventListener('DOMContentLoaded', function() {
             const montoInput = document.getElementById('monto_' + facturaId);
             const monto = parseFloat(montoInput.value) || 0;
             const maxMonto = parseFloat(montoInput.getAttribute('data-max'));
-            
+
             if (monto <= 0) {
                 alert('El monto debe ser mayor a cero');
                 hasError = true;
                 e.preventDefault();
                 return false;
             }
-            
+
             if (monto > maxMonto) {
                 alert('El monto no puede ser mayor al disponible');
                 hasError = true;
@@ -302,7 +309,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return false;
             }
         });
-        
+
         if (!hasError && document.querySelectorAll('.factura-checkbox:checked').length === 0) {
             alert('Debe seleccionar al menos una factura');
             e.preventDefault();

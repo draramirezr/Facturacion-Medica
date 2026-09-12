@@ -6,7 +6,7 @@
 {% block description %}Dashboard administrativo con estadísticas e indicadores de facturación en tiempo real. Sistema de gestión médica profesional.{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     /* Las variables de color ya vienen de base.html via tema */
     :root {
         --success-color: #10B981;
@@ -477,6 +477,75 @@
     .animate-card {
         animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) backwards;
     }
+
+    .dashboard-title {
+        color: var(--primary-color);
+        font-weight: 800;
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .dashboard-subtitle {
+        color: #666;
+        margin: 0;
+    }
+
+    .filter-title {
+        font-weight: 600;
+        color: #2c3e50;
+    }
+
+    .filter-actions {
+        display: flex;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+        margin-top: 0.5rem;
+    }
+
+    .btn-filter-secondary {
+        background: #adb5bd;
+        border-color: #adb5bd;
+    }
+
+    .delay-01 { animation-delay: 0.1s; }
+    .delay-03 { animation-delay: 0.3s; }
+    .delay-035 { animation-delay: 0.35s; }
+    .delay-04 { animation-delay: 0.4s; }
+    .delay-06 { animation-delay: 0.6s; }
+    .delay-065 { animation-delay: 0.65s; }
+    .delay-07 { animation-delay: 0.7s; }
+    .delay-075 { animation-delay: 0.75s; }
+
+    .pending-ars-content {
+        position: relative;
+        z-index: 1;
+    }
+
+    .pending-ars-label { margin-bottom: 0.8rem; }
+
+    .pending-ars-list {
+        max-height: 150px;
+        overflow-y: auto;
+        padding-right: 5px;
+    }
+
+    .pending-ars-link {
+        text-decoration: none;
+        background: rgba(255, 193, 7, 0.15);
+        color: #856404;
+        padding: 0.5rem 0.85rem;
+        border-radius: 10px;
+        margin: 0.2rem;
+        font-size: 0.9rem;
+        font-weight: 700;
+        border: 1px solid rgba(255, 193, 7, 0.3);
+        box-shadow: 0 4px 12px rgba(255,193,7,0.15);
+        transition: all 0.2s ease;
+    }
+
+    .pending-empty-value { font-size: 1.5rem; }
+    .selection-empty { color: #dc3545; }
+    .selection-present { color: #2c3e50; }
     
     /* Responsive Mejorado */
     @media (max-width: 992px) {
@@ -594,11 +663,11 @@
     <div class="facturacion-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                <h1 class="dashboard-title">
                     <i class="fas fa-chart-line me-2"></i>
                     Dashboard de Facturación
                 </h1>
-                <p style="color: #666; margin: 0;">Indicadores y estadísticas en tiempo real</p>
+                <p class="dashboard-subtitle">Indicadores y estadísticas en tiempo real</p>
             </div>
             <div>
                 <a href="{{ url_for('facturacion_menu') }}" class="btn btn-volver">
@@ -609,7 +678,7 @@
     </div>
     
     <!-- Filtros de Fecha -->
-    <div class="filter-card animate-card" style="animation-delay: 0.1s">
+    <div class="filter-card animate-card delay-01">
         <h3><i class="fas fa-filter me-2"></i>Filtrar por Período y Categorías</h3>
         <form method="GET" action="{{ url_for('facturacion_dashboard') }}" class="filter-form" id="filterForm">
             <div class="form-group">
@@ -625,17 +694,17 @@
             <div class="form-group">
                 <label>ARS:</label>
                 <div class="custom-multiselect">
-                    <div class="multiselect-button" onclick="toggleDropdown('ars')">
+                    <div class="multiselect-button" data-csp-click="toggleDropdown" data-csp-args='["ars"]'>
                         <span id="ars-selected-text">Todos</span>
                         <i class="fas fa-chevron-down multiselect-arrow"></i>
                     </div>
                     <div class="multiselect-dropdown" id="ars-dropdown">
                         <div class="multiselect-header">
-                            <span style="font-weight: 600; color: #2c3e50;">Seleccionar ARS</span>
-                            <button type="button" class="select-all-btn" onclick="toggleAllOptions('ars')">Todos</button>
+                            <span class="filter-title">Seleccionar ARS</span>
+                            <button type="button" class="select-all-btn" data-csp-click="toggleAllOptions" data-csp-args='["ars"]'>Todos</button>
                         </div>
                         {% for ars in ars_list %}
-                        <div class="multiselect-option" onclick="toggleOption(event, 'ars')">
+                        <div class="multiselect-option" data-csp-click="toggleOption" data-csp-args='["ars"]' data-csp-pass="event">
                             <input type="checkbox" 
                                    name="ars_id" 
                                    value="{{ ars.id }}" 
@@ -653,17 +722,17 @@
             <div class="form-group">
                 <label>Médico Factura:</label>
                 <div class="custom-multiselect">
-                    <div class="multiselect-button" onclick="toggleDropdown('medico_factura')">
+                    <div class="multiselect-button" data-csp-click="toggleDropdown" data-csp-args='["medico_factura"]'>
                         <span id="medico_factura-selected-text">Todos</span>
                         <i class="fas fa-chevron-down multiselect-arrow"></i>
                     </div>
                     <div class="multiselect-dropdown" id="medico_factura-dropdown">
                         <div class="multiselect-header">
-                            <span style="font-weight: 600; color: #2c3e50;">Seleccionar Médico</span>
-                            <button type="button" class="select-all-btn" onclick="toggleAllOptions('medico_factura')">Todos</button>
+                            <span class="filter-title">Seleccionar Médico</span>
+                            <button type="button" class="select-all-btn" data-csp-click="toggleAllOptions" data-csp-args='["medico_factura"]'>Todos</button>
                         </div>
                         {% for medico in medicos_factura_list %}
-                        <div class="multiselect-option" onclick="toggleOption(event, 'medico_factura')">
+                        <div class="multiselect-option" data-csp-click="toggleOption" data-csp-args='["medico_factura"]' data-csp-pass="event">
                             <input type="checkbox" 
                                    name="medico_factura_id" 
                                    value="{{ medico.id }}" 
@@ -681,17 +750,17 @@
             <div class="form-group">
                 <label>Médico Paciente:</label>
                 <div class="custom-multiselect">
-                    <div class="multiselect-button" onclick="toggleDropdown('medico_consulta')">
+                    <div class="multiselect-button" data-csp-click="toggleDropdown" data-csp-args='["medico_consulta"]'>
                         <span id="medico_consulta-selected-text">Todos</span>
                         <i class="fas fa-chevron-down multiselect-arrow"></i>
                     </div>
                     <div class="multiselect-dropdown" id="medico_consulta-dropdown">
                         <div class="multiselect-header">
-                            <span style="font-weight: 600; color: #2c3e50;">Seleccionar Médico</span>
-                            <button type="button" class="select-all-btn" onclick="toggleAllOptions('medico_consulta')">Todos</button>
+                            <span class="filter-title">Seleccionar Médico</span>
+                            <button type="button" class="select-all-btn" data-csp-click="toggleAllOptions" data-csp-args='["medico_consulta"]'>Todos</button>
                         </div>
                         {% for medico in medicos_consulta_list %}
-                        <div class="multiselect-option" onclick="toggleOption(event, 'medico_consulta')">
+                        <div class="multiselect-option" data-csp-click="toggleOption" data-csp-args='["medico_consulta"]' data-csp-pass="event">
                             <input type="checkbox" 
                                    name="medico_consulta_id" 
                                    value="{{ medico.id }}" 
@@ -704,11 +773,11 @@
                 </div>
             </div>
             
-            <div style="display: flex; gap: 0.8rem; flex-wrap: wrap; margin-top: 0.5rem;">
+            <div class="filter-actions">
                 <button type="submit" class="btn-filter">
                     <i class="fas fa-search me-2"></i>Aplicar filtros
                 </button>
-                <button type="button" class="btn-filter" style="background: #adb5bd; border-color: #adb5bd;" onclick="limpiarFiltros()">
+                <button type="button" class="btn-filter btn-filter-secondary" data-csp-click="limpiarFiltros">
                     <i class="fas fa-eraser me-2"></i>Limpiar filtros
                 </button>
             </div>
@@ -718,7 +787,7 @@
     <!-- Tarjetas de Estadísticas Principales -->
     <div class="row g-4 mb-4">
         <!-- Total Facturado -->
-        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.3s">
+        <div class="col-lg-3 col-md-6 animate-card delay-03">
             <div class="stat-card success">
                 <div class="stat-icon success">
                     <i class="fas fa-dollar-sign"></i>
@@ -729,7 +798,7 @@
         </div>
         
         <!-- Monto Pendiente por Facturar -->
-        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.35s">
+        <div class="col-lg-3 col-md-6 animate-card delay-035">
             <div class="stat-card danger">
                 <div class="stat-icon danger">
                     <i class="fas fa-exclamation-circle"></i>
@@ -740,19 +809,18 @@
         </div>
         
         <!-- ARS Pendientes por Facturar (clickeables) -->
-        <div class="col-lg-3 col-md-6 animate-card" style="animation-delay: 0.4s">
+        <div class="col-lg-3 col-md-6 animate-card delay-04">
             <div class="stat-card warning">
                 <div class="stat-icon warning">
                     <i class="fas fa-building"></i>
                 </div>
                 {% if ars_pendientes_detalle and ars_pendientes_detalle|length > 0 %}
-                    <div style="position: relative; z-index: 1;">
-                        <p class="stat-label" style="margin-bottom: 0.8rem;">ARS Pendientes por Facturar</p>
-                        <div style="max-height: 150px; overflow-y: auto; padding-right: 5px;">
+                    <div class="pending-ars-content">
+                        <p class="stat-label pending-ars-label">ARS Pendientes por Facturar</p>
+                        <div class="pending-ars-list">
                             {% for ars in ars_pendientes_detalle %}
                                 <a href="{{ url_for('facturacion_generar') }}?auto=1&ars_id={{ ars.id }}"
-                                   class="d-inline-block"
-                                   style="text-decoration: none; background: rgba(255, 193, 7, 0.15); color: #856404; padding: 0.5rem 0.85rem; border-radius: 10px; margin: 0.2rem; font-size: 0.9rem; font-weight: 700; border: 1px solid rgba(255, 193, 7, 0.3); box-shadow: 0 4px 12px rgba(255,193,7,0.15); transition: all 0.2s ease;">
+                                   class="d-inline-block pending-ars-link">
                                     <i class="fas fa-external-link-alt me-1"></i>
                                     {{ ars.nombre }} — {{ ars.monto|formato_moneda }}
                                 </a>
@@ -760,7 +828,7 @@
                         </div>
                     </div>
                 {% else %}
-                    <p class="stat-value" style="font-size: 1.5rem;">✓</p>
+                    <p class="stat-value pending-empty-value">✓</p>
                     <p class="stat-label">Sin ARS Pendientes</p>
                 {% endif %}
             </div>
@@ -770,7 +838,7 @@
     <!-- Gráficos -->
     <div class="row g-4 mb-4">
         <!-- Facturación por Mes -->
-        <div class="col-lg-12 animate-card" style="animation-delay: 0.6s">
+        <div class="col-lg-12 animate-card delay-06">
             <div class="chart-card">
                 <h3><i class="fas fa-chart-line"></i>Facturación por Mes</h3>
                 <canvas id="chartPorMes" height="80"></canvas>
@@ -780,7 +848,7 @@
     
     <div class="row g-4 mb-4">
         <!-- Facturación por ARS y Mes (nuevo gráfico) -->
-        <div class="col-lg-12 animate-card" style="animation-delay: 0.65s">
+        <div class="col-lg-12 animate-card delay-065">
             <div class="chart-card">
                 <h3><i class="fas fa-calendar-alt"></i>Facturación por ARS y Mes</h3>
                 <canvas id="chartARSporMes" height="100"></canvas>
@@ -790,7 +858,7 @@
 
     <div class="row g-4 mb-4">
         <!-- Facturación por Médico (Paciente) y Mes -->
-        <div class="col-lg-12 animate-card" style="animation-delay: 0.7s">
+        <div class="col-lg-12 animate-card delay-07">
             <div class="chart-card">
                 <h3><i class="fas fa-user-md"></i>Facturación por Médico Paciente y Mes</h3>
                 <canvas id="chartMedicoMes" height="100"></canvas>
@@ -800,7 +868,7 @@
     
     <div class="row g-4 mb-4">
         <!-- Facturación por Mes: ARS (X) + Médico Paciente (apilado) -->
-        <div class="col-lg-12 animate-card" style="animation-delay: 0.75s">
+        <div class="col-lg-12 animate-card delay-075">
             <div class="chart-card">
                 <h3><i class="fas fa-layer-group"></i>Facturación por Mes: ARS + Médico (apilado)</h3>
                 <canvas id="chartArsMedicoMes" height="110"></canvas>
@@ -812,7 +880,7 @@
 <!-- Chart.js (carga diferida para mejor performance) -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" defer></script>
 
-<script>
+<script nonce="{{ csp_nonce }}">
     // ==================== FUNCIONES PARA DROPDOWNS MULTISELECT ====================
     
     // Cerrar dropdown al hacer clic fuera
@@ -854,7 +922,7 @@
         }
         
         // Si el clic fue en el label o el div contenedor
-        const option = event.currentTarget;
+        const option = event.target.closest('.multiselect-option');
         const checkbox = option.querySelector('input[type="checkbox"]');
         checkbox.checked = !checkbox.checked;
         
@@ -887,13 +955,16 @@
         
         if (selectedCount === 0) {
             textElement.textContent = 'Ninguno seleccionado';
-            textElement.style.color = '#dc3545';
+            textElement.classList.add('selection-empty');
+            textElement.classList.remove('selection-present');
         } else if (selectedCount === totalCount) {
             textElement.textContent = 'Todos';
-            textElement.style.color = '#2c3e50';
+            textElement.classList.add('selection-present');
+            textElement.classList.remove('selection-empty');
         } else {
             textElement.textContent = `${selectedCount} de ${totalCount} seleccionados`;
-            textElement.style.color = '#2c3e50';
+            textElement.classList.add('selection-present');
+            textElement.classList.remove('selection-empty');
         }
     }
     

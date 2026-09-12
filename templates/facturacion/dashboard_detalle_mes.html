@@ -5,6 +5,13 @@
 
 {% block content %}
 
+<style nonce="{{ csp_nonce }}">
+    .col-id { width: 80px; }
+    .col-fecha { width: 140px; }
+    .col-ncf { width: 160px; }
+    .col-total { width: 140px; }
+</style>
+
 {% macro fecha_ddmmyyyy(fecha) -%}
     {%- set f = (fecha|string) -%}
     {%- if '-' in f -%}
@@ -42,11 +49,11 @@
                 <table class="table table-hover align-middle">
                     <thead class="table-light">
                         <tr>
-                            <th style="width: 80px;">ID</th>
-                            <th style="width: 140px;">Fecha</th>
+                            <th class="col-id">ID</th>
+                            <th class="col-fecha">Fecha</th>
                             <th>ARS</th>
-                            <th style="width: 160px;">NCF</th>
-                            <th class="text-end" style="width: 140px;">Total</th>
+                            <th class="col-ncf">NCF</th>
+                            <th class="text-end col-total">Total</th>
                         </tr>
                     </thead>
                     <tbody>

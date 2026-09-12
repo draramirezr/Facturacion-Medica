@@ -1,13 +1,12 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <script>
+    <script nonce="{{ csp_nonce }}">
         (() => {
             try {
                 const saved = localStorage.getItem('arsflow-color-mode');
                 const mode = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
                 document.documentElement.dataset.colorMode = mode;
-                document.documentElement.style.colorScheme = mode;
             } catch (error) {
                 document.documentElement.dataset.colorMode = 'light';
             }
@@ -21,7 +20,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <style>
+    <style nonce="{{ csp_nonce }}">
+        html { color-scheme: light; }
+        html[data-color-mode="dark"] { color-scheme: dark; }
         :root { --primary:#119c8f; --primary-dark:#087d73; --primary-soft:#ecfbf8; --navy:#172554; --text:#172033; --muted:#64748b; --border:#e5edf3; --surface:#fff; --background:#f8fafb; }
         * { box-sizing:border-box; }
         html { scroll-behavior:smooth; }
@@ -430,7 +431,7 @@
         <div class="footer-bottom"><span>© {{ current_year }} ARSFlow. Todos los derechos reservados.</span><span>Gestión médica y facturación conectadas.</span></div>
     </div></footer>
     <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=1"></script>
-    <script>
+    <script nonce="{{ csp_nonce }}">
         (() => {
             const buttons = document.querySelectorAll('.billing-option');
             const pricing = document.getElementById('pricingOptions');

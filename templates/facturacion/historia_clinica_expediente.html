@@ -4,7 +4,9 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
+    .record-badge { background: {{ tema.primary }}18; color: {{ tema.primary_dark }}; }
+    .record-version-badge { background: {{ tema.primary }}20; color: {{ tema.primary_dark }}; }
     .record-header, .record-card { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.4rem; margin-bottom: 1.25rem; }
     .record-header { background: linear-gradient(135deg, {{ tema.primary }}12, white); }
     .patient-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
@@ -55,7 +57,7 @@
                     <td>{{ licencia['fecha_termino'] }}</td>
                     <td>{{ licencia['cantidad_dias'] }}</td>
                     <td>{{ licencia['medico_nombre'] }}</td>
-                    <td><span class="badge" style="background:{{ tema.primary }}18;color:{{ tema.primary_dark }};">{{ licencia['estado'] }}</span></td>
+                    <td><span class="badge record-badge">{{ licencia['estado'] }}</span></td>
                     <td><a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_licencia_medica_ver', licencia_id=licencia['id']) }}">Ver</a></td>
                 </tr>
                 {% endfor %}
@@ -76,7 +78,7 @@
                     <div class="d-flex justify-content-between flex-wrap gap-2">
                         <div><strong>{{ consulta['fecha'] }} · {{ consulta['hora'] }}</strong><br><small class="text-muted">{{ consulta['medico_nombre'] }}</small></div>
                         <div>
-                            <span class="badge" style="background: {{ tema.primary }}20; color: {{ tema.primary_dark }};">Versión {{ consulta['version'] }}</span>
+                            <span class="badge record-version-badge">Versión {{ consulta['version'] }}</span>
                             <a class="btn btn-sm btn-outline-primary ms-2" href="{{ url_for('facturacion_historia_clinica_ver', consulta_id=consulta['id']) }}">Ver consulta</a>
                         </div>
                     </div>

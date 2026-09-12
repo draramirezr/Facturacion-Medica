@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     /* ========== ESTILOS DE IMPRESIÓN ========== */
     @media print {
         /* Ocultar elementos no imprimibles */
@@ -504,6 +504,38 @@
     #modalEnviarEmail .modal-title i {
         color: white !important;
     }
+
+    /* Utilidades locales migradas desde atributos style para CSP. */
+    .csp-u-001 { max-width: 900px; margin: 0 auto 2rem auto; text-align: center; }
+    .csp-u-002 { display: inline; }
+    .csp-u-003 { max-width: 900px; margin: 0 auto 1.5rem auto; }
+    .csp-u-004 { display: block; background: #fff; padding: 6px; border: 1px solid #b8c4cc; }
+    .csp-u-005 { width: 120px; }
+    .csp-u-006 { white-space: nowrap; }
+    .csp-u-007 { margin-bottom: 0.1rem; }
+    .csp-u-008 { margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #666; }
+    .csp-u-009 { width: 4%; }
+    .csp-u-010 { width: 30%; }
+    .csp-u-011 { width: 10%; }
+    .csp-u-012 { width: 12%; white-space: nowrap; }
+    .csp-u-013 { width: 12%; }
+    .csp-u-014 { width: 20%; }
+    .csp-u-015 { background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px; }
+    .csp-u-016 { max-width: 900px; margin: 2rem auto; text-align: center; }
+    .csp-u-017 { border-radius: 15px; overflow: hidden; }
+    .csp-u-018 { background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%); color: white; }
+    .csp-u-019 { background-color: {{ tema.primary }}15; border-color: {{ tema.primary }}; color: #666; }
+    .csp-u-020 { background-color: #f8f9fa; }
+    .csp-u-021 { background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%); color: white; border: none; font-weight: 600; }
+    .csp-u-022 { border-radius: 20px; overflow: hidden; border: none; }
+    .csp-u-023 { background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%); border: none; }
+    .csp-u-024 { padding: 2rem; }
+    .csp-u-025 { font-size: 4rem; color: {{ tema.primary }}; }
+    .csp-u-026 { font-size: 1.1rem; color: #333; }
+    .csp-u-027 { background-color: {{ tema.primary }}15; border-color: {{ tema.primary }}; color: #666; text-align: center; }
+    .csp-u-028 { background-color: #f8f9fa; border: none; justify-content: center; gap: 1rem; }
+    .csp-u-029 { min-width: 120px; padding: 0.7rem 1.5rem; border-radius: 12px; font-weight: 600; }
+    .csp-u-030 { background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%); color: white; border: none; font-weight: 600; min-width: 120px; padding: 0.7rem 1.5rem; border-radius: 12px; }
 </style>
 
 <div class="container-fluid mt-4">
@@ -516,7 +548,7 @@
     </div>
 
     <!-- Botones de Acción ARRIBA (Header) -->
-    <div class="no-print" style="max-width: 900px; margin: 0 auto 2rem auto; text-align: center;">
+    <div class="no-print csp-u-001">
         <a href="{{ url_for('facturacion_historico') }}" class="btn-volver no-print">
             <i class="fas fa-arrow-left me-2"></i>
             Volver al Histórico
@@ -530,7 +562,7 @@
             <i class="fas fa-file-pdf me-2"></i>
             Descargar PDF
         </a>
-        <button onclick="abrirModalEmail()" class="btn-email no-print">
+        <button data-csp-click="abrirModalEmail" class="btn-email no-print">
             <i class="fas fa-envelope me-2"></i>
             Enviar por Email
         </button>
@@ -548,7 +580,7 @@
         </a>
         {% endif %}
         {% if factura_ecf and factura_ecf['estado'] in ['ENVIADO', 'ERROR_ENVIO', 'ACEPTADO', 'RECHAZADO'] %}
-        <form method="POST" action="{{ url_for('facturacion_consultar_estado_ecf', factura_id=factura['id']) }}" style="display: inline;">
+        <form method="POST" action="{{ url_for('facturacion_consultar_estado_ecf', factura_id=factura['id']) }}" class="csp-u-002">
             <button type="submit" class="btn-accion no-print">
                 <i class="fas fa-sync-alt me-2"></i>
                 Consultar estado DGII
@@ -558,7 +590,7 @@
     </div>
 
     {% if factura_ecf %}
-    <div class="no-print alert {{ 'alert-success' if factura_ecf['estado'] == 'ACEPTADO' else ('alert-danger' if factura_ecf['estado'] in ['RECHAZADO', 'ERROR_ENVIO', 'ERROR_FIRMA', 'ERROR_VALIDACION'] else 'alert-info') }}" style="max-width: 900px; margin: 0 auto 1.5rem auto;">
+    <div class="no-print alert {{ 'alert-success' if factura_ecf['estado'] == 'ACEPTADO' else ('alert-danger' if factura_ecf['estado'] in ['RECHAZADO', 'ERROR_ENVIO', 'ERROR_FIRMA', 'ERROR_VALIDACION'] else 'alert-info') }} csp-u-003">
         <strong>Estado e-CF:</strong> {{ factura_ecf['estado']|replace('_', ' ') }}
         <br>
         <span>
@@ -571,8 +603,7 @@
                     <a href="{{ url_for('facturacion_representacion_impresa_ecf', factura_id=factura['id']) }}" target="_blank" aria-label="Abrir representación impresa del e-CF">
                         <img src="{{ url_for('facturacion_qr_ecf', factura_id=factura['id']) }}"
                              alt="QR de validación DGII para {{ factura_ecf['e_ncf'] }}"
-                             width="120" height="120"
-                             style="display: block; background: #fff; padding: 6px; border: 1px solid #b8c4cc;">
+                             width="120" height="120" class="csp-u-004">
                     </a>
                     <small>Escanee para validar este e-CF en DGII.</small>
                 </div>
@@ -613,19 +644,19 @@
     <div class="factura-container">
         <!-- Header Compacto -->
         <div class="factura-header">
-            <div style="width: 120px;"></div>
+            <div class="csp-u-005"></div>
             <div class="factura-title-center">
                 <h1 class="factura-title">
                     {{ 'FACTURA ELECTRÓNICA' if factura_ecf else 'FACTURA' }}
                 </h1>
             </div>
-            <div style="width: 120px;"></div>
+            <div class="csp-u-005"></div>
         </div>
 
         <!-- Información Principal en 3 Columnas -->
         <div class="factura-info">
             <div class="info-box">
-                <h6 style="white-space: nowrap;">Información de Factura</h6>
+                <h6 class="csp-u-006">Información de Factura</h6>
                 <p><strong>Fecha:</strong> {{ fecha_factura }}</p>
                 <p><strong>Cliente:</strong> {{ ars.get('nombre') or ars.get('nombre_ars', 'N/A') }}</p>
                 {% if ars['rnc'] %}
@@ -643,13 +674,13 @@
             <div class="info-box">
                 <h6>Remitente</h6>
                 {% if tipo_empresa == 'centro_salud' %}
-                    <p style="margin-bottom: 0.1rem;"><strong>{{ empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A')) }}</strong></p>
+                    <p class="csp-u-007"><strong>{{ empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A')) }}</strong></p>
                     {% if empresa_info.get('rnc') %}
                     <p><strong>RNC:</strong> {{ empresa_info.get('rnc') }}</p>
                     {% endif %}
                 {% else %}
-                    <p style="margin-bottom: 0.1rem;"><strong>Médico:</strong> {{ medico['nombre'] }}</p>
-                    <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #666;">{{ medico['especialidad'] }}</p>
+                    <p class="csp-u-007"><strong>Médico:</strong> {{ medico['nombre'] }}</p>
+                    <p class="csp-u-008">{{ medico['especialidad'] }}</p>
                     <p><strong>Cédula:</strong> {{ medico['cedula'] }}</p>
                 {% endif %}
             </div>
@@ -659,13 +690,13 @@
         <table class="tabla-factura">
             <thead>
                 <tr>
-                    <th style="width: 4%;">No.</th>
-                    <th style="width: 30%;">NOMBRES PACIENTE</th>
-                    <th style="width: 10%;">NSS/CONTRATO</th>
-                    <th style="width: 12%; white-space: nowrap;">FECHA</th>
-                    <th style="width: 12%;">AUTORIZACIÓN</th>
-                    <th style="width: 20%;">SERVICIO</th>
-                    <th style="width: 12%;" class="text-right">V/UNITARIO</th>
+                    <th class="csp-u-009">No.</th>
+                    <th class="csp-u-010">NOMBRES PACIENTE</th>
+                    <th class="csp-u-011">NSS/CONTRATO</th>
+                    <th class="csp-u-012">FECHA</th>
+                    <th class="csp-u-013">AUTORIZACIÓN</th>
+                    <th class="csp-u-014">SERVICIO</th>
+                    <th class="text-right csp-u-013">V/UNITARIO</th>
                 </tr>
             </thead>
             <tbody>
@@ -676,7 +707,7 @@
                     <td><strong>{{ paciente['nombre_paciente'] }}</strong></td>
                     <td>{{ paciente['nss'] }}</td>
                     <td>{{ paciente['fecha_servicio'] }}</td>
-                    <td><code style="background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px;">{{ paciente['autorizacion'] }}</code></td>
+                    <td><code class="csp-u-015">{{ paciente['autorizacion'] }}</code></td>
                     <td>{{ paciente['descripcion_servicio'] }}</td>
                     <td class="text-right"><strong>{{ monto_paciente|formato_moneda }}</strong></td>
                 </tr>
@@ -756,7 +787,7 @@
     </div>
 
     <!-- Botones de Acción ABAJO (Pie de página) -->
-    <div class="no-print" style="max-width: 900px; margin: 2rem auto; text-align: center;">
+    <div class="no-print csp-u-016">
         <a href="{{ url_for('facturacion_historico') }}" class="btn-volver no-print">
             <i class="fas fa-arrow-left me-2"></i>
             Volver al Histórico
@@ -770,7 +801,7 @@
             <i class="fas fa-file-pdf me-2"></i>
             Descargar PDF
         </a>
-        <button onclick="abrirModalEmail()" class="btn-email no-print">
+        <button data-csp-click="abrirModalEmail" class="btn-email no-print">
             <i class="fas fa-envelope me-2"></i>
             Enviar por Email
         </button>
@@ -786,8 +817,8 @@
 <!-- Modal para Enviar Email -->
 <div class="modal fade" id="modalEnviarEmail" tabindex="-1">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 15px; overflow: hidden;">
-            <div class="modal-header" style="background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%); color: white;">
+        <div class="modal-content csp-u-017">
+            <div class="modal-header csp-u-018">
                 <h5 class="modal-title">
                     <i class="fas fa-envelope me-2"></i>
                     Enviar Factura por Email
@@ -814,7 +845,7 @@
                         </div>
                     </div>
                     
-                    <div class="alert alert-info mb-0" style="background-color: {{ tema.primary }}15; border-color: {{ tema.primary }}; color: #666;">
+                    <div class="alert alert-info mb-0 csp-u-019">
                         <strong><i class="fas fa-file-pdf me-1"></i> Se adjuntará:</strong><br>
                         <small>
                             • Factura #{{ factura['id'] }}<br>
@@ -823,12 +854,12 @@
                         </small>
                     </div>
                 </div>
-                <div class="modal-footer" style="background-color: #f8f9fa;">
+                <div class="modal-footer csp-u-020">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
                         <i class="fas fa-times me-1"></i>
                         Cancelar
                     </button>
-                    <button type="submit" class="btn" style="background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%); color: white; border: none; font-weight: 600;">
+                    <button type="submit" class="btn csp-u-021">
                         <i class="fas fa-paper-plane me-1"></i>
                         Enviar Email
                     </button>
@@ -841,34 +872,34 @@
 <!-- Modal para Preguntar si Desea Imprimir -->
 <div class="modal fade" id="modalImprimir" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content" style="border-radius: 20px; overflow: hidden; border: none;">
-            <div class="modal-header" style="background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%); border: none;">
+        <div class="modal-content csp-u-022">
+            <div class="modal-header csp-u-023">
                 <h5 class="modal-title text-white">
                     <i class="fas fa-print me-2"></i>
                     ¿Desea Imprimir la Factura?
                 </h5>
             </div>
-            <div class="modal-body" style="padding: 2rem;">
+            <div class="modal-body csp-u-024">
                 <div class="text-center mb-3">
-                    <i class="fas fa-file-invoice" style="font-size: 4rem; color: {{ tema.primary }};"></i>
+                    <i class="fas fa-file-invoice csp-u-025"></i>
                 </div>
-                <p class="text-center mb-3" style="font-size: 1.1rem; color: #333;">
+                <p class="text-center mb-3 csp-u-026">
                     La factura ha sido generada exitosamente.<br>
                     <strong>¿Desea imprimirla ahora?</strong>
                 </p>
-                <div class="alert" style="background-color: {{ tema.primary }}15; border-color: {{ tema.primary }}; color: #666; text-align: center;">
+                <div class="alert csp-u-027">
                     <small>
                         <i class="fas fa-info-circle me-1"></i>
                         También puede imprimir más tarde desde el botón "Imprimir"
                     </small>
                 </div>
             </div>
-            <div class="modal-footer" style="background-color: #f8f9fa; border: none; justify-content: center; gap: 1rem;">
-                <button type="button" class="btn btn-secondary" onclick="cerrarModalImprimir()" style="min-width: 120px; padding: 0.7rem 1.5rem; border-radius: 12px; font-weight: 600;">
+            <div class="modal-footer csp-u-028">
+                <button type="button" class="btn btn-secondary csp-u-029" data-csp-click="cerrarModalImprimir">
                     <i class="fas fa-times me-2"></i>
                     No
                 </button>
-                <button type="button" class="btn" onclick="imprimirFactura()" style="background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%); color: white; border: none; font-weight: 600; min-width: 120px; padding: 0.7rem 1.5rem; border-radius: 12px;">
+                <button type="button" class="btn csp-u-030" data-csp-click="imprimirFactura">
                     <i class="fas fa-print me-2"></i>
                     Sí, Imprimir
                 </button>
@@ -877,7 +908,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function abrirModalEmail() {
     var modal = new bootstrap.Modal(document.getElementById('modalEnviarEmail'));
     modal.show();

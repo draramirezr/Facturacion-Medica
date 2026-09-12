@@ -10,7 +10,7 @@
 {% set sv = consulta.signos_vitales if consulta else {} %}
 {% set ef = consulta.examen_fisico if consulta else {} %}
 {% set plan = consulta.plan_tratamiento if consulta else {} %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .hc-form-shell { max-width: 1100px; margin: 0 auto; }
     .hc-patient-bar, .hc-form-card { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.3rem; }
     .hc-form-card { border-top-left-radius: 0; }
@@ -160,7 +160,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const peso = document.getElementById('peso');
     const talla = document.getElementById('talla');

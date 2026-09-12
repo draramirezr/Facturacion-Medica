@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .types-card { background:white; border:1px solid {{ tema.primary }}20; border-radius:15px; padding:1.3rem; margin-bottom:1.2rem; }
     .types-card th { background:var(--primary-dark) !important; color:white !important; }
 </style>

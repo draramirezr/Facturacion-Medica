@@ -4,14 +4,14 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .facturacion-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
         border-radius: 20px;
         padding: 2rem;
         margin-bottom: 2rem;
     }
-    
+
     .search-box {
         background: white;
         border-radius: 15px;
@@ -19,45 +19,45 @@
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         margin-bottom: 2rem;
     }
-    
+
     .table-facturacion {
         background: white;
         border-radius: 15px;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         overflow: hidden;
     }
-    
+
     /* Contenedor con scroll horizontal para responsive */
     .table-responsive-wrapper {
         max-height: 400px; /* Altura aproximada para 5 registros */
         overflow-x: auto;
         overflow-y: auto;
     }
-    
+
     /* Barra de desplazamiento personalizada */
     .table-responsive-wrapper::-webkit-scrollbar {
         width: 10px;
         height: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-track {
         background: #f1f1f1;
         border-radius: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-thumb {
         background: {{ tema.primary_dark }};
         border-radius: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
         background: {{ tema.primary }};
     }
-    
+
     .table-facturacion table {
         min-width: 1000px; /* Ancho mínimo para médicos (más columnas) */
     }
-    
+
     .table-facturacion th {
         background: {{ tema.primary_dark }} !important;
         background-color: {{ tema.primary_dark }} !important;
@@ -69,24 +69,24 @@
         top: 0;
         z-index: 10;
     }
-    
+
     .table-facturacion thead th {
         color: #FFFFFF !important;
     }
-    
+
     .table-facturacion td {
         padding: 1rem;
         vertical-align: middle;
         border-bottom: 1px solid {{ tema.primary }}15;
     }
-    
+
     .table-facturacion tbody tr:hover {
         background-color: {{ tema.primary }}08;
     }
-    
+
     /* Los estilos de botones ahora están en botones-estandarizados.css */
     /* Esto garantiza que todos los botones tengan el mismo tamaño y color */
-    
+
     .badge-especialidad {
         background: linear-gradient(135deg, {{ tema.primary }}30 0%, {{ tema.primary_light }}60 100%);
         color: var(--text-dark);
@@ -95,6 +95,33 @@
         font-weight: 600;
         font-size: 0.85rem;
     }
+    .fi-medicos-inline-1 {
+        color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;
+    }
+    .fi-medicos-inline-2 {
+        border-radius: 10px; height: 48px;
+    }
+    .fi-medicos-inline-3 {
+        height: 48px;
+    }
+    .fi-medicos-inline-4 {
+        width: 28%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-medicos-inline-5 {
+        width: 24%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-medicos-inline-6 {
+        width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-medicos-inline-7 {
+        width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-medicos-inline-8 {
+        width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-medicos-inline-10 {
+        background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 2rem;
+    }
 </style>
 
 <div class="container py-5">
@@ -102,7 +129,7 @@
     <div class="facturacion-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                <h1 class="fi-medicos-inline-1">
                     <i class="fas fa-user-md me-2"></i>
                     Médicos
                 </h1>
@@ -124,10 +151,10 @@
         <form method="GET" action="{{ url_for('facturacion_medicos') }}">
             <div class="row align-items-end">
                 <div class="col-md-10">
-                    <input type="text" name="search" class="form-control" placeholder="Buscar por nombre, especialidad o teléfono..." value="{{ search }}" style="border-radius: 10px; height: 48px;">
+                    <input type="text" name="search" class="form-control fi-medicos-inline-2" placeholder="Buscar por nombre, especialidad o teléfono..." value="{{ search }}">
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-buscar w-100" style="height: 48px;">
+                    <button type="submit" class="btn btn-buscar w-100 fi-medicos-inline-3">
                         <i class="fas fa-search me-2"></i>Buscar
                     </button>
                 </div>
@@ -142,11 +169,11 @@
             <table class="table table-hover mb-0">
             <thead>
                 <tr>
-                    <th style="width: 28%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Nombre</th>
-                    <th style="width: 24%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Especialidad</th>
-                    <th style="width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Teléfono</th>
-                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Estado</th>
-                    <th style="width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Acciones</th>
+                    <th class="fi-medicos-inline-4">Nombre</th>
+                    <th class="fi-medicos-inline-5">Especialidad</th>
+                    <th class="fi-medicos-inline-6">Teléfono</th>
+                    <th class="text-center fi-medicos-inline-7">Estado</th>
+                    <th class="text-center fi-medicos-inline-8">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -173,12 +200,13 @@
                             <a href="{{ url_for('facturacion_medicos_editar', medico_id=medico['id']) }}" class="btn btn-accion-editar">
                                 <i class="fas fa-edit"></i> Editar
                             </a>
-                            <a href="#" 
-                               onclick="if(confirm('¿Estás segura de eliminar este médico?')) { document.getElementById('delete-form-medico-{{ medico['id'] }}').submit(); } return false;"
+                            <a href="#"
+                               data-confirm-submit="¿Estás segura de eliminar este médico?"
+                               data-submit-target="delete-form-medico-{{ medico['id'] }}"
                                class="btn btn-accion-editar">
                                 <i class="fas fa-trash"></i> Eliminar
                             </a>
-                            <form id="delete-form-medico-{{ medico['id'] }}" method="POST" action="{{ url_for('facturacion_medicos_eliminar', medico_id=medico['id']) }}" style="display: none;">
+                            <form id="delete-form-medico-{{ medico['id'] }}" method="POST" action="{{ url_for('facturacion_medicos_eliminar', medico_id=medico['id']) }}" class="d-none">
                             </form>
                         </div>
                     </td>
@@ -188,7 +216,7 @@
         </table>
         </div>
         {% else %}
-        <div class="alert alert-info" style="background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 2rem;">
+        <div class="alert alert-info fi-medicos-inline-10">
             <i class="fas fa-info-circle me-2"></i>
             No hay médicos registrados. Haz clic en "Nuevo Médico" para comenzar.
         </div>

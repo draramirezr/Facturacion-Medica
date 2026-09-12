@@ -5,7 +5,7 @@
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-responsive.css') }}">
-<style>
+<style nonce="{{ csp_nonce }}">
     .admin-container {
         max-width: 1200px;
         margin: 50px auto;
@@ -210,6 +210,9 @@
         font-weight: 600;
         font-size: 16px;
     }
+
+    .never-accessed { color: #999; }
+    .create-first-user { margin-top: 20px; }
     
     @media (max-width: 768px) {
         .admin-header {
@@ -292,7 +295,7 @@
                             {% if usuario.last_login %}
                                 {{ usuario.last_login.strftime('%Y-%m-%d %H:%M') if usuario.last_login is not string else usuario.last_login[:16] }}
                             {% else %}
-                                <span style="color: #999;">Nunca</span>
+                                <span class="never-accessed">Nunca</span>
                             {% endif %}
                         </td>
                         <td>
@@ -311,7 +314,7 @@
             <div class="no-users">
                 <h3>No hay usuarios registrados</h3>
                 <p>Crea el primer usuario para comenzar</p>
-                <a href="{{ url_for('admin_usuarios_nuevo') }}" class="btn btn-success" style="margin-top: 20px;">
+                <a href="{{ url_for('admin_usuarios_nuevo') }}" class="btn btn-success create-first-user">
                     <i class="fas fa-plus"></i> Crear Usuario
                 </a>
             </div>

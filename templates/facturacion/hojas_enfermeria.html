@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .nursing-hero { padding:1.6rem; margin-bottom:1.2rem; border:1px solid {{ tema.primary }}20; border-radius:17px; background:linear-gradient(135deg,{{ tema.primary }}12,white); }
     .nursing-surface { margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; overflow:hidden; }
     .nursing-filter { padding:1rem; }

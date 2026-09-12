@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .facturacion-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
         border-radius: 20px;
@@ -152,6 +152,13 @@
     .form-select.with-icon {
         padding-left: 3rem;
     }
+
+    /* Utilidades locales migradas desde atributos style para CSP. */
+    .csp-u-001 { color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem; }
+    .csp-u-002 { color: var(--primary-color); font-weight: 600; }
+    .csp-u-003 { color: #999; font-weight: 600; }
+    .csp-u-004 { color: var(--primary-dark); font-weight: 700; margin-bottom: 2rem; text-align: center; }
+    .csp-u-005 { color: #dc3545; font-weight: 600; }
 </style>
 
 <div class="container py-5">
@@ -159,7 +166,7 @@
     <div class="facturacion-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                <h1 class="csp-u-001">
                     <i class="fas fa-file-invoice-dollar me-2"></i>
                     Generar Factura
                 </h1>
@@ -177,21 +184,21 @@
     <div class="step-indicator">
         <div class="step">
             <div class="step-number">1</div>
-            <span style="color: var(--primary-color); font-weight: 600;">Configuración</span>
+            <span class="csp-u-002">Configuración</span>
         </div>
         <div class="step-arrow">
             <i class="fas fa-chevron-right"></i>
         </div>
         <div class="step">
             <div class="step-number inactive">2</div>
-            <span style="color: #999; font-weight: 600;">Selección de Pacientes</span>
+            <span class="csp-u-003">Selección de Pacientes</span>
         </div>
         <div class="step-arrow">
             <i class="fas fa-chevron-right"></i>
         </div>
         <div class="step">
             <div class="step-number inactive">3</div>
-            <span style="color: #999; font-weight: 600;">Generación</span>
+            <span class="csp-u-003">Generación</span>
         </div>
     </div>
 
@@ -199,7 +206,7 @@
     <form method="POST" id="formConfiguracion" class="form-config">
         <input type="hidden" name="step" value="1">
         
-        <h3 style="color: var(--primary-dark); font-weight: 700; margin-bottom: 2rem; text-align: center;">
+        <h3 class="csp-u-004">
             <i class="fas fa-cog me-2"></i>
             Configuración de la Factura
         </h3>
@@ -214,7 +221,7 @@
             <div class="form-check mb-2">
                 <input class="form-check-input" type="radio" name="tipo_factura"
                        id="tipo_tradicional" value="TRADICIONAL" checked
-                       onchange="actualizarTipoFactura(); checkForm()">
+                       data-csp-change="actualizarTipoFactura,checkForm">
                 <label class="form-check-label" for="tipo_tradicional">
                     Factura tradicional
                 </label>
@@ -222,7 +229,7 @@
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="tipo_factura"
                        id="tipo_electronica" value="ELECTRONICA"
-                       onchange="actualizarTipoFactura(); checkForm()">
+                       data-csp-change="actualizarTipoFactura,checkForm">
                 <label class="form-check-label" for="tipo_electronica">
                     Factura electrónica (e-CF)
                 </label>
@@ -240,7 +247,7 @@
                 ARS (Administradora de Riesgos de Salud)
                 <span class="required">*</span>
             </label>
-            <select class="form-select" id="ars_id" name="ars_id" required onchange="checkForm(); seleccionarNCFporARS()">
+            <select class="form-select" id="ars_id" name="ars_id" required data-csp-change="checkForm,seleccionarNCFporARS">
                 <option value="">-- Seleccione una ARS --</option>
                 {% for ars in ars_list %}
                 <option value="{{ ars['id'] }}" data-nombre="{{ ars['nombre'] }}">{{ ars['nombre'] }} {% if ars['rnc'] %}(RNC: {{ ars['rnc'] }}){% endif %}</option>
@@ -259,7 +266,7 @@
                 NCF tradicional
                 <span class="required">*</span>
             </label>
-            <select class="form-select" id="ncf_id" name="ncf_id" required onchange="checkForm()">
+            <select class="form-select" id="ncf_id" name="ncf_id" required data-csp-change="checkForm">
                 <option value="">-- Seleccione un NCF --</option>
                 {% for ncf in ncf_list %}
                 <option value="{{ ncf['id'] }}" 
@@ -280,7 +287,7 @@
                 Facturado Por
                 <span class="required">*</span>
             </label>
-            <select class="form-select" id="medico_factura_id" name="medico_factura_id" required onchange="checkForm()" {% if tipo_empresa == 'centro_salud' %}disabled{% endif %}>
+            <select class="form-select" id="medico_factura_id" name="medico_factura_id" required data-csp-change="checkForm" {% if tipo_empresa == 'centro_salud' %}disabled{% endif %}>
                 {% if tipo_empresa == 'centro_salud' %}
                     {% for medico in medicos_habilitados %}
                     <option value="{{ medico['id'] }}" selected>{{ medico['nombre'] }}</option>
@@ -302,7 +309,7 @@
                 {% if tipo_empresa == 'centro_salud' %}
                 Razón social de la empresa
                 {% elif medicos_habilitados|length == 0 %}
-                <span style="color: #dc3545; font-weight: 600;">⚠️ No hay médicos habilitados. Configure uno en Maestras > Médicos</span>
+                <span class="csp-u-005">⚠️ No hay médicos habilitados. Configure uno en Maestras > Médicos</span>
                 {% else %}
                 Solo médicos habilitados para facturar
                 {% endif %}
@@ -317,7 +324,7 @@
                 <span class="required">*</span>
             </label>
             <input type="date" class="form-control" id="fecha_factura" name="fecha_factura" 
-                   value="{{ fecha_actual }}" required onchange="checkForm()" max="{{ fecha_actual }}">
+                   value="{{ fecha_actual }}" required data-csp-change="checkForm" max="{{ fecha_actual }}">
             <small class="text-muted">
                 <i class="fas fa-info-circle"></i>
                 Por defecto: fecha actual (puede modificarla si es necesario)
@@ -335,7 +342,7 @@
     </form>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function checkForm() {
     const tipo = document.querySelector('input[name="tipo_factura"]:checked').value;
     const ars = document.getElementById('ars_id').value;

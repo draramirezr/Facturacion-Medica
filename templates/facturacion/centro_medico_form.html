@@ -4,37 +4,37 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .form-container {
         max-width: 800px;
         margin: 0 auto;
     }
-    
+
     .form-card {
         background: white;
         border-radius: 20px;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         padding: 2.5rem;
     }
-    
+
     .form-label {
         font-weight: 600;
         color: var(--text-dark);
         margin-bottom: 0.5rem;
     }
-    
+
     .form-control {
         border-radius: 10px;
         border: 2px solid {{ tema.primary }}50;
         padding: 0.75rem 1rem;
         transition: all 0.3s ease;
     }
-    
+
     .form-control:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 0.2rem {{ tema.primary }}40;
     }
-    
+
     .btn-guardar {
         background: white;
         border: 2px solid var(--primary-color);
@@ -44,14 +44,14 @@
         font-weight: 600;
         transition: all 0.3s ease;
     }
-    
+
     .btn-guardar:hover {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
         color: white;
         transform: translateY(-2px);
         box-shadow: 0 6px 20px {{ tema.primary }}50;
     }
-    
+
     .btn-cancelar {
         background: white;
         border: 2px solid var(--text-muted);
@@ -61,17 +61,32 @@
         font-weight: 600;
         transition: all 0.3s ease;
     }
-    
+
     .btn-cancelar:hover {
         background: var(--text-muted);
         color: white;
+    }
+    .fi-centro-medico-form-inline-1 {
+        color: var(--primary-color); font-weight: 800; font-size: 2rem;
+    }
+    .fi-centro-medico-form-inline-2 {
+        color: var(--primary-color);
+    }
+    .fi-centro-medico-form-inline-3 {
+        color: var(--primary-color);
+    }
+    .fi-centro-medico-form-inline-4 {
+        color: var(--primary-color);
+    }
+    .fi-centro-medico-form-inline-5 {
+        color: var(--primary-color);
     }
 </style>
 
 <div class="container py-5">
     <div class="form-container">
         <div class="mb-4">
-            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
+            <h1 class="fi-centro-medico-form-inline-1">
                 <i class="fas fa-hospital-alt me-2"></i>
                 {{ 'Editar Centro Médico' if centro else 'Nuevo Centro Médico' }}
             </h1>
@@ -83,17 +98,17 @@
                 <!-- Nombre -->
                 <div class="mb-3">
                     <label for="nombre" class="form-label">
-                        <i class="fas fa-hospital-alt me-2" style="color: var(--primary-color);"></i>
+                        <i class="fas fa-hospital-alt me-2 fi-centro-medico-form-inline-2"></i>
                         Nombre del Centro Médico*
                     </label>
-                    <input type="text" class="form-control" id="nombre" name="nombre" 
+                    <input type="text" class="form-control" id="nombre" name="nombre"
                            value="{{ centro['nombre'] if centro else '' }}" required maxlength="50">
                 </div>
 
                 <!-- Dirección -->
                 <div class="mb-3">
                     <label for="direccion" class="form-label">
-                        <i class="fas fa-map-marker-alt me-2" style="color: var(--primary-color);"></i>
+                        <i class="fas fa-map-marker-alt me-2 fi-centro-medico-form-inline-3"></i>
                         Dirección*
                     </label>
                     <textarea class="form-control" id="direccion" name="direccion" rows="3" required maxlength="100">{{ centro['direccion'] if centro else '' }}</textarea>
@@ -102,11 +117,11 @@
                 <!-- RNC -->
                 <div class="mb-3">
                     <label for="rnc" class="form-label">
-                        <i class="fas fa-id-card me-2" style="color: var(--primary-color);"></i>
+                        <i class="fas fa-id-card me-2 fi-centro-medico-form-inline-4"></i>
                         RNC*
                     </label>
-                    <input type="text" class="form-control" id="rnc" name="rnc" 
-                           value="{{ centro['rnc'] if centro else '' }}" required 
+                    <input type="text" class="form-control" id="rnc" name="rnc"
+                           value="{{ centro['rnc'] if centro else '' }}" required
                            placeholder="000000000"
                            minlength="9"
                            maxlength="9"
@@ -119,10 +134,10 @@
                 <!-- Teléfono -->
                 <div class="mb-4">
                     <label for="telefono" class="form-label">
-                        <i class="fas fa-phone me-2" style="color: var(--primary-color);"></i>
+                        <i class="fas fa-phone me-2 fi-centro-medico-form-inline-5"></i>
                         Teléfono*
                     </label>
-                    <input type="text" class="form-control" id="telefono" name="telefono" 
+                    <input type="text" class="form-control" id="telefono" name="telefono"
                            value="{{ centro['telefono'] if centro else '' }}"
                            required
                            placeholder="8090000000"

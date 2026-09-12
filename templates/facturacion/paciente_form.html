@@ -6,7 +6,9 @@
 {% block content %}
 {% set es_edicion = paciente is not none %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/facturacion-responsive.css') }}">
-<style>
+<style nonce="{{ csp_nonce }}">
+    .patient-form-title { color: var(--primary-color); font-size: 2rem; font-weight: 800; }
+
     .form-container {
         max-width: 900px;
         margin: 0 auto;
@@ -82,7 +84,7 @@
 <div class="container py-5">
     <div class="form-container">
         <div class="mb-4">
-            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
+            <h1 class="patient-form-title">
                 <i class="fas fa-user me-2"></i>
                 {{ 'Editar Paciente' if es_edicion else 'Nuevo Paciente' }}
             </h1>
@@ -294,7 +296,7 @@
         </div>
     </div>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const asegurado = document.getElementById('es_asegurado');
     const grupoNss = document.getElementById('grupo-nss');

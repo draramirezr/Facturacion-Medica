@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .license-paper { max-width: 980px; margin: 1.5rem auto; background: white; border: 1px solid {{ tema.primary }}25; border-radius: 15px; padding: 2rem; position: relative; }
     .license-title { text-align: center; border-bottom: 2px solid var(--primary-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
     .license-title h1 { color: var(--primary-dark); font-size: 1.7rem; margin-bottom: .2rem; }
@@ -34,7 +34,7 @@
             box-shadow: none;
             font-size: 9pt;
             line-height: 1.18;
-            zoom: var(--license-print-zoom, .82);
+            zoom: .82;
             break-inside: avoid;
             page-break-inside: avoid;
         }
@@ -52,6 +52,37 @@
         .signature { margin-top: 25px; }
         .signature-line { width: 240px; margin-bottom: 3px; }
         .annulled { font-size: 42pt; }
+        .license-paper.license-print-scale-58 { zoom: 0.58; }
+        .license-paper.license-print-scale-59 { zoom: 0.59; }
+        .license-paper.license-print-scale-60 { zoom: 0.60; }
+        .license-paper.license-print-scale-61 { zoom: 0.61; }
+        .license-paper.license-print-scale-62 { zoom: 0.62; }
+        .license-paper.license-print-scale-63 { zoom: 0.63; }
+        .license-paper.license-print-scale-64 { zoom: 0.64; }
+        .license-paper.license-print-scale-65 { zoom: 0.65; }
+        .license-paper.license-print-scale-66 { zoom: 0.66; }
+        .license-paper.license-print-scale-67 { zoom: 0.67; }
+        .license-paper.license-print-scale-68 { zoom: 0.68; }
+        .license-paper.license-print-scale-69 { zoom: 0.69; }
+        .license-paper.license-print-scale-70 { zoom: 0.70; }
+        .license-paper.license-print-scale-71 { zoom: 0.71; }
+        .license-paper.license-print-scale-72 { zoom: 0.72; }
+        .license-paper.license-print-scale-73 { zoom: 0.73; }
+        .license-paper.license-print-scale-74 { zoom: 0.74; }
+        .license-paper.license-print-scale-75 { zoom: 0.75; }
+        .license-paper.license-print-scale-76 { zoom: 0.76; }
+        .license-paper.license-print-scale-77 { zoom: 0.77; }
+        .license-paper.license-print-scale-78 { zoom: 0.78; }
+        .license-paper.license-print-scale-79 { zoom: 0.79; }
+        .license-paper.license-print-scale-80 { zoom: 0.80; }
+        .license-paper.license-print-scale-81 { zoom: 0.81; }
+        .license-paper.license-print-scale-82 { zoom: 0.82; }
+        .license-paper.license-print-scale-83 { zoom: 0.83; }
+        .license-paper.license-print-scale-84 { zoom: 0.84; }
+        .license-paper.license-print-scale-85 { zoom: 0.85; }
+        .license-paper.license-print-scale-86 { zoom: 0.86; }
+        .license-paper.license-print-scale-87 { zoom: 0.87; }
+        .license-paper.license-print-scale-88 { zoom: 0.88; }
     }
 </style>
 
@@ -131,13 +162,15 @@
 <div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><form class="modal-content" method="POST" action="{{ url_for('facturacion_licencia_medica_anular', licencia_id=licencia['id']) }}"><div class="modal-header"><h2 class="modal-title fs-5">Anular licencia médica</h2><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p>La licencia permanecerá en el historial como anulada.</p><label class="form-label">Motivo de anulación *</label><textarea class="form-control" name="motivo_anulacion" rows="4" required maxlength="2000"></textarea></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Confirmar anulación</button></div></form></div></div>
 {% endif %}
 {% if imprimir %}
-<script>
+<script nonce="{{ csp_nonce }}">
 function prepararLicenciaParaUnaPagina() {
     const documento = document.querySelector('.license-paper');
     if (!documento) return;
     const altoObjetivo = 900;
-    const escala = Math.max(.58, Math.min(.88, altoObjetivo / documento.scrollHeight));
-    documento.style.setProperty('--license-print-zoom', escala.toFixed(3));
+    const escala = Math.round(Math.max(.58, Math.min(.88, altoObjetivo / documento.scrollHeight)) * 100);
+    const clasesEscala = Array.from({ length: 31 }, (_, indice) => `license-print-scale-${indice + 58}`);
+    documento.classList.remove(...clasesEscala);
+    documento.classList.add(`license-print-scale-${escala}`);
 }
 window.addEventListener('beforeprint', prepararLicenciaParaUnaPagina);
 window.addEventListener('load', () => {

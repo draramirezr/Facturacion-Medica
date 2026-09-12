@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .lm-hero { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 2rem; margin-bottom: 1.25rem; }
     .lm-filters, .lm-table { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.2rem; margin-bottom: 1.25rem; }
     .lm-table { padding: 0; overflow: hidden; }

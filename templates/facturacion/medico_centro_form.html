@@ -4,37 +4,37 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .form-container {
         max-width: 800px;
         margin: 0 auto;
     }
-    
+
     .form-card {
         background: white;
         border-radius: 20px;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         padding: 2.5rem;
     }
-    
+
     .form-label {
         font-weight: 600;
         color: var(--text-dark);
         margin-bottom: 0.5rem;
     }
-    
+
     .form-control, .form-select {
         border-radius: 10px;
         border: 2px solid {{ tema.primary }}50;
         padding: 0.75rem 1rem;
         transition: all 0.3s ease;
     }
-    
+
     .form-control:focus, .form-select:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 0.2rem {{ tema.primary }}40;
     }
-    
+
     .btn-guardar {
         background: white;
         border: 2px solid var(--primary-color);
@@ -44,14 +44,14 @@
         font-weight: 600;
         transition: all 0.3s ease;
     }
-    
+
     .btn-guardar:hover {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
         color: white;
         transform: translateY(-2px);
         box-shadow: 0 6px 20px {{ tema.primary }}50;
     }
-    
+
     .btn-cancelar {
         background: white;
         border: 2px solid var(--text-muted);
@@ -61,17 +61,29 @@
         font-weight: 600;
         transition: all 0.3s ease;
     }
-    
+
     .btn-cancelar:hover {
         background: var(--text-muted);
         color: white;
+    }
+    .fi-medico-centro-form-inline-1 {
+        color: var(--primary-color); font-weight: 800; font-size: 2rem;
+    }
+    .fi-medico-centro-form-inline-2 {
+        color: var(--primary-color);
+    }
+    .fi-medico-centro-form-inline-3 {
+        color: var(--primary-color);
+    }
+    .fi-medico-centro-form-inline-4 {
+        color: #FFD700;
     }
 </style>
 
 <div class="container py-5">
     <div class="form-container">
         <div class="mb-4">
-            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
+            <h1 class="fi-medico-centro-form-inline-1">
                 <i class="fas fa-link me-2"></i>
                 {{ 'Editar Relación Centro x Médico' if relacion else 'Nueva Relación Centro x Médico' }}
             </h1>
@@ -83,10 +95,10 @@
                 <!-- Médico -->
                 <div class="mb-3">
                     <label for="medico_id" class="form-label">
-                        <i class="fas fa-user-md me-2" style="color: var(--primary-color);"></i>
+                        <i class="fas fa-user-md me-2 fi-medico-centro-form-inline-2"></i>
                         Médico*
                     </label>
-                    
+
                     <select class="form-select" id="medico_id" name="medico_id" required>
                         <option value="">Seleccione un médico...</option>
                         {% for medico in medicos %}
@@ -95,7 +107,7 @@
                         </option>
                         {% endfor %}
                     </select>
-                    
+
                     <!-- DEBUG: Mostrar si no hay opciones -->
                     {% if not medicos %}
                         <small class="text-danger">
@@ -108,10 +120,10 @@
                 <!-- Centro Médico -->
                 <div class="mb-3">
                     <label for="centro_medico_id" class="form-label">
-                        <i class="fas fa-hospital-alt me-2" style="color: var(--primary-color);"></i>
+                        <i class="fas fa-hospital-alt me-2 fi-medico-centro-form-inline-3"></i>
                         Centro Médico*
                     </label>
-                    
+
                     <select class="form-select" id="centro_medico_id" name="centro_medico_id" required>
                         <option value="">Seleccione un centro médico...</option>
                         {% for centro in centros %}
@@ -120,7 +132,7 @@
                         </option>
                         {% endfor %}
                     </select>
-                    
+
                     <!-- DEBUG: Mostrar si no hay opciones -->
                     {% if not centros %}
                         <small class="text-danger">
@@ -129,13 +141,13 @@
                         </small>
                     {% endif %}
                 </div>
-                
+
                 <!-- Centro por Defecto -->
                 <div class="mb-4">
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="es_defecto" name="es_defecto" value="1" {% if relacion and relacion['es_defecto'] %}checked{% endif %}>
                         <label class="form-check-label" for="es_defecto">
-                            <i class="fas fa-star me-2" style="color: #FFD700;"></i>
+                            <i class="fas fa-star me-2 fi-medico-centro-form-inline-4"></i>
                             <strong>Marcar como Centro por Defecto</strong>
                             <br>
                             <small class="text-muted">Este centro se preseleccionará automáticamente al agregar pacientes o generar facturas para este médico.</small>

@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .report-360-shell { max-width: 1180px; margin: 0 auto; padding: 1.5rem; }
     .report-360-header {
         display: flex;
@@ -17,6 +17,7 @@
         border-radius: 15px;
         background: var(--ars-shell-surface, #fff);
     }
+    .report-360-title-icon { color: var(--primary-color); }
     .report-360-header h1 { margin: 0 0 .35rem; color: var(--ars-shell-text); font-size: 1.55rem; font-weight: 800; }
     .report-360-header p { margin: 0; color: var(--ars-shell-muted); font-size: .82rem; }
     .report-360-search {
@@ -63,7 +64,7 @@
 <div class="report-360-shell">
     <header class="report-360-header">
         <div>
-            <h1><i class="fas fa-address-card me-2" style="color: var(--primary-color);"></i>Vista 360 de pacientes</h1>
+            <h1><i class="fas fa-address-card me-2 report-360-title-icon"></i>Vista 360 de pacientes</h1>
             <p>Consulta datos básicos, historias, emergencias, citas, recetas, licencias, consultas y facturas.</p>
         </div>
         <a href="{{ url_for('facturacion_menu') }}" class="btn btn-outline-primary">

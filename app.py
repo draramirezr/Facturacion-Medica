@@ -163,10 +163,15 @@ def set_security_headers(response):
     response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
     response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
     
+    nonce = g.get('csp_nonce', '')
     csp = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; "
-        "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        f"script-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; "
+        f"script-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; "
+        "script-src-attr 'none'; "
+        f"style-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        f"style-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "style-src-attr 'none'; "
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
         "img-src 'self' data: https:; "
         "connect-src 'self' https://www.googletagmanager.com; "
@@ -176,13 +181,13 @@ def set_security_headers(response):
     )
     response.headers['Content-Security-Policy'] = csp
 
-    nonce = g.get('csp_nonce', '')
     report_only_csp = (
         "default-src 'self'; "
         f"script-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.googletagmanager.com; "
         "script-src-attr 'none'; "
-        "style-src-elem 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
-        "style-src-attr 'unsafe-inline'; "
+        f"style-src 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        f"style-src-elem 'self' 'nonce-{nonce}' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com; "
+        "style-src-attr 'none'; "
         "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; "
         "img-src 'self' data: https:; "
         "connect-src 'self' https://www.googletagmanager.com; "
@@ -1667,24 +1672,34 @@ def get_dias_restantes_suscripcion(tenant_id=None):
 request_counts = defaultdict(list)
 rate_limit_lock = Lock()
 
-def rate_limit(max_requests=10, window=60):
-    """Decorador para rate limiting"""
+def rate_limit(
+    max_requests=10,
+    window=60,
+    methods=('POST', 'PUT', 'PATCH', 'DELETE'),
+):
+    """Limitar operaciones mutables por cliente y endpoint."""
+    limited_methods = frozenset(method.upper() for method in methods)
+
     def decorator(f):
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
-            client_ip = request.remote_addr
+            if request.method.upper() not in limited_methods:
+                return f(*args, **kwargs)
+
+            client_ip = request.remote_addr or 'unknown'
+            request_key = f'{client_ip}:{request.endpoint or f.__name__}'
             current_time = time.time()
             
             with rate_limit_lock:
-                request_counts[client_ip] = [
-                    req_time for req_time in request_counts[client_ip]
+                request_counts[request_key] = [
+                    req_time for req_time in request_counts[request_key]
                     if current_time - req_time < window
                 ]
                 
-                if len(request_counts[client_ip]) >= max_requests:
+                if len(request_counts[request_key]) >= max_requests:
                     return jsonify({'error': 'Rate limit exceeded'}), 429
                 
-                request_counts[client_ip].append(current_time)
+                request_counts[request_key].append(current_time)
             
             return f(*args, **kwargs)
         return wrapper
@@ -1852,10 +1867,11 @@ def registro():
         tipo_empresa = request.form.get('tipo_empresa', '').strip()
         nombre = sanitize_input(request.form.get('nombre', ''), 255)
         email = request.form.get('email', '').strip().lower()
+        telefono = sanitize_input(request.form.get('telefono', ''), 20)
         password = request.form.get('password', '')
         password_confirm = request.form.get('password_confirm', '')
 
-        if not nombre_empresa or not nombre or not email or not password:
+        if not nombre_empresa or not nombre or not email or not telefono or not password:
             flash('Completa todos los campos obligatorios', 'error')
             return render_template('registro.html')
 
@@ -1865,6 +1881,10 @@ def registro():
 
         if not validate_email(email):
             flash('Ingresa un correo electrónico válido', 'error')
+            return render_template('registro.html')
+
+        if not validate_digits(telefono, 10):
+            flash('El teléfono debe contener exactamente 10 números', 'error')
             return render_template('registro.html')
 
         if password != password_confirm:
@@ -1894,10 +1914,13 @@ def registro():
             with database_transaction():
                 empresa_id = execute_update('''
                     INSERT INTO empresas (
-                        nombre, razon_social, email, fecha_inicio, fecha_fin,
+                        nombre, razon_social, telefono, email, fecha_inicio, fecha_fin,
                         licencias_totales, licencias_usadas, plan, estado, tipo_empresa
-                    ) VALUES (%s, %s, %s, %s, %s, 5, 1, 'basico', 'activo', %s)
-                ''', (nombre_empresa, nombre_empresa, email, fecha_inicio, fecha_fin, tipo_empresa))
+                    ) VALUES (%s, %s, %s, %s, %s, %s, 5, 1, 'basico', 'activo', %s)
+                ''', (
+                    nombre_empresa, nombre_empresa, telefono, email,
+                    fecha_inicio, fecha_fin, tipo_empresa,
+                ))
                 if not empresa_id:
                     raise RuntimeError('No se pudo crear la empresa')
 

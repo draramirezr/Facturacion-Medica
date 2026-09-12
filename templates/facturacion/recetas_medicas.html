@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .rx-header,.rx-card { border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
     .rx-header { padding:1.5rem; margin-bottom:1.2rem; background:linear-gradient(135deg,{{ tema.primary }}12,white); }
     .rx-card { overflow:hidden; }

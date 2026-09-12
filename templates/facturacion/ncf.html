@@ -4,14 +4,14 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .facturacion-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
         border-radius: 20px;
         padding: 2rem;
         margin-bottom: 2rem;
     }
-    
+
     .search-box {
         background: white;
         border-radius: 15px;
@@ -19,45 +19,45 @@
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         margin-bottom: 2rem;
     }
-    
+
     .table-facturacion {
         background: white;
         border-radius: 15px;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         overflow: hidden;
     }
-    
+
     /* Contenedor con scroll horizontal para responsive */
     .table-responsive-wrapper {
         max-height: 400px; /* Altura aproximada para 5 registros */
         overflow-x: auto;
         overflow-y: auto;
     }
-    
+
     /* Barra de desplazamiento personalizada */
     .table-responsive-wrapper::-webkit-scrollbar {
         width: 10px;
         height: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-track {
         background: #f1f1f1;
         border-radius: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-thumb {
         background: {{ tema.primary_dark }};
         border-radius: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
         background: {{ tema.primary }};
     }
-    
+
     .table-facturacion table {
         min-width: 1100px; /* Ancho mínimo para NCF (muchas columnas) */
     }
-    
+
     .table-facturacion th {
         background: {{ tema.primary_dark }} !important;
         background-color: {{ tema.primary_dark }} !important;
@@ -69,25 +69,25 @@
         top: 0;
         z-index: 10;
     }
-    
+
     .table-facturacion thead th {
         color: #FFFFFF !important;
     }
-    
+
     .table-facturacion td {
         padding: 1rem;
         vertical-align: middle;
         border-bottom: 1px solid {{ tema.primary }}15;
     }
-    
+
     .table-facturacion tbody tr:hover {
         background-color: {{ tema.primary }}08;
         transition: all 0.3s ease;
     }
-    
+
     /* Los estilos de botones ahora están en botones-estandarizados.css */
     /* Esto garantiza que todos los botones tengan el mismo tamaño y color */
-    
+
     .badge-numero {
         background: {{ tema.primary_dark }};
         color: white;
@@ -96,7 +96,7 @@
         font-weight: 600;
         font-family: 'Courier New', monospace;
     }
-    
+
     /* Estilos para el badge del prefijo - mismo estilo que el estado */
     .table-facturacion .badge.bg-info,
     .table-facturacion td .badge.bg-info,
@@ -110,7 +110,7 @@
         font-weight: 600 !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
     }
-    
+
     /* Estilos para el badge del estado - mismo estilo que el prefijo */
     .table-facturacion .badge.bg-success,
     .table-facturacion td .badge.bg-success,
@@ -124,7 +124,7 @@
         font-weight: 600 !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
     }
-    
+
     .table-facturacion .badge.bg-secondary,
     .table-facturacion td .badge.bg-secondary,
     td .badge.bg-secondary {
@@ -137,17 +137,68 @@
         font-weight: 600 !important;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
     }
+    .fi-ncf-inline-1 {
+        color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;
+    }
+    .fi-ncf-inline-2 {
+        color: #666; margin: 0;
+    }
+    .fi-ncf-inline-3 {
+        border-radius: 10px; height: 48px;
+    }
+    .fi-ncf-inline-4 {
+        height: 48px;
+    }
+    .fi-ncf-inline-5 {
+        width: 6%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-ncf-inline-6 {
+        width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-ncf-inline-7 {
+        width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-ncf-inline-8 {
+        width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-ncf-inline-9 {
+        width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-ncf-inline-10 {
+        width: 11%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-ncf-inline-11 {
+        width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-ncf-inline-12 {
+        width: 9%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-ncf-inline-13 {
+        width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-ncf-inline-15 {
+        padding: 2rem;
+    }
+    .fi-ncf-inline-16 {
+        background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 1.5rem; margin: 0; display: inline-block;
+    }
+    .fi-ncf-inline-17 {
+        color: var(--text-muted); margin-top: 0.5rem; display: block;
+    }
+    .fi-ncf-inline-18 {
+        color: var(--primary-color); font-weight: 700; font-size: 1.35rem; margin: 0;
+    }
 </style>
 
 <div class="container mt-4">
     <div class="facturacion-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                <h1 class="fi-ncf-inline-1">
                     <i class="fas fa-file-invoice me-2"></i>
                     NCF
                 </h1>
-                <p style="color: #666; margin: 0;">Números de Comprobante Fiscal (DGII)</p>
+                <p class="fi-ncf-inline-2">Números de Comprobante Fiscal (DGII)</p>
             </div>
             <div class="d-flex gap-2">
                 <a href="{{ url_for('facturacion_ecf_secuencia_nueva') }}" class="btn btn-cancelar">
@@ -168,10 +219,10 @@
         <form method="GET" action="{{ url_for('facturacion_ncf') }}">
             <div class="row align-items-end g-3">
                 <div class="col-md-10">
-                    <input type="text" name="search" class="form-control" placeholder="Buscar por tipo o prefijo..." value="{{ search }}" style="border-radius: 10px; height: 48px;">
+                    <input type="text" name="search" class="form-control fi-ncf-inline-3" placeholder="Buscar por tipo o prefijo..." value="{{ search }}">
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-buscar w-100" style="height: 48px;">
+                    <button type="submit" class="btn btn-buscar w-100 fi-ncf-inline-4">
                         <i class="fas fa-search me-2"></i>Buscar
                     </button>
                 </div>
@@ -185,15 +236,15 @@
             <table class="table mb-0">
             <thead>
                 <tr>
-                    <th style="width: 6%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ID</th>
-                    <th style="width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Tipo</th>
-                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Prefijo</th>
-                    <th style="width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Tamaño</th>
-                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Ult Num</th>
-                    <th style="width: 11%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Pox Num</th>
-                    <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Fecha Fin</th>
-                    <th style="width: 9%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Estado</th>
-                    <th style="width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Acciones</th>
+                    <th class="fi-ncf-inline-5">ID</th>
+                    <th class="fi-ncf-inline-6">Tipo</th>
+                    <th class="fi-ncf-inline-7">Prefijo</th>
+                    <th class="text-center fi-ncf-inline-8">Tamaño</th>
+                    <th class="text-center fi-ncf-inline-9">Ult Num</th>
+                    <th class="text-center fi-ncf-inline-10">Pox Num</th>
+                    <th class="text-center fi-ncf-inline-11">Fecha Fin</th>
+                    <th class="text-center fi-ncf-inline-12">Estado</th>
+                    <th class="text-center fi-ncf-inline-13">Acciones</th>
                 </tr>
             </thead>
             <tbody>
@@ -231,24 +282,25 @@
                             <a href="{{ url_for('facturacion_ncf_editar', ncf_id=ncf['id']) }}" class="btn btn-accion-editar">
                                 <i class="fas fa-edit"></i> Editar
                             </a>
-                            <a href="#" 
-                               onclick="if(confirm('¿Está seguro de eliminar este NCF?')) { document.getElementById('delete-form-ncf-{{ ncf['id'] }}').submit(); } return false;"
+                            <a href="#"
+                               data-confirm-submit="¿Está seguro de eliminar este NCF?"
+                               data-submit-target="delete-form-ncf-{{ ncf['id'] }}"
                                class="btn btn-accion-editar">
                                 <i class="fas fa-trash"></i> Eliminar
                             </a>
-                            <form id="delete-form-ncf-{{ ncf['id'] }}" method="POST" action="{{ url_for('facturacion_ncf_eliminar', ncf_id=ncf['id']) }}" style="display: none;">
+                            <form id="delete-form-ncf-{{ ncf['id'] }}" method="POST" action="{{ url_for('facturacion_ncf_eliminar', ncf_id=ncf['id']) }}" class="d-none">
                             </form>
                         </div>
                     </td>
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="9" class="text-center" style="padding: 2rem;">
-                        <div class="alert alert-info" style="background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 1.5rem; margin: 0; display: inline-block;">
+                    <td colspan="9" class="text-center fi-ncf-inline-15">
+                        <div class="alert alert-info fi-ncf-inline-16">
                             <i class="fas fa-info-circle me-2"></i>
                             No hay NCF registrados. Haz clic en "Nuevo NCF" para comenzar.
                             {% if search %}
-                            <br><small style="color: var(--text-muted); margin-top: 0.5rem; display: block;">Intenta con otros términos de búsqueda</small>
+                            <br><small class="fi-ncf-inline-17">Intenta con otros términos de búsqueda</small>
                             {% endif %}
                         </div>
                     </td>
@@ -261,7 +313,7 @@
 
     <div class="d-flex justify-content-between align-items-end mt-5 mb-3">
         <div>
-            <h2 style="color: var(--primary-color); font-weight: 700; font-size: 1.35rem; margin: 0;">
+            <h2 class="fi-ncf-inline-18">
                 Secuencias electrónicas
             </h2>
             <p class="text-muted mb-0">Rangos e-NCF independientes de los comprobantes tradicionales.</p>

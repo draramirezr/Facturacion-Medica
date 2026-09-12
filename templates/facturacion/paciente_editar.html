@@ -1,10 +1,13 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Editar Paciente - Facturación{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
+    .edit-patient-title { color: {{ tema.primary }}; margin-bottom: .5rem; font-size: 2.5rem; font-weight: 800; }
+    .edit-patient-subtitle { margin: 0; color: {{ tema.primary_dark }}; font-size: 1.1rem; font-weight: 600; }
+
     .edit-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
         border: 2px solid {{ tema.primary }};
@@ -95,11 +98,11 @@
     <!-- Hero Section -->
     <div class="edit-hero">
         <div class="text-center">
-            <h1 style="color: {{ tema.primary }}; font-weight: 800; font-size: 2.5rem; margin-bottom: 0.5rem;">
+            <h1 class="edit-patient-title">
                 <i class="fas fa-edit me-2"></i>
                 Editar Paciente
             </h1>
-            <p style="color: {{ tema.primary_dark }}; margin: 0; font-size: 1.1rem; font-weight: 600;">
+            <p class="edit-patient-subtitle">
                 Modifica los datos del paciente pendiente de facturación
             </p>
         </div>
@@ -258,7 +261,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 // Convertir a mayúsculas automáticamente
 document.getElementById('nss').addEventListener('input', function() {
     this.value = this.value.toUpperCase();

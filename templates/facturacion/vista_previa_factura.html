@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     @media print {
         .no-print {
             display: none !important;
@@ -293,6 +293,19 @@
         font-weight: 700;
         margin-top: 0.5rem;
     }
+
+    /* Utilidades locales migradas desde atributos style para CSP. */
+    .csp-u-001 { width: 120px; }
+    .csp-u-002 { white-space: nowrap; }
+    .csp-u-003 { margin-bottom: 0.1rem; }
+    .csp-u-004 { margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #666; }
+    .csp-u-005 { width: 4%; }
+    .csp-u-006 { width: 30%; }
+    .csp-u-007 { width: 10%; }
+    .csp-u-008 { width: 12%; white-space: nowrap; }
+    .csp-u-009 { width: 12%; }
+    .csp-u-010 { width: 20%; }
+    .csp-u-011 { background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px; }
 </style>
 
 <div class="container-fluid mt-4">
@@ -307,17 +320,17 @@
     <div class="factura-container">
         <!-- Header Compacto -->
         <div class="factura-header">
-            <div style="width: 120px;"></div>
+            <div class="csp-u-001"></div>
             <div class="factura-title-center">
                 <h1 class="factura-title">FACTURA</h1>
             </div>
-            <div style="width: 120px;"></div>
+            <div class="csp-u-001"></div>
         </div>
 
         <!-- Información Principal en 3 Columnas -->
         <div class="factura-info">
             <div class="info-box">
-                <h6 style="white-space: nowrap;">Información de Factura</h6>
+                <h6 class="csp-u-002">Información de Factura</h6>
                 <p><strong>Tipo:</strong> {{ 'Electrónica (e-CF)' if tipo_factura == 'ELECTRONICA' else 'Tradicional' }}</p>
                 <p><strong>Fecha:</strong> {{ fecha_factura }}</p>
                 <p><strong>Cliente:</strong> {{ ars.get('nombre') or ars.get('nombre_ars', 'N/A') }}</p>
@@ -336,13 +349,13 @@
             <div class="info-box">
                 <h6>Remitente</h6>
                 {% if tipo_empresa == 'centro_salud' %}
-                    <p style="margin-bottom: 0.1rem;"><strong>{{ empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A')) }}</strong></p>
+                    <p class="csp-u-003"><strong>{{ empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A')) }}</strong></p>
                     {% if empresa_info.get('rnc') %}
                     <p><strong>RNC:</strong> {{ empresa_info.get('rnc') }}</p>
                     {% endif %}
                 {% else %}
-                    <p style="margin-bottom: 0.1rem;"><strong>Médico:</strong> {{ medico['nombre'] }}</p>
-                    <p style="margin: 0 0 0.5rem 0; font-size: 0.9rem; color: #666;">{{ medico['especialidad'] }}</p>
+                    <p class="csp-u-003"><strong>Médico:</strong> {{ medico['nombre'] }}</p>
+                    <p class="csp-u-004">{{ medico['especialidad'] }}</p>
                     <p><strong>Cédula:</strong> {{ medico['cedula'] }}</p>
                 {% endif %}
             </div>
@@ -352,13 +365,13 @@
         <table class="tabla-factura">
             <thead>
                 <tr>
-                    <th style="width: 4%;">No.</th>
-                    <th style="width: 30%;">NOMBRES PACIENTE</th>
-                    <th style="width: 10%;">NSS/CONTRATO</th>
-                    <th style="width: 12%; white-space: nowrap;">FECHA</th>
-                    <th style="width: 12%;">AUTORIZACIÓN</th>
-                    <th style="width: 20%;">SERVICIO</th>
-                    <th style="width: 12%;" class="text-right">V/UNITARIO</th>
+                    <th class="csp-u-005">No.</th>
+                    <th class="csp-u-006">NOMBRES PACIENTE</th>
+                    <th class="csp-u-007">NSS/CONTRATO</th>
+                    <th class="csp-u-008">FECHA</th>
+                    <th class="csp-u-009">AUTORIZACIÓN</th>
+                    <th class="csp-u-010">SERVICIO</th>
+                    <th class="text-right csp-u-009">V/UNITARIO</th>
                 </tr>
             </thead>
             <tbody>
@@ -369,7 +382,7 @@
                     <td><strong>{{ paciente['nombre_paciente'] }}</strong></td>
                     <td>{{ paciente['nss'] }}</td>
                     <td>{{ paciente['fecha_servicio'] }}</td>
-                    <td><code style="background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px;">{{ paciente['autorizacion'] }}</code></td>
+                    <td><code class="csp-u-011">{{ paciente['autorizacion'] }}</code></td>
                     <td>{{ paciente['descripcion_servicio'] }}</td>
                     <td class="text-right"><strong> {{ monto_paciente|formato_moneda }}</strong></td>
                 </tr>
@@ -472,7 +485,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 // Opcional: función para imprimir
 function imprimirFactura() {
     window.print();

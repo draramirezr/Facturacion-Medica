@@ -1,5 +1,6 @@
 import re
 import unittest
+from contextlib import nullcontext
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -8,6 +9,20 @@ import app as app_module
 
 
 URL_FOR_PATTERN = re.compile(r"""url_for\(\s*['"]([^'"]+)['"]""")
+INLINE_EVENT_PATTERN = re.compile(
+    r'\son[a-z]+\s*=',
+    re.IGNORECASE,
+)
+SCRIPT_TAG_PATTERN = re.compile(r'<script\b([^>]*)>', re.IGNORECASE)
+STYLE_TAG_PATTERN = re.compile(r'<style\b([^>]*)>', re.IGNORECASE)
+STYLE_ATTRIBUTE_PATTERN = re.compile(r'\sstyle\s*=', re.IGNORECASE)
+STYLE_MUTATION_PATTERN = re.compile(
+    r'style\.cssText|setAttribute\(\s*["\']style',
+)
+JAVASCRIPT_URL_PATTERN = re.compile(
+    r'(?:href|src)\s*=\s*["\']javascript:',
+    re.IGNORECASE,
+)
 
 
 class CSPAndEndpointTests(unittest.TestCase):
@@ -43,6 +58,68 @@ class CSPAndEndpointTests(unittest.TestCase):
         ]
         self.assertEqual(len(signatures), len(set(signatures)))
 
+    def test_templates_have_no_inline_event_attributes(self):
+        templates_dir = Path(app_module.__file__).resolve().parent / 'templates'
+        offenders = {}
+        for template in templates_dir.rglob('*.html'):
+            source = template.read_text(encoding='utf-8')
+            matches = INLINE_EVENT_PATTERN.findall(source)
+            if matches:
+                offenders[str(template.relative_to(templates_dir))] = len(matches)
+        self.assertEqual(offenders, {})
+
+    def test_templates_have_no_javascript_urls(self):
+        templates_dir = Path(app_module.__file__).resolve().parent / 'templates'
+        offenders = []
+        for template in templates_dir.rglob('*.html'):
+            source = template.read_text(encoding='utf-8')
+            if JAVASCRIPT_URL_PATTERN.search(source):
+                offenders.append(str(template.relative_to(templates_dir)))
+        self.assertEqual(offenders, [])
+
+    def test_inline_script_blocks_have_a_nonce(self):
+        templates_dir = Path(app_module.__file__).resolve().parent / 'templates'
+        offenders = {}
+        for template in templates_dir.rglob('*.html'):
+            source = template.read_text(encoding='utf-8')
+            for attributes in SCRIPT_TAG_PATTERN.findall(source):
+                if 'src=' not in attributes and 'nonce=' not in attributes:
+                    relative_path = str(template.relative_to(templates_dir))
+                    offenders[relative_path] = offenders.get(relative_path, 0) + 1
+        self.assertEqual(offenders, {})
+
+    def test_inline_style_blocks_have_a_nonce(self):
+        templates_dir = Path(app_module.__file__).resolve().parent / 'templates'
+        offenders = {}
+        for template in templates_dir.rglob('*.html'):
+            source = template.read_text(encoding='utf-8')
+            for attributes in STYLE_TAG_PATTERN.findall(source):
+                if 'nonce=' not in attributes:
+                    relative_path = str(template.relative_to(templates_dir))
+                    offenders[relative_path] = offenders.get(relative_path, 0) + 1
+        self.assertEqual(offenders, {})
+
+    def test_templates_have_no_style_attributes(self):
+        templates_dir = Path(app_module.__file__).resolve().parent / 'templates'
+        offenders = {}
+        for template in templates_dir.rglob('*.html'):
+            source = template.read_text(encoding='utf-8')
+            matches = STYLE_ATTRIBUTE_PATTERN.findall(source)
+            if matches:
+                offenders[str(template.relative_to(templates_dir))] = len(matches)
+        self.assertEqual(offenders, {})
+
+    def test_frontend_does_not_mutate_inline_styles(self):
+        project_dir = Path(app_module.__file__).resolve().parent
+        offenders = []
+        paths = list((project_dir / 'templates').rglob('*.html'))
+        paths.extend((project_dir / 'static' / 'js').rglob('*.js'))
+        for path in paths:
+            source = path.read_text(encoding='utf-8')
+            if STYLE_MUTATION_PATTERN.search(source):
+                offenders.append(str(path.relative_to(project_dir)))
+        self.assertEqual(offenders, [])
+
     def test_report_only_csp_uses_per_request_nonce(self):
         first = self.client.get('/login')
         second = self.client.get('/login')
@@ -61,9 +138,32 @@ class CSPAndEndpointTests(unittest.TestCase):
             f'nonce="{first_nonce.group(1)}"'.encode(),
             first.data,
         )
+        self.assertIn(
+            f'<style nonce="{first_nonce.group(1)}"'.encode(),
+            first.data,
+        )
         self.assertNotIn("'unsafe-eval'", enforced_policy)
+        script_directives = [
+            directive.strip()
+            for directive in enforced_policy.split(';')
+            if directive.strip().startswith('script-src')
+        ]
+        self.assertTrue(script_directives)
+        for directive in script_directives:
+            self.assertNotIn("'unsafe-inline'", directive)
+        self.assertIn("script-src-attr 'none'", enforced_policy)
+        style_directives = [
+            directive.strip()
+            for directive in enforced_policy.split(';')
+            if directive.strip().startswith('style-src')
+        ]
+        self.assertTrue(style_directives)
+        for directive in style_directives:
+            self.assertNotIn("'unsafe-inline'", directive)
+        self.assertIn("style-src-attr 'none'", enforced_policy)
         self.assertNotIn("'unsafe-eval'", first_policy)
         self.assertIn("script-src-attr 'none'", first_policy)
+        self.assertIn("style-src-attr 'none'", first_policy)
         self.assertIn("report-uri /api/csp-report", first_policy)
 
     def test_csp_report_endpoint_accepts_browser_payload(self):
@@ -79,6 +179,34 @@ class CSPAndEndpointTests(unittest.TestCase):
         )
 
         self.assertEqual(response.status_code, 204)
+
+    def test_recovery_page_get_is_not_rate_limited(self):
+        app_module.request_counts.clear()
+        responses = [
+            self.client.get('/solicitar-recuperacion')
+            for _ in range(5)
+        ]
+        self.assertTrue(all(response.status_code == 200 for response in responses))
+
+    def test_csp_reports_do_not_consume_recovery_rate_limit(self):
+        app_module.request_counts.clear()
+        for _ in range(4):
+            response = self.client.post('/api/csp-report', json={})
+            self.assertEqual(response.status_code, 204)
+
+        page = self.client.get('/solicitar-recuperacion')
+        csrf_token = re.search(
+            rb'name="csrf_token" value="([^"]+)"',
+            page.data,
+        ).group(1).decode('utf-8')
+        response = self.client.post(
+            '/solicitar-recuperacion',
+            data={
+                'csrf_token': csrf_token,
+                'email': 'correo-invalido',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
 
     def test_reclamation_detail_is_tenant_scoped(self):
         user = SimpleNamespace(
@@ -139,6 +267,78 @@ class CSPAndEndpointTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(query.call_args.args[1], (91, 22))
         update.assert_not_called()
+
+    def test_public_registration_requires_ten_digit_phone(self):
+        handler = app_module.registro
+        while hasattr(handler, '__wrapped__'):
+            handler = handler.__wrapped__
+
+        with self.flask_app.test_request_context(
+            '/registro',
+            method='POST',
+            data={
+                'nombre_empresa': 'Consultorio Prueba',
+                'tipo_empresa': 'medico',
+                'nombre': 'Usuario Prueba',
+                'email': 'usuario@example.com',
+                'telefono': '809-555-1234',
+                'password': 'Segura123!',
+                'password_confirm': 'Segura123!',
+            },
+        ):
+            with (
+                patch.object(
+                    app_module,
+                    'current_user',
+                    SimpleNamespace(is_authenticated=False),
+                ),
+                patch.object(app_module, 'execute_query') as query,
+                patch.object(app_module, 'render_template', return_value='form'),
+            ):
+                response = handler()
+
+        self.assertEqual(response, 'form')
+        query.assert_not_called()
+
+    def test_public_registration_stores_company_phone(self):
+        handler = app_module.registro
+        while hasattr(handler, '__wrapped__'):
+            handler = handler.__wrapped__
+        updates = Mock(side_effect=[12, 34])
+
+        with self.flask_app.test_request_context(
+            '/registro',
+            method='POST',
+            data={
+                'nombre_empresa': 'Consultorio Prueba',
+                'tipo_empresa': 'medico',
+                'nombre': 'Usuario Prueba',
+                'email': 'usuario@example.com',
+                'telefono': '8095551234',
+                'password': 'Segura123!',
+                'password_confirm': 'Segura123!',
+            },
+        ):
+            with (
+                patch.object(
+                    app_module,
+                    'current_user',
+                    SimpleNamespace(is_authenticated=False),
+                ),
+                patch.object(app_module, 'execute_query', return_value=None),
+                patch.object(app_module, 'execute_update', updates),
+                patch.object(
+                    app_module,
+                    'database_transaction',
+                    return_value=nullcontext(),
+                ),
+            ):
+                response = handler()
+
+        self.assertEqual(response.status_code, 302)
+        company_insert, company_params = updates.call_args_list[0].args
+        self.assertIn('telefono', company_insert)
+        self.assertIn('8095551234', company_params)
 
 
 if __name__ == '__main__':

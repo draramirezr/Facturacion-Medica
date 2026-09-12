@@ -7,7 +7,6 @@
                 const saved = localStorage.getItem('arsflow-color-mode');
                 const mode = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
                 document.documentElement.dataset.colorMode = mode;
-                document.documentElement.style.colorScheme = mode;
             } catch (error) {
                 document.documentElement.dataset.colorMode = 'light';
             }
@@ -23,7 +22,9 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
-    <style>
+    <style nonce="{{ csp_nonce }}">
+        html { color-scheme: light; }
+        html[data-color-mode="dark"] { color-scheme: dark; }
         :root {
             --primary: #06b6d4;
             --primary-dark: #0891b2;

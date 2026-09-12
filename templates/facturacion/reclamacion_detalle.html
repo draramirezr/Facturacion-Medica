@@ -4,6 +4,11 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
+<style nonce="{{ csp_nonce }}">
+    .fi-reclamacion-detalle-inline-1 {
+        color: var(--primary-color); font-weight: 800; font-size: 1.6rem; margin: 0;
+    }
+</style>
 
 {% macro fecha_ddmmyyyy(fecha) -%}
     {%- set f = (fecha|string) -%}
@@ -21,7 +26,7 @@
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 1.6rem; margin: 0;">
+            <h1 class="fi-reclamacion-detalle-inline-1">
                 <i class="fas fa-file-alt me-2"></i>
                 Reclamación #{{ reclamacion['id'] }}
             </h1>
@@ -59,13 +64,13 @@
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4">
                         <label class="form-label mb-1">Cambiar estado</label>
-                        <select name="estado" id="estado-select" class="form-select" required onchange="toggleObs()">
+                        <select name="estado" id="estado-select" class="form-select" required data-csp-change="toggleObs">
                             {% for estado in ['Pendiente','Procesada','Rechazada'] %}
                             <option value="{{ estado }}" {% if reclamacion['estado'] == estado %}selected{% endif %}>{{ estado }}</option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-8" id="obs-container" style="display: none;">
+                    <div class="col-md-8 d-none" id="obs-container">
                         <label class="form-label mb-1">Observación (requerida si Rechazada)</label>
                         <textarea name="observaciones_estado" id="observaciones_estado" class="form-control" rows="2" placeholder="Motivo del rechazo"></textarea>
                     </div>
@@ -79,14 +84,14 @@
         </div>
     </div>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 function toggleObs() {
     const estado = document.getElementById('estado-select').value;
     const obs = document.getElementById('obs-container');
     if (estado === 'Rechazada') {
-        obs.style.display = 'block';
+        obs.classList.remove('d-none');
     } else {
-        obs.style.display = 'none';
+        obs.classList.add('d-none');
         const ta = document.getElementById('observaciones_estado');
         if (ta) ta.value = '';
     }

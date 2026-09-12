@@ -4,27 +4,27 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .facturacion-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
         border-radius: 20px;
         padding: 2rem;
         margin-bottom: 2rem;
     }
-    
+
     .table-facturacion {
         background: white;
         border-radius: 15px;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         overflow: hidden;
     }
-    
+
     .table-responsive-wrapper {
         max-height: 400px;
         overflow-x: auto;
         overflow-y: auto;
     }
-    
+
     .table-facturacion th {
         background: {{ tema.primary_dark }} !important;
         background-color: {{ tema.primary_dark }} !important;
@@ -36,13 +36,13 @@
         top: 0;
         z-index: 10;
     }
-    
+
     .table-facturacion td {
         padding: 1rem;
         vertical-align: middle;
         border-bottom: 1px solid {{ tema.primary }}15;
     }
-    
+
     .table-facturacion tbody tr:hover {
         background-color: {{ tema.primary }}08;
         transition: all 0.3s ease;
@@ -53,20 +53,53 @@
         color: {{ tema.primary_dark }};
         border: 1px solid {{ tema.primary }}40;
     }
+    .fi-pagos-inline-1 {
+        color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;
+    }
+    .fi-pagos-inline-2 {
+        color: #666; margin: 0;
+    }
+    .fi-pagos-inline-3 {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); border: none; color: white;
+    }
+    .fi-pagos-inline-4 {
+        width: 15%;
+    }
+    .fi-pagos-inline-5 {
+        width: 12%;
+    }
+    .fi-pagos-inline-6 {
+        width: 15%;
+    }
+    .fi-pagos-inline-7 {
+        width: 20%;
+    }
+    .fi-pagos-inline-8 {
+        width: 10%;
+    }
+    .fi-pagos-inline-9 {
+        width: 15%;
+    }
+    .fi-pagos-inline-10 {
+        width: 13%;
+    }
+    .fi-pagos-inline-11 {
+        background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 1.5rem; margin: 2rem; display: inline-block;
+    }
 </style>
 
 <div class="container mt-4">
     <div class="facturacion-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                <h1 class="fi-pagos-inline-1">
                     <i class="fas fa-money-check-alt me-2"></i>
                     Pagos
                 </h1>
-                <p style="color: #666; margin: 0;">Registro y cotejo de pagos</p>
+                <p class="fi-pagos-inline-2">Registro y cotejo de pagos</p>
             </div>
             <div class="d-flex gap-2">
-                <a href="{{ url_for('facturacion_pagos_nuevo') }}" class="btn btn-volver" style="background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); border: none; color: white;">
+                <a href="{{ url_for('facturacion_pagos_nuevo') }}" class="btn btn-volver fi-pagos-inline-3">
                     <i class="fas fa-plus me-2"></i>Nuevo Pago
                 </a>
                 <a href="{{ url_for('facturacion_menu') }}" class="btn btn-volver">
@@ -83,13 +116,13 @@
             <table class="table mb-0">
                 <thead>
                     <tr>
-                        <th style="width: 15%;">Número Pago</th>
-                        <th style="width: 12%;">Fecha</th>
-                        <th style="width: 15%;">Método</th>
-                        <th style="width: 20%;">Facturas</th>
-                        <th style="width: 10%;" class="text-center">Cantidad</th>
-                        <th style="width: 15%;" class="text-end">Monto Total</th>
-                        <th style="width: 13%;" class="text-center">Acciones</th>
+                        <th class="fi-pagos-inline-4">Número Pago</th>
+                        <th class="fi-pagos-inline-5">Fecha</th>
+                        <th class="fi-pagos-inline-6">Método</th>
+                        <th class="fi-pagos-inline-7">Facturas</th>
+                        <th class="text-center fi-pagos-inline-8">Cantidad</th>
+                        <th class="text-end fi-pagos-inline-9">Monto Total</th>
+                        <th class="text-center fi-pagos-inline-10">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -119,7 +152,7 @@
         </div>
         {% else %}
         <div class="text-center py-5">
-            <div class="alert alert-info" style="background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 1.5rem; margin: 2rem; display: inline-block;">
+            <div class="alert alert-info fi-pagos-inline-11">
                 <i class="fas fa-info-circle me-2"></i>
                 No hay pagos registrados. Haz clic en "Nuevo Pago" para comenzar.
             </div>

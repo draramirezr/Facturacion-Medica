@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .form-container {
         max-width: 900px;
         margin: 2rem auto;
@@ -89,6 +89,17 @@
     .required-asterisk {
         color: var(--primary-color) !important;
         font-weight: bold;
+    }
+
+    .section-title {
+        color: {{ tema.primary }};
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+    }
+
+    .subscription-alert {
+        margin-bottom: 1.5rem;
+        border-radius: 10px;
     }
 </style>
 
@@ -186,7 +197,7 @@
             <hr class="my-4">
             
             <!-- Período de Suscripción -->
-            <h5 style="color: {{ tema.primary }}; font-weight: 700; margin-bottom: 1.5rem;">
+            <h5 class="section-title">
                 <i class="fas fa-calendar-alt me-2"></i>
                 Período de Suscripción
             </h5>
@@ -214,7 +225,7 @@
             </div>
             
             {% if empresa and empresa['fecha_fin'] %}
-            <div class="alert" id="alertaVencimiento" style="margin-bottom: 1.5rem; border-radius: 10px;">
+            <div class="alert subscription-alert" id="alertaVencimiento">
                 <!-- Se llenará con JavaScript -->
             </div>
             {% endif %}
@@ -222,7 +233,7 @@
             <hr class="my-4">
             
             <!-- Sistema de Licencias -->
-            <h5 style="color: {{ tema.primary }}; font-weight: 700; margin-bottom: 1.5rem;">
+            <h5 class="section-title">
                 <i class="fas fa-key me-2"></i>
                 Sistema de Licencias
             </h5>
@@ -294,7 +305,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function() {
     const tipoEmpresa = document.getElementById('tipo_empresa');
     const documento = document.getElementById('rnc');

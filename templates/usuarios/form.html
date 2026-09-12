@@ -5,7 +5,7 @@
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-responsive.css') }}">
-<style>
+<style nonce="{{ csp_nonce }}">
     .form-container {
         max-width: 800px;
         margin: 50px auto;
@@ -189,6 +189,51 @@
         background: {{ tema.primary }}10 !important;
         color: {{ tema.primary_dark }} !important;
     }
+
+    .field-label {
+        display: block;
+        color: #282828;
+        font-weight: 600;
+        margin-bottom: 8px;
+        font-size: 15px;
+    }
+
+    .password-row {
+        display: flex;
+        gap: 10px;
+        align-items: start;
+    }
+
+    .password-field { flex: 1; }
+
+    .password-input {
+        background-color: #F8F9FA;
+        font-family: 'Courier New', monospace;
+        font-weight: 600;
+        font-size: 16px;
+    }
+
+    .password-generate {
+        white-space: nowrap;
+        padding: 12px 20px;
+    }
+
+    .is-hidden { display: none; }
+
+    .password-display {
+        font-family: 'Courier New', monospace;
+        font-size: 18px;
+        font-weight: 700;
+        color: {{ tema.primary_dark }};
+        margin: 10px 0;
+        padding: 10px;
+        background: white;
+        border-radius: 5px;
+        border: 2px dashed {{ tema.primary }};
+    }
+
+    .email-option { margin-top: 15px; }
+    .password-generated-hint { color: {{ tema.primary_dark }}; }
     
     @media (max-width: 768px) {
         .form-container {
@@ -297,7 +342,7 @@
         
         {% if usuario %}
             <div class="form-group">
-                <label style="display: block; color: #282828; font-weight: 600; margin-bottom: 8px; font-size: 15px;">
+                <label class="field-label">
                     <i class="fas fa-user-check me-1"></i>Estado del Usuario
                 </label>
                 <div class="ars-active-check">
@@ -321,7 +366,7 @@
                         type="checkbox" 
                         id="cambiar_password_toggle" 
                         name="cambiar_password_toggle"
-                        onchange="togglePasswordSection()"
+                        data-csp-change="togglePasswordSection"
                     >
                     <label for="cambiar_password_toggle"><i class="fas fa-lock me-1"></i>Cambiar contraseña</label>
                 </div>
@@ -334,8 +379,8 @@
                     <label for="password">
                         <i class="fas fa-lock me-1"></i>Nueva Contraseña Temporal <span class="required">*</span>
                     </label>
-                    <div style="display: flex; gap: 10px; align-items: start;">
-                        <div style="flex: 1;">
+                    <div class="password-row">
+                        <div class="password-field">
                             <input 
                                 type="text" 
                                 id="password" 
@@ -344,25 +389,25 @@
                                 placeholder="Mínimo 8 caracteres"
                                 autocomplete="new-password"
                                 readonly
-                                style="background-color: #F8F9FA; font-family: 'Courier New', monospace; font-weight: 600; font-size: 16px;"
+                                class="password-input"
                             >
                             <small id="password-hint">Haz clic en "Generar Contraseña" para crear una contraseña temporal segura</small>
                         </div>
-                        <button type="button" class="btn btn-secondary" onclick="generarPasswordTemporal()" style="white-space: nowrap; padding: 12px 20px;">
+                        <button type="button" class="btn btn-secondary password-generate" data-csp-click="generarPasswordTemporal">
                             <i class="fas fa-key"></i> Generar Contraseña
                         </button>
                     </div>
                 </div>
                 
-                <div class="info-box" id="password-info" style="display: none;">
+                <div class="info-box is-hidden" id="password-info">
                     <strong>📋 Contraseña Temporal Generada:</strong><br>
-                    <div style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: {{ tema.primary_dark }}; margin: 10px 0; padding: 10px; background: white; border-radius: 5px; border: 2px dashed {{ tema.primary }};">
+                    <div class="password-display">
                         <span id="password-display"></span>
                     </div>
                     <small>⚠️ <strong>IMPORTANTE:</strong> Esta contraseña se enviará automáticamente al usuario por email. El usuario deberá cambiarla en su primer inicio de sesión.</small>
                 </div>
                 
-                <div class="checkbox-group" style="margin-top: 15px;">
+                <div class="checkbox-group email-option">
                     <input 
                         type="checkbox" 
                         id="enviar_email" 
@@ -376,12 +421,12 @@
         {% endif %}
         
         {% if not usuario or True %}
-            <div class="form-group" {% if usuario %}style="display: none;"{% endif %}>
+            <div class="form-group{% if usuario %} is-hidden{% endif %}">
                 <label for="password_nuevo">
                     <i class="fas fa-lock me-1"></i>Contraseña Temporal {% if usuario %} Nueva {% endif %} <span class="required">*</span>
                 </label>
-                <div style="display: flex; gap: 10px; align-items: start;">
-                    <div style="flex: 1;">
+                <div class="password-row">
+                    <div class="password-field">
                         <input 
                             type="text" 
                             id="password_nuevo" 
@@ -391,12 +436,12 @@
                             placeholder="Mínimo 8 caracteres"
                             autocomplete="new-password"
                             readonly
-                            style="background-color: #F8F9FA; font-family: 'Courier New', monospace; font-weight: 600; font-size: 16px;"
+                            class="password-input"
                         >
                         <small id="password-hint-nuevo">{% if usuario %}Dejar vacío para mantener la contraseña actual{% else %}Haz clic en "Generar Contraseña" para crear una contraseña temporal segura{% endif %}</small>
                     </div>
                     {% if not usuario %}
-                    <button type="button" class="btn btn-secondary" onclick="generarPasswordTemporalNuevo()" style="white-space: nowrap; padding: 12px 20px;">
+                    <button type="button" class="btn btn-secondary password-generate" data-csp-click="generarPasswordTemporalNuevo">
                         <i class="fas fa-key"></i> Generar Contraseña
                     </button>
                     {% endif %}
@@ -404,9 +449,9 @@
             </div>
             
             {% if not usuario %}
-                <div class="info-box" id="password-info-nuevo" style="display: none;">
+                <div class="info-box is-hidden" id="password-info-nuevo">
                     <strong>📋 Contraseña Temporal Generada:</strong><br>
-                    <div style="font-family: 'Courier New', monospace; font-size: 18px; font-weight: 700; color: {{ tema.primary_dark }}; margin: 10px 0; padding: 10px; background: white; border-radius: 5px; border: 2px dashed {{ tema.primary }};">
+                    <div class="password-display">
                         <span id="password-display-nuevo"></span>
                     </div>
                     <small>⚠️ <strong>IMPORTANTE:</strong> Guarda esta contraseña y envíala al usuario de forma segura. El usuario deberá cambiarla en su primer inicio de sesión.</small>
@@ -429,7 +474,7 @@
     </form>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
     // Generar contraseña temporal segura (para modo editar)
     function generarPasswordTemporal() {
         const mayusculas = 'ABCDEFGHJKLMNPQRSTUVWXYZ'; // Sin I, O para evitar confusión
@@ -461,8 +506,10 @@
         // Actualizar el campo
         document.getElementById('password').value = password;
         document.getElementById('password-display').textContent = password;
-        document.getElementById('password-info').style.display = 'block';
-        document.getElementById('password-hint').innerHTML = '<span style="color: {{ tema.primary_dark }};">Contraseña temporal generada correctamente</span>';
+        document.getElementById('password-info').classList.remove('is-hidden');
+        const passwordHint = document.getElementById('password-hint');
+        passwordHint.textContent = 'Contraseña temporal generada correctamente';
+        passwordHint.classList.add('password-generated-hint');
     }
     
     // Generar contraseña temporal segura (para modo nuevo usuario)
@@ -491,8 +538,10 @@
         
         document.getElementById('password_nuevo').value = password;
         document.getElementById('password-display-nuevo').textContent = password;
-        document.getElementById('password-info-nuevo').style.display = 'block';
-        document.getElementById('password-hint-nuevo').innerHTML = '<span style="color: {{ tema.primary_dark }};">Contraseña temporal generada correctamente</span>';
+        document.getElementById('password-info-nuevo').classList.remove('is-hidden');
+        const passwordHintNuevo = document.getElementById('password-hint-nuevo');
+        passwordHintNuevo.textContent = 'Contraseña temporal generada correctamente';
+        passwordHintNuevo.classList.add('password-generated-hint');
     }
     
     {% if usuario %}
@@ -511,8 +560,10 @@
             hiddenInput.value = '0';
             passwordInput.required = false;
             passwordInput.value = '';
-            document.getElementById('password-info').style.display = 'none';
-            document.getElementById('password-hint').textContent = 'Haz clic en "Generar Contraseña" para crear una contraseña temporal segura';
+            document.getElementById('password-info').classList.add('is-hidden');
+            const passwordHint = document.getElementById('password-hint');
+            passwordHint.textContent = 'Haz clic en "Generar Contraseña" para crear una contraseña temporal segura';
+            passwordHint.classList.remove('password-generated-hint');
         }
     }
     {% endif %}

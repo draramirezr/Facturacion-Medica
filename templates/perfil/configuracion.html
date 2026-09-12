@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .settings-shell { max-width: 1180px; margin: 0 auto; padding: 1.5rem; }
     .settings-header {
         display: flex;
@@ -175,6 +175,12 @@
     }
     .certificate-status.is-valid { border-color: #19875466; background: #1987540d; }
     .certificate-status.is-pending { border-color: #d99a0066; background: #d99a000d; }
+    .settings-title-icon { color: var(--primary-color); }
+    {% for key, item in temas_disponibles.items() %}
+    .theme-swatch--{{ key }} {
+        background: linear-gradient(135deg, {{ item.gradient_start }}, {{ item.gradient_end }});
+    }
+    {% endfor %}
     @media (max-width: 900px) {
         .theme-grid { grid-template-columns: repeat(2, 1fr); }
     }
@@ -192,7 +198,7 @@
 <div class="settings-shell">
     <header class="settings-header">
         <div>
-            <h1><i class="fas fa-gear me-2" style="color:var(--primary-color);"></i>Configuración</h1>
+            <h1><i class="fas fa-gear me-2 settings-title-icon"></i>Configuración</h1>
             <p>Personaliza la apariencia de tu espacio de trabajo.</p>
         </div>
         <a class="btn btn-outline-primary" href="{{ url_for('facturacion_menu') }}"><i class="fas fa-arrow-left me-2"></i>Volver al inicio</a>
@@ -266,7 +272,7 @@
                 <div class="theme-grid">
                     {% for key, item in temas_disponibles.items() if item.categoria == 'Fresco' %}
                     <label class="theme-option" for="theme-{{ key }}">
-                        <span class="theme-swatch" style="background:linear-gradient(135deg,{{ item.gradient_start }},{{ item.gradient_end }});"></span>
+                        <span class="theme-swatch theme-swatch--{{ key }}"></span>
                         <span class="theme-copy"><strong>{{ item.nombre }}</strong><small>{{ item.primary }}</small></span>
                         <input type="radio" id="theme-{{ key }}" name="tema_color" value="{{ key }}" {% if tema_nombre == key %}checked{% endif %}>
                     </label>

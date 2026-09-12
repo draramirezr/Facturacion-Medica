@@ -4,7 +4,24 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
+    .historico-title { margin-bottom: .5rem; color: {{ tema.primary }}; font-size: 2.5rem; font-weight: 800; }
+    .historico-subtitle { margin: 0; color: #999; font-size: 1.1rem; font-weight: 600; }
+    .historico-filter-title { margin-bottom: 1.5rem; color: {{ tema.primary_dark }}; font-weight: 700; }
+    .historico-filter-label { margin-bottom: .5rem; color: #666; font-weight: 600; }
+    .historico-col-id { width: 8%; }
+    .historico-col-date, .historico-col-amount { width: 12%; }
+    .historico-col-ncf, .historico-col-ars { width: 20%; }
+    .historico-col-doctor { width: 18%; }
+    .historico-col-actions { width: 10%; }
+    .historico-amount { color: {{ tema.primary_dark }}; }
+    .historico-actions { display: flex; align-items: center; justify-content: center; gap: .5rem; }
+    .historico-empty-cell { padding: 3rem; }
+    .historico-empty-icon { margin-bottom: 1rem; color: #ccc; font-size: 3rem; }
+    .historico-empty-title { margin: 0; color: #999; }
+    .historico-empty-hint { color: #999; font-size: .9rem; }
+    .historico-summary-label { margin-bottom: .5rem; color: #999; }
+    .historico-summary-value { color: {{ tema.primary_dark }}; font-weight: 800; }
     .historico-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
         border: 2px solid {{ tema.primary }};
@@ -190,11 +207,11 @@
     <div class="historico-hero">
         <div class="d-flex justify-content-between align-items-center">
             <div>
-                <h1 style="color: {{ tema.primary }}; font-weight: 800; font-size: 2.5rem; margin-bottom: 0.5rem;">
+                <h1 class="historico-title">
                     <i class="fas fa-history me-2"></i>
                     Histórico de Facturas
                 </h1>
-                <p style="color: #999; margin: 0; font-size: 1.1rem; font-weight: 600;">
+                <p class="historico-subtitle">
                     Consulta y visualiza las facturas generadas
                 </p>
             </div>
@@ -207,14 +224,14 @@
 
     <!-- Filtros -->
     <div class="filtros-card">
-        <h5 style="color: {{ tema.primary_dark }}; font-weight: 700; margin-bottom: 1.5rem;">
+        <h5 class="historico-filter-title">
             <i class="fas fa-filter me-2"></i>
             Filtros de Búsqueda
         </h5>
         <form method="GET" action="{{ url_for('facturacion_historico') }}">
             <div class="row">
                 <div class="col-md-3 mb-3">
-                    <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                    <label class="historico-filter-label">
                         <i class="fas fa-hospital-symbol"></i> ARS
                     </label>
                     <select class="form-select" name="ars_id">
@@ -227,7 +244,7 @@
                     </select>
                 </div>
                 <div class="col-md-3 mb-3">
-                    <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                    <label class="historico-filter-label">
                         <i class="fas fa-user-md"></i> Médico
                     </label>
                     <select class="form-select" name="medico_id">
@@ -240,19 +257,19 @@
                     </select>
                 </div>
                 <div class="col-md-2 mb-3">
-                    <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                    <label class="historico-filter-label">
                         <i class="fas fa-file-invoice"></i> NCF
                     </label>
                     <input type="text" class="form-control" name="ncf" value="{{ ncf or '' }}" placeholder="Buscar NCF...">
                 </div>
                 <div class="col-md-2 mb-3">
-                    <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                    <label class="historico-filter-label">
                         <i class="fas fa-calendar"></i> Desde
                     </label>
                     <input type="date" class="form-control" name="fecha_desde" value="{{ fecha_desde or '' }}">
                 </div>
                 <div class="col-md-2 mb-3">
-                    <label style="color: #666; font-weight: 600; margin-bottom: 0.5rem;">
+                    <label class="historico-filter-label">
                         <i class="fas fa-calendar"></i> Hasta
                     </label>
                     <input type="date" class="form-control" name="fecha_hasta" value="{{ fecha_hasta or '' }}">
@@ -277,13 +294,13 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th style="width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ID</th>
-                        <th style="width: 12%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Fecha</th>
-                        <th style="width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">NCF</th>
-                        <th style="width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ARS</th>
-                        <th style="width: 18%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">Médico</th>
-                        <th style="width: 12%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Monto</th>
-                        <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Acciones</th>
+                        <th class="historico-col-id">ID</th>
+                        <th class="historico-col-date">Fecha</th>
+                        <th class="historico-col-ncf">NCF</th>
+                        <th class="historico-col-ars">ARS</th>
+                        <th class="historico-col-doctor">Médico</th>
+                        <th class="historico-col-amount text-center">Monto</th>
+                        <th class="historico-col-actions text-center">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -298,9 +315,9 @@
                     </td>
                     <td>{{ factura['nombre_ars'] }}</td>
                     <td><small>{{ factura['medico_nombre'] }}</small></td>
-                    <td class="text-center"><strong style="color: {{ tema.primary_dark }};"> {{ factura['total']|formato_moneda }}</strong></td>
+                    <td class="text-center"><strong class="historico-amount"> {{ factura['total']|formato_moneda }}</strong></td>
                     <td class="text-center">
-                        <div style="display: flex; gap: 0.5rem; justify-content: center; align-items: center;">
+                        <div class="historico-actions">
                             <!-- Botón Ver Factura -->
                             <a href="{{ url_for('facturacion_ver_factura', factura_id=factura['id']) }}" 
                                class="btn-ver-factura"
@@ -324,10 +341,10 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="7" class="text-center" style="padding: 3rem;">
-                        <i class="fas fa-inbox" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
-                        <p style="color: #999; margin: 0;">No se encontraron facturas</p>
-                        <p style="color: #999; font-size: 0.9rem;">Intenta ajustar los filtros de búsqueda</p>
+                    <td colspan="7" class="text-center historico-empty-cell">
+                        <i class="fas fa-inbox historico-empty-icon"></i>
+                        <p class="historico-empty-title">No se encontraron facturas</p>
+                        <p class="historico-empty-hint">Intenta ajustar los filtros de búsqueda</p>
                     </td>
                 </tr>
                 {% endfor %}
@@ -341,12 +358,12 @@
     <div class="filtros-card mt-4">
         <div class="row">
             <div class="col-md-6 text-center">
-                <h6 style="color: #999; margin-bottom: 0.5rem;">Total de Facturas</h6>
-                <h3 style="color: {{ tema.primary_dark }}; font-weight: 800;">{{ facturas|length }}</h3>
+                <h6 class="historico-summary-label">Total de Facturas</h6>
+                <h3 class="historico-summary-value">{{ facturas|length }}</h3>
             </div>
             <div class="col-md-6 text-center">
-                <h6 style="color: #999; margin-bottom: 0.5rem;">Monto Total</h6>
-                <h3 style="color: {{ tema.primary_dark }}; font-weight: 800;">
+                <h6 class="historico-summary-label">Monto Total</h6>
+                <h3 class="historico-summary-value">
  {{ (facturas|sum(attribute='total'))|formato_moneda }}
                 </h3>
             </div>
@@ -357,7 +374,7 @@
 
 {% include "_pagination.html" %}
 
-<script>
+<script nonce="{{ csp_nonce }}">
 // Validar si cada factura es editable (menos de 30 días)
 document.addEventListener('DOMContentLoaded', function() {
     const botonesEditar = document.querySelectorAll('[id^="btnEditar"]');
@@ -375,7 +392,6 @@ document.addEventListener('DOMContentLoaded', function() {
         if (diffDays > 30) {
             // Deshabilitar botón si pasaron más de 30 días
             btn.classList.add('disabled');
-            btn.style.pointerEvents = 'none';
             btn.title = `No editable (${diffDays} días desde creación)`;
             btn.onclick = function(e) {
                 e.preventDefault();

@@ -4,7 +4,8 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
+    .next-step-patient-icon { color: var(--primary-color); }
     .next-step-shell { max-width: 920px; margin: 2rem auto; }
     .next-step-header { padding: 2rem; border-radius: 18px; background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); text-align: center; }
     .next-step-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-top: 1.25rem; }
@@ -20,7 +21,7 @@
 <div class="container py-4">
     <div class="next-step-shell">
         <div class="next-step-header">
-            <i class="fas fa-user-injured fa-3x mb-3" style="color: var(--primary-color);"></i>
+            <i class="fas fa-user-injured fa-3x mb-3 next-step-patient-icon"></i>
             <h1>{{ paciente['nombre'] }}</h1>
             <p class="mb-0">{{ paciente['cedula'] or 'Sin cédula propia registrada' }}</p>
         </div>

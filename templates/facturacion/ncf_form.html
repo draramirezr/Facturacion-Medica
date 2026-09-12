@@ -5,7 +5,7 @@
 
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/facturacion-responsive.css') }}">
-<style>
+<style nonce="{{ csp_nonce }}">
     .form-container {
         max-width: 800px;
         margin: 2rem auto;
@@ -14,25 +14,25 @@
         padding: 3rem;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
     }
-    
+
     .form-label {
         font-weight: 600;
         color: #282828;
         margin-bottom: 0.5rem;
     }
-    
+
     .form-control {
         border-radius: 10px;
         border: 2px solid {{ tema.primary }}50;
         padding: 0.75rem;
         transition: all 0.3s ease;
     }
-    
+
     .form-control:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 0.2rem {{ tema.primary }}40;
     }
-    
+
     .btn-guardar {
         background: white;
         border: 2px solid var(--primary-color);
@@ -42,14 +42,14 @@
         font-weight: 600;
         transition: all 0.3s ease;
     }
-    
+
     .btn-guardar:hover {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
         color: white;
         transform: translateY(-2px);
         box-shadow: 0 6px 20px {{ tema.primary }}50;
     }
-    
+
     .btn-cancelar {
         background: white;
         border: 2px solid var(--text-muted);
@@ -59,26 +59,38 @@
         font-weight: 600;
         transition: all 0.3s ease;
     }
-    
+
     .btn-cancelar:hover {
         background: var(--text-muted);
         color: white;
     }
-    
+
     .required-asterisk {
         color: var(--primary-color) !important;
         font-weight: bold;
+    }
+    .fi-ncf-form-inline-1 {
+        color: var(--primary-color); font-weight: 800; font-size: 2rem;
+    }
+    .fi-ncf-form-inline-2 {
+        color: #666; margin: 0;
+    }
+    .fi-ncf-form-inline-3 {
+        text-transform: uppercase;
+    }
+    .fi-ncf-form-inline-4 {
+        background-color: #f5f5f5; cursor: not-allowed; font-family: 'Courier New', monospace; font-weight: 600;
     }
 </style>
 
 <div class="container">
     <div class="form-container">
         <div class="mb-4">
-            <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem;">
+            <h1 class="fi-ncf-form-inline-1">
                 <i class="fas fa-file-invoice me-2"></i>
                 {{ 'Editar NCF' if ncf else 'Nuevo NCF' }}
             </h1>
-            <p style="color: #666; margin: 0;">Complete los campos del Número de Comprobante Fiscal</p>
+            <p class="fi-ncf-form-inline-2">Complete los campos del Número de Comprobante Fiscal</p>
         </div>
 
         <form method="POST">
@@ -87,9 +99,9 @@
                     <label class="form-label" for="tipo">
                         <i class="fas fa-tag me-2"></i>Tipo <span class="required-asterisk">*</span>
                     </label>
-                    <select class="form-control" 
-                           id="tipo" 
-                           name="tipo" 
+                    <select class="form-control"
+                           id="tipo"
+                           name="tipo"
                            data-original="{{ ncf['tipo'] if ncf else '' }}"
                            required>
                         <option value="">Seleccione un tipo</option>
@@ -104,11 +116,11 @@
                     <label class="form-label" for="prefijo">
                         <i class="fas fa-hashtag me-2"></i>Prefijo <span class="required-asterisk">*</span>
                     </label>
-                    <input type="text" 
-                           class="form-control" 
-                           id="prefijo" 
-                           name="prefijo" 
-                           value="{{ ncf['prefijo'] if ncf else '' }}" 
+                    <input type="text"
+                           class="form-control"
+                           id="prefijo"
+                           name="prefijo"
+                           value="{{ ncf['prefijo'] if ncf else '' }}"
                            required
                            readonly
                            aria-readonly="true"
@@ -123,12 +135,11 @@
                     <label class="form-label" for="tipo_personalizado">
                         Código del nuevo tipo <span class="required-asterisk">*</span>
                     </label>
-                    <input type="text" class="form-control"
+                    <input type="text" class="form-control fi-ncf-form-inline-3"
                            id="tipo_personalizado" name="tipo_personalizado"
                            value="{{ ncf['tipo'] if ncf and ncf['tipo'] not in ncf_tipos else '' }}"
                            maxlength="3" pattern="B[0-9]{2}"
-                           placeholder="Ej: B18"
-                           style="text-transform: uppercase;">
+                           placeholder="Ej: B18">
                     <small class="text-muted">Debe utilizar el formato B seguido de dos números.</small>
                 </div>
                 <div class="col-md-8 mb-3">
@@ -148,11 +159,11 @@
                     <label class="form-label" for="tamano_secuencia">
                         <i class="fas fa-ruler-horizontal me-2"></i>Tamaño <span class="required-asterisk">*</span>
                     </label>
-                    <input type="number" 
-                           class="form-control" 
-                           id="tamano_secuencia" 
-                           name="tamano_secuencia" 
-                           value="{{ ncf['tamano_secuencia'] if ncf else '' }}" 
+                    <input type="number"
+                           class="form-control"
+                           id="tamano_secuencia"
+                           name="tamano_secuencia"
+                           value="{{ ncf['tamano_secuencia'] if ncf else '' }}"
                            data-original="{{ ncf['tamano_secuencia'] if ncf else '' }}"
                            required
                            min="1"
@@ -164,15 +175,15 @@
                     <label class="form-label" for="ultimo_numero">
                         <i class="fas fa-sort-numeric-up me-2"></i>Último Número
                     </label>
-                    <input type="number" 
-                           class="form-control" 
-                           id="ultimo_numero" 
-                           name="ultimo_numero" 
-                           value="{{ ncf['ultimo_numero'] if ncf else '0' }}" 
+                    <input type="number"
+                           class="form-control"
+                           id="ultimo_numero"
+                           name="ultimo_numero"
+                           value="{{ ncf['ultimo_numero'] if ncf else '0' }}"
                            data-original="{{ ncf['ultimo_numero'] if ncf else '' }}"
                            min="0"
                            placeholder="0"
-                           onchange="calcularProximo()">
+                           data-csp-change="calcularProximo">
                     <small class="text-muted">Último número utilizado</small>
                     <small class="text-danger d-block mt-1" id="ncfNumeroError" hidden></small>
                 </div>
@@ -181,12 +192,11 @@
                     <label class="form-label">
                         <i class="fas fa-calculator me-2"></i>Próximo Número
                     </label>
-                    <input type="number" 
-                           class="form-control" 
-                           id="proximo_numero" 
-                           value="{{ (ncf['ultimo_numero'] + 1) if ncf else '1' }}" 
-                           disabled
-                           style="background-color: #f5f5f5; cursor: not-allowed; font-family: 'Courier New', monospace; font-weight: 600;">
+                    <input type="number"
+                           class="form-control fi-ncf-form-inline-4"
+                           id="proximo_numero"
+                           value="{{ (ncf['ultimo_numero'] + 1) if ncf else '1' }}"
+                           disabled>
                     <small class="text-muted">Calculado automáticamente</small>
                 </div>
             </div>
@@ -196,10 +206,10 @@
                     <label class="form-label" for="fecha_fin">
                         Fecha Fin
                     </label>
-                    <input type="date" 
-                           class="form-control" 
-                           id="fecha_fin" 
-                           name="fecha_fin" 
+                    <input type="date"
+                           class="form-control"
+                           id="fecha_fin"
+                           name="fecha_fin"
                            value="{{ ncf['fecha_fin'] if ncf and ncf['fecha_fin'] else '' }}">
                     <small class="text-muted">Fecha de vencimiento o fin de validez del NCF (opcional)</small>
                 </div>
@@ -229,7 +239,7 @@
     </div>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 function calcularProximo() {
     const ultimoNumero = parseInt(document.getElementById('ultimo_numero').value) || 0;
     const proximoNumero = ultimoNumero + 1;

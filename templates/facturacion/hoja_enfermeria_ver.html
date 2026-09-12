@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .nursing-actions { max-width:920px; margin:1rem auto; }
     .nursing-paper { max-width:920px; min-height:1050px; margin:1rem auto; padding:42px; border:1px solid #cfd6dd; background:white; color:#222; font-family:Arial,sans-serif; }
     .document-head { text-align:center; margin-bottom:28px; }
@@ -15,6 +15,13 @@
     .patient-lines .wide { grid-column:span 2; }
     .line-value { min-height:18px; padding:1px 4px; border-bottom:1px solid #555; }
     .line-value b { margin-right:4px; font-size:.64rem; text-transform:uppercase; }
+    .supply-col-date { width: 11%; }
+    .supply-col-time { width: 9%; }
+    .supply-col-item { width: 25%; }
+    .supply-col-quantity { width: 10%; }
+    .supply-col-dose { width: 14%; }
+    .supply-col-notes { width: 18%; }
+    .supply-col-owner { width: 13%; }
     .supply-document { width:100%; border-collapse:collapse; table-layout:fixed; font-size:.66rem; }
     .supply-document th,.supply-document td { height:30px; padding:4px; border:1px solid #666; vertical-align:top; }
     .supply-document th { background:#f2f2f2; text-align:center; font-size:.6rem; text-transform:uppercase; }
@@ -56,7 +63,7 @@
     </div>
     <div class="document-title">MEDICAMENTOS Y MATERIALES MÉDICOS SUMINISTRADOS</div>
     <table class="supply-document">
-        <colgroup><col style="width:11%"><col style="width:9%"><col style="width:25%"><col style="width:10%"><col style="width:14%"><col style="width:18%"><col style="width:13%"></colgroup>
+        <colgroup><col class="supply-col-date"><col class="supply-col-time"><col class="supply-col-item"><col class="supply-col-quantity"><col class="supply-col-dose"><col class="supply-col-notes"><col class="supply-col-owner"></colgroup>
         <thead><tr><th>Fecha</th><th>Hora</th><th>Medicamento o material</th><th>Cantidad</th><th>Dosis / vía</th><th>Observaciones</th><th>Responsable</th></tr></thead>
         <tbody>
             {% for item in hoja['suministros'] %}
@@ -68,5 +75,5 @@
     {% if hoja['observaciones'] %}<div class="document-notes"><strong>Observaciones generales:</strong> {{ hoja['observaciones'] }}</div>{% endif %}
     <div class="document-signature">{{ hoja['firma_responsable'] }}<br>FIRMA RESPONSABLE</div>
 </article>
-{% if imprimir %}<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),120));</script>{% endif %}
+{% if imprimir %}<script nonce="{{ csp_nonce }}">window.addEventListener('load',()=>setTimeout(()=>window.print(),120));</script>{% endif %}
 {% endblock %}

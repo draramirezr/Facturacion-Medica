@@ -7,7 +7,6 @@
                 const saved = localStorage.getItem('arsflow-color-mode');
                 const mode = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
                 document.documentElement.dataset.colorMode = mode;
-                document.documentElement.style.colorScheme = mode;
             } catch (error) {
                 document.documentElement.dataset.colorMode = 'light';
             }
@@ -165,6 +164,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}?v=3.0">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-colors.css') }}?v=2.1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-design.css') }}?v=2.2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csp-utilities.css') }}?v=1">
     <!-- Archivos eliminados para permitir temas dinámicos:
     <link rel="stylesheet" href="{{ url_for('static', filename='css/piggy-pink-background.css') }}?v=2.1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/silver-pink-elements.css') }}?v=2.1">
@@ -183,7 +183,7 @@
     {% endif %}
     
     <!-- Estilos Críticos Inline - Prevenir FOUC (Flash of Unstyled Content) -->
-    <style>
+    <style nonce="{{ csp_nonce }}">
         /* ===== PREVENIR FOUC - ESTILOS CRÍTICOS ===== */
         /* Loader deshabilitado para carga instantánea */
         
@@ -239,7 +239,7 @@
             src: local('Playfair Display');
         }
     </style>
-    <style>
+    <style nonce="{{ csp_nonce }}">
         :root {
             /* Paleta de colores dinámica basada en el tema del usuario */
             {% if current_user.is_authenticated %}
@@ -1112,7 +1112,7 @@
 <body{% if current_user.is_authenticated %} class="ars-app-body"{% endif %}>
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TW8956LR"
-    height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
+    height="0" width="0" class="csp-hidden-frame"></iframe></noscript>
     <!-- End Google Tag Manager (noscript) -->
     
     {% if current_user.is_authenticated %}
@@ -1438,87 +1438,87 @@
 
     <!-- Footer - Solo visible si NO está autenticado -->
     {% if not current_user.is_authenticated %}
-    <footer class="text-light py-4 mt-5" style="background-color: rgba(255, 255, 255, 0.8); backdrop-filter: blur(10px); color: var(--text-dark);">
+    <footer class="text-light py-4 mt-5 public-site-footer">
         <div class="container">
             <div class="row justify-content-center">
                 <div class="col-lg-5 col-md-6 mb-3">
                     <!-- Seguros Médicos -->
-                    <div class="p-2 h-100" style="background: rgba(206, 176, 183, 0.1); border-radius: 10px; border-left: 4px solid var(--primary-color);">
-                        <h6 class="text-primary mb-2" style="font-weight: 700; font-size: 0.9rem;">
+                    <div class="p-2 h-100 public-site-footer__panel">
+                        <h6 class="text-primary mb-2 public-site-footer__heading">
                             <i class="fas fa-shield-alt me-2"></i>
                             Trabajamos con los Principales Seguros Médicos
                         </h6>
                         <div class="row g-1">
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">Universal</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">Universal</span>
                                 </div>
                             </div>
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">Reservas</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">Reservas</span>
                                 </div>
                             </div>
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">Humano ARS</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">Humano ARS</span>
                                 </div>
                             </div>
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">Primera</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">Primera</span>
                                 </div>
                             </div>
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">Mapfre</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">Mapfre</span>
                                 </div>
                             </div>
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">Futuro</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">Futuro</span>
                                 </div>
                             </div>
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">Senasa</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">Senasa</span>
                                 </div>
                             </div>
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">Monumental</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">Monumental</span>
                                 </div>
                             </div>
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">Semma</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">Semma</span>
                                 </div>
                             </div>
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">Renacer</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">Renacer</span>
                                 </div>
                             </div>
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">APS</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">APS</span>
                                 </div>
                             </div>
                             <div class="col-6 col-sm-4">
                                 <div class="d-flex align-items-center">
-                                    <i class="fas fa-check-circle text-primary me-1" style="font-size: 0.75rem;"></i>
-                                    <span class="text-muted" style="font-size: 0.85rem;">Asemap</span>
+                                    <i class="fas fa-check-circle text-primary me-1 public-site-footer__icon"></i>
+                                    <span class="text-muted public-site-footer__text">Asemap</span>
                                 </div>
                             </div>
                         </div>
@@ -1527,13 +1527,13 @@
                 
                 <div class="col-lg-5 col-md-6 mb-3">
                     <!-- Contacto -->
-                    <div class="p-2 h-100" style="background: rgba(206, 176, 183, 0.1); border-radius: 10px; border-left: 4px solid var(--primary-color);">
-                        <h6 class="text-primary mb-2" style="font-weight: 700; font-size: 0.9rem;">
+                    <div class="p-2 h-100 public-site-footer__panel">
+                        <h6 class="text-primary mb-2 public-site-footer__heading">
                             <i class="fas fa-phone-alt me-2"></i>
                             Contacto
                         </h6>
                         <div>
-                            <p class="text-muted mb-2" style="font-size: 0.85rem; line-height: 1.3;">
+                            <p class="text-muted mb-2 public-site-footer__text public-site-footer__text--tight">
                                 <i class="fas fa-map-marker-alt me-2"></i>
                                 <a href="https://www.google.com/maps/place/Centro+Oriental+de+Ginecolog%C3%ADa+y+Obstetricia/@18.4975225,-69.8651385,17z/data=!3m1!4b1!4m6!3m5!1s0x8eaf887e90af3bd9:0x5a34a05877ad0b13!8m2!3d18.4975225!4d-69.8651385!16s%2Fg%2F1tcx2l68?entry=ttu&g_ep=EgoyMDI1MTAwOC4wIKXMDSoASAFQAw%3D%3D" 
                                    target="_blank" 
@@ -1542,11 +1542,11 @@
                                     Centro Oriental de Ginecología y Obstetricia, Zona Oriental, República Dominicana
                                 </a>
                             </p>
-                            <p class="text-muted mb-2" style="font-size: 0.85rem;">
+                            <p class="text-muted mb-2 public-site-footer__text">
                                 <i class="fas fa-phone me-2"></i>
                                 <a href="tel:+18297405073" class="text-muted text-decoration-none">(829) 740-5073</a>
                             </p>
-                            <p class="text-muted mb-0" style="font-size: 0.85rem;">
+                            <p class="text-muted mb-0 public-site-footer__text">
                                 <i class="fas fa-envelope me-2"></i>
                                 <a href="mailto:dra.ramirezr@gmail.com" class="text-muted text-decoration-none">dra.ramirezr@gmail.com</a>
                             </p>
@@ -1559,7 +1559,7 @@
             
             <div class="row align-items-center">
                 <div class="col-md-12 text-center">
-                    <p class="text-muted mb-0" style="font-size: 0.85rem;">
+                    <p class="text-muted mb-0 public-site-footer__text">
                         &copy; 2025 Dra. Shirley Ramírez. Todos los derechos reservados.
                     </p>
                 </div>
@@ -1598,6 +1598,7 @@
 
     <!-- JavaScript - Carga optimizada con defer para máxima velocidad -->
     <script src="{{ url_for('static', filename='js/csrf.js') }}?v=1" defer></script>
+    <script src="{{ url_for('static', filename='js/csp-events.js') }}?v=1" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
 
     {% if current_user.is_authenticated %}

@@ -8,11 +8,12 @@
 {% set medico_valor = form_data.get('medico_id', '') %}
 {% set consulta_valor = form_data.get('consulta_id', '') %}
 {% set tipo_valor = form_data.get('tipo_licencia_id', '') %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .license-header { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 1.7rem; margin-bottom: 1.25rem; }
     .license-section { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.35rem; margin-bottom: 1.25rem; }
     .license-section h2 { color: var(--primary-dark); font-size: 1.05rem; border-bottom: 1px solid {{ tema.primary }}20; padding-bottom: .7rem; margin-bottom: 1rem; }
     .required::after { content: " *"; color: var(--primary-color); }
+    .overlap-warning { background:{{ tema.primary }}12; border:1px solid {{ tema.primary }}45; }
     .days-display { background: {{ tema.primary }}12; border: 1px solid {{ tema.primary }}35; border-radius: 10px; padding: .75rem; font-weight: 700; text-align: center; }
 </style>
 
@@ -55,7 +56,7 @@
                 <div class="col-lg-4"><label class="form-label required">Estado</label><select class="form-select" name="estado" required><option value="Borrador" {% if form_data.get('estado','Borrador') == 'Borrador' %}selected{% endif %}>Borrador</option><option value="Emitida" {% if form_data.get('estado') == 'Emitida' %}selected{% endif %}>Emitida (documento oficial)</option></select></div>
             </div>
             {% if advertencia_solapamiento %}
-            <div class="mt-3 p-3 rounded" style="background:{{ tema.primary }}12;border:1px solid {{ tema.primary }}45;">
+            <div class="mt-3 p-3 rounded overlap-warning">
                 <label class="form-check mb-0"><input class="form-check-input" type="checkbox" name="confirmar_solapamiento" value="1" required> <span class="form-check-label">Revisé el período y deseo continuar aunque exista otra licencia solapada.</span></label>
             </div>
             {% endif %}
@@ -67,7 +68,7 @@
         </div>
     </form>
 </div>
-<script>
+<script nonce="{{ csp_nonce }}">
 (() => {
     const patient = document.getElementById('paciente_id');
     const consultation = document.getElementById('consulta_id');

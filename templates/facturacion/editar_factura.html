@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .editar-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_dark }}30 100%);
         border: 2px solid {{ tema.primary }};
@@ -497,6 +497,27 @@
             font-size: 0.55rem;
         }
     }
+
+    /* Utilidades locales migradas desde atributos style para CSP. */
+    .csp-u-001 { display: none; }
+    .csp-u-002 { width: 50px; }
+    .csp-u-003 { width: 120px; }
+    .csp-u-004 { font-size: 1.1rem; color: #666; }
+    .marcado-agregar {
+        background: linear-gradient(135deg, #45a049 0%, #357a38 100%) !important;
+    }
+    .fila-marcada-agregar {
+        background: rgba(76, 175, 80, 0.1);
+    }
+    .marcado-eliminar {
+        background: linear-gradient(135deg, #cc0000 0%, #990000 100%) !important;
+    }
+    .fila-marcada-eliminar {
+        background: rgba(255, 68, 68, 0.1);
+    }
+    .contador-visible {
+        display: inline-block !important;
+    }
 </style>
 
 <div class="container-fluid mt-4">
@@ -564,7 +585,7 @@
         <div class="seccion-pacientes">
             <h4 class="seccion-titulo">
                 👥 Pacientes en la Factura ({{ pacientes_factura|length }})
-                <span id="contadorEliminar" class="contador-cambios" style="display: none;">
+                <span id="contadorEliminar" class="contador-cambios csp-u-001">
                     A Eliminar: <span id="numEliminar">0</span>
                 </span>
             </h4>
@@ -574,14 +595,14 @@
                 <table class="table tabla-editar table-hover mb-0">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">No.</th>
+                            <th class="csp-u-002">No.</th>
                             <th>Paciente</th>
                             <th>NSS</th>
                             <th>Fecha Servicio</th>
                             <th>Médico Consulta</th>
                             <th>Servicio</th>
                             <th>Monto</th>
-                            <th style="width: 120px;">Acción</th>
+                            <th class="csp-u-003">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -596,7 +617,7 @@
                             <td>{{ paciente['servicio_nombre'] or 'N/A' }}</td>
                             <td class="text-end">RD$ {{ "{:,.2f}".format(monto_paciente) }}</td>
                             <td class="text-center">
-                                <button type="button" class="btn-eliminar-paciente" onclick="marcarParaEliminar({{ paciente['id'] }})">
+                                <button type="button" class="btn-eliminar-paciente" data-csp-click="marcarParaEliminar" data-csp-args='[{{ paciente["id"] }}]'>
                                     <i class="fas fa-trash"></i> Eliminar
                                 </button>
                             </td>
@@ -616,7 +637,7 @@
         <div class="seccion-pacientes">
             <h4 class="seccion-titulo">
                 ➕ Pacientes Pendientes - {{ factura['nombre_ars'] if factura.get('nombre_ars') else factura.get('ars_nombre', 'N/A') }} ({{ pacientes_pendientes|length }})
-                <span id="contadorAgregar" class="contador-cambios" style="display: none;">
+                <span id="contadorAgregar" class="contador-cambios csp-u-001">
                     A Agregar: <span id="numAgregar">0</span>
                 </span>
             </h4>
@@ -626,14 +647,14 @@
                 <table class="table tabla-editar table-hover mb-0">
                     <thead>
                         <tr>
-                            <th style="width: 50px;">No.</th>
+                            <th class="csp-u-002">No.</th>
                             <th>Paciente</th>
                             <th>NSS</th>
                             <th>Fecha Servicio</th>
                             <th>Médico Consulta</th>
                             <th>Servicio</th>
                             <th>Monto</th>
-                            <th style="width: 120px;">Acción</th>
+                            <th class="csp-u-003">Acción</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -648,7 +669,7 @@
                             <td>{{ paciente['servicio_nombre'] or 'N/A' }}</td>
                             <td class="text-end">RD$ {{ "{:,.2f}".format(monto_paciente) }}</td>
                             <td class="text-center">
-                                <button type="button" class="btn-agregar-paciente" onclick="marcarParaAgregar({{ paciente['id'] }})">
+                                <button type="button" class="btn-agregar-paciente" data-csp-click="marcarParaAgregar" data-csp-args='[{{ paciente["id"] }}]'>
                                     <i class="fas fa-plus"></i> Agregar
                                 </button>
                             </td>
@@ -673,13 +694,13 @@
                 <i class="fas fa-times"></i> Cancelar
             </a>
             <div class="mt-3">
-                <span id="resumenCambios" style="font-size: 1.1rem; color: #666;"></span>
+                <span id="resumenCambios" class="csp-u-004"></span>
             </div>
         </div>
     </form>
 </div>
 
-<script>
+<script nonce="{{ csp_nonce }}">
 // Arrays para almacenar los cambios
 let pacientesAgregar = [];
 let pacientesEliminar = [];
@@ -692,15 +713,14 @@ function marcarParaAgregar(pacienteId) {
         // Ya está marcado, desmarcar
         pacientesAgregar = pacientesAgregar.filter(id => id !== pacienteId);
         btn.innerHTML = '<i class="fas fa-plus"></i> Agregar';
-        btn.classList.remove('btn-agregar-paciente');
-        btn.classList.add('btn-agregar-paciente');
-        row.style.background = '';
+        btn.classList.remove('marcado-agregar');
+        row.classList.remove('fila-marcada-agregar');
     } else {
         // Marcar para agregar
         pacientesAgregar.push(pacienteId);
         btn.innerHTML = '<i class="fas fa-check"></i> Marcado';
-        btn.style.background = 'linear-gradient(135deg, #45a049 0%, #357a38 100%)';
-        row.style.background = 'rgba(76, 175, 80, 0.1)';
+        btn.classList.add('marcado-agregar');
+        row.classList.add('fila-marcada-agregar');
     }
     
     actualizarContadores();
@@ -714,14 +734,14 @@ function marcarParaEliminar(pacienteId) {
         // Ya está marcado, desmarcar
         pacientesEliminar = pacientesEliminar.filter(id => id !== pacienteId);
         btn.innerHTML = '<i class="fas fa-trash"></i> Eliminar';
-        btn.style.background = 'linear-gradient(135deg, #ff4444 0%, #cc0000 100%)';
-        row.style.background = '';
+        btn.classList.remove('marcado-eliminar');
+        row.classList.remove('fila-marcada-eliminar');
     } else {
         // Marcar para eliminar
         pacientesEliminar.push(pacienteId);
         btn.innerHTML = '<i class="fas fa-check"></i> Marcado';
-        btn.style.background = 'linear-gradient(135deg, #cc0000 0%, #990000 100%)';
-        row.style.background = 'rgba(255, 68, 68, 0.1)';
+        btn.classList.add('marcado-eliminar');
+        row.classList.add('fila-marcada-eliminar');
     }
     
     actualizarContadores();
@@ -740,8 +760,8 @@ function actualizarContadores() {
     document.getElementById('numEliminar').textContent = numEliminar;
     
     // Mostrar/ocultar contadores
-    document.getElementById('contadorAgregar').style.display = numAgregar > 0 ? 'inline-block' : 'none';
-    document.getElementById('contadorEliminar').style.display = numEliminar > 0 ? 'inline-block' : 'none';
+    document.getElementById('contadorAgregar').classList.toggle('contador-visible', numAgregar > 0);
+    document.getElementById('contadorEliminar').classList.toggle('contador-visible', numEliminar > 0);
     
     // Habilitar/deshabilitar botón de guardar
     const btnGuardar = document.getElementById('btnGuardarCambios');

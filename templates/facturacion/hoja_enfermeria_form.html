@@ -4,7 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .nursing-form-shell { max-width:1200px; margin:0 auto; }
     .nursing-header,.nursing-card { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
     .nursing-header { background:linear-gradient(135deg,{{ tema.primary }}12,white); }
@@ -66,7 +66,7 @@
         <td><button class="btn btn-sm btn-outline-secondary remove-row" type="button" title="Quitar"><i class="fas fa-times"></i></button></td>
     </tr>
 </template>
-<script>
+<script nonce="{{ csp_nonce }}">
 (() => {
     const patient = document.getElementById('paciente_id');
     const emergency = document.getElementById('historia_emergencia_id');

@@ -4,14 +4,14 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<style>
+<style nonce="{{ csp_nonce }}">
     .facturacion-hero {
         background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
         border-radius: 20px;
         padding: 2rem;
         margin-bottom: 2rem;
     }
-    
+
     .search-box {
         background: white;
         border-radius: 15px;
@@ -19,45 +19,45 @@
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         margin-bottom: 2rem;
     }
-    
+
     .table-facturacion {
         background: white;
         border-radius: 15px;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         overflow: hidden;
     }
-    
+
     /* Contenedor con scroll horizontal para responsive */
     .table-responsive-wrapper {
         max-height: 400px; /* Altura aproximada para 5 registros */
         overflow-x: auto;
         overflow-y: auto;
     }
-    
+
     /* Barra de desplazamiento personalizada */
     .table-responsive-wrapper::-webkit-scrollbar {
         width: 10px;
         height: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-track {
         background: #f1f1f1;
         border-radius: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-thumb {
         background: {{ tema.primary_dark }};
         border-radius: 10px;
     }
-    
+
     .table-responsive-wrapper::-webkit-scrollbar-thumb:hover {
         background: {{ tema.primary }};
     }
-    
+
     .table-facturacion table {
         min-width: 800px; /* Ancho mínimo para evitar aplastamiento */
     }
-    
+
     .table-facturacion th {
         background: {{ tema.primary_dark }} !important;
         background-color: {{ tema.primary_dark }} !important;
@@ -69,24 +69,24 @@
         top: 0;
         z-index: 10;
     }
-    
+
     .table-facturacion thead th {
         color: #FFFFFF !important;
     }
-    
+
     .table-facturacion td {
         padding: 1rem;
         vertical-align: middle;
         border-bottom: 1px solid {{ tema.primary }}15;
     }
-    
+
     .table-facturacion tbody tr:hover {
         background-color: {{ tema.primary }}08;
     }
-    
+
     /* Los estilos de botones ahora están en botones-estandarizados.css */
     /* Esto garantiza que todos los botones tengan el mismo tamaño y color */
-    
+
     .badge-codigo {
         background: transparent;
         color: var(--text-dark);
@@ -97,7 +97,7 @@
         font-family: 'Courier New', monospace;
         border: none;
     }
-    
+
     /* Badge de estado con color dinámico del tema - Especificidad máxima */
     .table-facturacion .badge.bg-success,
     .table-facturacion td .badge.bg-success,
@@ -110,7 +110,7 @@
         font-weight: 600 !important;
         box-shadow: 0 2px 8px rgba(206, 176, 183, 0.4) !important;
     }
-    
+
     .table-facturacion .badge.bg-secondary,
     .table-facturacion td .badge.bg-secondary,
     td .badge.bg-secondary {
@@ -123,6 +123,33 @@
         font-weight: 600 !important;
         box-shadow: 0 2px 8px rgba(206, 176, 183, 0.4) !important;
     }
+    .fi-codigo-ars-inline-1 {
+        color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;
+    }
+    .fi-codigo-ars-inline-2 {
+        border-radius: 10px; height: 48px;
+    }
+    .fi-codigo-ars-inline-3 {
+        height: 48px;
+    }
+    .fi-codigo-ars-inline-4 {
+        width: 30%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-codigo-ars-inline-5 {
+        width: 25%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-codigo-ars-inline-6 {
+        width: 15%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-codigo-ars-inline-7 {
+        width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-codigo-ars-inline-8 {
+        width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
+    }
+    .fi-codigo-ars-inline-10 {
+        background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 2rem;
+    }
 </style>
 
 <div class="container py-5">
@@ -130,7 +157,7 @@
     <div class="facturacion-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
             <div>
-                <h1 style="color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;">
+                <h1 class="fi-codigo-ars-inline-1">
                     <i class="fas fa-barcode me-2"></i>
                     Código ARS
                 </h1>
@@ -152,10 +179,10 @@
         <form method="GET" action="{{ url_for('facturacion_codigo_ars') }}">
             <div class="row align-items-end">
                 <div class="col-md-10">
-                    <input type="text" name="search" class="form-control" placeholder="Buscar por {{ relacion.etiqueta|lower }}, ARS o código..." value="{{ search or '' }}" style="border-radius: 10px; height: 48px;">
+                    <input type="text" name="search" class="form-control fi-codigo-ars-inline-2" placeholder="Buscar por {{ relacion.etiqueta|lower }}, ARS o código..." value="{{ search or '' }}">
                 </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-buscar w-100" style="height: 48px;">
+                    <button type="submit" class="btn btn-buscar w-100 fi-codigo-ars-inline-3">
                         <i class="fas fa-search me-2"></i>Buscar
                     </button>
                 </div>
@@ -170,11 +197,11 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th style="width: 30%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">{{ relacion.etiqueta }}</th>
-                        <th style="width: 25%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;">ARS</th>
-                        <th style="width: 15%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Código</th>
-                        <th style="width: 10%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Estado</th>
-                        <th style="width: 20%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;" class="text-center">Acciones</th>
+                        <th class="fi-codigo-ars-inline-4">{{ relacion.etiqueta }}</th>
+                        <th class="fi-codigo-ars-inline-5">ARS</th>
+                        <th class="text-center fi-codigo-ars-inline-6">Código</th>
+                        <th class="text-center fi-codigo-ars-inline-7">Estado</th>
+                        <th class="text-center fi-codigo-ars-inline-8">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -204,13 +231,14 @@
                                 <a href="{{ url_for('facturacion_codigo_ars_editar', codigo_id=codigo['id']) }}" class="btn btn-accion-editar">
                                     <i class="fas fa-edit"></i> Editar
                                 </a>
-                                <a href="#" 
-                                   onclick="if(confirm('¿Estás segura de eliminar este código?')) { document.getElementById('delete-form-codigo-{{ codigo['id'] }}').submit(); } return false;"
+                                <a href="#"
+                                   data-confirm-submit="¿Estás segura de eliminar este código?"
+                                   data-submit-target="delete-form-codigo-{{ codigo['id'] }}"
                                    class="btn btn-accion-editar">
                                     <i class="fas fa-trash"></i> Eliminar
                                 </a>
                             </div>
-                            <form id="delete-form-codigo-{{ codigo['id'] }}" method="POST" action="{{ url_for('facturacion_codigo_ars_eliminar', codigo_id=codigo['id']) }}" style="display: none;">
+                            <form id="delete-form-codigo-{{ codigo['id'] }}" method="POST" action="{{ url_for('facturacion_codigo_ars_eliminar', codigo_id=codigo['id']) }}" class="d-none">
                             </form>
                         </td>
                     </tr>
@@ -219,7 +247,7 @@
             </table>
         </div>
         {% else %}
-        <div class="alert alert-info" style="background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 2rem;">
+        <div class="alert alert-info fi-codigo-ars-inline-10">
             <i class="fas fa-info-circle me-2"></i>
             No hay códigos ARS registrados. Haz clic en "Nuevo Código" para comenzar.
         </div>

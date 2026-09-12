@@ -32,7 +32,6 @@
     function setMode(mode, persist) {
         const nextMode = mode === 'dark' ? 'dark' : 'light';
         root.dataset.colorMode = nextMode;
-        root.style.colorScheme = nextMode;
         updateButtons(nextMode);
         if (persist) {
             try {
