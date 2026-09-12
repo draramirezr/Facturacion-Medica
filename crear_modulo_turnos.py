@@ -160,6 +160,11 @@ def crear_modulo():
             "ancho_ticket_turnos",
             "VARCHAR(2) NOT NULL DEFAULT '80'",
         )
+        _agregar_columna_si_falta(
+            "pantallas_turnos",
+            "token_cifrado",
+            "TEXT NULL",
+        )
 
         print("[OK] Módulo de turnos disponible")
 

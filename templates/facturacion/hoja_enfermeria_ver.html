@@ -17,11 +17,9 @@
     .line-value b { margin-right:4px; font-size:.64rem; text-transform:uppercase; }
     .supply-col-date { width: 11%; }
     .supply-col-time { width: 9%; }
-    .supply-col-item { width: 25%; }
-    .supply-col-quantity { width: 10%; }
-    .supply-col-dose { width: 14%; }
-    .supply-col-notes { width: 18%; }
-    .supply-col-owner { width: 13%; }
+    .supply-col-item { width: 42%; }
+    .supply-col-quantity { width: 14%; }
+    .supply-col-dose { width: 24%; }
     .supply-document { width:100%; border-collapse:collapse; table-layout:fixed; font-size:.66rem; }
     .supply-document th,.supply-document td { height:30px; padding:4px; border:1px solid #666; vertical-align:top; }
     .supply-document th { background:#f2f2f2; text-align:center; font-size:.6rem; text-transform:uppercase; }
@@ -63,13 +61,13 @@
     </div>
     <div class="document-title">MEDICAMENTOS Y MATERIALES MÉDICOS SUMINISTRADOS</div>
     <table class="supply-document">
-        <colgroup><col class="supply-col-date"><col class="supply-col-time"><col class="supply-col-item"><col class="supply-col-quantity"><col class="supply-col-dose"><col class="supply-col-notes"><col class="supply-col-owner"></colgroup>
-        <thead><tr><th>Fecha</th><th>Hora</th><th>Medicamento o material</th><th>Cantidad</th><th>Dosis / vía</th><th>Observaciones</th><th>Responsable</th></tr></thead>
+        <colgroup><col class="supply-col-date"><col class="supply-col-time"><col class="supply-col-item"><col class="supply-col-quantity"><col class="supply-col-dose"></colgroup>
+        <thead><tr><th>Fecha</th><th>Hora</th><th>Detalle</th><th>Cantidad</th><th>Dosis / vía</th></tr></thead>
         <tbody>
             {% for item in hoja['suministros'] %}
-            <tr><td>{{ item.get('fecha','') }}</td><td>{{ item.get('hora','') }}</td><td>{{ item.get('item','') }}</td><td>{{ item.get('cantidad','') }}</td><td>{{ item.get('dosis_via','') }}</td><td>{{ item.get('notas','') }}</td><td>{{ item.get('responsable','') }}</td></tr>
+            <tr><td>{{ item.get('fecha','') }}</td><td>{{ item.get('hora','') }}</td><td>{{ item.get('detalle', item.get('item','')) }}</td><td>{{ item.get('cantidad','') }}</td><td>{{ item.get('dosis_via','') }}</td></tr>
             {% endfor %}
-            {% for _ in range([12 - hoja['suministros']|length, 0]|max) %}<tr><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>{% endfor %}
+            {% for _ in range([12 - hoja['suministros']|length, 0]|max) %}<tr><td></td><td></td><td></td><td></td><td></td></tr>{% endfor %}
         </tbody>
     </table>
     {% if hoja['observaciones'] %}<div class="document-notes"><strong>Observaciones generales:</strong> {{ hoja['observaciones'] }}</div>{% endif %}

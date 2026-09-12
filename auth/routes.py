@@ -142,6 +142,7 @@ def _build_user(data):
         tenant_id=data.get('tenant_id', 1),
         empresa_nombre=data.get('empresa_nombre', ''),
         mostrar_chat=data.get('mostrar_chat', 1),
+        idioma_correccion=data.get('idioma_correccion', 'es'),
     )
 
 
@@ -234,11 +235,59 @@ def logout():
     return redirect(url_for('index'))
 
 
+@login_required
+def cambiar_mi_password():
+    """Permitir que el usuario autenticado cambie únicamente su contraseña."""
+    if request.method == 'GET':
+        return render_template('cambiar_mi_password.html')
+
+    password_actual = request.form.get('password_actual', '')
+    password_nuevo = request.form.get('password_nuevo', '')
+    password_confirm = request.form.get('password_confirm', '')
+    usuario = execute_query(
+        'SELECT id, password_hash FROM usuarios '
+        'WHERE id=%s AND tenant_id <=> %s AND activo=1',
+        (current_user.id, current_user.tenant_id),
+    )
+    if not usuario or not check_password_hash(
+        usuario['password_hash'],
+        password_actual,
+    ):
+        flash('La contraseña actual no es correcta', 'error')
+        return redirect(url_for('cambiar_mi_password'))
+    if password_nuevo != password_confirm:
+        flash('Las contraseñas nuevas no coinciden', 'error')
+        return redirect(url_for('cambiar_mi_password'))
+    if check_password_hash(usuario['password_hash'], password_nuevo):
+        flash('La contraseña nueva debe ser diferente a la actual', 'error')
+        return redirect(url_for('cambiar_mi_password'))
+    errors = validar_password_segura(password_nuevo)
+    if errors:
+        flash(f'Contraseña no válida: {", ".join(errors)}', 'error')
+        return redirect(url_for('cambiar_mi_password'))
+
+    execute_update(
+        'UPDATE usuarios SET password_hash=%s, password_temporal=0, '
+        'reset_token=NULL, reset_token_expiracion=NULL '
+        'WHERE id=%s AND tenant_id <=> %s',
+        (
+            generate_password_hash(password_nuevo),
+            current_user.id,
+            current_user.tenant_id,
+        ),
+    )
+    flash('Tu contraseña fue actualizada correctamente', 'success')
+    return redirect(url_for('facturacion_menu'))
+
+
 def cambiar_password_obligatorio():
     if 'cambio_password_usuario_id' not in session:
         return redirect(url_for('login'))
     if request.method == 'GET':
-        return render_template('cambiar_password_obligatorio.html')
+        return render_template(
+            'cambiar_password_obligatorio.html',
+            email=session.get('cambio_password_email', ''),
+        )
     password = request.form.get('password', '')
     confirmation = request.form.get('password_confirm', '')
     if not password or not confirmation:
@@ -404,6 +453,12 @@ def register_auth_routes(app):
     app.add_url_rule('/login', 'login', login, methods=['GET', 'POST'])
     app.add_url_rule('/registro', 'registro', registro, methods=['GET', 'POST'])
     app.add_url_rule('/logout', 'logout', logout)
+    app.add_url_rule(
+        '/mi-cuenta/cambiar-password',
+        'cambiar_mi_password',
+        cambiar_mi_password,
+        methods=['GET', 'POST'],
+    )
     app.add_url_rule(
         '/cambiar-password-obligatorio',
         'cambiar_password_obligatorio',

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_patient_search.html" import patient_search %}
 
 {% block title %}Nueva Historia de Emergencia - ARSFlow{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -48,18 +49,7 @@
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label" for="paciente_id">Paciente *</label>
-                        <select class="form-select" id="paciente_id" name="paciente_id" required>
-                            <option value="">Seleccione...</option>
-                            {% for paciente in pacientes %}
-                            <option value="{{ paciente['id'] }}" {% if paciente_preseleccionado == paciente['id'] %}selected{% endif %}
-                                    data-fecha="{{ paciente['fecha_nacimiento'] or '' }}"
-                                    data-sexo="{{ paciente['sexo'] or '' }}"
-                                    data-ars="{{ paciente['ars_nombre'] or '' }}"
-                                    data-nss="{{ paciente['nss'] or '' }}">
-                                {{ paciente['nombre'] }}
-                            </option>
-                            {% endfor %}
-                        </select>
+                        {{ patient_search(pacientes, paciente_preseleccionado, true, 'emergencia_paciente') }}
                     </div>
                     <div class="col-md-2 mb-3">
                         <label class="form-label" for="edad">Edad *</label>
@@ -188,12 +178,17 @@
                 </div>
                 <div>
                     <label class="form-label" for="medico_id">Médico responsable / firma *</label>
+                    {% if emergencias_restringidas and medicos %}
+                    <input type="hidden" id="medico_id" name="medico_id" value="{{ medicos[0]['id'] }}">
+                    <input class="form-control" value="{{ medicos[0]['nombre'] }}" readonly>
+                    {% else %}
                     <select class="form-select" id="medico_id" name="medico_id" required>
                         <option value="">Seleccione...</option>
                         {% for medico in medicos %}
                         <option value="{{ medico['id'] }}">{{ medico['nombre'] }}</option>
                         {% endfor %}
                     </select>
+                    {% endif %}
                 </div>
             </section>
 
@@ -218,15 +213,14 @@ document.addEventListener('DOMContentLoaded', function() {
         return valor;
     }
     function actualizarPaciente() {
-        const opcion = this.options[this.selectedIndex];
-        document.getElementById('edad').value = edad(opcion.dataset.fecha);
-        document.getElementById('sexo_historia').value = opcion.dataset.sexo || '';
-        document.getElementById('ars').value = opcion.dataset.ars || 'Sin ARS';
-        document.getElementById('nss').value = opcion.dataset.nss || '';
-        document.getElementById('numero_afiliado').value = opcion.dataset.nss || '';
+        document.getElementById('edad').value = edad(pacientes.dataset.fechaNacimiento);
+        document.getElementById('sexo_historia').value = pacientes.dataset.sexo || '';
+        document.getElementById('ars').value = pacientes.dataset.arsNombre || 'Sin ARS';
+        document.getElementById('nss').value = pacientes.dataset.nss || '';
+        document.getElementById('numero_afiliado').value = pacientes.dataset.nss || '';
     }
     pacientes.addEventListener('change', actualizarPaciente);
-    if (pacientes.value) actualizarPaciente.call(pacientes);
+    if (pacientes.value) actualizarPaciente();
 });
 </script>
 {% endblock %}

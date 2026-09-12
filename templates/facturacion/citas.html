@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_patient_search.html" import patient_search %}
 
 {% block title %}Agenda Médica - ARSFlow{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -29,7 +30,14 @@
 </style>
 <div class="container py-4">
     <header class="agenda-hero d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <div><h1 class="h3 mb-1"><i class="fas fa-calendar-days me-2"></i>Agenda Médica</h1><p class="text-muted mb-0">Programa y consulta citas por fecha, paciente o médico.</p></div>
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="fas fa-calendar-days me-2"></i>{{ 'Mi Agenda Médica' if agenda_restringida else 'Agenda Médica' }}
+            </h1>
+            <p class="text-muted mb-0">
+                {{ 'Consulta y administra únicamente tus citas.' if agenda_restringida else 'Programa y consulta citas por fecha, paciente o médico.' }}
+            </p>
+        </div>
         <a class="btn btn-primary" href="{{ url_for('facturacion_citas_nueva') }}"><i class="fas fa-plus me-2"></i>Nueva cita</a>
     </header>
 
@@ -45,9 +53,11 @@
         <form method="GET">
             <input type="hidden" name="vista" value="{{ vista }}"><input type="hidden" name="mes" value="{{ mes }}">
             <div class="row g-2 align-items-end">
-                <div class="col-lg-3"><label class="form-label">Buscar</label><input class="form-control" name="buscar" value="{{ filtros.get('buscar','') }}" placeholder="Paciente, médico o motivo"></div>
-                <div class="col-lg-3"><label class="form-label">Paciente</label><select class="form-select" name="paciente_id"><option value="">Todos</option>{% for p in pacientes %}<option value="{{ p['id'] }}" {% if filtros.get('paciente_id')|string==p['id']|string %}selected{% endif %}>{{ p['nombre'] }}</option>{% endfor %}</select></div>
+                <div class="col-lg-3"><label class="form-label">Buscar</label><input class="form-control" name="buscar" value="{{ filtros.get('buscar','') }}" placeholder="{{ 'Paciente, teléfono o motivo' if agenda_restringida else 'Paciente, teléfono, médico o motivo' }}"></div>
+                <div class="col-lg-3"><label class="form-label">Paciente</label>{{ patient_search(pacientes, filtros.get('paciente_id', ''), false, 'agenda_paciente') }}</div>
+                {% if not agenda_restringida %}
                 <div class="col-lg-2"><label class="form-label">Médico</label><select class="form-select" name="medico_id"><option value="">Todos</option>{% for m in medicos %}<option value="{{ m['id'] }}" {% if filtros.get('medico_id')|string==m['id']|string %}selected{% endif %}>{{ m['nombre'] }}</option>{% endfor %}</select></div>
+                {% endif %}
                 <div class="col-lg-2"><label class="form-label">Estado</label><select class="form-select" name="estado"><option value="">Todos</option>{% for e in ['Programada','Confirmada','Completada','Cancelada','No asistió','Vencida'] %}<option value="{{ e }}" {% if filtros.get('estado')==e %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>
                 <div class="col-lg-2"><button class="btn btn-primary w-100" type="submit"><i class="fas fa-filter me-2"></i>Aplicar</button></div>
             </div>

@@ -311,6 +311,23 @@
             </div>
 
             <div class="theme-category">
+                <h3>Corrección ortográfica</h3>
+                <label class="form-label" for="idioma_correccion">
+                    Idioma del corrector
+                </label>
+                <select class="form-select" id="idioma_correccion"
+                        name="idioma_correccion">
+                    <option value="es" {% if current_user.idioma_correccion == 'es' %}selected{% endif %}>Español</option>
+                    <option value="en" {% if current_user.idioma_correccion == 'en' %}selected{% endif %}>Inglés</option>
+                    <option value="fr" {% if current_user.idioma_correccion == 'fr' %}selected{% endif %}>Francés</option>
+                    <option value="none" {% if current_user.idioma_correccion == 'none' %}selected{% endif %}>Desactivado</option>
+                </select>
+                <p class="settings-card-subtitle mt-2">
+                    Las palabras dudosas se subrayan. Haz clic derecho para corregirlas u omitirlas.
+                </p>
+            </div>
+
+            <div class="theme-category">
                 <h3>Mensajería</h3>
                 <label class="preference-option" for="mostrar_chat">
                     <input type="checkbox" id="mostrar_chat" name="mostrar_chat"

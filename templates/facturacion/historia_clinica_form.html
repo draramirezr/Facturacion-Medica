@@ -59,12 +59,17 @@
                         {% if turno_id %}<input type="hidden" name="turno_id" value="{{ turno_id }}">{% endif %}
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Médico responsable *</label>
+                            {% if historias_restringidas and medicos %}
+                            <input type="hidden" id="medico_id" name="medico_id" value="{{ medicos[0]['id'] }}">
+                            <input class="form-control" value="{{ medicos[0]['nombre'] }}{% if medicos[0].get('especialidad') %} · {{ medicos[0]['especialidad'] }}{% endif %}" readonly>
+                            {% else %}
                             <select class="form-select" id="medico_id" name="medico_id" required>
                                 <option value="">Seleccione...</option>
                                 {% for medico in medicos %}
                                 <option value="{{ medico['id'] }}" {% if (consulta and consulta['medico_id'] == medico['id']) or (not consulta and medico_preseleccionado == medico['id']) %}selected{% endif %}>{{ medico['nombre'] }}{% if medico.get('especialidad') %} · {{ medico['especialidad'] }}{% endif %}</option>
                                 {% endfor %}
                             </select>
+                            {% endif %}
                         </div>
                         <div class="col-md-6 mb-3"><label class="form-label">Ocupación</label><input class="form-control" name="ocupacion" maxlength="150" value="{{ paciente['ocupacion'] or '' }}"></div>
                         <div class="col-12 mb-3"><label class="form-label">Motivo de consulta *</label><textarea class="form-control" name="motivo_consulta" rows="2" required>{{ consulta['motivo_consulta'] if consulta else motivo_preseleccionado|default('') }}</textarea></div>

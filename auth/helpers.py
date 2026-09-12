@@ -77,6 +77,7 @@ def load_user(user_id):
         tenant_id=user_data.get('tenant_id', 1),
         empresa_nombre=user_data.get('empresa_nombre', ''),
         mostrar_chat=user_data.get('mostrar_chat', 1),
+        idioma_correccion=user_data.get('idioma_correccion', 'es'),
         permissions=(
             user_data.get('permisos_rbac', '').split(',')
             if user_data.get('permisos_rbac') else ()

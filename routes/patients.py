@@ -41,7 +41,11 @@ def facturacion_pacientes():
     
     if search:
         query += (' AND (p.nombre LIKE %s OR p.nss LIKE %s OR p.cedula LIKE %s '
-                  'OR p.telefono LIKE %s OR p.telefono_pariente LIKE %s)')
+                  'OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE('
+                  "COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),'+','') "
+                  'LIKE %s OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE('
+                  "COALESCE(p.telefono_pariente,''),'-',''),' ',''),'(',''),')',''),'+','') "
+                  'LIKE %s)')
         search_pattern = f'%{search}%'
         phone_digits = re.sub(r'\D', '', search)
         phone_pattern = f'%{phone_digits}%' if phone_digits else search_pattern
@@ -50,16 +54,19 @@ def facturacion_pacientes():
             phone_pattern, phone_pattern
         ])
     
-    pacientes_list, pagination = execute_paginated_query(
+    if search:
+        query += ' ORDER BY p.nombre, p.id LIMIT 50'
+    else:
+        query += ' ORDER BY p.created_at DESC, p.id DESC LIMIT 10'
+    pacientes_list = execute_query(
         query,
-        params,
-        'p.nombre, p.id',
-    )
+        tuple(params),
+        fetch='all',
+    ) or []
     return render_template(
         'facturacion/pacientes.html',
         pacientes_list=pacientes_list,
         search=search,
-        pagination=pagination,
     )
 
 @login_required
@@ -605,9 +612,18 @@ def facturacion_pacientes_exportar_excel():
     params = [tenant_id]
     
     if search:
-        query += ' AND (p.nombre LIKE %s OR p.nss LIKE %s OR p.cedula LIKE %s)'
+        query += (
+            ' AND (p.nombre LIKE %s OR p.nss LIKE %s OR p.cedula LIKE %s '
+            'OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE('
+            "COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),'+','') "
+            'LIKE %s)'
+        )
         search_pattern = f'%{search}%'
-        params.extend([search_pattern, search_pattern, search_pattern])
+        phone_digits = re.sub(r'\D', '', search)
+        phone_pattern = f'%{phone_digits}%' if phone_digits else search_pattern
+        params.extend([
+            search_pattern, search_pattern, search_pattern, phone_pattern,
+        ])
     
     query += ' ORDER BY p.nombre'
     

@@ -13,6 +13,7 @@ import core.tenant as tenant_module
 import routes.admin_companies as company_routes
 import routes.billing as billing_routes
 import routes.catalogs as catalog_routes
+import routes.clinical_history as clinical_history_routes
 import routes.patients as patient_routes
 import routes.search as search_routes
 import routes.support as route_support
@@ -177,6 +178,49 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         for query, params in protected_queries:
             self.assertIn('tenant_id = %s', query)
             self.assertIn(22, params)
+
+    def test_doctor_dashboard_queries_are_scoped_to_linked_doctor(self):
+        queries = []
+
+        def fake_query(query, params=None, fetch='one'):
+            queries.append((query, params, fetch))
+            return [] if fetch == 'all' else {}
+
+        with (
+            patch.object(
+                billing_routes,
+                'execute_query',
+                side_effect=fake_query,
+            ),
+            patch.object(
+                billing_routes,
+                'render_template',
+                side_effect=lambda template, **context: (template, context),
+            ),
+        ):
+            template, _context = billing_routes._render_dashboard_medico(
+                22,
+                77,
+                '2026-08-01',
+                '2026-08-31',
+            )
+
+        self.assertEqual(template, 'facturacion/dashboard_medico.html')
+        activity_queries = [
+            (query, params)
+            for query, params, _fetch in queries
+            if 'consultas_clinicas' in query
+            or 'citas_medicas' in query
+            or 'recetas_medicas' in query
+            or 'turnos_atencion' in query
+        ]
+        self.assertTrue(activity_queries)
+        for query, params in activity_queries:
+            self.assertRegex(
+                query,
+                r'(?:\w+\.)?tenant_id=%s AND (?:\w+\.)?medico_id=%s',
+            )
+            self.assertEqual(params[:2], (22, 77))
 
     def test_user_edit_rejects_record_from_another_tenant(self):
         update = Mock()
@@ -657,6 +701,170 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertNotIn('consultas_clinicas', combined)
         self.assertNotIn('licencias_medicas', combined)
         self.assertNotIn('recetas_medicas', combined)
+
+    def test_patient_picker_search_is_tenant_scoped_and_limited(self):
+        captured = {}
+
+        def fake_query(query, params=None, fetch='one'):
+            captured.update(query=query, params=params, fetch=fetch)
+            return [{
+                'id': 8,
+                'nombre': 'Ana Pérez',
+                'cedula': '00112345678',
+                'nss': '123',
+                'telefono': '8095550101',
+                'fecha_nacimiento': None,
+                'sexo': 'F',
+                'direccion': '',
+                'ars_nombre': 'ARS Demo',
+                'nombre_pariente': '',
+                'telefono_pariente': '',
+            }]
+
+        with self.flask_app.test_request_context(
+            '/api/pacientes/buscar?q=ana'
+        ):
+            with (
+                patch.object(
+                    search_routes, 'get_current_tenant_id', return_value=22
+                ),
+                patch.object(
+                    search_routes, 'execute_query', side_effect=fake_query
+                ),
+            ):
+                response = (
+                    search_routes.api_buscar_pacientes
+                    .__wrapped__.__wrapped__()
+                )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn('p.tenant_id=%s', captured['query'])
+        self.assertIn('LIMIT 10', captured['query'])
+        self.assertEqual(captured['params'][0], 22)
+        self.assertEqual(response.get_json()['resultados'][0]['id'], 8)
+
+    def test_patient_picker_lookup_by_id_is_tenant_scoped(self):
+        captured = {}
+
+        def fake_query(query, params=None, fetch='one'):
+            captured.update(query=query, params=params, fetch=fetch)
+            return []
+
+        with self.flask_app.test_request_context(
+            '/api/pacientes/buscar?id=91'
+        ):
+            with (
+                patch.object(
+                    search_routes, 'get_current_tenant_id', return_value=22
+                ),
+                patch.object(
+                    search_routes, 'execute_query', side_effect=fake_query
+                ),
+            ):
+                (
+                    search_routes.api_buscar_pacientes
+                    .__wrapped__.__wrapped__()
+                )
+
+        self.assertIn('p.id=%s', captured['query'])
+        self.assertEqual(captured['params'], (22, 91))
+
+    def test_doctor_can_see_patient_360_summary_but_not_foreign_details(self):
+        queries = []
+
+        def fake_query(query, params=None, fetch='one'):
+            queries.append(query)
+            if 'SELECT p.*' in query:
+                return {'id': 3, 'nombre': 'Paciente', 'fecha_nacimiento': None}
+            if 'FROM consultas_clinicas c' in query:
+                return [{
+                    'id': 10, 'medico_id': 8, 'fecha': '2026-01-01',
+                    'motivo_consulta': 'Dato reservado',
+                    'diagnostico_principal': 'Dato reservado',
+                    'plan_tratamiento': '{}',
+                    'nota_evolucion_inicial': 'Dato reservado',
+                    'proxima_cita': None, 'medico_nombre': 'Dra. Externa',
+                }]
+            if 'FROM licencias_medicas l' in query:
+                return [{
+                    'id': 20, 'medico_id': 8,
+                    'medico_nombre': 'Dra. Externa',
+                    'diagnostico': 'Dato reservado',
+                    'fecha_inicio': '2026-01-01',
+                    'fecha_termino': '2026-01-02',
+                    'cantidad_dias': 2, 'codigo': 'L-20',
+                }]
+            if 'FROM historias_emergencia' in query:
+                return [{
+                    'id': 30, 'medico_id': 8,
+                    'medico_nombre': 'Dra. Externa',
+                    'motivo_emergencia': 'Dato reservado',
+                    'diagnostico_impresion': 'Dato reservado',
+                    'estatus_paciente': 'Estable',
+                }]
+            if 'FROM pacientes_pendientes pp' in query:
+                return []
+            if 'FROM citas_medicas c' in query:
+                return []
+            if 'FROM recetas_medicas r' in query:
+                return [{
+                    'id': 40, 'medico_id': 8,
+                    'medico_nombre': 'Dra. Externa',
+                    'codigo': 'R-40', 'diagnostico': 'Dato reservado',
+                }]
+            return []
+
+        with self.flask_app.test_request_context(
+            '/facturacion/historia-clinica/paciente/3'
+        ):
+            with (
+                patch.object(
+                    clinical_history_routes,
+                    'get_current_tenant_id',
+                    return_value=22,
+                ),
+                patch.object(
+                    clinical_history_routes,
+                    'medico_id_historias_restringido',
+                    return_value=7,
+                ),
+                patch.object(
+                    clinical_history_routes,
+                    'execute_query',
+                    side_effect=fake_query,
+                ),
+                patch.object(
+                    clinical_history_routes,
+                    'actualizar_licencias_vencidas',
+                ),
+                patch.object(
+                    clinical_history_routes,
+                    'actualizar_citas_vencidas',
+                ),
+                patch.object(
+                    clinical_history_routes,
+                    'render_template',
+                    side_effect=lambda _template, **context: context,
+                ),
+            ):
+                context = (
+                    clinical_history_routes
+                    .facturacion_historia_clinica_expediente
+                    .__wrapped__.__wrapped__(3)
+                )
+
+        self.assertTrue(context['vista_restringida'])
+        self.assertEqual(context['resumen']['consultas_clinicas'], 1)
+        self.assertEqual(context['resumen']['recetas'], 1)
+        self.assertFalse(context['consultas'][0]['puede_ver_detalle'])
+        self.assertIsNone(context['consultas'][0]['diagnostico_principal'])
+        self.assertIsNone(context['recetas'][0]['diagnostico'])
+        self.assertIsNone(context['licencias'][0]['diagnostico'])
+        self.assertEqual(
+            context['actividad_por_medico'][0]['medico_nombre'],
+            'Dra. Externa',
+        )
+        self.assertFalse(any('(%s IS NULL OR' in query for query in queries))
 
     def test_select_does_not_commit(self):
         connection = _DatabaseConnection(result={'value': 1})

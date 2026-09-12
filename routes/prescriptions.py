@@ -1,5 +1,6 @@
 """Rutas y helpers de recetas m?dicas."""
 
+import re
 import secrets
 from datetime import datetime
 
@@ -13,7 +14,23 @@ from routes.support import (
     calcular_edad_clinica, execute_paginated_query, sanitize_input, validate_int,
 )
 
-def obtener_receta_medica(receta_id, tenant_id):
+
+def medico_id_recetas_restringido():
+    """Restringir recetas al médico vinculado para usuarios con rol Médico."""
+    roles_rbac = set(getattr(current_user, 'rbac_roles', ()))
+    es_medico = (
+        'Médico' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Médico'
+    )
+    es_administrador = (
+        'Administrador' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Administrador'
+    )
+    medico_id = getattr(current_user, 'medico_id', None)
+    return medico_id if medico_id and es_medico and not es_administrador else None
+
+
+def obtener_receta_medica(receta_id, tenant_id, medico_id_restringido=None):
     receta = execute_query('''
         SELECT r.*, p.nombre AS paciente_nombre, p.cedula,
                p.fecha_nacimiento, p.telefono, p.direccion,
@@ -25,7 +42,11 @@ def obtener_receta_medica(receta_id, tenant_id):
         LEFT JOIN consultas_clinicas c
           ON c.id=r.consulta_id AND c.tenant_id=r.tenant_id
         WHERE r.id=%s AND r.tenant_id=%s
-    ''', (receta_id, tenant_id))
+          AND (%s IS NULL OR r.medico_id=%s)
+    ''', (
+        receta_id, tenant_id,
+        medico_id_restringido, medico_id_restringido,
+    ))
     if receta:
         receta['medicamentos'] = execute_query('''
             SELECT * FROM receta_medicamentos
@@ -39,11 +60,12 @@ def obtener_receta_medica(receta_id, tenant_id):
 @permission_required('recetas.ver')
 def facturacion_recetas_medicas():
     tenant_id = get_current_tenant_id()
+    medico_id_restringido = medico_id_recetas_restringido()
     buscar = request.args.get('buscar', '').strip()
     paciente_id = validate_int(
         request.args.get('paciente_id'), min_value=1, default=None
     )
-    medico_id = validate_int(
+    medico_id = medico_id_restringido or validate_int(
         request.args.get('medico_id'), min_value=1, default=None
     )
     estado = request.args.get('estado', '').strip()
@@ -61,14 +83,21 @@ def facturacion_recetas_medicas():
     params = [tenant_id]
     if buscar:
         patron = f'%{buscar}%'
+        phone_digits = re.sub(r'\D', '', buscar)
+        phone_pattern = f'%{phone_digits}%' if phone_digits else patron
         query += (
             ' AND (r.codigo LIKE %s OR p.nombre LIKE %s OR p.cedula LIKE %s '
+            "OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(p.telefono,''),"
+            "'-',''),' ',''),'(',''),')',''),'+','') LIKE %s "
             'OR m.nombre LIKE %s OR r.diagnostico LIKE %s '
             'OR EXISTS (SELECT 1 FROM receta_medicamentos busqueda '
             'WHERE busqueda.receta_id=r.id AND busqueda.tenant_id=r.tenant_id '
             'AND busqueda.medicamento LIKE %s))'
         )
-        params.extend([patron] * 6)
+        params.extend([
+            patron, patron, patron, phone_pattern,
+            patron, patron, patron,
+        ])
     if paciente_id:
         query += ' AND r.paciente_id=%s'
         params.append(paciente_id)
@@ -89,13 +118,20 @@ def facturacion_recetas_medicas():
         (tenant_id,), fetch='all'
     ) or []
     medicos = execute_query(
-        'SELECT id, nombre FROM medicos WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
-        (tenant_id,), fetch='all'
+        'SELECT id, nombre FROM medicos WHERE tenant_id=%s AND activo=1 '
+        'AND (%s IS NULL OR id=%s) ORDER BY nombre',
+        (
+            tenant_id,
+            medico_id_restringido,
+            medico_id_restringido,
+        ),
+        fetch='all',
     ) or []
     return render_template(
         'facturacion/recetas_medicas.html',
         recetas=recetas, pacientes=pacientes, medicos=medicos,
-        filtros=request.args, pagination=pagination
+        filtros=request.args, pagination=pagination,
+        recetas_restringidas=bool(medico_id_restringido),
     )
 
 
@@ -104,6 +140,7 @@ def facturacion_recetas_medicas():
 @permission_required('recetas.crear')
 def facturacion_recetas_medicas_nueva():
     tenant_id = get_current_tenant_id()
+    medico_id_restringido = medico_id_recetas_restringido()
     consulta_id = validate_int(
         request.args.get('consulta_id') or request.form.get('consulta_id'),
         min_value=1, default=None
@@ -117,7 +154,11 @@ def facturacion_recetas_medicas_nueva():
             FROM consultas_clinicas c
             JOIN pacientes p ON p.id=c.paciente_id AND p.tenant_id=c.tenant_id
             WHERE c.id=%s AND c.tenant_id=%s
-        ''', (consulta_id, tenant_id))
+              AND (%s IS NULL OR c.medico_id=%s)
+        ''', (
+            consulta_id, tenant_id,
+            medico_id_restringido, medico_id_restringido,
+        ))
         if not consulta:
             flash('La consulta seleccionada no existe', 'error')
             return redirect(url_for('facturacion_recetas_medicas'))
@@ -134,8 +175,14 @@ def facturacion_recetas_medicas_nueva():
     ) or []
     medicos = execute_query(
         'SELECT id, nombre, especialidad FROM medicos '
-        'WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
-        (tenant_id,), fetch='all'
+        'WHERE tenant_id=%s AND activo=1 '
+        'AND (%s IS NULL OR id=%s) ORDER BY nombre',
+        (
+            tenant_id,
+            medico_id_restringido,
+            medico_id_restringido,
+        ),
+        fetch='all',
     ) or []
     consultas = execute_query('''
         SELECT c.id, c.paciente_id, c.medico_id, c.fecha,
@@ -143,13 +190,18 @@ def facturacion_recetas_medicas_nueva():
         FROM consultas_clinicas c
         JOIN medicos m ON m.id=c.medico_id AND m.tenant_id=c.tenant_id
         WHERE c.tenant_id=%s
+          AND (%s IS NULL OR c.medico_id=%s)
         ORDER BY c.fecha DESC, c.id DESC LIMIT 300
-    ''', (tenant_id,), fetch='all') or []
+    ''', (
+        tenant_id,
+        medico_id_restringido,
+        medico_id_restringido,
+    ), fetch='all') or []
     if request.method == 'POST':
         paciente_id = validate_int(
             request.form.get('paciente_id'), min_value=1, default=None
         )
-        medico_id = validate_int(
+        medico_id = medico_id_restringido or validate_int(
             request.form.get('medico_id'), min_value=1, default=None
         )
         fecha = request.form.get('fecha', '').strip()
@@ -274,14 +326,19 @@ def facturacion_recetas_medicas_nueva():
         'facturacion/receta_medica_form.html',
         pacientes=pacientes, medicos=medicos, consultas=consultas,
         consulta=consulta, paciente_preseleccionado=paciente_preseleccionado,
-        form_data=form_data, fecha_actual=datetime.now().strftime('%Y-%m-%d')
+        form_data=form_data, fecha_actual=datetime.now().strftime('%Y-%m-%d'),
+        recetas_restringidas=bool(medico_id_restringido),
     )
 
 
 @login_required
 @permission_required('recetas.ver')
 def facturacion_receta_medica_ver(receta_id):
-    receta = obtener_receta_medica(receta_id, get_current_tenant_id())
+    receta = obtener_receta_medica(
+        receta_id,
+        get_current_tenant_id(),
+        medico_id_recetas_restringido(),
+    )
     if not receta:
         flash('Receta médica no encontrada', 'error')
         return redirect(url_for('facturacion_recetas_medicas'))
@@ -296,7 +353,11 @@ def facturacion_receta_medica_ver(receta_id):
 @login_required
 @permission_required('recetas.imprimir')
 def facturacion_receta_medica_imprimir(receta_id):
-    receta = obtener_receta_medica(receta_id, get_current_tenant_id())
+    receta = obtener_receta_medica(
+        receta_id,
+        get_current_tenant_id(),
+        medico_id_recetas_restringido(),
+    )
     if not receta:
         flash('Receta médica no encontrada', 'error')
         return redirect(url_for('facturacion_recetas_medicas'))
@@ -312,9 +373,15 @@ def facturacion_receta_medica_imprimir(receta_id):
 @permission_required('recetas.anular')
 def facturacion_receta_medica_anular(receta_id):
     tenant_id = get_current_tenant_id()
+    medico_id_restringido = medico_id_recetas_restringido()
     receta = execute_query(
-        'SELECT id, estado FROM recetas_medicas WHERE id=%s AND tenant_id=%s',
-        (receta_id, tenant_id)
+        'SELECT id, estado FROM recetas_medicas '
+        'WHERE id=%s AND tenant_id=%s '
+        'AND (%s IS NULL OR medico_id=%s)',
+        (
+            receta_id, tenant_id,
+            medico_id_restringido, medico_id_restringido,
+        )
     )
     motivo = sanitize_input(request.form.get('motivo_anulacion', ''), 2000)
     if not receta:

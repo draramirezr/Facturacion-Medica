@@ -12,21 +12,44 @@ from core.tenant import get_current_tenant_id
 from routes.patients import paciente_adulto_sin_cedula
 from routes.support import sanitize_input, validate_int
 
+
+def medico_id_emergencias_restringido():
+    """Restringir emergencias al médico vinculado para el rol Médico."""
+    roles_rbac = set(getattr(current_user, 'rbac_roles', ()))
+    es_medico = (
+        'Médico' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Médico'
+    )
+    es_administrador = (
+        'Administrador' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Administrador'
+    )
+    medico_id = getattr(current_user, 'medico_id', None)
+    return medico_id if medico_id and es_medico and not es_administrador else None
+
+
 @login_required
 @permission_required('emergencia.ver')
 def facturacion_historias_emergencia():
     """Listado de historias clínicas de emergencia del tenant."""
     tenant_id = get_current_tenant_id()
+    medico_id_restringido = medico_id_emergencias_restringido()
     historias = execute_query('''
         SELECT id, fecha, hora_servicio, nombre_paciente, edad, sexo,
                motivo_emergencia, estatus_paciente, medico_nombre
         FROM historias_emergencia
         WHERE tenant_id = %s
+          AND (%s IS NULL OR medico_id=%s)
         ORDER BY fecha DESC, hora_servicio DESC, id DESC
-    ''', (tenant_id,), fetch='all') or []
+    ''', (
+        tenant_id,
+        medico_id_restringido,
+        medico_id_restringido,
+    ), fetch='all') or []
     return render_template(
         'facturacion/historias_emergencia.html',
-        historias=historias
+        historias=historias,
+        emergencias_restringidas=bool(medico_id_restringido),
     )
 
 
@@ -35,10 +58,15 @@ def facturacion_historias_emergencia():
 def facturacion_historias_emergencia_nueva():
     """Registrar una historia clínica de emergencia."""
     tenant_id = get_current_tenant_id()
+    medico_id_restringido = medico_id_emergencias_restringido()
 
     if request.method == 'POST':
         paciente_id = request.form.get('paciente_id', '').strip()
-        medico_id = request.form.get('medico_id', '').strip()
+        medico_id = (
+            str(medico_id_restringido)
+            if medico_id_restringido
+            else request.form.get('medico_id', '').strip()
+        )
         fecha = request.form.get('fecha', '').strip()
         hora_servicio = request.form.get('hora_servicio', '').strip()
         autorizacion = sanitize_input(request.form.get('autorizacion', ''), 100)
@@ -151,8 +179,15 @@ def facturacion_historias_emergencia_nueva():
         ORDER BY p.nombre
     ''', (tenant_id,), fetch='all') or []
     medicos = execute_query(
-        'SELECT id, nombre FROM medicos WHERE tenant_id = %s AND activo = 1 ORDER BY nombre',
-        (tenant_id,), fetch='all'
+        'SELECT id, nombre FROM medicos '
+        'WHERE tenant_id = %s AND activo = 1 '
+        'AND (%s IS NULL OR id=%s) ORDER BY nombre',
+        (
+            tenant_id,
+            medico_id_restringido,
+            medico_id_restringido,
+        ),
+        fetch='all',
     ) or []
     paciente_preseleccionado = validate_int(
         request.args.get('paciente_id'), min_value=1, default=None
@@ -176,14 +211,24 @@ def facturacion_historias_emergencia_nueva():
         medicos=medicos,
         paciente_preseleccionado=paciente_preseleccionado,
         fecha_actual=datetime.now().strftime('%Y-%m-%d'),
-        hora_actual=datetime.now().strftime('%H:%M')
+        hora_actual=datetime.now().strftime('%H:%M'),
+        emergencias_restringidas=bool(medico_id_restringido),
     )
 
 
-def obtener_historia_emergencia(historia_id, tenant_id):
+def obtener_historia_emergencia(
+    historia_id,
+    tenant_id,
+    medico_id_restringido=None,
+):
     historia = execute_query(
-        'SELECT * FROM historias_emergencia WHERE id = %s AND tenant_id = %s',
-        (historia_id, tenant_id)
+        'SELECT * FROM historias_emergencia '
+        'WHERE id = %s AND tenant_id = %s '
+        'AND (%s IS NULL OR medico_id=%s)',
+        (
+            historia_id, tenant_id,
+            medico_id_restringido, medico_id_restringido,
+        )
     )
     if historia:
         try:
@@ -196,7 +241,11 @@ def obtener_historia_emergencia(historia_id, tenant_id):
 @login_required
 @permission_required('emergencia.ver')
 def facturacion_historia_emergencia_ver(historia_id):
-    historia = obtener_historia_emergencia(historia_id, get_current_tenant_id())
+    historia = obtener_historia_emergencia(
+        historia_id,
+        get_current_tenant_id(),
+        medico_id_emergencias_restringido(),
+    )
     if not historia:
         flash('Historia de emergencia no encontrada', 'error')
         return redirect(url_for('facturacion_historias_emergencia'))
@@ -206,7 +255,11 @@ def facturacion_historia_emergencia_ver(historia_id):
 @login_required
 @permission_required('emergencia.imprimir')
 def facturacion_historia_emergencia_imprimir(historia_id):
-    historia = obtener_historia_emergencia(historia_id, get_current_tenant_id())
+    historia = obtener_historia_emergencia(
+        historia_id,
+        get_current_tenant_id(),
+        medico_id_emergencias_restringido(),
+    )
     if not historia:
         flash('Historia de emergencia no encontrada', 'error')
         return redirect(url_for('facturacion_historias_emergencia'))

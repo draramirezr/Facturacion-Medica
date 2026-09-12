@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_patient_search.html" import patient_search %}
 
 {% block title %}Recetas Médicas - ARSFlow{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -13,14 +14,16 @@
 </style>
 <div class="container py-4">
     <header class="rx-header d-flex justify-content-between align-items-center flex-wrap gap-3">
-        <div><h1 class="h3 mb-1"><i class="fas fa-prescription me-2"></i>Recetas Médicas</h1><p class="text-muted mb-0">Emite, consulta e imprime las recetas de tus pacientes.</p></div>
+        <div><h1 class="h3 mb-1"><i class="fas fa-prescription me-2"></i>{{ 'Mis Recetas Médicas' if recetas_restringidas else 'Recetas Médicas' }}</h1><p class="text-muted mb-0">{{ 'Recetas que has emitido para tus pacientes.' if recetas_restringidas else 'Emite, consulta e imprime las recetas de tus pacientes.' }}</p></div>
         <a class="btn btn-primary" href="{{ url_for('facturacion_recetas_medicas_nueva') }}"><i class="fas fa-plus me-2"></i>Nueva receta</a>
     </header>
     <form class="rx-card rx-filter" method="GET">
         <div class="row g-2 align-items-end">
-            <div class="col-lg-3"><label class="form-label">Buscar</label><input class="form-control" name="buscar" value="{{ filtros.get('buscar','') }}" placeholder="Código, paciente o medicamento"></div>
-            <div class="col-lg-3"><label class="form-label">Paciente</label><select class="form-select" name="paciente_id"><option value="">Todos</option>{% for p in pacientes %}<option value="{{ p['id'] }}" {% if filtros.get('paciente_id')|string==p['id']|string %}selected{% endif %}>{{ p['nombre'] }}</option>{% endfor %}</select></div>
+            <div class="col-lg-3"><label class="form-label">Buscar</label><input class="form-control" name="buscar" value="{{ filtros.get('buscar','') }}" placeholder="Código, paciente, teléfono o medicamento"></div>
+            <div class="col-lg-3"><label class="form-label">Paciente</label>{{ patient_search(pacientes, filtros.get('paciente_id', ''), false, 'recetas_paciente') }}</div>
+            {% if not recetas_restringidas %}
             <div class="col-lg-2"><label class="form-label">Médico</label><select class="form-select" name="medico_id"><option value="">Todos</option>{% for m in medicos %}<option value="{{ m['id'] }}" {% if filtros.get('medico_id')|string==m['id']|string %}selected{% endif %}>{{ m['nombre'] }}</option>{% endfor %}</select></div>
+            {% endif %}
             <div class="col-lg-2"><label class="form-label">Estado</label><select class="form-select" name="estado"><option value="">Todos</option><option value="Emitida" {% if filtros.get('estado')=='Emitida' %}selected{% endif %}>Emitida</option><option value="Anulada" {% if filtros.get('estado')=='Anulada' %}selected{% endif %}>Anulada</option></select></div>
             <div class="col-lg-2"><button class="btn btn-primary w-100" type="submit">Buscar</button></div>
         </div>

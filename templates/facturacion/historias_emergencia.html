@@ -15,8 +15,8 @@
 <div class="container py-4">
     <div class="emergency-hero d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
-            <h1 class="mb-1"><i class="fas fa-truck-medical me-2"></i>Historias de Emergencia</h1>
-            <p class="text-muted mb-0">Registro clínico de atenciones realizadas en emergencia.</p>
+            <h1 class="mb-1"><i class="fas fa-truck-medical me-2"></i>{{ 'Mis Historias de Emergencia' if emergencias_restringidas else 'Historias de Emergencia' }}</h1>
+            <p class="text-muted mb-0">{{ 'Atenciones de emergencia registradas bajo tu responsabilidad.' if emergencias_restringidas else 'Registro clínico de atenciones realizadas en emergencia.' }}</p>
         </div>
         <a href="{{ url_for('facturacion_historias_emergencia_nueva') }}" class="btn btn-primary">
             <i class="fas fa-plus me-2"></i>Nueva historia
@@ -28,10 +28,9 @@
         <table class="table table-hover mb-0">
             <thead>
                 <tr>
-                    <th>Fecha</th>
+                    <th>Fecha y hora</th>
                     <th>Paciente</th>
                     <th>Edad</th>
-                    <th>Motivo</th>
                     <th>Estatus</th>
                     <th>Médico</th>
                     <th>Acciones</th>
@@ -40,10 +39,9 @@
             <tbody>
                 {% for historia in historias %}
                 <tr>
-                    <td>{{ historia['fecha'] }}<br><small class="text-muted">{{ historia['hora_servicio'] }}</small></td>
+                    <td class="text-nowrap">{{ historia['fecha'] }} · {{ historia['hora_servicio']|hora_input }}</td>
                     <td><strong>{{ historia['nombre_paciente'] }}</strong></td>
                     <td>{{ historia['edad'] if historia['edad'] is not none else 'N/D' }}</td>
-                    <td>{{ historia['motivo_emergencia']|truncate(55) }}</td>
                     <td>{{ historia['estatus_paciente'] }}</td>
                     <td>{{ historia['medico_nombre'] }}</td>
                     <td>

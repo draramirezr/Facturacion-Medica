@@ -1,6 +1,7 @@
 """Rutas y helpers de citas m?dicas."""
 
 import calendar as calendar_module
+import re
 from collections import defaultdict
 from datetime import datetime, timedelta
 
@@ -12,6 +13,22 @@ from core.database import execute_query, execute_update
 from core.tenant import get_current_tenant_id
 from core.presentation import hora_input
 from routes.support import sanitize_input, validate_int
+
+
+def medico_id_agenda_restringida():
+    """Obtener el médico obligatorio para usuarios con el rol Médico."""
+    roles_rbac = set(getattr(current_user, 'rbac_roles', ()))
+    es_medico = (
+        'Médico' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Médico'
+    )
+    es_administrador = (
+        'Administrador' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Administrador'
+    )
+    medico_id = getattr(current_user, 'medico_id', None)
+    return medico_id if medico_id and es_medico and not es_administrador else None
+
 
 def actualizar_citas_vencidas(tenant_id):
     execute_update('''
@@ -29,7 +46,16 @@ def actualizar_citas_vencidas(tenant_id):
     ''', (tenant_id,))
 
 
-def contexto_formulario_cita(tenant_id):
+def contexto_formulario_cita(tenant_id, medico_id_restringido=None):
+    medicos_sql = (
+        'SELECT id, nombre, especialidad FROM medicos '
+        'WHERE tenant_id=%s AND activo=1'
+    )
+    medicos_params = [tenant_id]
+    if medico_id_restringido:
+        medicos_sql += ' AND id=%s'
+        medicos_params.append(medico_id_restringido)
+    medicos_sql += ' ORDER BY nombre'
     return {
         'pacientes': execute_query(
             'SELECT id, nombre, cedula, telefono FROM pacientes '
@@ -37,16 +63,18 @@ def contexto_formulario_cita(tenant_id):
             (tenant_id,), fetch='all'
         ) or [],
         'medicos': execute_query(
-            'SELECT id, nombre, especialidad FROM medicos '
-            'WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
-            (tenant_id,), fetch='all'
-        ) or []
+            medicos_sql, tuple(medicos_params), fetch='all'
+        ) or [],
+        'agenda_restringida': bool(medico_id_restringido),
     }
 
 
 def validar_formulario_cita(tenant_id, cita_id=None):
     paciente_id = validate_int(request.form.get('paciente_id'), min_value=1, default=None)
-    medico_id = validate_int(request.form.get('medico_id'), min_value=1, default=None)
+    medico_id = (
+        medico_id_agenda_restringida()
+        or validate_int(request.form.get('medico_id'), min_value=1, default=None)
+    )
     fecha = request.form.get('fecha', '').strip()
     hora = request.form.get('hora', '').strip()
     duracion = validate_int(
@@ -131,6 +159,7 @@ def validar_formulario_cita(tenant_id, cita_id=None):
 @permission_required('citas.ver')
 def facturacion_citas():
     tenant_id = get_current_tenant_id()
+    medico_id_restringido = medico_id_agenda_restringida()
     actualizar_citas_vencidas(tenant_id)
     vista = request.args.get('vista', 'mes')
     if vista not in ['mes', 'hoy', 'proximas', 'todas']:
@@ -150,7 +179,7 @@ def facturacion_citas():
     paciente_id = validate_int(
         request.args.get('paciente_id'), min_value=1, default=None
     )
-    medico_id = validate_int(
+    medico_id = medico_id_restringido or validate_int(
         request.args.get('medico_id'), min_value=1, default=None
     )
     estado = request.args.get('estado', '').strip()
@@ -188,8 +217,18 @@ def facturacion_citas():
         params.append(estado)
     if buscar:
         patron = f'%{buscar}%'
-        query += ' AND (p.nombre LIKE %s OR m.nombre LIKE %s OR c.motivo LIKE %s)'
-        params.extend([patron, patron, patron])
+        phone_digits = re.sub(r'\D', '', buscar)
+        phone_pattern = f'%{phone_digits}%' if phone_digits else patron
+        query += """
+            AND (
+                p.nombre LIKE %s
+                OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),'+','')
+                    LIKE %s
+                OR m.nombre LIKE %s OR c.motivo LIKE %s
+            )
+        """
+        params.extend([patron, phone_pattern, patron, patron])
     query += ' ORDER BY c.fecha ASC, c.hora ASC'
     citas = execute_query(query, tuple(params), fetch='all') or []
     citas_por_fecha = defaultdict(list)
@@ -197,7 +236,7 @@ def facturacion_citas():
         citas_por_fecha[cita['fecha'].isoformat()].append(cita)
     calendario = calendar_module.Calendar(firstweekday=0)
     semanas = calendario.monthdatescalendar(primer_dia.year, primer_dia.month)
-    contexto = contexto_formulario_cita(tenant_id)
+    contexto = contexto_formulario_cita(tenant_id, medico_id_restringido)
     return render_template(
         'facturacion/citas.html',
         citas=citas, citas_por_fecha=dict(citas_por_fecha),
@@ -213,7 +252,8 @@ def facturacion_citas():
 @permission_required('citas.crear')
 def facturacion_citas_nueva():
     tenant_id = get_current_tenant_id()
-    contexto = contexto_formulario_cita(tenant_id)
+    medico_id_restringido = medico_id_agenda_restringida()
+    contexto = contexto_formulario_cita(tenant_id, medico_id_restringido)
     consulta_id = validate_int(
         request.args.get('consulta_id') or request.form.get('consulta_origen_id'),
         min_value=1, default=None
@@ -226,7 +266,11 @@ def facturacion_citas_nueva():
                    c.indicaciones_seguimiento
             FROM consultas_clinicas c
             WHERE c.id=%s AND c.tenant_id=%s
-        ''', (consulta_id, tenant_id))
+              AND (%s IS NULL OR c.medico_id=%s)
+        ''', (
+            consulta_id, tenant_id,
+            medico_id_restringido, medico_id_restringido,
+        ))
     if request.method == 'POST':
         datos, error = validar_formulario_cita(tenant_id)
         if error:
@@ -272,7 +316,9 @@ def facturacion_citas_nueva():
         consulta_origen=consulta_origen, form_data={},
         fecha_actual=request.args.get('fecha', ''),
         paciente_preseleccionado=request.args.get('paciente_id', ''),
-        medico_preseleccionado=request.args.get('medico_id', ''),
+        medico_preseleccionado=(
+            medico_id_restringido or request.args.get('medico_id', '')
+        ),
         **contexto
     )
 
@@ -281,14 +327,19 @@ def facturacion_citas_nueva():
 @permission_required('citas.editar')
 def facturacion_cita_editar(cita_id):
     tenant_id = get_current_tenant_id()
+    medico_id_restringido = medico_id_agenda_restringida()
     cita = execute_query(
-        'SELECT * FROM citas_medicas WHERE id=%s AND tenant_id=%s',
-        (cita_id, tenant_id)
+        'SELECT * FROM citas_medicas WHERE id=%s AND tenant_id=%s '
+        'AND (%s IS NULL OR medico_id=%s)',
+        (
+            cita_id, tenant_id,
+            medico_id_restringido, medico_id_restringido,
+        )
     )
     if not cita:
         flash('Cita no encontrada', 'error')
         return redirect(url_for('facturacion_citas'))
-    contexto = contexto_formulario_cita(tenant_id)
+    contexto = contexto_formulario_cita(tenant_id, medico_id_restringido)
     if request.method == 'POST':
         datos, error = validar_formulario_cita(tenant_id, cita_id)
         if error:
@@ -324,6 +375,7 @@ def facturacion_cita_editar(cita_id):
 @permission_required('citas.editar')
 def facturacion_cita_estado(cita_id):
     tenant_id = get_current_tenant_id()
+    medico_id_restringido = medico_id_agenda_restringida()
     estado = request.form.get('estado', '').strip()
     if estado not in [
         'Programada', 'Confirmada', 'Completada',
@@ -338,8 +390,12 @@ def facturacion_cita_estado(cita_id):
         flash('No tienes permisos para cancelar citas', 'error')
         return redirect(request.referrer or url_for('facturacion_citas'))
     cita = execute_query(
-        'SELECT id FROM citas_medicas WHERE id=%s AND tenant_id=%s',
-        (cita_id, tenant_id)
+        'SELECT id FROM citas_medicas WHERE id=%s AND tenant_id=%s '
+        'AND (%s IS NULL OR medico_id=%s)',
+        (
+            cita_id, tenant_id,
+            medico_id_restringido, medico_id_restringido,
+        )
     )
     if not cita:
         flash('Cita no encontrada', 'error')

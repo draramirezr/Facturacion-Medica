@@ -139,6 +139,7 @@ def _sembrar_roles():
     for empresa in empresas:
         tenant_id = empresa["id"]
         for nombre, codigos in PERMISOS_ROLES_SISTEMA.items():
+            codigos_ordenados = sorted(codigos)
             execute_update(
                 """
                 INSERT INTO roles (
@@ -157,7 +158,21 @@ def _sembrar_roles():
                 ),
             )
 
-            for codigo in sorted(codigos):
+            placeholders = ", ".join(["%s"] * len(codigos_ordenados))
+            execute_update(
+                f"""
+                DELETE rp
+                FROM rol_permisos AS rp
+                INNER JOIN roles AS r
+                    ON r.id = rp.rol_id AND r.tenant_id = rp.tenant_id
+                INNER JOIN permisos AS p ON p.id = rp.permiso_id
+                WHERE r.tenant_id = %s AND r.nombre = %s
+                  AND p.codigo NOT IN ({placeholders})
+                """,
+                (tenant_id, nombre, *codigos_ordenados),
+            )
+
+            for codigo in codigos_ordenados:
                 execute_update(
                     """
                     INSERT IGNORE INTO rol_permisos (
@@ -182,6 +197,12 @@ def _migrar_perfiles_legacy():
             INNER JOIN roles AS r
                 ON r.tenant_id = u.tenant_id AND r.nombre = %s
             WHERE u.tenant_id IS NOT NULL AND u.perfil = %s
+              AND NOT EXISTS (
+                  SELECT 1
+                  FROM usuario_roles AS ur
+                  WHERE ur.tenant_id = u.tenant_id
+                    AND ur.usuario_id = u.id
+              )
             """,
             (perfil, perfil),
         )

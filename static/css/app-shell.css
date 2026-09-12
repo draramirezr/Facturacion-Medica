@@ -563,10 +563,7 @@ body.ars-app-body {
 }
 
 .ars-chat-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 1040;
-    background: rgba(15, 23, 42, 0.35);
+    display: none;
 }
 
 .ars-chat-overlay[hidden],
@@ -576,20 +573,34 @@ body.ars-app-body {
 
 .ars-chat-panel {
     position: fixed;
-    top: 0;
-    right: 0;
+    right: 24px;
+    bottom: 94px;
     z-index: 1045;
-    width: min(760px, calc(100vw - 24px));
-    height: 100vh;
-    border-left: 1px solid var(--ars-shell-border);
+    width: min(700px, calc(100vw - 48px));
+    min-width: 520px;
+    height: min(640px, calc(100vh - 120px));
+    min-height: 420px;
+    overflow: hidden;
+    resize: both;
+    border: 1px solid var(--ars-shell-border);
+    border-radius: 16px;
     background: white;
-    box-shadow: -18px 0 45px rgba(15, 23, 42, 0.14);
-    transform: translateX(105%);
-    transition: transform 0.2s ease;
+    box-shadow: 0 22px 55px rgba(15, 23, 42, 0.22);
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(16px) scale(0.98);
+    transform-origin: bottom right;
+    transition: opacity 0.18s ease, transform 0.18s ease;
 }
 
 .ars-chat-panel.open {
-    transform: translateX(0);
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateY(0) scale(1);
+}
+
+.ars-chat-panel.dragging {
+    transition: none;
 }
 
 .ars-chat-header {
@@ -600,6 +611,13 @@ body.ars-app-body {
     gap: 16px;
     padding: 0 20px;
     border-bottom: 1px solid var(--ars-shell-border);
+    cursor: move;
+    touch-action: none;
+    user-select: none;
+}
+
+.ars-chat-header .ars-icon-button {
+    cursor: pointer;
 }
 
 .ars-chat-header strong,
@@ -620,8 +638,8 @@ body.ars-app-body {
 
 .ars-chat-layout {
     display: grid;
-    height: calc(100vh - 72px);
-    grid-template-columns: 260px minmax(0, 1fr);
+    height: calc(100% - 72px);
+    grid-template-columns: 220px minmax(0, 1fr);
 }
 
 .ars-chat-contacts {
@@ -821,8 +839,8 @@ body.ars-app-body {
 }
 
 .ars-chat-compose {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 42px;
+    display: flex;
+    min-width: 0;
     gap: 8px;
     padding: 12px 14px;
     border-top: 1px solid var(--ars-shell-border);
@@ -830,6 +848,8 @@ body.ars-app-body {
 }
 
 .ars-chat-compose textarea {
+    min-width: 0;
+    flex: 1 1 auto;
     width: 100%;
     max-height: 110px;
     resize: vertical;
@@ -847,8 +867,42 @@ body.ars-app-body {
 }
 
 .ars-chat-compose button {
-    align-self: stretch;
+    display: inline-flex;
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    flex: 0 0 44px;
+    align-self: flex-end;
+    align-items: center;
+    justify-content: center;
     padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color: #fff !important;
+    box-shadow: 0 6px 16px rgba(8, 145, 178, 0.3);
+    transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+    cursor: pointer;
+}
+
+.ars-chat-compose button:hover,
+.ars-chat-compose button:focus-visible {
+    background: linear-gradient(135deg, #0891b2, #0e7490);
+    color: #fff !important;
+    box-shadow: 0 8px 20px rgba(8, 145, 178, 0.38);
+    transform: translateY(-1px);
+}
+
+.ars-chat-compose button:active {
+    box-shadow: 0 3px 10px rgba(8, 145, 178, 0.28);
+    transform: translateY(1px);
+}
+
+.ars-chat-compose button i {
+    color: #fff !important;
+    font-size: 1rem;
+    line-height: 1;
+    transform: translateX(-1px);
 }
 
 .ars-chat-feedback {
@@ -952,7 +1006,14 @@ body.ars-app-body {
     }
 
     .ars-chat-panel {
+        inset: 0 !important;
         width: 100vw;
+        min-width: 0;
+        height: 100vh;
+        min-height: 0;
+        resize: none;
+        border: 0;
+        border-radius: 0;
     }
 
     .ars-chat-layout {
@@ -975,6 +1036,10 @@ body.ars-app-body {
     .ars-chat-contact {
         width: 190px;
         flex: 0 0 190px;
+    }
+
+    .ars-chat-header {
+        cursor: default;
     }
 }
 
@@ -1032,5 +1097,147 @@ body.ars-app-body {
     .ars-nav-group,
     .ars-nav-group-toggle i {
         transition: none;
+    }
+}
+
+.patient-search {
+    position: relative;
+}
+
+.patient-search__control {
+    position: relative;
+}
+
+.patient-search__input {
+    padding-left: 12px;
+    padding-right: 38px;
+}
+
+/* Los buscadores se identifican por su texto, sin iconos decorativos. */
+.ars-app-body .fa-search,
+.ars-app-body .fa-magnifying-glass {
+    display: none !important;
+}
+
+.patient-search__clear {
+    position: absolute;
+    top: 50%;
+    right: 7px;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ars-shell-muted);
+    transform: translateY(-50%);
+}
+
+.patient-search__clear:hover {
+    background: var(--ars-shell-surface-alt);
+    color: var(--ars-shell-text);
+}
+
+.patient-search__results {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    left: 0;
+    z-index: 1080;
+    max-height: 310px;
+    overflow-y: auto;
+    border: 1px solid var(--ars-shell-border);
+    border-radius: 11px;
+    background: var(--ars-shell-surface, #fff);
+    box-shadow: 0 16px 36px rgba(15, 23, 42, 0.16);
+}
+
+.patient-search__result {
+    display: block;
+    width: 100%;
+    padding: 11px 13px;
+    border: 0;
+    border-bottom: 1px solid var(--ars-shell-border);
+    background: transparent;
+    color: var(--ars-shell-text);
+    text-align: left;
+}
+
+.patient-search__result:last-child {
+    border-bottom: 0;
+}
+
+.patient-search__result:hover,
+.patient-search__result.active {
+    background: var(--ars-shell-surface-alt);
+}
+
+.patient-search__result strong,
+.patient-search__result small {
+    display: block;
+}
+
+.patient-search__result small,
+.patient-search__hint,
+.patient-search__empty {
+    color: var(--ars-shell-muted);
+    font-size: 0.72rem;
+}
+
+.patient-search__result small {
+    margin-top: 3px;
+}
+
+.patient-search__hint {
+    display: block;
+    margin-top: 5px;
+}
+
+.patient-search__empty {
+    padding: 15px;
+    text-align: center;
+}
+
+/* Impresión global: conservar únicamente el contenido del documento. */
+@media print {
+    .ars-sidebar,
+    .ars-sidebar-overlay,
+    .ars-topbar,
+    .ars-chat-fab,
+    .ars-chat-overlay,
+    .ars-chat-panel,
+    .ars-flash-area,
+    .public-site-footer,
+    .dropdown-menu,
+    .modal,
+    .toast,
+    .no-print,
+    nav,
+    button,
+    .btn {
+        display: none !important;
+    }
+
+    html,
+    body,
+    .ars-app-body,
+    .ars-app-shell,
+    .ars-main-column,
+    .ars-content {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        min-height: 0 !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        box-shadow: none !important;
+    }
+
+    .ars-app-shell {
+        display: block !important;
+    }
+
+    .ars-main-column {
+        margin-left: 0 !important;
     }
 }

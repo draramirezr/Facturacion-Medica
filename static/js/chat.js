@@ -8,6 +8,7 @@
 
     const toggle = document.getElementById('arsChatToggle');
     const closeButton = document.getElementById('arsChatClose');
+    const dragHandle = document.getElementById('arsChatDragHandle');
     const overlay = document.getElementById('arsChatOverlay');
     const contactsElement = document.getElementById('arsChatContacts');
     const search = document.getElementById('arsChatSearch');
@@ -24,6 +25,65 @@
     let selectedUser = null;
     let lastMessageId = 0;
     let loadingMessages = false;
+    let dragState = null;
+
+    const positionStorageKey = 'arsflow-chat-position';
+    const mobileViewport = window.matchMedia('(max-width: 575.98px)');
+
+    const clampPosition = (left, top) => {
+        const margin = 8;
+        const maxLeft = Math.max(margin, window.innerWidth - panel.offsetWidth - margin);
+        const maxTop = Math.max(margin, window.innerHeight - panel.offsetHeight - margin);
+        return {
+            left: Math.min(Math.max(margin, left), maxLeft),
+            top: Math.min(Math.max(margin, top), maxTop)
+        };
+    };
+
+    const setPanelPosition = (left, top) => {
+        if (mobileViewport.matches) {
+            return;
+        }
+        const position = clampPosition(left, top);
+        panel.style.left = `${position.left}px`;
+        panel.style.top = `${position.top}px`;
+        panel.style.right = 'auto';
+        panel.style.bottom = 'auto';
+    };
+
+    const savePanelPosition = () => {
+        if (mobileViewport.matches || !panel.style.left) {
+            return;
+        }
+        try {
+            window.localStorage.setItem(positionStorageKey, JSON.stringify({
+                left: Number.parseFloat(panel.style.left),
+                top: Number.parseFloat(panel.style.top)
+            }));
+        } catch (error) {
+            // La ventana continúa siendo movible aunque el navegador bloquee storage.
+        }
+    };
+
+    const restorePanelPosition = () => {
+        if (mobileViewport.matches) {
+            return;
+        }
+        try {
+            const saved = JSON.parse(
+                window.localStorage.getItem(positionStorageKey) || 'null'
+            );
+            if (
+                saved
+                && Number.isFinite(saved.left)
+                && Number.isFinite(saved.top)
+            ) {
+                setPanelPosition(saved.left, saved.top);
+            }
+        } catch (error) {
+            window.localStorage.removeItem(positionStorageKey);
+        }
+    };
 
     const requestJson = async (url, options = {}) => {
         const response = await fetch(url, {
@@ -258,6 +318,7 @@
     };
 
     const openPanel = async () => {
+        restorePanelPosition();
         overlay.hidden = false;
         panel.classList.add('open');
         panel.setAttribute('aria-hidden', 'false');
@@ -309,6 +370,52 @@
     closeButton.addEventListener('click', closePanel);
     overlay.addEventListener('click', closePanel);
     search.addEventListener('input', renderContacts);
+    dragHandle.addEventListener('pointerdown', (event) => {
+        if (
+            mobileViewport.matches
+            || event.button !== 0
+            || event.target.closest('button, a, input, textarea, select')
+        ) {
+            return;
+        }
+        const rect = panel.getBoundingClientRect();
+        dragState = {
+            pointerId: event.pointerId,
+            offsetX: event.clientX - rect.left,
+            offsetY: event.clientY - rect.top
+        };
+        dragHandle.setPointerCapture(event.pointerId);
+        panel.classList.add('dragging');
+        event.preventDefault();
+    });
+    dragHandle.addEventListener('pointermove', (event) => {
+        if (!dragState || dragState.pointerId !== event.pointerId) {
+            return;
+        }
+        setPanelPosition(
+            event.clientX - dragState.offsetX,
+            event.clientY - dragState.offsetY
+        );
+    });
+    const finishDragging = (event) => {
+        if (!dragState || dragState.pointerId !== event.pointerId) {
+            return;
+        }
+        dragState = null;
+        panel.classList.remove('dragging');
+        savePanelPosition();
+    };
+    dragHandle.addEventListener('pointerup', finishDragging);
+    dragHandle.addEventListener('pointercancel', finishDragging);
+    window.addEventListener('resize', () => {
+        if (!mobileViewport.matches && panel.style.left) {
+            setPanelPosition(
+                Number.parseFloat(panel.style.left),
+                Number.parseFloat(panel.style.top)
+            );
+            savePanelPosition();
+        }
+    });
     document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape' && panel.classList.contains('open')) {
             closePanel();

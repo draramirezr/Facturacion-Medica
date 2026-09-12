@@ -19,10 +19,17 @@ SYSTEM_ROLES = (
 # Snapshot deliberadamente ordenado por permiso para que cada cambio de política
 # sea visible y revisable. Los permisos provienen del catálogo estable de RBAC.
 REPRESENTATIVE_ACCESS = {
+    'dashboard.ver': frozenset({
+        'Administrador', 'Nivel 2', 'Registro de Facturas', 'Médico',
+    }),
     'pacientes.ver': frozenset(SYSTEM_ROLES),
     'pacientes.crear': frozenset({
         'Administrador', 'Nivel 2', 'Registro de Facturas',
-        'Oficial de servicios',
+        'Oficial de servicios', 'Médico',
+    }),
+    'pacientes.editar': frozenset({
+        'Administrador', 'Nivel 2', 'Registro de Facturas',
+        'Oficial de servicios', 'Médico',
     }),
     'pacientes.eliminar': frozenset({'Administrador'}),
     'facturacion.ver': frozenset({
@@ -61,15 +68,21 @@ REPRESENTATIVE_ACCESS = {
     }),
     'usuarios.ver': frozenset({'Administrador'}),
     'roles.editar': frozenset({'Administrador'}),
-    'configuracion.ver': frozenset(SYSTEM_ROLES),
-    'configuracion.editar': frozenset(SYSTEM_ROLES),
+    'configuracion.ver': frozenset({
+        'Administrador', 'Nivel 2', 'Registro de Facturas',
+        'Oficial de servicios',
+    }),
+    'configuracion.editar': frozenset({
+        'Administrador', 'Nivel 2', 'Registro de Facturas',
+        'Oficial de servicios',
+    }),
 }
 
-# Contrato normalizado de las 147 rutas de aplicación (se excluye la ruta
+# Contrato normalizado de las 149 rutas de aplicación (se excluye la ruta
 # ``static`` que Flask agrega). El hash incluye endpoint, URL y métodos.
-ENDPOINT_CONTRACT_COUNT = 147
+ENDPOINT_CONTRACT_COUNT = 149
 ENDPOINT_CONTRACT_SHA256 = (
-    '608a1fa07771404289317c57e4c61029877688e40eb177bf2ca0fbd0b078ad5a'
+    'cb129e2e0fa59d4c8c65ba7f3b62d1fa0457a4dc4b157cc11c5a677b7f66fbca'
 )
 
 # Subconjunto legible que hace accionables las pérdidas en las áreas críticas.
@@ -131,6 +144,12 @@ IMPORTANT_ENDPOINTS = {
         '/perfil/configuracion',
         ('GET', 'POST'),
     ),
+    (
+        'cambiar_mi_password',
+        '/mi-cuenta/cambiar-password',
+        ('GET', 'POST'),
+    ),
+    ('api_buscar_pacientes', '/api/pacientes/buscar', ('GET',)),
 }
 
 

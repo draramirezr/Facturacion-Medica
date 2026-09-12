@@ -6,6 +6,9 @@ descripciones, pero no deben renombrarse después de asignar permisos.
 
 
 PERMISOS_POR_GRUPO = {
+    "dashboard": (
+        ("dashboard.ver", "Ver dashboard", "Consultar indicadores según el alcance asignado al usuario."),
+    ),
     "pacientes": (
         ("pacientes.ver", "Ver pacientes", "Consultar pacientes y sus datos generales."),
         ("pacientes.crear", "Crear pacientes", "Registrar pacientes nuevos."),
@@ -124,6 +127,7 @@ PERMISOS_ROLES_SISTEMA = {
     ) | {"configuracion.ver", "configuracion.editar"},
     "Registro de Facturas": frozenset(
         {
+            "dashboard.ver",
             "pacientes.ver",
             "pacientes.crear",
             "pacientes.editar",
@@ -159,7 +163,10 @@ PERMISOS_ROLES_SISTEMA = {
     ),
     "Médico": frozenset(
         {
+            "dashboard.ver",
             "pacientes.ver",
+            "pacientes.crear",
+            "pacientes.editar",
             "turnos.ver",
             "turnos.llamar",
             "turnos.imprimir",
@@ -187,8 +194,6 @@ PERMISOS_ROLES_SISTEMA = {
             "citas.crear",
             "citas.editar",
             "catalogos.ver",
-            "configuracion.ver",
-            "configuracion.editar",
         }
     ),
 }

@@ -25,13 +25,24 @@ def facturacion_hojas_enfermeria():
         SELECT h.id, h.fecha_servicio, h.hora_servicio, h.nombre_paciente,
                h.responsable, h.firma_responsable
         FROM hojas_enfermeria h
+        LEFT JOIN pacientes p
+          ON p.id=h.paciente_id AND p.tenant_id=h.tenant_id
         WHERE h.tenant_id=%s
     '''
     params = [tenant_id]
     if buscar:
         patron = f'%{buscar}%'
-        query += ' AND (h.nombre_paciente LIKE %s OR h.responsable LIKE %s)'
-        params.extend([patron, patron])
+        phone_digits = re.sub(r'\D', '', buscar)
+        phone_pattern = f'%{phone_digits}%' if phone_digits else patron
+        query += """
+            AND (
+                h.nombre_paciente LIKE %s OR p.cedula LIKE %s OR p.nss LIKE %s
+                OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),'+','')
+                    LIKE %s
+            )
+        """
+        params.extend([patron, patron, patron, phone_pattern])
     query += ' ORDER BY h.fecha_servicio DESC, h.hora_servicio DESC, h.id DESC'
     hojas = execute_query(query, tuple(params), fetch='all') or []
     return render_template(
@@ -125,17 +136,15 @@ def facturacion_hojas_enfermeria_nueva():
                     paciente_id=paciente_id
                 ))
 
-        items = request.form.getlist('item[]')
+        detalles = request.form.getlist('detalle[]')
         fechas = request.form.getlist('fecha_linea[]')
         horas = request.form.getlist('hora_linea[]')
         cantidades = request.form.getlist('cantidad[]')
         dosis_vias = request.form.getlist('dosis_via[]')
-        notas = request.form.getlist('notas[]')
-        responsables_linea = request.form.getlist('responsable_linea[]')
         suministros = []
-        for indice, item_raw in enumerate(items):
-            item = sanitize_input(item_raw, 500)
-            if not item:
+        for indice, detalle_raw in enumerate(detalles):
+            detalle = sanitize_input(detalle_raw, 500)
+            if not detalle:
                 continue
             fecha_linea = fechas[indice] if indice < len(fechas) else fecha_servicio
             hora_linea = horas[indice] if indice < len(horas) else hora_servicio
@@ -151,24 +160,16 @@ def facturacion_hojas_enfermeria_nueva():
             suministros.append({
                 'fecha': fecha_linea,
                 'hora': hora_linea,
-                'item': item,
+                'detalle': detalle,
                 'cantidad': sanitize_input(
                     cantidades[indice] if indice < len(cantidades) else '', 100
                 ),
                 'dosis_via': sanitize_input(
                     dosis_vias[indice] if indice < len(dosis_vias) else '', 200
                 ),
-                'notas': sanitize_input(
-                    notas[indice] if indice < len(notas) else '', 500
-                ),
-                'responsable': sanitize_input(
-                    responsables_linea[indice]
-                    if indice < len(responsables_linea) else responsable,
-                    200
-                )
             })
         if not suministros:
-            flash('Agregue al menos un medicamento o material suministrado', 'error')
+            flash('Agregue al menos un detalle del suministro', 'error')
             return redirect(url_for(
                 'facturacion_hojas_enfermeria_nueva',
                 paciente_id=paciente_id

@@ -274,9 +274,10 @@ class InternalMessagingTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
             execute_update.call_args.args[1],
-            ("cyan", "arsflow", 0, 10, 5),
+            ("cyan", "arsflow", 0, "es", 10, 5),
         )
         self.assertFalse(user.mostrar_chat)
+        self.assertEqual(user.idioma_correccion, "es")
 
     def test_chat_is_visible_by_default_for_new_user_objects(self):
         user = app_module.User(

@@ -45,7 +45,6 @@ def crear_modulo():
                 consulta_id INT NULL,
                 tipo_licencia_id INT NOT NULL,
                 diagnostico TEXT NOT NULL,
-                codigo_cie10 VARCHAR(30) NULL,
                 motivo_condicion TEXT NOT NULL,
                 observaciones TEXT NULL,
                 fecha_emision DATE NOT NULL,
@@ -68,6 +67,12 @@ def crear_modulo():
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
             """
         )
+        if execute_query(
+            "SHOW COLUMNS FROM licencias_medicas LIKE 'codigo_cie10'"
+        ):
+            execute_update(
+                "ALTER TABLE licencias_medicas DROP COLUMN codigo_cie10"
+            )
 
         execute_update(
             """

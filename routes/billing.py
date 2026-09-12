@@ -50,6 +50,17 @@ except ImportError:
 @login_required
 def facturacion_menu():
     """Menú principal de facturación"""
+    roles_rbac = set(getattr(current_user, 'rbac_roles', ()))
+    es_administrador = (
+        'Administrador' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Administrador'
+    )
+    if (
+        getattr(current_user, 'medico_id', None)
+        and user_has_permission(current_user, 'turnos.cola_propia')
+        and not es_administrador
+    ):
+        return redirect(url_for('turnos_mi_cola'))
     return render_template('facturacion/menu.html')
 
 @login_required
@@ -1675,8 +1686,72 @@ def facturacion_enviar_email(factura_id):
     
     return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
 
+def _render_dashboard_medico(tenant_id, medico_id, fecha_desde, fecha_hasta):
+    """Mostrar exclusivamente la actividad asociada al médico autenticado."""
+    alcance = (tenant_id, medico_id, fecha_desde, fecha_hasta)
+    consultas = execute_query('''
+        SELECT COUNT(*) AS total,
+               COUNT(DISTINCT paciente_id) AS pacientes,
+               COALESCE(SUM(fecha = CURDATE()), 0) AS hoy
+        FROM consultas_clinicas
+        WHERE tenant_id=%s AND medico_id=%s
+          AND fecha BETWEEN %s AND %s
+    ''', alcance) or {}
+    citas = execute_query('''
+        SELECT COUNT(*) AS total,
+               COALESCE(SUM(
+                   estado = 'Programada'
+                   AND TIMESTAMP(fecha, hora) >= NOW()
+               ), 0) AS proximas
+        FROM citas_medicas
+        WHERE tenant_id=%s AND medico_id=%s
+          AND fecha BETWEEN %s AND %s
+    ''', alcance) or {}
+    recetas = execute_query('''
+        SELECT COUNT(*) AS total
+        FROM recetas_medicas
+        WHERE tenant_id=%s AND medico_id=%s
+          AND fecha BETWEEN %s AND %s
+    ''', alcance) or {}
+    turnos = execute_query('''
+        SELECT COUNT(*) AS total
+        FROM turnos_atencion
+        WHERE tenant_id=%s AND medico_id=%s
+          AND fecha BETWEEN %s AND %s
+          AND estado='Finalizado'
+    ''', alcance) or {}
+    actividad_reciente = execute_query('''
+        SELECT c.id, c.paciente_id, c.fecha, c.hora,
+               c.motivo_consulta, c.diagnostico_principal,
+               p.nombre AS paciente_nombre
+        FROM consultas_clinicas c
+        JOIN pacientes p
+          ON p.id=c.paciente_id AND p.tenant_id=c.tenant_id
+        WHERE c.tenant_id=%s AND c.medico_id=%s
+          AND c.fecha BETWEEN %s AND %s
+        ORDER BY c.fecha DESC, c.hora DESC, c.id DESC
+        LIMIT 10
+    ''', alcance, fetch='all') or []
+    medico = execute_query(
+        'SELECT nombre, especialidad FROM medicos '
+        'WHERE id=%s AND tenant_id=%s',
+        (medico_id, tenant_id),
+    ) or {}
+    return render_template(
+        'facturacion/dashboard_medico.html',
+        medico=medico,
+        consultas=consultas,
+        citas=citas,
+        recetas=recetas,
+        turnos=turnos,
+        actividad_reciente=actividad_reciente,
+        fecha_desde=fecha_desde,
+        fecha_hasta=fecha_hasta,
+    )
+
+
 @login_required
-@permission_required('facturacion.ver')
+@permission_required('dashboard.ver')
 def facturacion_dashboard():
     """Dashboard de facturación"""
     from datetime import datetime, timedelta
@@ -1691,9 +1766,26 @@ def facturacion_dashboard():
     monto_pendiente = 0.0
     ars_pendientes_nombres = []
     
-    try:
-        tenant_id = get_current_tenant_id()
+    tenant_id = get_current_tenant_id()
+    medico_id = getattr(current_user, 'medico_id', None)
+    roles_rbac = set(getattr(current_user, 'rbac_roles', ()))
+    es_medico = (
+        'Médico' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Médico'
+    )
+    es_administrador = (
+        'Administrador' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Administrador'
+    )
+    if medico_id and es_medico and not es_administrador:
+        return _render_dashboard_medico(
+            tenant_id,
+            medico_id,
+            fecha_desde,
+            fecha_hasta,
+        )
         
+    try:
         # Total de facturas
         result = execute_query('''
             SELECT COUNT(*) as total FROM facturas 

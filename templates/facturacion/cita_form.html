@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_patient_search.html" import patient_search %}
 
 {% block title %}{{ 'Editar' if cita else 'Nueva' }} Cita - ARSFlow{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -28,8 +29,16 @@
             <section class="appointment-card">
                 <h2>Paciente y médico</h2>
                 <div class="row g-3">
-                    <div class="col-md-6"><label class="form-label required">Paciente</label><select class="form-select" name="paciente_id" required><option value="">Seleccione</option>{% for p in pacientes %}<option value="{{ p['id'] }}" {% if paciente_valor|string==p['id']|string %}selected{% endif %}>{{ p['nombre'] }}{% if p['cedula'] %} · {{ p['cedula'] }}{% endif %}</option>{% endfor %}</select></div>
-                    <div class="col-md-6"><label class="form-label required">Médico</label><select class="form-select" id="medico_id" name="medico_id" required><option value="">Seleccione</option>{% for m in medicos %}<option value="{{ m['id'] }}" data-especialidad="{{ m['especialidad'] or '' }}" {% if medico_valor|string==m['id']|string %}selected{% endif %}>{{ m['nombre'] }} · {{ m['especialidad'] }}</option>{% endfor %}</select></div>
+                    <div class="col-md-6"><label class="form-label required">Paciente</label>{{ patient_search(pacientes, paciente_valor, true, 'cita_paciente') }}</div>
+                    <div class="col-md-6">
+                        <label class="form-label required">Médico</label>
+                        {% if agenda_restringida and medicos %}
+                        <input type="hidden" id="medico_id" name="medico_id" value="{{ medicos[0]['id'] }}" data-especialidad="{{ medicos[0]['especialidad'] or '' }}">
+                        <input class="form-control" value="{{ medicos[0]['nombre'] }} · {{ medicos[0]['especialidad'] or 'Medicina general' }}" readonly>
+                        {% else %}
+                        <select class="form-select" id="medico_id" name="medico_id" required><option value="">Seleccione</option>{% for m in medicos %}<option value="{{ m['id'] }}" data-especialidad="{{ m['especialidad'] or '' }}" {% if medico_valor|string==m['id']|string %}selected{% endif %}>{{ m['nombre'] }} · {{ m['especialidad'] }}</option>{% endfor %}</select>
+                        {% endif %}
+                    </div>
                     <div class="col-12"><label class="form-label">Especialidad</label><input class="form-control" id="especialidad" name="especialidad" maxlength="150" value="{{ form_data.get('especialidad', consulta_origen['proxima_especialidad'] if consulta_origen else '') or '' }}"></div>
                 </div>
             </section>
@@ -65,10 +74,14 @@
 (() => {
     const doctor = document.getElementById('medico_id');
     const specialty = document.getElementById('especialidad');
+    const selectedSpecialty = () => {
+        if (doctor.dataset.especialidad) return doctor.dataset.especialidad;
+        return doctor.options?.[doctor.selectedIndex]?.dataset.especialidad || '';
+    };
     doctor.addEventListener('change', () => {
-        specialty.value = doctor.options[doctor.selectedIndex]?.dataset.especialidad || '';
+        specialty.value = selectedSpecialty();
     });
-    if (!specialty.value && doctor.value) specialty.value = doctor.options[doctor.selectedIndex]?.dataset.especialidad || '';
+    if (!specialty.value && doctor.value) specialty.value = selectedSpecialty();
 })();
 </script>
 {% endblock %}

@@ -79,6 +79,21 @@
         color: var(--primary-color) !important;
         font-weight: bold;
     }
+
+    .guardian-fields {
+        --bs-gutter-x: 1.25rem;
+    }
+
+    .guardian-fields .form-label {
+        align-items: center;
+        display: flex;
+        gap: 0.4rem;
+        white-space: nowrap;
+    }
+
+    .guardian-fields .form-label i {
+        margin-right: 0 !important;
+    }
 </style>
 
 <div class="container py-5">
@@ -236,13 +251,13 @@
                               required>{{ (paciente['direccion'] or '') if es_edicion else '' }}</textarea>
                 </div>
 
-                <div class="row d-none" id="campos-pariente">
+                <div class="row d-none guardian-fields" id="campos-pariente">
                     <div class="col-12 mb-2">
                         <small class="text-muted">El paciente es menor de 18 años. Indique su padre, madre o tutor responsable.</small>
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="nombre_pariente" class="form-label">
-                            <i class="fas fa-user-shield me-2 text-primary"></i>Nombre del pariente <span class="required-asterisk">*</span>
+                            <i class="fas fa-user-shield text-primary"></i>Nombre completo <span class="required-asterisk">*</span>
                         </label>
                         <input type="text" class="form-control" id="nombre_pariente" name="nombre_pariente"
                                value="{{ (paciente.get('nombre_pariente') or '') if es_edicion else '' }}"
@@ -250,7 +265,7 @@
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="cedula_pariente" class="form-label">
-                            <i class="fas fa-id-card me-2 text-primary"></i>Cédula del pariente <span class="required-asterisk">*</span>
+                            <i class="fas fa-id-card text-primary"></i>Cédula <span class="required-asterisk">*</span>
                         </label>
                         <input type="text" class="form-control" id="cedula_pariente" name="cedula_pariente"
                                value="{{ (paciente.get('cedula_pariente') or '') if es_edicion else '' }}"
@@ -261,7 +276,7 @@
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="telefono_pariente" class="form-label">
-                            <i class="fas fa-phone me-2 text-primary"></i>Teléfono del pariente <span class="required-asterisk">*</span>
+                            <i class="fas fa-phone text-primary"></i>Teléfono <span class="required-asterisk">*</span>
                         </label>
                         <input type="text" class="form-control" id="telefono_pariente" name="telefono_pariente"
                                value="{{ (paciente.get('telefono_pariente') or '') if es_edicion else '' }}"
@@ -272,7 +287,7 @@
                     </div>
                     <div class="col-md-3 mb-3">
                         <label for="parentesco" class="form-label">
-                            <i class="fas fa-people-roof me-2 text-primary"></i>Parentesco <span class="required-asterisk">*</span>
+                            <i class="fas fa-people-roof text-primary"></i>Parentesco <span class="required-asterisk">*</span>
                         </label>
                         <select class="form-control" id="parentesco" name="parentesco">
                             <option value="">Seleccione...</option>

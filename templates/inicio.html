@@ -101,7 +101,7 @@
         .section-label { color:var(--primary-dark); font-size:.72rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
         .section h2 { margin:10px 0 14px; color:#16213b; font-size:clamp(2rem,3.5vw,3rem); letter-spacing:-.04em; }
         .section-head p { margin:0; color:var(--muted); line-height:1.7; }
-        .features { display:grid; grid-template-columns:repeat(5,1fr); gap:14px; }
+        .features { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
         .feature { padding:24px 18px; border:1px solid var(--border); border-radius:15px; background:white; text-align:center; }
         .feature-icon { width:46px; height:46px; display:grid; place-items:center; margin:0 auto 18px; border:1px solid rgba(17,156,143,.22); border-radius:11px; background:var(--primary-soft); color:var(--primary-dark); }
         .feature h3 { margin:0 0 9px; color:#23304c; font-size:1rem; }
@@ -122,22 +122,6 @@
         .integration-item i { width:38px; height:38px; display:grid; place-items:center; margin-bottom:15px; border-radius:9px; background:var(--primary-soft); color:var(--primary-dark); }
         .integration-item strong { display:block; margin-bottom:5px; font-size:.88rem; }
         .integration-item span { color:var(--muted); font-size:.76rem; line-height:1.5; }
-        .ecf-showcase { display:grid; grid-template-columns:.9fr 1.1fr; align-items:center; gap:54px; }
-        .ecf-copy h2 { margin:10px 0 16px; }
-        .ecf-copy .hero-copy { margin-bottom:22px; }
-        .ecf-points { display:grid; gap:11px; margin:0; padding:0; list-style:none; }
-        .ecf-points li { display:flex; align-items:flex-start; gap:10px; color:var(--muted); font-size:.82rem; line-height:1.5; }
-        .ecf-points i { margin-top:3px; color:var(--primary-dark); }
-        .ecf-panel { padding:28px; border:1px solid var(--border); border-radius:18px; background:var(--surface); }
-        .ecf-panel-head { display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:18px; border-bottom:1px solid var(--border); }
-        .ecf-panel-head strong { color:#22304c; font-size:1rem; }
-        .ecf-badge { padding:6px 9px; border:1px solid #8dd8cf; border-radius:7px; background:var(--primary-soft); color:var(--primary-dark); font-size:.68rem; font-weight:800; }
-        .ecf-flow { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:18px; }
-        .ecf-flow-item { display:grid; grid-template-columns:36px 1fr; align-items:center; gap:10px; padding:13px; border:1px solid var(--border); border-radius:10px; }
-        .ecf-flow-item i { width:34px; height:34px; display:grid; place-items:center; border-radius:8px; background:var(--primary-soft); color:var(--primary-dark); }
-        .ecf-flow-item strong { display:block; margin-bottom:2px; color:#334155; font-size:.76rem; }
-        .ecf-flow-item span { display:block; color:var(--muted); font-size:.65rem; line-height:1.35; }
-        .ecf-note { margin-top:16px; padding:12px 14px; border-left:3px solid var(--primary); background:#f1faf8; color:#526274; font-size:.72rem; line-height:1.5; }
         .security-grid { display:grid; grid-template-columns:.85fr 1.15fr; align-items:center; gap:72px; }
         .security-panel { padding:34px; border:1px solid var(--border); border-radius:18px; background:linear-gradient(150deg,#172554,#1d335e); color:white; }
         .security-shield { width:64px; height:64px; display:grid; place-items:center; margin-bottom:48px; border:1px solid rgba(255,255,255,.2); border-radius:15px; background:rgba(255,255,255,.07); color:#67e8f9; font-size:1.45rem; }
@@ -203,8 +187,7 @@
         html[data-color-mode="dark"] .trust-strip { background:#101929; border-color:var(--border); }
         html[data-color-mode="dark"] .hero { background:linear-gradient(145deg,#102128,#0b1220 58%,#10231f); }
         html[data-color-mode="dark"] :is(.hero h1,.section h2,.feature h3,.step h3,.result-card strong,.integration-item strong,.security-card h3,.plan-option h3,.plan-price strong,.cta h2,.footer-title) { color:#edf3fa; }
-        html[data-color-mode="dark"] :is(.app-preview,.preview-sidebar,.preview-card,.preview-chart,.preview-table,.feature,.step,.result-card,.integration-item,.security-card,.plan-option,.billing-switch,.ecf-panel,.ecf-flow-item) { background:#111a2b; border-color:var(--border); }
-        html[data-color-mode="dark"] :is(.ecf-panel-head strong,.ecf-flow-item strong) { color:#dce7f2; }
+        html[data-color-mode="dark"] :is(.app-preview,.preview-sidebar,.preview-card,.preview-chart,.preview-table,.feature,.step,.result-card,.integration-item,.security-card,.plan-option,.billing-switch) { background:#111a2b; border-color:var(--border); }
         html[data-color-mode="dark"] .preview-content { background:#0d1625; }
         html[data-color-mode="dark"] .preview-layout,
         html[data-color-mode="dark"] .preview-sidebar,
@@ -219,22 +202,21 @@
         html[data-color-mode="dark"] .cta-card { background:linear-gradient(145deg,#102722,#111a2b); border-color:#285349; }
         html[data-color-mode="dark"] .button-secondary { background:#121d2f; border-color:#35455c; color:#dbe5ef; }
         html[data-color-mode="dark"] .reference-note,
-        html[data-color-mode="dark"] .ecf-note,
         html[data-color-mode="dark"] .security-note { background:#10241f; border-color:#285349; color:#a9b7c7; }
         html[data-color-mode="dark"] .brand { background:#fff; border-radius:8px; }
         html[data-color-mode="dark"] .footer-links a,
         html[data-color-mode="dark"] .footer-brand,
         html[data-color-mode="dark"] .footer-bottom { color:#9eacbd; }
         @media(max-width:1100px){.features{grid-template-columns:repeat(3,1fr)}.security-cards{grid-template-columns:repeat(2,1fr)}}
-        @media(max-width:960px){ .nav-links{display:none}.hero{padding-top:64px}.hero-grid,.security-grid,.integrations,.ecf-showcase{grid-template-columns:1fr}.app-preview{max-width:620px}.features{grid-template-columns:repeat(2,1fr)}.workflow{grid-template-columns:repeat(2,1fr)}.results{grid-template-columns:repeat(2,1fr)}.footer-grid{grid-template-columns:1.4fr repeat(2,1fr)} }
-        @media(max-width:620px){ .container{width:min(100% - 28px,1160px)}.brand{width:145px}.brand img{width:238px;top:-87px;left:-46px}.nav-inner{min-height:66px}.button{padding:0 15px}.nav-actions .button-secondary{display:none}.nav-actions .theme-button{display:inline-flex;padding:0}.hero{padding:52px 0}.hero-grid{gap:42px}.hero h1{font-size:2.55rem}.preview-layout{grid-template-columns:72px 1fr;min-height:350px}.preview-cards{grid-template-columns:1fr}.preview-card:nth-child(n+2){display:none}.features,.workflow,.results,.integration-grid,.security-cards,.plan-options,.footer-grid,.ecf-flow{grid-template-columns:1fr}.section{padding:66px 0}.cta-card{padding:30px 24px;grid-template-columns:1fr}.trust-inner{gap:18px;padding:20px 0}.nav-login span{display:none}.cta-actions{min-width:0}.whatsapp-float{right:16px;bottom:16px;width:52px;height:52px}.ecf-panel{padding:20px} }
+        @media(max-width:960px){ .nav-links{display:none}.hero{padding-top:64px}.hero-grid,.security-grid,.integrations{grid-template-columns:1fr}.app-preview{max-width:620px}.features{grid-template-columns:repeat(2,1fr)}.workflow{grid-template-columns:repeat(2,1fr)}.results{grid-template-columns:repeat(2,1fr)}.footer-grid{grid-template-columns:1.4fr repeat(2,1fr)} }
+        @media(max-width:620px){ .container{width:min(100% - 28px,1160px)}.brand{width:145px}.brand img{width:238px;top:-87px;left:-46px}.nav-inner{min-height:66px}.button{padding:0 15px}.nav-actions .button-secondary{display:none}.nav-actions .theme-button{display:inline-flex;padding:0}.hero{padding:52px 0}.hero-grid{gap:42px}.hero h1{font-size:2.55rem}.preview-layout{grid-template-columns:72px 1fr;min-height:350px}.preview-cards{grid-template-columns:1fr}.preview-card:nth-child(n+2){display:none}.features,.workflow,.results,.integration-grid,.security-cards,.plan-options,.footer-grid{grid-template-columns:1fr}.section{padding:66px 0}.cta-card{padding:30px 24px;grid-template-columns:1fr}.trust-inner{gap:18px;padding:20px 0}.nav-login span{display:none}.cta-actions{min-width:0}.whatsapp-float{right:16px;bottom:16px;width:52px;height:52px} }
     </style>
 </head>
 <body>
     <nav class="site-nav" aria-label="Navegación principal">
         <div class="container nav-inner">
             <a class="brand" href="{{ url_for('index') }}" aria-label="ARSFlow inicio"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="ARSFlow"></a>
-            <div class="nav-links"><a href="#inicio">Inicio</a><a href="#beneficios">Características</a><a href="#facturacion-electronica">e-CF</a><a href="#integraciones">Integraciones</a><a href="#planes">Precios</a><a href="#contacto">Contacto</a></div>
+            <div class="nav-links"><a href="#inicio">Inicio</a><a href="#beneficios">Características</a><a href="#integraciones">Integraciones</a><a href="#planes">Precios</a><a href="#contacto">Contacto</a></div>
             <div class="nav-actions">
                 <button class="button button-secondary theme-button" type="button" data-theme-toggle aria-label="Activar modo oscuro" title="Modo oscuro"><i class="fas fa-moon" data-theme-icon></i></button>
                 {% if not current_user.is_authenticated %}<a class="button button-secondary" href="{{ url_for('login') }}">Iniciar sesión</a>{% endif %}
@@ -249,7 +231,7 @@
                 <div>
                     <span class="eyebrow"><i class="fas fa-shield-heart"></i> Plataforma médica integral</span>
                     <h1>Centraliza tu gestión médica y facturación <span>en un solo lugar.</span></h1>
-                    <p class="hero-copy">ARSFlow conecta pacientes, historia clínica, citas, facturación tradicional y electrónica e-CF, reclamaciones y pagos para que tu institución trabaje con orden y rapidez.</p>
+                    <p class="hero-copy">ARSFlow conecta recepción, turnos, historias clínicas adaptadas por especialidad, citas, mensajería interna y facturación para que todo el consultorio trabaje coordinado.</p>
                     <div class="hero-actions">
                         <a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Crear cuenta gratis' }} <i class="fas fa-arrow-right"></i></a>
                         {% if not current_user.is_authenticated %}<a class="button button-secondary" href="{{ url_for('login') }}"><i class="fas fa-arrow-right-to-bracket"></i> Iniciar sesión</a>{% endif %}
@@ -264,28 +246,28 @@
                             <div class="preview-menu">
                                 <div class="preview-link active"><i class="fas fa-house"></i>Inicio</div>
                                 <div class="preview-link"><i class="fas fa-user-group"></i>Pacientes</div>
-                                <div class="preview-link"><i class="fas fa-notes-medical"></i>Consultas</div>
+                                <div class="preview-link"><i class="fas fa-ticket"></i>Turnos</div>
+                                <div class="preview-link"><i class="fas fa-notes-medical"></i>Historia clínica</div>
                                 <div class="preview-link"><i class="fas fa-calendar-days"></i>Agenda</div>
                                 <div class="preview-link"><i class="fas fa-file-invoice"></i>Facturación</div>
-                                <div class="preview-link"><i class="fas fa-file-signature"></i>Reclamaciones</div>
-                                <div class="preview-link"><i class="fas fa-credit-card"></i>Pagos</div>
+                                <div class="preview-link"><i class="fas fa-comments"></i>Mensajería</div>
                             </div>
                         </aside>
                         <div class="preview-content">
                             <div class="preview-content-head"><div><strong>Resumen general</strong><span>Viernes, 11 de septiembre</span></div><span class="demo-badge">Datos demostrativos</span></div>
                             <div class="preview-cards">
                                 <div class="preview-card"><i class="fas fa-user-group"></i><span class="preview-card-label">Pacientes activos</span><strong>128</strong><small>12 nuevos este mes</small></div>
-                                <div class="preview-card"><i class="fas fa-calendar-check"></i><span class="preview-card-label">Citas para hoy</span><strong>8</strong><small>6 confirmadas</small></div>
+                                <div class="preview-card"><i class="fas fa-ticket"></i><span class="preview-card-label">Turnos en espera</span><strong>8</strong><small>3 médicos atendiendo</small></div>
                                 <div class="preview-card"><i class="fas fa-file-invoice"></i><span class="preview-card-label">Facturado este mes</span><strong>RD$ 245,000</strong><small>18 facturas emitidas</small></div>
                             </div>
                             <div class="preview-lower">
                                 <div class="preview-chart"><div class="preview-panel-title">Facturación por ARS</div><div class="preview-donut"></div><div class="preview-legend"><span>Universal 34%</span><span>Humano 23%</span><span>Senasa 21%</span><span>Otras 22%</span></div></div>
                                 <div class="preview-table">
                                     <div class="preview-panel-title">Actividad reciente</div>
-                                    <div class="preview-row"><i class="fas fa-calendar-check"></i><div><strong>Cita confirmada</strong><span>María Rodríguez · Cardiología</span></div><time>10:30</time></div>
+                                    <div class="preview-row"><i class="fas fa-bullhorn"></i><div><strong>Turno 012 llamado</strong><span>Cardiología · Dra. Rodríguez</span></div><time>10:30</time></div>
                                     <div class="preview-row"><i class="fas fa-file-medical"></i><div><strong>Historia clínica registrada</strong><span>Consulta completada</span></div><time>09:45</time></div>
                                     <div class="preview-row"><i class="fas fa-file-invoice-dollar"></i><div><strong>Factura emitida</strong><span>ARS Humano · B02</span></div><time>09:12</time></div>
-                                    <div class="preview-row"><i class="fas fa-prescription"></i><div><strong>Receta médica creada</strong><span>Seguimiento ambulatorio</span></div><time>08:40</time></div>
+                                    <div class="preview-row"><i class="fas fa-comment-medical"></i><div><strong>Mensaje interno recibido</strong><span>Equipo de recepción</span></div><time>08:40</time></div>
                                 </div>
                             </div>
                         </div>
@@ -294,48 +276,20 @@
             </div>
         </section>
 
-        <div class="trust-strip"><div class="container trust-inner"><span><i class="fas fa-hospital-user"></i> Paciente 360°</span><span><i class="fas fa-notes-medical"></i> Gestión clínica</span><span><i class="fas fa-file-signature"></i> Facturación electrónica</span><span><i class="fas fa-chart-line"></i> Operación organizada</span></div></div>
+        <div class="trust-strip"><div class="container trust-inner"><span><i class="fas fa-ticket"></i> Turnos por médico</span><span><i class="fas fa-notes-medical"></i> Historia por especialidad</span><span><i class="fas fa-user-shield"></i> Roles configurables</span><span><i class="fas fa-comments"></i> Mensajería interna</span></div></div>
 
         <section class="section section-white" id="beneficios">
             <div class="container">
                 <header class="section-head"><span class="section-label">Todo conectado</span><h2>Todo lo que necesitas en una sola plataforma</h2><p>Herramientas diseñadas para simplificar la gestión médica y financiera de tu institución.</p></header>
                 <div class="features">
-                    <article class="feature"><div class="feature-icon"><i class="fas fa-hospital-user"></i></div><h3>Pacientes y ARS</h3><p>Expediente 360, aseguradoras y datos del paciente siempre conectados.</p></article>
-                    <article class="feature"><div class="feature-icon"><i class="fas fa-notes-medical"></i></div><h3>Gestión clínica</h3><p>Historias, consultas, emergencias, citas, recetas y licencias médicas.</p></article>
-                    <article class="feature"><div class="feature-icon"><i class="fas fa-shield-halved"></i></div><h3>Validaciones inteligentes</h3><p>Detecta duplicados y revisa datos importantes antes de continuar.</p></article>
-                    <article class="feature"><div class="feature-icon"><i class="fas fa-file-invoice-dollar"></i></div><h3>Facturación y e-CF</h3><p>Emite facturas tradicionales o electrónicas y consulta su estado.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-hospital-user"></i></div><h3>Paciente 360°</h3><p>Datos, aseguradora, consultas, documentos y seguimiento en un solo expediente.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-notes-medical"></i></div><h3>Historia por especialidad</h3><p>Formularios clínicos dinámicos para diez especialidades y una plantilla general.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-ticket"></i></div><h3>Turnos y colas</h3><p>Recepción, cola propia del médico, tickets y pantalla pública para pacientes.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-user-shield"></i></div><h3>Roles configurables</h3><p>Define permisos por ventana y asigna a cada usuario solo las funciones necesarias.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-comments"></i></div><h3>Mensajería interna</h3><p>Comunicación privada entre los usuarios del mismo consultorio sin salir de ARSFlow.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-calendar-check"></i></div><h3>Agenda conectada</h3><p>Las citas programadas pasan a recepción y continúan hacia la consulta clínica.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-file-invoice-dollar"></i></div><h3>Facturación médica</h3><p>Facturas, ARS, reclamaciones, pagos y seguimiento financiero organizado.</p></article>
                     <article class="feature"><div class="feature-icon"><i class="fas fa-chart-column"></i></div><h3>Control visible</h3><p>Dashboard, notificaciones y buscador global para decidir con claridad.</p></article>
-                </div>
-            </div>
-        </section>
-
-        <section class="section" id="facturacion-electronica">
-            <div class="container ecf-showcase">
-                <div class="ecf-copy">
-                    <span class="section-label">Facturación electrónica DGII</span>
-                    <h2>Del servicio médico al e-CF, sin duplicar procesos</h2>
-                    <p class="hero-copy">Genera la factura electrónica desde el mismo flujo de facturación. ARSFlow prepara el e-CF 31, firma el documento y conserva el seguimiento de su respuesta.</p>
-                    <ul class="ecf-points">
-                        <li><i class="fas fa-circle-check"></i><span>Factura tradicional y electrónica dentro del mismo módulo.</span></li>
-                        <li><i class="fas fa-circle-check"></i><span>Certificado digital independiente y protegido para cada cliente.</span></li>
-                        <li><i class="fas fa-circle-check"></i><span>Estados separados para enviado, aceptado, rechazado y errores.</span></li>
-                        <li><i class="fas fa-circle-check"></i><span>XML firmado, respuesta DGII, código QR y representación impresa.</span></li>
-                    </ul>
-                </div>
-                <div class="ecf-panel" aria-label="Flujo de facturación electrónica">
-                    <div class="ecf-panel-head">
-                        <strong>Proceso electrónico integrado</strong>
-                        <span class="ecf-badge">e-CF 31</span>
-                    </div>
-                    <div class="ecf-flow">
-                        <div class="ecf-flow-item"><i class="fas fa-file-circle-plus"></i><div><strong>Generar factura</strong><span>Usa los datos clínicos y administrativos existentes.</span></div></div>
-                        <div class="ecf-flow-item"><i class="fas fa-hashtag"></i><div><strong>Asignar e-NCF</strong><span>Reserva una secuencia única por cliente.</span></div></div>
-                        <div class="ecf-flow-item"><i class="fas fa-code"></i><div><strong>Validar XML</strong><span>Comprueba la estructura oficial antes del envío.</span></div></div>
-                        <div class="ecf-flow-item"><i class="fas fa-file-signature"></i><div><strong>Firma digital</strong><span>Utiliza el certificado correspondiente al RNC emisor.</span></div></div>
-                        <div class="ecf-flow-item"><i class="fas fa-building-columns"></i><div><strong>Respuesta DGII</strong><span>Diferencia recepción y aceptación fiscal.</span></div></div>
-                        <div class="ecf-flow-item"><i class="fas fa-qrcode"></i><div><strong>QR y comprobante</strong><span>Conserva la trazabilidad y representación impresa.</span></div></div>
-                    </div>
-                    <div class="ecf-note"><i class="fas fa-circle-info"></i> Disponibilidad sujeta a certificado digital, secuencias autorizadas, configuración y certificación de la DGII.</div>
                 </div>
             </div>
         </section>
@@ -344,22 +298,24 @@
             <div class="container">
                 <header class="section-head"><span class="section-label">Para profesionales y clínicas</span><h2>Más control para tu práctica médica</h2><p>Trabaja con claridad tanto si ejerces de forma independiente como si gestionas una clínica o centro médico.</p></header>
                 <div class="results">
-                    <article class="result-card"><i class="fas fa-bolt"></i><strong>Trabajo más ágil</strong><span>Accesos rápidos y procesos conectados para reducir pasos innecesarios.</span></article>
-                    <article class="result-card"><i class="fas fa-shield-halved"></i><strong>Menos reprocesos</strong><span>Validaciones que ayudan a detectar duplicados y datos incompletos.</span></article>
-                    <article class="result-card"><i class="fas fa-chart-line"></i><strong>Mayor seguimiento</strong><span>Notificaciones, estados e historial para saber qué requiere atención.</span></article>
-                    <article class="result-card"><i class="fas fa-lock"></i><strong>Control y trazabilidad</strong><span>Usuarios, permisos y registros organizados para cada entorno de trabajo.</span></article>
+                    <article class="result-card"><i class="fas fa-person-circle-check"></i><strong>Recepción organizada</strong><span>Registra la llegada, asigna el turno y dirige al paciente a la cola correcta.</span></article>
+                    <article class="result-card"><i class="fas fa-user-doctor"></i><strong>Atención conectada</strong><span>El médico llama al siguiente paciente e inicia la historia desde su propia cola.</span></article>
+                    <article class="result-card"><i class="fas fa-comments"></i><strong>Equipo coordinado</strong><span>Mensajes y notificaciones mantienen informados a recepción, médicos y administración.</span></article>
+                    <article class="result-card"><i class="fas fa-lock"></i><strong>Acceso controlado</strong><span>Cada rol ve solamente las ventanas y acciones autorizadas para su trabajo.</span></article>
                 </div>
             </div>
         </section>
 
         <section class="section section-white" id="integraciones">
             <div class="container integrations">
-                <div><span class="section-label">Información conectada</span><h2>Clínica y administración trabajan juntas</h2><p class="hero-copy">Cada módulo alimenta el siguiente proceso para evitar que los datos del paciente se queden aislados.</p><a class="button button-secondary" href="#planes">Conocer disponibilidad</a></div>
+                <div><span class="section-label">Un flujo continuo</span><h2>Desde la llegada hasta la facturación</h2><p class="hero-copy">El turno conecta recepción, médico e historia clínica; después, la información queda disponible para los procesos administrativos autorizados.</p><a class="button button-secondary" href="#planes">Conocer disponibilidad</a></div>
                 <div class="integration-grid">
-                    <article class="integration-item"><i class="fas fa-heart-pulse"></i><strong>Historia Clínica</strong><span>Consultas, evolución, diagnósticos y seguimiento.</span></article>
-                    <article class="integration-item"><i class="fas fa-calendar-check"></i><strong>Agenda Médica</strong><span>Citas manuales o creadas desde la consulta.</span></article>
-                    <article class="integration-item"><i class="fas fa-building-shield"></i><strong>ARS, e-CF y reclamaciones</strong><span>Facturación tradicional o electrónica organizada por aseguradora y estado.</span></article>
-                    <article class="integration-item"><i class="fas fa-file-excel"></i><strong>Importación de datos</strong><span>Carga y validación para acelerar tareas administrativas.</span></article>
+                    <article class="integration-item"><i class="fas fa-ticket"></i><strong>Recepción y turnos</strong><span>Alta rápida, cita programada, ticket de 58/80 mm y cola independiente por médico.</span></article>
+                    <article class="integration-item"><i class="fas fa-display"></i><strong>Pantalla de espera</strong><span>Muestra el turno actual y el siguiente sin revelar información del paciente.</span></article>
+                    <article class="integration-item"><i class="fas fa-heart-pulse"></i><strong>Historia especializada</strong><span>La consulta se abre con el paciente, médico y especialidad ya seleccionados.</span></article>
+                    <article class="integration-item"><i class="fas fa-calendar-check"></i><strong>Agenda médica</strong><span>Registra la llegada de una cita sin duplicar al paciente ni sus datos.</span></article>
+                    <article class="integration-item"><i class="fas fa-comments"></i><strong>Mensajería del equipo</strong><span>Conversaciones internas con indicador de mensajes pendientes.</span></article>
+                    <article class="integration-item"><i class="fas fa-file-invoice-dollar"></i><strong>Facturación y ARS</strong><span>Consultas, facturas, reclamaciones y pagos dentro del mismo entorno.</span></article>
                 </div>
             </div>
         </section>
@@ -368,7 +324,7 @@
             <div class="container">
                 <header class="section-head"><span class="section-label">Confianza en cada registro</span><h2>Tu información siempre bajo control</h2><p>Herramientas de acceso y trazabilidad que funcionan para médicos independientes, consultorios y clínicas.</p></header>
                 <div class="security-cards">
-                    <article class="security-card"><i class="fas fa-user-lock"></i><h3>Acceso por usuario</h3><p>Cada persona entra con sus propias credenciales y perfil de acceso.</p></article>
+                    <article class="security-card"><i class="fas fa-user-lock"></i><h3>Roles y permisos</h3><p>Cada persona entra con sus credenciales y recibe permisos según sus responsabilidades.</p></article>
                     <article class="security-card"><i class="fas fa-building-shield"></i><h3>Entornos separados</h3><p>La información de cada profesional o centro permanece dentro de su espacio.</p></article>
                     <article class="security-card"><i class="fas fa-clock-rotate-left"></i><h3>Historial conservado</h3><p>Consultas, evoluciones y documentos mantienen su continuidad en el tiempo.</p></article>
                     <article class="security-card"><i class="fas fa-file-circle-check"></i><h3>Documentos trazables</h3><p>Licencias y recetas anuladas permanecen registradas sin desaparecer del historial.</p></article>
@@ -394,21 +350,21 @@
                         <h3>Independiente</h3>
                         <p>Para un profesional que gestiona directamente su consulta.</p>
                         <div class="plan-price" data-monthly="US$ 20" data-annual="US$ 17"><strong>US$ 20</strong> <span>/ mes</span><div class="annual-detail">US$ 204 facturados anualmente</div></div>
-                        <ul class="plan-limits"><li><i class="fas fa-user"></i>1 usuario</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-hospital-user"></i>Pacientes ilimitados</li><li><i class="fas fa-check"></i>Gestión clínica y administrativa</li></ul>
+                        <ul class="plan-limits"><li><i class="fas fa-user"></i>1 usuario</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-hospital-user"></i>Pacientes ilimitados</li><li><i class="fas fa-check"></i>Historia adaptada a su especialidad</li></ul>
                     </article>
                     <article class="plan-option featured">
                         <div class="plan-option-icon"><i class="fas fa-house-medical"></i></div>
                         <h3>Consultorio</h3>
                         <p>Para equipos pequeños con varios profesionales y pacientes.</p>
                         <div class="plan-price" data-monthly="US$ 40" data-annual="US$ 34"><strong>US$ 40</strong> <span>/ mes</span><div class="annual-detail">US$ 408 facturados anualmente</div></div>
-                        <ul class="plan-limits"><li><i class="fas fa-users"></i>Hasta 3 usuarios</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-hospital-user"></i>Pacientes ilimitados</li><li><i class="fas fa-check"></i>Agenda y operación compartida</li></ul>
+                        <ul class="plan-limits"><li><i class="fas fa-users"></i>Hasta 3 usuarios</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-ticket"></i>Turnos y cola médica</li><li><i class="fas fa-comments"></i>Mensajería y roles internos</li></ul>
                     </article>
                     <article class="plan-option">
                         <div class="plan-option-icon"><i class="fas fa-hospital"></i></div>
                         <h3>Clínica</h3>
                         <p>Para centros con mayor volumen clínico y administrativo.</p>
                         <div class="plan-price" data-monthly="US$ 100" data-annual="US$ 85"><strong>US$ 100</strong> <span>/ mes</span><div class="annual-detail">US$ 1,020 facturados anualmente</div></div>
-                        <ul class="plan-limits"><li><i class="fas fa-users"></i>Hasta 10 usuarios</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-hospital-user"></i>Pacientes ilimitados</li><li><i class="fas fa-check"></i>Múltiples áreas y profesionales</li></ul>
+                        <ul class="plan-limits"><li><i class="fas fa-users"></i>Hasta 10 usuarios</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-display"></i>Pantallas públicas de turnos</li><li><i class="fas fa-check"></i>Múltiples áreas, roles y profesionales</li></ul>
                     </article>
                 </div>
                 <div class="reference-note"><strong>Usuario adicional: US$ 5 al mes.</strong><br><i class="fas fa-circle-info"></i> Precios, límites y descuento mostrados únicamente como propuesta visual. No constituyen una oferta comercial definitiva.</div>
@@ -416,7 +372,7 @@
             </div>
         </section>
 
-        <section class="cta"><div class="container"><div class="cta-card"><div><h2>¿Listo para transformar tu gestión médica?</h2><p>Reúne la atención clínica, la agenda y la facturación en una herramienta clara y conectada.</p></div><div class="cta-actions"><a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Crear cuenta gratis' }} <i class="fas fa-arrow-right"></i></a>{% if not current_user.is_authenticated %}<a class="button button-secondary" href="{{ url_for('login') }}">Ya tengo una cuenta</a>{% endif %}</div></div></div></section>
+        <section class="cta"><div class="container"><div class="cta-card"><div><h2>¿Listo para organizar todo tu consultorio?</h2><p>Conecta recepción, turnos, médicos, historia clínica, comunicación interna y facturación en una sola herramienta.</p></div><div class="cta-actions"><a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Crear cuenta gratis' }} <i class="fas fa-arrow-right"></i></a>{% if not current_user.is_authenticated %}<a class="button button-secondary" href="{{ url_for('login') }}">Ya tengo una cuenta</a>{% endif %}</div></div></div></section>
     </main>
 
     <a class="whatsapp-float" href="https://wa.me/18098446360?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20ARSFlow" target="_blank" rel="noopener noreferrer" aria-label="Contactar ARSFlow por WhatsApp" title="Escríbenos por WhatsApp"><i class="fab fa-whatsapp"></i></a>

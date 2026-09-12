@@ -1,6 +1,7 @@
 """Rutas y helpers de licencias m?dicas y sus tipos."""
 
 import json
+import re
 import secrets
 from datetime import datetime
 
@@ -15,6 +16,22 @@ from routes.support import (
     calcular_edad_clinica, execute_paginated_query, sanitize_input, validate_int,
 )
 
+
+def medico_id_licencias_restringido():
+    """Restringir al médico vinculado cuando el usuario tiene rol Médico."""
+    roles_rbac = set(getattr(current_user, 'rbac_roles', ()))
+    es_medico = (
+        'Médico' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Médico'
+    )
+    es_administrador = (
+        'Administrador' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Administrador'
+    )
+    medico_id = getattr(current_user, 'medico_id', None)
+    return medico_id if medico_id and es_medico and not es_administrador else None
+
+
 def actualizar_licencias_vencidas(tenant_id):
     execute_update(
         """
@@ -26,7 +43,11 @@ def actualizar_licencias_vencidas(tenant_id):
     )
 
 
-def obtener_licencia_medica(licencia_id, tenant_id):
+def obtener_licencia_medica(
+    licencia_id,
+    tenant_id,
+    medico_id_restringido=None,
+):
     return execute_query(
         """
         SELECT l.*, p.nombre AS paciente_nombre, p.cedula, p.fecha_nacimiento,
@@ -47,33 +68,52 @@ def obtener_licencia_medica(licencia_id, tenant_id):
         LEFT JOIN usuarios ua
           ON ua.id=l.anulado_por AND ua.tenant_id=l.tenant_id
         WHERE l.id=%s AND l.tenant_id=%s
+          AND (%s IS NULL OR l.medico_id=%s)
         """,
-        (licencia_id, tenant_id)
+        (
+            licencia_id, tenant_id,
+            medico_id_restringido, medico_id_restringido,
+        )
     )
 
 
-def contexto_formulario_licencia(tenant_id, paciente_preseleccionado=None):
+def contexto_formulario_licencia(
+    tenant_id,
+    paciente_preseleccionado=None,
+    medico_id_restringido=None,
+):
     pacientes = execute_query(
         "SELECT id, nombre, cedula, fecha_nacimiento FROM pacientes "
         "WHERE tenant_id=%s ORDER BY nombre",
         (tenant_id,), fetch='all'
     ) or []
-    medicos = execute_query(
+    medicos_sql = (
         "SELECT id, nombre, especialidad FROM medicos "
-        "WHERE tenant_id=%s AND activo=1 ORDER BY nombre",
-        (tenant_id,), fetch='all'
+        "WHERE tenant_id=%s AND activo=1"
+    )
+    medicos_params = [tenant_id]
+    if medico_id_restringido:
+        medicos_sql += " AND id=%s"
+        medicos_params.append(medico_id_restringido)
+    medicos_sql += " ORDER BY nombre"
+    medicos = execute_query(
+        medicos_sql, tuple(medicos_params), fetch='all'
     ) or []
-    consultas = execute_query(
-        """
+    consultas_sql = """
         SELECT c.id, c.paciente_id, c.fecha, c.diagnostico_principal,
-               c.codigo_cie10, m.nombre AS medico_nombre
+               m.nombre AS medico_nombre
         FROM consultas_clinicas c
         JOIN medicos m
           ON m.id=c.medico_id AND m.tenant_id=c.tenant_id
         WHERE c.tenant_id=%s
-        ORDER BY c.fecha DESC, c.id DESC
-        """,
-        (tenant_id,), fetch='all'
+    """
+    consultas_params = [tenant_id]
+    if medico_id_restringido:
+        consultas_sql += " AND c.medico_id=%s"
+        consultas_params.append(medico_id_restringido)
+    consultas_sql += " ORDER BY c.fecha DESC, c.id DESC"
+    consultas = execute_query(
+        consultas_sql, tuple(consultas_params), fetch='all'
     ) or []
     tipos = execute_query(
         "SELECT id, nombre FROM tipos_licencia_medica "
@@ -85,17 +125,20 @@ def contexto_formulario_licencia(tenant_id, paciente_preseleccionado=None):
         'medicos': medicos,
         'consultas': consultas,
         'tipos_licencia': tipos,
-        'paciente_preseleccionado': paciente_preseleccionado
+        'paciente_preseleccionado': paciente_preseleccionado,
+        'licencias_restringidas': bool(medico_id_restringido),
     }
 
 
 def validar_datos_licencia(tenant_id):
     paciente_id = validate_int(request.form.get('paciente_id'), min_value=1, default=None)
-    medico_id = validate_int(request.form.get('medico_id'), min_value=1, default=None)
+    medico_id = (
+        medico_id_licencias_restringido()
+        or validate_int(request.form.get('medico_id'), min_value=1, default=None)
+    )
     consulta_id = validate_int(request.form.get('consulta_id'), min_value=1, default=None)
     tipo_id = validate_int(request.form.get('tipo_licencia_id'), min_value=1, default=None)
     diagnostico = sanitize_input(request.form.get('diagnostico', ''), 5000)
-    cie10 = sanitize_input(request.form.get('codigo_cie10', ''), 30).upper()
     motivo = sanitize_input(request.form.get('motivo_condicion', ''), 5000)
     observaciones = sanitize_input(request.form.get('observaciones', ''), 5000)
     fecha_emision = request.form.get('fecha_emision', '').strip()
@@ -140,8 +183,13 @@ def validar_datos_licencia(tenant_id):
     if consulta_id:
         consulta = execute_query(
             "SELECT id, paciente_id FROM consultas_clinicas "
-            "WHERE id=%s AND tenant_id=%s",
-            (consulta_id, tenant_id)
+            "WHERE id=%s AND tenant_id=%s "
+            "AND (%s IS NULL OR medico_id=%s)",
+            (
+                consulta_id, tenant_id,
+                medico_id_licencias_restringido(),
+                medico_id_licencias_restringido(),
+            )
         )
         if not consulta or consulta['paciente_id'] != paciente_id:
             return None, 'La consulta seleccionada no pertenece al paciente'
@@ -149,7 +197,7 @@ def validar_datos_licencia(tenant_id):
     return {
         'paciente_id': paciente_id, 'medico_id': medico_id,
         'consulta_id': consulta_id, 'tipo_id': tipo_id,
-        'diagnostico': diagnostico, 'cie10': cie10 or None,
+        'diagnostico': diagnostico,
         'motivo': motivo, 'observaciones': observaciones or None,
         'fecha_emision': emision, 'fecha_inicio': inicio,
         'fecha_termino': termino, 'cantidad_dias': cantidad_dias,
@@ -161,10 +209,13 @@ def validar_datos_licencia(tenant_id):
 @permission_required('licencias.ver')
 def facturacion_licencias_medicas():
     tenant_id = get_current_tenant_id()
+    medico_id_restringido = medico_id_licencias_restringido()
     actualizar_licencias_vencidas(tenant_id)
     buscar = request.args.get('buscar', '').strip()
     fecha = request.args.get('fecha', '').strip()
-    medico_id = validate_int(request.args.get('medico_id'), min_value=1, default=None)
+    medico_id = medico_id_restringido or validate_int(
+        request.args.get('medico_id'), min_value=1, default=None
+    )
     estado = request.args.get('estado', '').strip()
     orden = request.args.get('orden', 'recientes').strip()
     query = """
@@ -182,8 +233,18 @@ def facturacion_licencias_medicas():
     params = [tenant_id]
     if buscar:
         patron = f'%{buscar}%'
-        query += " AND (l.codigo LIKE %s OR p.nombre LIKE %s OR p.cedula LIKE %s OR l.diagnostico LIKE %s OR l.codigo_cie10 LIKE %s)"
-        params.extend([patron] * 5)
+        phone_digits = re.sub(r'\D', '', buscar)
+        phone_pattern = f'%{phone_digits}%' if phone_digits else patron
+        query += """
+            AND (
+                l.codigo LIKE %s OR p.nombre LIKE %s OR p.cedula LIKE %s
+                OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),'+','')
+                    LIKE %s
+                OR l.diagnostico LIKE %s
+            )
+        """
+        params.extend([patron, patron, patron, phone_pattern, patron])
     if fecha:
         query += " AND (l.fecha_emision=%s OR l.fecha_inicio=%s OR l.fecha_termino=%s)"
         params.extend([fecha, fecha, fecha])
@@ -206,12 +267,20 @@ def facturacion_licencias_medicas():
         ordenes.get(orden, ordenes['recientes']),
     )
     medicos = execute_query(
-        "SELECT id, nombre FROM medicos WHERE tenant_id=%s AND activo=1 ORDER BY nombre",
-        (tenant_id,), fetch='all'
+        "SELECT id, nombre FROM medicos "
+        "WHERE tenant_id=%s AND activo=1 "
+        "AND (%s IS NULL OR id=%s) ORDER BY nombre",
+        (
+            tenant_id,
+            medico_id_restringido,
+            medico_id_restringido,
+        ),
+        fetch='all',
     ) or []
     return render_template(
         'facturacion/licencias_medicas.html', licencias=licencias,
-        medicos=medicos, filtros=request.args, pagination=pagination
+        medicos=medicos, filtros=request.args, pagination=pagination,
+        licencias_restringidas=bool(medico_id_restringido),
     )
 
 
@@ -220,11 +289,16 @@ def facturacion_licencias_medicas():
 @permission_required('licencias.crear')
 def facturacion_licencias_medicas_nueva():
     tenant_id = get_current_tenant_id()
+    medico_id_restringido = medico_id_licencias_restringido()
     paciente_preseleccionado = validate_int(
         request.args.get('paciente_id') or request.form.get('paciente_id'),
         min_value=1, default=None
     )
-    contexto = contexto_formulario_licencia(tenant_id, paciente_preseleccionado)
+    contexto = contexto_formulario_licencia(
+        tenant_id,
+        paciente_preseleccionado,
+        medico_id_restringido,
+    )
     if request.method == 'POST':
         datos, error = validar_datos_licencia(tenant_id)
         if error:
@@ -285,18 +359,18 @@ def facturacion_licencias_medicas_nueva():
             """
             INSERT INTO licencias_medicas (
                 tenant_id, codigo, paciente_id, medico_id, consulta_id,
-                tipo_licencia_id, diagnostico, codigo_cie10, motivo_condicion,
+                tipo_licencia_id, diagnostico, motivo_condicion,
                 observaciones, fecha_emision, fecha_inicio, fecha_termino,
                 cantidad_dias, estado, created_by, updated_by
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s
+                %s, %s, %s, %s
             )
             """,
             (
                 tenant_id, codigo, datos['paciente_id'], datos['medico_id'],
                 datos['consulta_id'], datos['tipo_id'], datos['diagnostico'],
-                datos['cie10'], datos['motivo'], datos['observaciones'],
+                datos['motivo'], datos['observaciones'],
                 datos['fecha_emision'], datos['fecha_inicio'],
                 datos['fecha_termino'], datos['cantidad_dias'],
                 datos['estado'], current_user.id, current_user.id
@@ -332,7 +406,11 @@ def facturacion_licencias_medicas_nueva():
 def facturacion_licencia_medica_ver(licencia_id):
     tenant_id = get_current_tenant_id()
     actualizar_licencias_vencidas(tenant_id)
-    licencia = obtener_licencia_medica(licencia_id, tenant_id)
+    licencia = obtener_licencia_medica(
+        licencia_id,
+        tenant_id,
+        medico_id_licencias_restringido(),
+    )
     if not licencia:
         flash('Licencia médica no encontrada', 'error')
         return redirect(url_for('facturacion_licencias_medicas'))
@@ -361,14 +439,23 @@ def facturacion_licencia_medica_ver(licencia_id):
 @permission_required('licencias.editar')
 def facturacion_licencia_medica_editar(licencia_id):
     tenant_id = get_current_tenant_id()
-    licencia = obtener_licencia_medica(licencia_id, tenant_id)
+    medico_id_restringido = medico_id_licencias_restringido()
+    licencia = obtener_licencia_medica(
+        licencia_id,
+        tenant_id,
+        medico_id_restringido,
+    )
     if not licencia:
         flash('Licencia médica no encontrada', 'error')
         return redirect(url_for('facturacion_licencias_medicas'))
     if licencia['estado'] != 'Borrador':
         flash('Solo las licencias en borrador pueden editarse', 'warning')
         return redirect(url_for('facturacion_licencia_medica_ver', licencia_id=licencia_id))
-    contexto = contexto_formulario_licencia(tenant_id, licencia['paciente_id'])
+    contexto = contexto_formulario_licencia(
+        tenant_id,
+        licencia['paciente_id'],
+        medico_id_restringido,
+    )
     if request.method == 'POST':
         datos, error = validar_datos_licencia(tenant_id)
         if error:
@@ -401,16 +488,16 @@ def facturacion_licencia_medica_editar(licencia_id):
             """
             UPDATE licencias_medicas SET
                 paciente_id=%s, medico_id=%s, consulta_id=%s,
-                tipo_licencia_id=%s, diagnostico=%s, codigo_cie10=%s,
-                motivo_condicion=%s, observaciones=%s, fecha_emision=%s,
+                tipo_licencia_id=%s, diagnostico=%s, motivo_condicion=%s,
+                observaciones=%s, fecha_emision=%s,
                 fecha_inicio=%s, fecha_termino=%s, cantidad_dias=%s,
                 estado=%s, version=version+1, updated_by=%s
             WHERE id=%s AND tenant_id=%s AND estado='Borrador'
             """,
             (
                 datos['paciente_id'], datos['medico_id'], datos['consulta_id'],
-                datos['tipo_id'], datos['diagnostico'], datos['cie10'],
-                datos['motivo'], datos['observaciones'], datos['fecha_emision'],
+                datos['tipo_id'], datos['diagnostico'], datos['motivo'],
+                datos['observaciones'], datos['fecha_emision'],
                 datos['fecha_inicio'], datos['fecha_termino'],
                 datos['cantidad_dias'], datos['estado'], current_user.id,
                 licencia_id, tenant_id
@@ -448,7 +535,11 @@ def facturacion_licencia_medica_editar(licencia_id):
 @permission_required('licencias.anular')
 def facturacion_licencia_medica_anular(licencia_id):
     tenant_id = get_current_tenant_id()
-    licencia = obtener_licencia_medica(licencia_id, tenant_id)
+    licencia = obtener_licencia_medica(
+        licencia_id,
+        tenant_id,
+        medico_id_licencias_restringido(),
+    )
     motivo = sanitize_input(request.form.get('motivo_anulacion', ''), 2000)
     if not licencia:
         flash('Licencia médica no encontrada', 'error')
@@ -488,7 +579,11 @@ def facturacion_licencia_medica_anular(licencia_id):
 @login_required
 @permission_required('licencias.imprimir')
 def facturacion_licencia_medica_imprimir(licencia_id):
-    licencia = obtener_licencia_medica(licencia_id, get_current_tenant_id())
+    licencia = obtener_licencia_medica(
+        licencia_id,
+        get_current_tenant_id(),
+        medico_id_licencias_restringido(),
+    )
     if not licencia:
         flash('Licencia médica no encontrada', 'error')
         return redirect(url_for('facturacion_licencias_medicas'))

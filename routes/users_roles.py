@@ -583,6 +583,7 @@ def admin_usuarios_eliminar(usuario_id):
     return redirect(url_for('admin_usuarios'))
 
 @login_required
+@permission_required('configuracion.ver')
 def perfil_configuracion():
     """Configuración del perfil del usuario"""
     TEMAS_VALIDOS = [
@@ -598,6 +599,10 @@ def perfil_configuracion():
             'fuente_ui', current_user.fuente_ui or 'arsflow'
         )
         mostrar_chat = request.form.get('mostrar_chat') == '1'
+        idioma_correccion = request.form.get(
+            'idioma_correccion',
+            getattr(current_user, 'idioma_correccion', 'es'),
+        )
         
         if tema_color not in TEMAS_VALIDOS:
             flash('Tema de color inválido', 'error')
@@ -605,17 +610,22 @@ def perfil_configuracion():
         if fuente_ui not in FUENTES_UI:
             flash('Tipografía inválida', 'error')
             return redirect(url_for('perfil_configuracion'))
+        if idioma_correccion not in {'es', 'en', 'fr', 'none'}:
+            flash('Idioma de corrección inválido', 'error')
+            return redirect(url_for('perfil_configuracion'))
         
         execute_update(
             '''
             UPDATE usuarios
-            SET tema_color=%s, fuente_ui=%s, mostrar_chat=%s
+            SET tema_color=%s, fuente_ui=%s, mostrar_chat=%s,
+                idioma_correccion=%s
             WHERE id=%s AND tenant_id <=> %s
             ''',
             (
                 tema_color,
                 fuente_ui,
                 1 if mostrar_chat else 0,
+                idioma_correccion,
                 current_user.id,
                 get_current_tenant_id(),
             ),
@@ -624,8 +634,9 @@ def perfil_configuracion():
         current_user.tema_color = tema_color
         current_user.fuente_ui = fuente_ui
         current_user.mostrar_chat = mostrar_chat
+        current_user.idioma_correccion = idioma_correccion
         
-        flash('Apariencia actualizada correctamente', 'success')
+        flash('Preferencias actualizadas correctamente', 'success')
         return redirect(url_for('perfil_configuracion'))
     
     ecf_certificado = None

@@ -5,9 +5,86 @@ import re
 from flask import jsonify, request, url_for
 from flask_login import current_user, login_required
 
+from auth import permission_required
 from core.database import execute_query
 from core.presentation import hora_input
 from core.tenant import get_current_tenant_id
+
+
+@login_required
+@permission_required('pacientes.ver')
+def api_buscar_pacientes():
+    """Buscar pacientes del tenant para selectores remotos."""
+    termino = request.args.get('q', '').strip()
+    paciente_id = request.args.get('id', type=int)
+    if not paciente_id and len(termino) < 2:
+        return jsonify({'resultados': []})
+    patron = f'%{termino}%'
+    digits = re.sub(r'\D', '', termino)
+    phone_pattern = f'%{digits}%' if len(digits) >= 3 else patron
+    query = """
+        SELECT p.id, p.nombre, p.cedula, p.nss, p.telefono,
+               p.fecha_nacimiento, p.sexo, p.direccion,
+               p.nombre_pariente, p.telefono_pariente,
+               a.nombre AS ars_nombre
+        FROM pacientes p
+        LEFT JOIN ars a
+          ON a.id=p.ars_id AND a.tenant_id=p.tenant_id
+        WHERE p.tenant_id=%s
+    """
+    params = [get_current_tenant_id()]
+    if paciente_id:
+        query += " AND p.id=%s"
+        params.append(paciente_id)
+    else:
+        query += """
+          AND (
+              p.nombre LIKE %s OR p.cedula LIKE %s OR p.nss LIKE %s
+              OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),'+','')
+                    LIKE %s
+              OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    COALESCE(p.telefono_pariente,''),'-',''),' ',''),'(',''),')',''),'+','')
+                    LIKE %s
+              OR p.nombre_pariente LIKE %s OR p.email LIKE %s
+          )
+        """
+        params.extend([
+            patron,
+            patron,
+            patron,
+            phone_pattern,
+            phone_pattern,
+            patron,
+            patron,
+        ])
+    query += " ORDER BY p.nombre, p.id LIMIT 10"
+    pacientes = execute_query(
+        query,
+        tuple(params),
+        fetch='all',
+    ) or []
+    return jsonify({
+        'resultados': [
+            {
+                'id': paciente['id'],
+                'nombre': paciente['nombre'],
+                'cedula': paciente.get('cedula') or '',
+                'nss': paciente.get('nss') or '',
+                'telefono': paciente.get('telefono') or '',
+                'fecha_nacimiento': (
+                    paciente['fecha_nacimiento'].isoformat()
+                    if paciente.get('fecha_nacimiento') else ''
+                ),
+                'sexo': paciente.get('sexo') or '',
+                'direccion': paciente.get('direccion') or '',
+                'ars_nombre': paciente.get('ars_nombre') or '',
+                'nombre_pariente': paciente.get('nombre_pariente') or '',
+                'telefono_pariente': paciente.get('telefono_pariente') or '',
+            }
+            for paciente in pacientes
+        ],
+    })
 
 
 @login_required
@@ -25,7 +102,13 @@ def api_busqueda_global():
         SELECT id, nombre, cedula, nss, telefono FROM pacientes
         WHERE tenant_id=%s
           AND (nombre LIKE %s OR cedula LIKE %s OR nss LIKE %s
-               OR telefono LIKE %s OR telefono_pariente LIKE %s OR email LIKE %s)
+               OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    COALESCE(telefono,''),'-',''),' ',''),'(',''),')',''),'+','')
+                    LIKE %s
+               OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    COALESCE(telefono_pariente,''),'-',''),' ',''),'(',''),')',''),'+','')
+                    LIKE %s
+               OR email LIKE %s)
         ORDER BY nombre LIMIT 6
         """,
         (
@@ -81,13 +164,13 @@ def api_busqueda_global():
         })
     if current_user.perfil == 'Registro de Facturas':
         return jsonify({'resultados': results[:30]})
-    _add_clinical_results(results, tenant_id, patron)
+    _add_clinical_results(results, tenant_id, patron, phone_pattern)
     if current_user.perfil in ('Administrador', 'Nivel 2'):
         _add_catalog_results(results, tenant_id, patron, phone_pattern)
     return jsonify({'resultados': results[:30]})
 
 
-def _add_clinical_results(results, tenant_id, patron):
+def _add_clinical_results(results, tenant_id, patron, phone_pattern):
     consultations = execute_query(
         """
         SELECT c.id, c.fecha, c.motivo_consulta, c.diagnostico_principal,
@@ -96,11 +179,17 @@ def _add_clinical_results(results, tenant_id, patron):
         JOIN pacientes p ON p.id=c.paciente_id AND p.tenant_id=c.tenant_id
         WHERE c.tenant_id=%s
           AND (p.nombre LIKE %s OR p.cedula LIKE %s OR p.nss LIKE %s
+               OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),'+','')
+                    LIKE %s
                OR c.motivo_consulta LIKE %s OR c.diagnostico_principal LIKE %s
                OR c.codigo_cie10 LIKE %s)
         ORDER BY c.fecha DESC, c.id DESC LIMIT 6
         """,
-        (tenant_id, patron, patron, patron, patron, patron, patron),
+        (
+            tenant_id, patron, patron, patron, phone_pattern,
+            patron, patron, patron,
+        ),
         fetch='all',
     ) or []
     for item in consultations:
@@ -116,16 +205,19 @@ def _add_clinical_results(results, tenant_id, patron):
         })
     licenses = execute_query(
         """
-        SELECT l.id, l.codigo, l.diagnostico, l.codigo_cie10, l.estado,
+        SELECT l.id, l.codigo, l.diagnostico, l.estado,
                p.nombre AS paciente_nombre, p.cedula
         FROM licencias_medicas l
         JOIN pacientes p ON p.id=l.paciente_id AND p.tenant_id=l.tenant_id
         WHERE l.tenant_id=%s
           AND (l.codigo LIKE %s OR p.nombre LIKE %s OR p.cedula LIKE %s
-               OR l.diagnostico LIKE %s OR l.codigo_cie10 LIKE %s)
+               OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),'+','')
+                    LIKE %s
+               OR l.diagnostico LIKE %s)
         ORDER BY l.fecha_emision DESC, l.id DESC LIMIT 6
         """,
-        (tenant_id, patron, patron, patron, patron, patron),
+        (tenant_id, patron, patron, patron, phone_pattern, patron),
         fetch='all',
     ) or []
     for item in licenses:
@@ -134,7 +226,7 @@ def _add_clinical_results(results, tenant_id, patron):
             'titulo': item['codigo'],
             'detalle': (
                 f"{item['paciente_nombre']} · "
-                f"{item.get('codigo_cie10') or item['diagnostico']} · "
+                f"{item['diagnostico']} · "
                 f"{item['estado']}"
             ),
             'icono': 'fas fa-file-medical',
@@ -149,10 +241,13 @@ def _add_clinical_results(results, tenant_id, patron):
         JOIN medicos m ON m.id=c.medico_id AND m.tenant_id=c.tenant_id
         WHERE c.tenant_id=%s
           AND (p.nombre LIKE %s OR p.cedula LIKE %s
+               OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),'+','')
+                    LIKE %s
                OR m.nombre LIKE %s OR c.motivo LIKE %s)
         ORDER BY c.fecha DESC, c.hora DESC LIMIT 6
         """,
-        (tenant_id, patron, patron, patron, patron),
+        (tenant_id, patron, patron, phone_pattern, patron, patron),
         fetch='all',
     ) or []
     for item in appointments:
@@ -176,10 +271,16 @@ def _add_clinical_results(results, tenant_id, patron):
           ON rm.receta_id=r.id AND rm.tenant_id=r.tenant_id
         WHERE r.tenant_id=%s
           AND (r.codigo LIKE %s OR p.nombre LIKE %s OR p.cedula LIKE %s
+               OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                    COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),'+','')
+                    LIKE %s
                OR r.diagnostico LIKE %s OR rm.medicamento LIKE %s)
         ORDER BY r.fecha DESC, r.id DESC LIMIT 6
         """,
-        (tenant_id, patron, patron, patron, patron, patron),
+        (
+            tenant_id, patron, patron, patron, phone_pattern,
+            patron, patron,
+        ),
         fetch='all',
     ) or []
     for item in prescriptions:
@@ -358,6 +459,11 @@ def api_verificar_telefono():
 
 
 def register_search_routes(app):
+    app.add_url_rule(
+        '/api/pacientes/buscar',
+        'api_buscar_pacientes',
+        api_buscar_pacientes,
+    )
     app.add_url_rule(
         '/api/busqueda-global', 'api_busqueda_global', api_busqueda_global,
     )

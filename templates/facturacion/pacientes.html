@@ -10,7 +10,19 @@
     .patients-subtitle { margin: 0; }
     .patients-search-label { font-weight: 600; }
     .patients-search-input { border: 2px solid {{ tema.primary }}50; border-radius: 10px; }
-    .patients-search-button { height: 48px; }
+    .patients-search-button {
+        height: 48px;
+        background: var(--primary-color) !important;
+        border: 2px solid var(--primary-color) !important;
+        color: #fff !important;
+        font-weight: 700;
+    }
+    .patients-search-button:hover,
+    .patients-search-button:focus {
+        background: var(--primary-dark) !important;
+        border-color: var(--primary-dark) !important;
+        color: #fff !important;
+    }
     .patients-clear-link { color: var(--primary-color); }
     .patients-col-name { width: 30%; }
     .patients-col-id { width: 20%; }
@@ -202,12 +214,29 @@
                 <label class="form-label patients-search-label">
                     <i class="fas fa-search me-1"></i>Buscar Paciente
                 </label>
-                <input type="text"
-                       class="form-control patients-search-input"
-                       name="search"
-                       value="{{ search }}"
-                       placeholder="Buscar por nombre, cédula, NSS o teléfono..."
-                >
+                <div class="patient-search"
+                     data-patient-directory-search
+                     data-endpoint="{{ url_for('api_buscar_pacientes') }}">
+                    <div class="patient-search__control">
+                        <input type="search"
+                               class="form-control patient-search__input patients-search-input"
+                               name="search"
+                               value="{{ search }}"
+                               placeholder="Buscar por nombre, cédula, NSS o teléfono..."
+                               autocomplete="off"
+                               aria-autocomplete="list"
+                               aria-controls="patients-search-results">
+                        <button class="patient-search__clear" type="button"
+                                aria-label="Limpiar búsqueda"
+                                {% if not search %}hidden{% endif %}>
+                            <i class="fas fa-xmark"></i>
+                        </button>
+                    </div>
+                    <div class="patient-search__results"
+                         id="patients-search-results"
+                         role="listbox"
+                         hidden></div>
+                </div>
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-buscar w-100 patients-search-button">
@@ -300,10 +329,13 @@
     </div>
 
     {% if pacientes_list %}
-    {% include "_pagination.html" %}
     <div class="mt-3 patients-page-count">
         <i class="fas fa-info-circle me-1"></i>
-        Pacientes en esta página: <strong>{{ pacientes_list|length }}</strong>
+        {% if search %}
+        Coincidencias mostradas: <strong>{{ pacientes_list|length }}</strong>
+        {% else %}
+        Mostrando los <strong>{{ pacientes_list|length }}</strong> pacientes registrados más recientemente. Utiliza el buscador para localizar los demás.
+        {% endif %}
     </div>
     {% endif %}
 </div>

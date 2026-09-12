@@ -7,6 +7,9 @@
     .screens-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; }
     .screen-card { padding:1rem; border:1px solid var(--ars-shell-border); border-radius:14px; background:var(--ars-shell-surface,white); }
     .created-url { padding:1rem; border:2px solid var(--primary-color); border-radius:12px; background:#ecfeff; overflow-wrap:anywhere; }
+    .screen-saved-link { margin:.75rem 0; padding:.7rem; border-radius:9px; background:color-mix(in srgb,var(--primary-color) 8%,transparent); overflow-wrap:anywhere; }
+    .screen-saved-link small, .screen-saved-link a { display:block; }
+    .screen-actions { display:flex; flex-wrap:wrap; gap:.5rem; }
 </style>
 <div class="container py-4">
 <div class="screens-shell">
@@ -16,7 +19,7 @@
     </div>
     {% if url_creada %}
     <div class="created-url mb-3">
-        <strong>Guarda este enlace ahora; el token no se volverá a mostrar.</strong><br>
+        <strong>Enlace disponible. También quedará guardado en la lista de pantallas.</strong><br>
         <a href="{{ url_creada }}" target="_blank" rel="noopener">{{ url_creada }}</a>
     </div>
     {% endif %}
@@ -55,9 +58,27 @@
             </div>
             <p>{{ pantalla['medico_nombre'] or 'Todos los médicos' }}</p>
             {% if pantalla['activo'] %}
+            {% if pantalla['url_publica'] %}
+            <div class="screen-saved-link">
+                <small>Enlace guardado</small>
+                <a href="{{ pantalla['url_publica'] }}" target="_blank" rel="noopener">{{ pantalla['url_publica'] }}</a>
+            </div>
+            {% else %}
+            <p class="text-muted small">Esta pantalla fue creada antes de guardar enlaces. Regénéralo una vez.</p>
+            {% endif %}
+            <div class="screen-actions">
+            {% if pantalla['url_publica'] %}
+            <a class="btn btn-sm btn-primary" href="{{ pantalla['url_publica'] }}" target="_blank" rel="noopener">Abrir pantalla</a>
+            {% endif %}
+            <form method="POST">
+                <input type="hidden" name="accion" value="regenerar">
+                <input type="hidden" name="pantalla_id" value="{{ pantalla['id'] }}">
+                <button class="btn btn-sm btn-outline-primary" type="submit">{{ 'Cambiar enlace' if pantalla['url_publica'] else 'Generar enlace' }}</button>
+            </form>
             <form method="POST" action="{{ url_for('turnos_pantalla_revocar', pantalla_id=pantalla['id']) }}">
                 <button class="btn btn-sm btn-outline-danger" type="submit">Revocar acceso</button>
             </form>
+            </div>
             {% endif %}
         </article>
         {% else %}<p>No se han creado pantallas.</p>{% endfor %}

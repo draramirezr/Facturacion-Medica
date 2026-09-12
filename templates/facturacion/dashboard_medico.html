@@ -1,0 +1,280 @@
+{% extends "base.html" %}
+
+{% block title %}Mi dashboard clínico - ARSFlow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .doctor-dashboard {
+        max-width: 1180px;
+        margin: 0 auto;
+        padding: 32px 28px;
+    }
+
+    .doctor-dashboard__header,
+    .doctor-dashboard__filters,
+    .doctor-dashboard__activity {
+        border: 1px solid #e7edf3;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 4px 16px rgba(15, 23, 42, 0.05);
+    }
+
+    .doctor-dashboard__header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 20px;
+        padding: 24px;
+        margin-bottom: 18px;
+    }
+
+    .doctor-dashboard__header h1 {
+        margin: 0 0 6px;
+        color: #172033;
+        font-size: 1.5rem;
+        font-weight: 800;
+    }
+
+    .doctor-dashboard__header p,
+    .doctor-dashboard__empty {
+        margin: 0;
+        color: #718096;
+    }
+
+    .doctor-dashboard__filters {
+        padding: 18px 20px;
+        margin-bottom: 18px;
+    }
+
+    .doctor-dashboard__filter-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(160px, 1fr)) auto;
+        gap: 14px;
+        align-items: end;
+    }
+
+    .doctor-dashboard__filters label {
+        display: block;
+        margin-bottom: 6px;
+        color: #465469;
+        font-size: 0.78rem;
+        font-weight: 700;
+    }
+
+    .doctor-dashboard__filters input {
+        width: 100%;
+        min-height: 42px;
+        padding: 8px 11px;
+        border: 1px solid #d8e1ea;
+        border-radius: 9px;
+        color: #263245;
+    }
+
+    .doctor-dashboard__stats {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 16px;
+        margin-bottom: 18px;
+    }
+
+    .doctor-stat {
+        padding: 20px;
+        border: 1px solid #e7edf3;
+        border-radius: 14px;
+        background: #fff;
+    }
+
+    .doctor-stat i {
+        color: {{ tema.primary }};
+        font-size: 1.2rem;
+    }
+
+    .doctor-stat strong {
+        display: block;
+        margin: 12px 0 3px;
+        color: #172033;
+        font-size: 1.7rem;
+        line-height: 1;
+    }
+
+    .doctor-stat span {
+        color: #718096;
+        font-size: 0.78rem;
+    }
+
+    .doctor-stat small {
+        display: block;
+        margin-top: 7px;
+        color: #97a3b3;
+    }
+
+    .doctor-dashboard__activity {
+        overflow: hidden;
+    }
+
+    .doctor-dashboard__activity-header {
+        padding: 18px 20px;
+        border-bottom: 1px solid #e7edf3;
+    }
+
+    .doctor-dashboard__activity-header h2 {
+        margin: 0;
+        color: #263245;
+        font-size: 1rem;
+        font-weight: 800;
+    }
+
+    .doctor-dashboard__table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+
+    .doctor-dashboard__table th,
+    .doctor-dashboard__table td {
+        padding: 13px 16px;
+        border-bottom: 1px solid #edf1f5;
+        text-align: left;
+        vertical-align: middle;
+    }
+
+    .doctor-dashboard__table th {
+        color: #64748b;
+        background: #f8fafc;
+        font-size: 0.72rem;
+        text-transform: uppercase;
+    }
+
+    .doctor-dashboard__table td {
+        color: #334155;
+        font-size: 0.82rem;
+    }
+
+    .doctor-dashboard__empty {
+        padding: 28px 20px;
+        text-align: center;
+    }
+
+    @media (max-width: 900px) {
+        .doctor-dashboard__stats {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+    }
+
+    @media (max-width: 620px) {
+        .doctor-dashboard {
+            padding: 22px 14px;
+        }
+
+        .doctor-dashboard__header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .doctor-dashboard__filter-grid,
+        .doctor-dashboard__stats {
+            grid-template-columns: 1fr;
+        }
+
+        .doctor-dashboard__activity {
+            overflow-x: auto;
+        }
+    }
+</style>
+
+<main class="doctor-dashboard">
+    <header class="doctor-dashboard__header">
+        <div>
+            <h1><i class="fas fa-chart-line me-2"></i>Mi dashboard clínico</h1>
+            <p>
+                {{ medico.nombre or current_user.nombre }}
+                {% if medico.especialidad %} · {{ medico.especialidad }}{% endif %}
+            </p>
+        </div>
+        <a class="btn btn-primary" href="{{ url_for('turnos_mi_cola') }}">
+            <i class="fas fa-users me-2"></i>Ver mi cola
+        </a>
+    </header>
+
+    <section class="doctor-dashboard__filters" aria-label="Filtros del dashboard">
+        <form method="get" action="{{ url_for('facturacion_dashboard') }}">
+            <div class="doctor-dashboard__filter-grid">
+                <div>
+                    <label for="fecha_desde">Desde</label>
+                    <input id="fecha_desde" name="fecha_desde" type="date" value="{{ fecha_desde }}" required>
+                </div>
+                <div>
+                    <label for="fecha_hasta">Hasta</label>
+                    <input id="fecha_hasta" name="fecha_hasta" type="date" value="{{ fecha_hasta }}" required>
+                </div>
+                <button class="btn btn-primary" type="submit">
+                    <i class="fas fa-filter me-2"></i>Aplicar
+                </button>
+            </div>
+        </form>
+    </section>
+
+    <section class="doctor-dashboard__stats" aria-label="Resumen de mi actividad">
+        <article class="doctor-stat">
+            <i class="fas fa-notes-medical"></i>
+            <strong>{{ consultas.total or 0 }}</strong>
+            <span>Consultas realizadas</span>
+            <small>{{ consultas.hoy or 0 }} registradas hoy</small>
+        </article>
+        <article class="doctor-stat">
+            <i class="fas fa-user-injured"></i>
+            <strong>{{ consultas.pacientes or 0 }}</strong>
+            <span>Pacientes atendidos</span>
+            <small>Pacientes únicos del período</small>
+        </article>
+        <article class="doctor-stat">
+            <i class="fas fa-calendar-check"></i>
+            <strong>{{ citas.total or 0 }}</strong>
+            <span>Citas registradas</span>
+            <small>{{ citas.proximas or 0 }} próximas</small>
+        </article>
+        <article class="doctor-stat">
+            <i class="fas fa-prescription"></i>
+            <strong>{{ recetas.total or 0 }}</strong>
+            <span>Recetas emitidas</span>
+            <small>{{ turnos.total or 0 }} turnos finalizados</small>
+        </article>
+    </section>
+
+    <section class="doctor-dashboard__activity">
+        <div class="doctor-dashboard__activity-header">
+            <h2><i class="fas fa-clock-rotate-left me-2"></i>Mis consultas recientes</h2>
+        </div>
+        {% if actividad_reciente %}
+        <table class="doctor-dashboard__table">
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Paciente</th>
+                    <th>Motivo</th>
+                    <th>Diagnóstico</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for registro in actividad_reciente %}
+                <tr>
+                    <td>{{ registro.fecha.strftime('%d/%m/%Y') if registro.fecha else '' }}</td>
+                    <td>{{ registro.paciente_nombre }}</td>
+                    <td>{{ registro.motivo_consulta }}</td>
+                    <td>{{ registro.diagnostico_principal }}</td>
+                    <td>
+                        <a class="btn btn-sm btn-outline-primary"
+                           href="{{ url_for('facturacion_historia_clinica_ver', consulta_id=registro.id) }}">
+                            Ver
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p class="doctor-dashboard__empty">No tienes consultas registradas en este período.</p>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}

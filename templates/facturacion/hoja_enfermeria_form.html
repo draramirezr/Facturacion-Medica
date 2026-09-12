@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_patient_search.html" import patient_search %}
 
 {% block title %}Nueva Hoja de Enfermería - ARSFlow{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -10,10 +11,16 @@
     .nursing-header { background:linear-gradient(135deg,{{ tema.primary }}12,white); }
     .nursing-card h2 { padding-bottom:.65rem; margin-bottom:1rem; border-bottom:1px solid var(--ars-shell-border); color:var(--primary-dark); font-size:1rem; }
     .required::after { content:" *"; color:var(--primary-color); }
-    .supply-table { min-width:1000px; }
+    .supply-table { min-width:880px; table-layout:fixed; }
+    .supply-table th:nth-child(1) { width:16%; }
+    .supply-table th:nth-child(2) { width:14%; }
+    .supply-table th:nth-child(3) { width:32%; }
+    .supply-table th:nth-child(4) { width:13%; }
+    .supply-table th:nth-child(5) { width:20%; }
+    .supply-table th:nth-child(6) { width:5%; }
     .supply-table th { background:var(--primary-dark)!important; color:white!important; font-size:.75rem; }
     .supply-table td { padding:.4rem; }
-    .supply-table .form-control { min-width:90px; }
+    .supply-table .form-control { width:100%; min-width:0; }
 </style>
 <div class="container py-4">
     <div class="nursing-form-shell">
@@ -25,7 +32,7 @@
             <section class="nursing-card">
                 <h2>Datos del servicio y del paciente</h2>
                 <div class="row g-3">
-                    <div class="col-lg-6"><label class="form-label required">Paciente</label><select class="form-select" id="paciente_id" name="paciente_id" required><option value="">Seleccione</option>{% for p in pacientes %}<option value="{{ p['id'] }}" data-nacimiento="{{ p['fecha_nacimiento'] or '' }}" data-sexo="{{ p['sexo'] or '' }}" data-direccion="{{ p['direccion'] or '' }}" data-ars="{{ p['ars_nombre'] or '' }}" data-responsable="{{ p['nombre_pariente'] or '' }}" data-telefono="{{ p['telefono_pariente'] or '' }}" {% if (request.form.get('paciente_id') or paciente_preseleccionado)|string == p['id']|string %}selected{% endif %}>{{ p['nombre'] }}</option>{% endfor %}</select></div>
+                    <div class="col-lg-6"><label class="form-label required">Paciente</label>{{ patient_search(pacientes, request.form.get('paciente_id') or paciente_preseleccionado, true, 'enfermeria_paciente') }}</div>
                     <div class="col-lg-3"><label class="form-label required">Fecha</label><input class="form-control" type="date" id="fecha_servicio" name="fecha_servicio" value="{{ request.form.get('fecha_servicio',fecha_actual) }}" required></div>
                     <div class="col-lg-3"><label class="form-label required">Hora</label><input class="form-control" type="time" id="hora_servicio" name="hora_servicio" value="{{ request.form.get('hora_servicio',hora_actual) }}" required></div>
                     <div class="col-lg-6"><label class="form-label">Historia de emergencia relacionada</label><select class="form-select" id="historia_emergencia_id" name="historia_emergencia_id"><option value="">Sin historia relacionada</option>{% for e in emergencias %}<option value="{{ e['id'] }}" data-paciente="{{ e['paciente_id'] }}" {% if request.form.get('historia_emergencia_id')|string == e['id']|string %}selected{% endif %}>{{ e['fecha'] }} · {{ e['motivo_emergencia'] }}</option>{% endfor %}</select></div>
@@ -43,7 +50,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-3"><h2 class="mb-0 border-0 p-0">Medicamentos y materiales médicos suministrados</h2><button class="btn btn-sm btn-outline-primary" type="button" id="addRow"><i class="fas fa-plus me-1"></i>Agregar línea</button></div>
                 <div class="table-responsive">
                     <table class="table supply-table align-middle mb-0">
-                        <thead><tr><th>Fecha</th><th>Hora</th><th>Medicamento o material</th><th>Cantidad</th><th>Dosis / vía</th><th>Observaciones</th><th>Responsable</th><th></th></tr></thead>
+                        <thead><tr><th>Fecha</th><th>Hora</th><th>Detalle</th><th>Cantidad</th><th>Dosis / vía</th><th></th></tr></thead>
                         <tbody id="supplyRows"></tbody>
                     </table>
                 </div>
@@ -58,11 +65,9 @@
     <tr>
         <td><input class="form-control form-control-sm line-date" type="date" name="fecha_linea[]" required></td>
         <td><input class="form-control form-control-sm line-time" type="time" name="hora_linea[]" required></td>
-        <td><input class="form-control form-control-sm" name="item[]" maxlength="500" placeholder="Nombre" required></td>
+        <td><input class="form-control form-control-sm" name="detalle[]" maxlength="500" placeholder="Describa el detalle" required></td>
         <td><input class="form-control form-control-sm" name="cantidad[]" maxlength="100" placeholder="Cantidad"></td>
         <td><input class="form-control form-control-sm" name="dosis_via[]" maxlength="200" placeholder="Dosis o vía"></td>
-        <td><input class="form-control form-control-sm" name="notas[]" maxlength="500" placeholder="Notas"></td>
-        <td><input class="form-control form-control-sm line-responsible" name="responsable_linea[]" maxlength="200"></td>
         <td><button class="btn btn-sm btn-outline-secondary remove-row" type="button" title="Quitar"><i class="fas fa-times"></i></button></td>
     </tr>
 </template>
@@ -73,8 +78,7 @@
     const rows = document.getElementById('supplyRows');
     const template = document.getElementById('rowTemplate');
     function patientData() {
-        const option = patient.options[patient.selectedIndex];
-        const birth = option?.dataset.nacimiento;
+        const birth = patient.dataset.fechaNacimiento;
         const serviceDate = document.getElementById('fecha_servicio').value;
         let age = '';
         if (birth && serviceDate) {
@@ -83,13 +87,13 @@
             if (service < new Date(service.getFullYear(), born.getMonth(), born.getDate())) age--;
         }
         document.getElementById('edad').value = age === '' ? '' : age;
-        document.getElementById('sexo').value = option?.dataset.sexo || '';
-        document.getElementById('direccion').value = option?.dataset.direccion || '';
-        document.getElementById('ars').value = option?.dataset.ars || '';
+        document.getElementById('sexo').value = patient.dataset.sexo || '';
+        document.getElementById('direccion').value = patient.dataset.direccion || '';
+        document.getElementById('ars').value = patient.dataset.arsNombre || '';
         const responsible = document.getElementById('responsable');
         const phone = document.getElementById('telefono_responsable');
-        if (!responsible.value) responsible.value = option?.dataset.responsable || '';
-        if (!phone.value) phone.value = option?.dataset.telefono || '';
+        if (!responsible.value) responsible.value = patient.dataset.nombrePariente || '';
+        if (!phone.value) phone.value = patient.dataset.telefonoPariente || '';
         [...emergency.options].forEach((item,index) => { if(index){ item.hidden=item.dataset.paciente!==patient.value; item.disabled=item.hidden; }});
         if (emergency.selectedOptions[0]?.disabled) emergency.value='';
         syncRows();
@@ -97,17 +101,11 @@
     function syncRows() {
         rows.querySelectorAll('.line-date').forEach(input => { if(!input.value) input.value=document.getElementById('fecha_servicio').value; });
         rows.querySelectorAll('.line-time').forEach(input => { if(!input.value) input.value=document.getElementById('hora_servicio').value; });
-        rows.querySelectorAll('.line-responsible').forEach(input => {
-            if (!input.dataset.manual) input.value=document.getElementById('firma_responsable').value;
-        });
     }
     function addRow() {
         rows.appendChild(template.content.cloneNode(true));
         rows.lastElementChild.querySelector('.remove-row').addEventListener('click', event => {
             if (rows.children.length > 1) event.currentTarget.closest('tr').remove();
-        });
-        rows.lastElementChild.querySelector('.line-responsible').addEventListener('input', event => {
-            event.currentTarget.dataset.manual = '1';
         });
         syncRows();
     }

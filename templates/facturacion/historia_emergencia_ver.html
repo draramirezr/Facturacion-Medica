@@ -19,15 +19,62 @@
     .history-signature { width: 55%; margin: 4rem auto 1rem; text-align: center; border-top: 1px solid #172033; padding-top: .4rem; }
     @media (max-width: 767px) { .history-grid { grid-template-columns: 1fr 1fr; } }
     @media print {
-        @page { size: letter; margin: .35in; }
+        @page { size: 8.5in 11in; margin: .22in; }
         .ars-sidebar, .ars-topbar, .ars-mobile-overlay, .no-print { display: none !important; }
         .ars-main-column { margin-left: 0 !important; }
         .ars-content, .ars-main-content, main { padding: 0 !important; margin: 0 !important; }
-        body { background: white !important; font-size: 10pt; }
-        .history-sheet { border: 0; margin: 0; padding: 0; max-width: none; }
-        .history-section { break-inside: avoid; }
-        .history-title { border-color: #333; }
-        .history-section h2 { background: #eee !important; border-color: #333; color: #111 !important; }
+        body { background: white !important; font-size: 9pt; line-height: 1.18; }
+        body .container { width: 100% !important; max-width: none !important; margin: 0 !important; padding: 0 !important; }
+        .history-sheet {
+            width: 100%;
+            max-width: none;
+            margin: 0;
+            padding: 0;
+            border: 0;
+            font-size: 9pt;
+            line-height: 1.18;
+            zoom: 1;
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
+        }
+        .history-title {
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-width: 2px;
+            border-color: #333;
+        }
+        .history-title h1 { margin: 0 0 3px; font-size: 18pt; line-height: 1.05; }
+        .history-section { margin-top: 7px; break-inside: avoid; page-break-inside: avoid; }
+        .history-section h2 {
+            margin: 0 0 4px !important;
+            padding: 3px 6px;
+            border-left-width: 2px;
+            background: #eee !important;
+            border-color: #333;
+            color: #111 !important;
+            font-size: 8.5pt !important;
+            font-weight: 800 !important;
+            line-height: 1.12 !important;
+        }
+        .history-grid { gap: 3px 10px; }
+        .history-field { min-height: 20px; padding-bottom: 2px; }
+        .history-label { font-size: 6.5pt; line-height: 1.05; }
+        .history-text {
+            min-height: 27px;
+            padding: 2px 0 4px;
+            line-height: 1.18;
+        }
+        .history-checks { gap: 3px 10px; line-height: 1.18; }
+        .history-section .mt-3 { margin-top: 5px !important; }
+        .history-section .mt-2 { margin-top: 4px !important; }
+        .history-section .mb-1 { margin-bottom: 2px !important; }
+        .history-section p { margin-top: 3px; margin-bottom: 3px; }
+        .history-signature {
+            width: 45%;
+            margin: 34px auto 0;
+            padding-top: 4px;
+            line-height: 1.15;
+        }
     }
 </style>
 

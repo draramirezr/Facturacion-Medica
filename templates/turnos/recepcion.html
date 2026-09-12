@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_patient_search.html" import patient_search %}
 {% block title %}Gestión de turnos - ARSFlow{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 {% block content %}
@@ -27,18 +28,9 @@
     <div class="queue-grid mb-4">
         <section class="queue-card">
             <h2 class="h5">Paciente existente</h2>
-            <form class="d-flex gap-2 mb-3" method="GET">
-                <input class="form-control" name="q" value="{{ busqueda }}" placeholder="Nombre, cédula o teléfono">
-                <button class="btn btn-outline-primary" type="submit">Buscar</button>
-            </form>
             <form method="POST" action="{{ url_for('turnos_nuevo') }}">
                 <div class="queue-form-grid">
-                    <select class="form-select wide" name="paciente_id" required>
-                        <option value="">Seleccione un paciente...</option>
-                        {% for paciente in pacientes %}
-                        <option value="{{ paciente['id'] }}">{{ paciente['nombre'] }} · {{ paciente['cedula'] or 'Sin cédula' }}</option>
-                        {% endfor %}
-                    </select>
+                    <div class="wide">{{ patient_search(pacientes, '', true, 'turno_paciente') }}</div>
                     <select class="form-select" name="medico_id" required>
                         <option value="">Médico...</option>
                         {% for medico in medicos %}<option value="{{ medico['id'] }}">{{ medico['nombre'] }} · {{ medico['especialidad'] or 'General' }}</option>{% endfor %}

@@ -1,0 +1,49 @@
+{% macro patient_search(patients, selected_id='', required=false, input_id='paciente_busqueda', placeholder='Escribe nombre, cédula, NSS o teléfono') %}
+{% set selected = namespace(value=none) %}
+{% for patient in patients %}
+    {% if selected_id|string == patient['id']|string %}
+        {% set selected.value = patient %}
+    {% endif %}
+{% endfor %}
+<div class="patient-search"
+     data-patient-search
+     data-endpoint="{{ url_for('api_buscar_pacientes') }}"
+     data-required="{{ 'true' if required else 'false' }}">
+    <div class="patient-search__control">
+        <input class="form-control patient-search__input"
+               id="{{ input_id }}"
+               type="search"
+               value="{{ selected.value['nombre'] if selected.value else '' }}"
+               placeholder="{{ placeholder }}"
+               autocomplete="off"
+               aria-autocomplete="list"
+               aria-controls="{{ input_id }}_resultados"
+               {% if required %}required{% endif %}>
+        <button class="patient-search__clear" type="button"
+                aria-label="Limpiar paciente"
+                {% if not selected.value %}hidden{% endif %}>
+            <i class="fas fa-xmark"></i>
+        </button>
+    </div>
+    <input type="hidden"
+           id="paciente_id"
+           name="paciente_id"
+           value="{{ selected.value['id'] if selected.value else '' }}"
+           data-cedula="{{ selected.value.get('cedula', '') if selected.value else '' }}"
+           data-nss="{{ selected.value.get('nss', '') if selected.value else '' }}"
+           data-telefono="{{ selected.value.get('telefono', '') if selected.value else '' }}"
+           data-fecha-nacimiento="{{ selected.value.get('fecha_nacimiento', '') if selected.value else '' }}"
+           data-sexo="{{ selected.value.get('sexo', '') if selected.value else '' }}"
+           data-direccion="{{ selected.value.get('direccion', '') if selected.value else '' }}"
+           data-ars-nombre="{{ selected.value.get('ars_nombre', '') if selected.value else '' }}"
+           data-nombre-pariente="{{ selected.value.get('nombre_pariente', '') if selected.value else '' }}"
+           data-telefono-pariente="{{ selected.value.get('telefono_pariente', '') if selected.value else '' }}">
+    <div class="patient-search__results"
+         id="{{ input_id }}_resultados"
+         role="listbox"
+         hidden></div>
+    <small class="patient-search__hint">
+        Busca por nombre, cédula, NSS, teléfono o referencia familiar.
+    </small>
+</div>
+{% endmacro %}

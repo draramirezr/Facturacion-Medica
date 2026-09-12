@@ -1,5 +1,6 @@
 ﻿<!DOCTYPE html>
-<html lang="es" data-font="{{ fuente_nombre|default('arsflow') }}">
+<html lang="{{ current_user.idioma_correccion if current_user.is_authenticated else 'es' }}"
+      data-font="{{ fuente_nombre|default('arsflow') }}">
 <head>
     <script nonce="{{ csp_nonce }}">
         (() => {
@@ -179,7 +180,7 @@
 
     {% if current_user.is_authenticated %}
     <!-- Shell autenticado ARSFlow -->
-    <link href="{{ url_for('static', filename='css/app-shell.css') }}?v=1.7" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/app-shell.css') }}?v=1.12" rel="stylesheet">
     {% endif %}
     
     <!-- Estilos Críticos Inline - Prevenir FOUC (Flash of Unstyled Content) -->
@@ -1109,7 +1110,8 @@
     <!-- Bloque para scripts adicionales de páginas específicas -->
     {% block extra_head %}{% endblock %}
 </head>
-<body{% if current_user.is_authenticated %} class="ars-app-body"{% endif %}>
+<body spellcheck="{{ 'false' if current_user.is_authenticated and current_user.idioma_correccion == 'none' else 'true' }}"
+      {% if current_user.is_authenticated %}class="ars-app-body"{% endif %}>
     <!-- Google Tag Manager (noscript) -->
     <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-TW8956LR"
     height="0" width="0" class="csp-hidden-frame"></iframe></noscript>
@@ -1118,6 +1120,7 @@
     {% if current_user.is_authenticated %}
     {% set endpoint = request.endpoint or '' %}
     {% set nombre_partes = current_user.nombre.split() %}
+    {% set es_medico_operativo = current_user.medico_id and can('turnos.cola_propia') %}
     <div class="ars-app-shell">
         <aside class="ars-sidebar" id="arsSidebar" aria-label="Navegación principal">
             <a class="ars-sidebar-brand" href="{{ url_for('facturacion_menu') }}" aria-label="Ir al inicio de ARSFlow">
@@ -1127,22 +1130,31 @@
             </a>
 
             <nav class="ars-sidebar-scroll">
-                {% if can('facturacion.ver') %}
+                {% if es_medico_operativo or can('dashboard.ver') %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-principal" aria-expanded="false" aria-controls="nav-principal">
                     <span>Principal</span>
                     <i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="ars-nav-group collapsed" id="nav-principal">
+                    {% if es_medico_operativo %}
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'turnos_mi_cola' else '' }}"
+                       href="{{ url_for('turnos_mi_cola') }}">
+                        <i class="fas fa-ticket"></i>
+                        <span>Mi cola</span>
+                    </a>
+                    {% endif %}
+                    {% if can('dashboard.ver') %}
                     <a class="ars-nav-link {{ 'active' if endpoint == 'facturacion_dashboard' else '' }}"
                        href="{{ url_for('facturacion_dashboard') }}">
                         <i class="fas fa-chart-pie"></i>
                         <span>Dashboard</span>
                     </a>
+                    {% endif %}
                 </div>
                 {% endif %}
 
-                {% if can('catalogos.ver') %}
+                {% if can('catalogos.crear') or can('catalogos.editar') %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-administracion" aria-expanded="false" aria-controls="nav-administracion">
                     <span>Administración</span>
@@ -1199,7 +1211,7 @@
                         <span>Pacientes</span>
                     </a>
                     {% endif %}
-                    {% if can('turnos.ver') %}
+                    {% if can('turnos.ver') and not es_medico_operativo %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('turnos_') else '' }}"
                        href="{{ url_for('turnos_recepcion') if can('turnos.administrar') or can('turnos.crear') else url_for('turnos_mi_cola') }}">
                         <i class="fas fa-ticket"></i>
@@ -1258,7 +1270,7 @@
                 </div>
                 {% endif %}
 
-                {% if can('facturacion.ver') %}
+                {% if can('facturacion.ver') and not es_medico_operativo %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-facturacion" aria-expanded="false" aria-controls="nav-facturacion">
                     <span>Facturación</span>
@@ -1292,7 +1304,7 @@
                 </div>
                 {% endif %}
 
-                {% if can('reportes.ver') %}
+                {% if can('reportes.ver') and not es_medico_operativo %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-reportes" aria-expanded="false" aria-controls="nav-reportes">
                     <span>Reportes</span>
@@ -1312,6 +1324,10 @@
                 </div>
                 {% endif %}
 
+                {% if not es_medico_operativo
+                      and (can('configuracion.ver') or can('usuarios.ver')
+                           or can('roles.ver')
+                           or current_user.perfil == 'Administrador') %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-cuenta" aria-expanded="false" aria-controls="nav-cuenta">
                     <span>Cuenta</span>
@@ -1347,6 +1363,7 @@
                     </a>
                     {% endif %}
                 </div>
+                {% endif %}
             </nav>
 
             <div class="ars-sidebar-footer">
@@ -1433,9 +1450,16 @@
                         <li><span class="dropdown-item-text"><small><i class="fas fa-building me-2"></i>{{ empresa.empresa_nombre }}</small></span></li>
                         {% endif %}
                         <li><hr class="dropdown-divider"></li>
+                        {% if can('configuracion.ver') %}
                         <li>
                             <a class="dropdown-item" href="{{ url_for('perfil_configuracion') }}">
                                 <i class="fas fa-palette me-2"></i> Personalizar tema
+                            </a>
+                        </li>
+                        {% endif %}
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('cambiar_mi_password') }}">
+                                <i class="fas fa-key me-2"></i> Cambiar mi contraseña
                             </a>
                         </li>
                         <li>
@@ -1458,9 +1482,10 @@
             <aside class="ars-chat-panel" id="arsChatPanel"
                    aria-label="Mensajería interna" aria-hidden="true"
                    data-current-user-id="{{ current_user.id }}">
-                <div class="ars-chat-header">
+                <div class="ars-chat-header" id="arsChatDragHandle"
+                     title="Arrastra para mover la ventana">
                     <div>
-                        <strong>Mensajería interna</strong>
+                        <strong><i class="fas fa-grip-lines me-2"></i>Mensajería interna</strong>
                         <small>Usuarios de {{ current_user.empresa_nombre or 'tu consultorio' }}</small>
                     </div>
                     <button class="ars-icon-button" id="arsChatClose" type="button"
@@ -1493,9 +1518,10 @@
                             <label class="visually-hidden" for="arsChatBody">Mensaje</label>
                             <textarea id="arsChatBody" rows="2" maxlength="4000"
                                       placeholder="Escribe un mensaje…"></textarea>
-                            <button class="btn btn-primary" type="submit"
-                                    aria-label="Enviar mensaje">
-                                <i class="fas fa-paper-plane"></i>
+                            <button class="ars-chat-send-button" type="submit"
+                                    aria-label="Enviar mensaje"
+                                    title="Enviar mensaje">
+                                <i class="fas fa-paper-plane" aria-hidden="true"></i>
                             </button>
                         </form>
                         <div class="ars-chat-feedback" id="arsChatFeedback"
@@ -1702,8 +1728,9 @@
 
     {% if current_user.is_authenticated %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}?v=1.4" defer></script>
+    <script src="{{ url_for('static', filename='js/patient-search.js') }}?v=2" defer></script>
     {% if current_user.mostrar_chat %}
-    <script src="{{ url_for('static', filename='js/chat.js') }}?v=1" defer></script>
+    <script src="{{ url_for('static', filename='js/chat.js') }}?v=2" defer></script>
     {% endif %}
     {% endif %}
     <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=1" defer></script>

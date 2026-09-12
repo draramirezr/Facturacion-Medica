@@ -1,11 +1,16 @@
 """Turnos de atenci?n y pantallas p?blicas."""
 
+import base64
 import hashlib
 import json
+import re
 import secrets
 from datetime import datetime
 
-from flask import flash, jsonify, redirect, render_template, request, url_for
+from cryptography.fernet import Fernet, InvalidToken
+from flask import (
+    current_app, flash, jsonify, redirect, render_template, request, url_for,
+)
 from flask_login import current_user, login_required
 
 from auth import permission_required, user_has_permission
@@ -13,6 +18,28 @@ from core.database import execute_query, execute_update, transactional_methods
 from core.tenant import get_current_tenant_id
 from routes.support import sanitize_input
 from turnos import EstadoTurno, validar_transicion
+
+
+def _token_fernet():
+    secreto = str(current_app.secret_key).encode('utf-8')
+    clave = base64.urlsafe_b64encode(hashlib.sha256(secreto).digest())
+    return Fernet(clave)
+
+
+def cifrar_token_pantalla(token):
+    return _token_fernet().encrypt(token.encode('utf-8')).decode('ascii')
+
+
+def descifrar_token_pantalla(token_cifrado):
+    if not token_cifrado:
+        return None
+    try:
+        return _token_fernet().decrypt(
+            token_cifrado.encode('ascii')
+        ).decode('utf-8')
+    except (InvalidToken, ValueError, TypeError):
+        return None
+
 
 def obtener_turno_tenant(turno_id, tenant_id, bloquear=False):
     sufijo = ' FOR UPDATE' if bloquear else ''
@@ -120,13 +147,20 @@ def turnos_recepcion():
     pacientes = []
     if busqueda:
         patron = f'%{busqueda}%'
+        phone_digits = re.sub(r'\D', '', busqueda)
+        phone_pattern = f'%{phone_digits}%' if phone_digits else patron
         pacientes = execute_query('''
             SELECT id, nombre, cedula, telefono, registro_incompleto
             FROM pacientes
             WHERE tenant_id=%s
-              AND (nombre LIKE %s OR cedula LIKE %s OR telefono LIKE %s)
+              AND (
+                  nombre LIKE %s OR cedula LIKE %s
+                  OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                      COALESCE(telefono,''),'-',''),' ',''),'(',''),')',''),'+','')
+                      LIKE %s
+              )
             ORDER BY nombre LIMIT 20
-        ''', (tenant_id, patron, patron, patron), fetch='all') or []
+        ''', (tenant_id, patron, patron, phone_pattern), fetch='all') or []
     medicos = execute_query(
         'SELECT id, nombre, especialidad FROM medicos '
         'WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
@@ -462,7 +496,7 @@ def turnos_ticket(turno_id):
     )
 
 def obtener_pantallas_turnos(tenant_id):
-    return execute_query('''
+    pantallas = execute_query('''
         SELECT pt.*, m.nombre AS medico_nombre
         FROM pantallas_turnos pt
         LEFT JOIN medicos m
@@ -470,6 +504,13 @@ def obtener_pantallas_turnos(tenant_id):
         WHERE pt.tenant_id=%s
         ORDER BY pt.activo DESC, pt.nombre
     ''', (tenant_id,), fetch='all') or []
+    for pantalla in pantallas:
+        token = descifrar_token_pantalla(pantalla.get('token_cifrado'))
+        pantalla['url_publica'] = (
+            url_for('turnos_pantalla_publica', token=token, _external=True)
+            if token and pantalla.get('activo') else None
+        )
+    return pantallas
 
 @login_required
 @permission_required('turnos.pantalla')
@@ -478,37 +519,100 @@ def turnos_pantallas():
     tenant_id = get_current_tenant_id()
     url_creada = None
     if request.method == 'POST':
-        nombre = sanitize_input(request.form.get('nombre', ''), 150)
-        medico_id = request.form.get('medico_id', type=int)
-        if not nombre:
-            flash('Indica un nombre para la pantalla', 'error')
-            return redirect(url_for('turnos_pantallas'))
-        if medico_id and not execute_query(
-            'SELECT id FROM medicos WHERE id=%s AND tenant_id=%s',
-            (medico_id, tenant_id)
-        ):
-            flash('Médico no válido', 'error')
-            return redirect(url_for('turnos_pantallas'))
-        token = secrets.token_urlsafe(32)
-        token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
-        execute_update('''
-            INSERT INTO pantallas_turnos (
-                tenant_id, token_hash, nombre, medico_id,
-                activo, created_by, updated_by
-            ) VALUES (%s,%s,%s,%s,1,%s,%s)
-        ''', (
-            tenant_id,
-            token_hash,
-            nombre,
-            medico_id,
-            current_user.id,
-            current_user.id,
-        ))
-        url_creada = url_for(
-            'turnos_pantalla_publica',
-            token=token,
-            _external=True,
-        )
+        if request.form.get('accion') == 'regenerar':
+            pantalla_id = request.form.get('pantalla_id', type=int)
+            pantalla = execute_query(
+                'SELECT id FROM pantallas_turnos '
+                'WHERE id=%s AND tenant_id=%s AND activo=1 FOR UPDATE',
+                (pantalla_id, tenant_id),
+            )
+            if not pantalla:
+                flash('Pantalla no encontrada', 'error')
+                return redirect(url_for('turnos_pantallas'))
+            token = secrets.token_urlsafe(32)
+            execute_update(
+                '''
+                UPDATE pantallas_turnos
+                SET token_hash=%s, token_cifrado=%s, updated_by=%s
+                WHERE id=%s AND tenant_id=%s
+                ''',
+                (
+                    hashlib.sha256(token.encode('utf-8')).hexdigest(),
+                    cifrar_token_pantalla(token),
+                    current_user.id,
+                    pantalla_id,
+                    tenant_id,
+                ),
+            )
+            url_creada = url_for(
+                'turnos_pantalla_publica',
+                token=token,
+                _external=True,
+            )
+        else:
+            nombre = sanitize_input(request.form.get('nombre', ''), 150)
+            medico_id = request.form.get('medico_id', type=int)
+            if not nombre:
+                flash('Indica un nombre para la pantalla', 'error')
+                return redirect(url_for('turnos_pantallas'))
+            if medico_id and not execute_query(
+                'SELECT id FROM medicos WHERE id=%s AND tenant_id=%s',
+                (medico_id, tenant_id)
+            ):
+                flash('Médico no válido', 'error')
+                return redirect(url_for('turnos_pantallas'))
+            pantalla_existente = execute_query(
+                'SELECT id, activo FROM pantallas_turnos '
+                'WHERE tenant_id=%s AND nombre=%s FOR UPDATE',
+                (tenant_id, nombre),
+            )
+            if pantalla_existente and pantalla_existente.get('activo'):
+                flash(
+                    'Ya existe una pantalla activa con ese nombre. '
+                    'Puedes abrir su enlace desde la lista.',
+                    'warning',
+                )
+                return redirect(url_for('turnos_pantallas'))
+            token = secrets.token_urlsafe(32)
+            token_hash = hashlib.sha256(token.encode('utf-8')).hexdigest()
+            token_cifrado = cifrar_token_pantalla(token)
+            if pantalla_existente:
+                execute_update(
+                    '''
+                    UPDATE pantallas_turnos
+                    SET token_hash=%s, token_cifrado=%s, medico_id=%s,
+                        activo=1, updated_by=%s
+                    WHERE id=%s AND tenant_id=%s
+                    ''',
+                    (
+                        token_hash,
+                        token_cifrado,
+                        medico_id,
+                        current_user.id,
+                        pantalla_existente['id'],
+                        tenant_id,
+                    ),
+                )
+            else:
+                execute_update('''
+                    INSERT INTO pantallas_turnos (
+                        tenant_id, token_hash, token_cifrado, nombre, medico_id,
+                        activo, created_by, updated_by
+                    ) VALUES (%s,%s,%s,%s,%s,1,%s,%s)
+                ''', (
+                    tenant_id,
+                    token_hash,
+                    token_cifrado,
+                    nombre,
+                    medico_id,
+                    current_user.id,
+                    current_user.id,
+                ))
+            url_creada = url_for(
+                'turnos_pantalla_publica',
+                token=token,
+                _external=True,
+            )
     medicos = execute_query(
         'SELECT id, nombre, especialidad FROM medicos '
         'WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
