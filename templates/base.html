@@ -34,108 +34,23 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{% block title %}Dra. Shirley Ramírez - Ginecóloga y Obstetra en Santo Domingo | Salud Femenina{% endblock %}</title>
-    
-    <!-- Meta Tags SEO -->
-    <meta name="description" content="{% block description %}🏆 Dra. Shirley Ramírez - Ginecóloga y Obstetra en Santo Domingo, República Dominicana. Especialista en salud femenina, embarazo, control prenatal y tratamientos estéticos ginecológicos. ✅ Atención personalizada. 📞 829-740-5073{% endblock %}">
-    <meta name="keywords" content="ginecóloga Santo Domingo, obstetra República Dominicana, Dra Shirley Ramírez, control prenatal Santo Domingo, tratamientos estéticos ginecológicos, salud femenina República Dominicana, embarazo Santo Domingo, parto República Dominicana, ginecología estética, medicina reproductiva Santo Domingo, consulta ginecológica, mejor ginecóloga Santo Domingo">
-    <meta name="author" content="Dra. Shirley Ramírez">
-    <meta name="robots" content="{% block robots %}index, follow{% endblock %}">
-    <link rel="canonical" href="https://www.draramirez.com{{ request.path }}">
+    <title>{% block title %}ClinicRD{% endblock %}</title>
+    <meta name="description" content="{% block description %}{{ seo.descripcion }}{% endblock %}">
+    <meta name="author" content="ClinicRD">
+    <meta name="robots" content="{% block robots %}noindex, nofollow{% endblock %}">
+    <link rel="canonical" href="{% block canonical %}{{ seo.base_url }}{{ request.path }}{% endblock %}">
     {% block extra_meta %}{% endblock %}
-    
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://www.draramirez.com{{ request.path }}">
-    <meta property="og:title" content="{% block og_title %}Dra. Shirley Ramírez - Ginecóloga y Obstetra{% endblock %}">
-    <meta property="og:description" content="{% block og_description %}Especialista en salud femenina, embarazo y parto. Atención personalizada y profesional.{% endblock %}">
-    <meta property="og:image" content="{{ url_for('static', filename='img/logo.png', _external=True) }}">
-    
-    <!-- Twitter -->
-    <meta property="twitter:card" content="summary_large_image">
-    <meta property="twitter:url" content="https://www.draramirez.com{{ request.path }}">
-    <meta property="twitter:title" content="{% block twitter_title %}Dra. Shirley Ramírez - Ginecóloga y Obstetra{% endblock %}">
-    <meta property="twitter:description" content="{% block twitter_description %}Especialista en salud femenina, embarazo y parto.{% endblock %}">
-    <meta property="twitter:image" content="{{ url_for('static', filename='img/logo.png', _external=True) }}">
-    
-    <!-- Schema.org Structured Data para SEO Médico - Optimizado para Google -->
-    <script type="application/ld+json" nonce="{{ csp_nonce }}">
-    {
-      "@context": "https://schema.org",
-      "@type": ["Physician", "MedicalBusiness", "LocalBusiness"],
-      "name": "Dra. Shirley Ramírez Montero - Ginecóloga y Obstetra",
-      "alternateName": "Dra. Shirley Ramírez",
-      "image": "{{ url_for('static', filename='img/logo.png', _external=True) }}",
-      "logo": "{{ url_for('static', filename='img/logo.png', _external=True) }}",
-      "description": "Ginecóloga y Obstetra en Santo Domingo especializada en salud femenina, embarazo, control prenatal, medicina reproductiva y tratamientos estéticos ginecológicos. Atención personalizada con tecnología de vanguardia.",
-      "medicalSpecialty": ["Gynecology", "Obstetrics", "Women's Health", "Reproductive Medicine", "Aesthetic Gynecology"],
-      "priceRange": "$$",
-      "address": {
-        "@type": "PostalAddress",
-        "streetAddress": "República Dominicana",
-        "addressLocality": "Santo Domingo",
-        "addressRegion": "Santo Domingo",
-        "addressCountry": "DO"
-      },
-      "geo": {
-        "@type": "GeoCoordinates",
-        "latitude": "18.4861",
-        "longitude": "-69.9312"
-      },
-      "telephone": "829-740-5073",
-      "email": "dra.ramirezr@gmail.com",
-      "url": "https://drashirleyramirez.com",
-      "sameAs": [
-        "https://www.linkedin.com/in/shirley-ramirez-montero-a10964168/",
-        "https://www.instagram.com/dra.ramirezr/"
-      ],
-      "openingHoursSpecification": [
-        {
-          "@type": "OpeningHoursSpecification",
-          "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"],
-          "opens": "09:00",
-          "closes": "18:00"
-        }
-      ],
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "5.0",
-        "reviewCount": "50",
-        "bestRating": "5",
-        "worstRating": "1"
-      },
-      "hasOfferCatalog": {
-        "@type": "OfferCatalog",
-        "name": "Servicios Médicos",
-        "itemListElement": [
-          {
-            "@type": "Offer",
-            "itemOffered": {
-              "@type": "Service",
-              "name": "Control Prenatal",
-              "description": "Seguimiento completo del embarazo"
-            }
-          },
-          {
-            "@type": "Offer",
-            "itemOffered": {
-              "@type": "Service",
-              "name": "Ginecología General",
-              "description": "Consulta ginecológica integral"
-            }
-          },
-          {
-            "@type": "Offer",
-            "itemOffered": {
-              "@type": "Service",
-              "name": "Tratamientos Estéticos Ginecológicos",
-              "description": "Rejuvenecimiento íntimo y tratamientos estéticos"
-            }
-          }
-        ]
-      }
-    }
-    </script>
+    <meta property="og:site_name" content="ClinicRD">
+    <meta property="og:locale" content="es_DO">
+    <meta property="og:url" content="{{ seo.base_url }}{{ request.path }}">
+    <meta property="og:title" content="{% block og_title %}{{ seo.titulo }}{% endblock %}">
+    <meta property="og:description" content="{% block og_description %}{{ seo.descripcion }}{% endblock %}">
+    <meta property="og:image" content="{{ seo.imagen }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{% block twitter_title %}{{ seo.titulo }}{% endblock %}">
+    <meta name="twitter:description" content="{% block twitter_description %}{{ seo.descripcion }}{% endblock %}">
+    <meta name="twitter:image" content="{{ seo.imagen }}">
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='logos/favicon.ico') }}">
@@ -1771,7 +1686,7 @@
             <div class="row align-items-center">
                 <div class="col-md-12 text-center">
                     <p class="text-muted mb-0 public-site-footer__text">
-                        &copy; 2025 Dra. Shirley Ramírez. Todos los derechos reservados.
+                        &copy; ClinicRD. Todos los derechos reservados.
                     </p>
                 </div>
             </div>

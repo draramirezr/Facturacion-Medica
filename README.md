@@ -222,6 +222,10 @@ puerto que escucha la app. Si Railway muestra **Port 8080**, deja que
 `https://www.clinicrd.com`. El proceso validará también que las tablas
 principales tengan `tenant_id`.
 
+MySQL: agrega el plugin y **vincula** sus variables al servicio web.
+No dejes `MYSQL_HOST=localhost` en Railway. Usa `MYSQL_URL` o
+`MYSQLHOST` / `MYSQLUSER` / `MYSQLPASSWORD` / `MYSQLDATABASE`.
+
 ### Otras plataformas
 
 - Heroku

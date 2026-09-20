@@ -1,6 +1,7 @@
 """Filtros y contexto visual compartidos por las plantillas."""
 
 import os
+import re
 from datetime import timedelta
 from urllib.parse import urlparse
 
@@ -14,6 +15,7 @@ from auth.helpers import (
 )
 
 SOPORTE_EMAIL_PREDETERMINADO = 'soporte@clinicrd.com'
+SOPORTE_TELEFONO_PREDETERMINADO = '8098446360'
 
 PRODUCTO = {
     'nombre': 'ClinicRD',
@@ -123,15 +125,104 @@ def hora_input(valor):
     return str(valor)
 
 
+def _telefono_soporte():
+    crudo = os.getenv('SOPORTE_TELEFONO', '').strip() or SOPORTE_TELEFONO_PREDETERMINADO
+    digitos = re.sub(r'\D', '', crudo)
+    if len(digitos) == 11 and digitos.startswith('1'):
+        digitos = digitos[1:]
+    if len(digitos) != 10:
+        digitos = SOPORTE_TELEFONO_PREDETERMINADO
+    visible = f'{digitos[:3]}-{digitos[3:6]}-{digitos[6:]}'
+    return {
+        'telefono': visible,
+        'telefono_digits': digitos,
+        'whatsapp': f'1{digitos}',
+    }
+
+
 def obtener_soporte():
-    """Datos del centro de ayuda; el manual se publica fuera de la app."""
+    """Datos del centro de ayuda y contacto público."""
     manual_url = os.getenv('MANUAL_URL', '').strip()
     if urlparse(manual_url).scheme.lower() not in ('http', 'https'):
         manual_url = ''
     email = (
         os.getenv('SOPORTE_EMAIL', '').strip() or SOPORTE_EMAIL_PREDETERMINADO
     )
-    return {'manual_url': manual_url, 'email': email}
+    return {'manual_url': manual_url, 'email': email, **_telefono_soporte()}
+
+
+def datos_seo():
+    """Metadatos públicos de ClinicRD para buscadores y redes."""
+    from core.config import url_publica_base
+
+    base = (url_publica_base() or 'https://www.clinicrd.com').rstrip('/')
+    soporte = obtener_soporte()
+    titulo = (
+        'ClinicRD | Software médico y facturación e-CF en República Dominicana'
+    )
+    descripcion = (
+        'Software para consultorios y centros de salud en República Dominicana: '
+        'pacientes, historias clínicas, citas, turnos, ARS y facturación '
+        'electrónica e-CF.'
+    )
+    imagen = f'{base}/static/img/logo.png'
+    return {
+        'base_url': base,
+        'canonical': f'{base}/',
+        'titulo': titulo,
+        'descripcion': descripcion,
+        'keywords': (
+            'software médico República Dominicana, facturación electrónica e-CF, '
+            'software para consultorios, historia clínica, ARS, ClinicRD'
+        ),
+        'imagen': imagen,
+        'locale': 'es_DO',
+        'telefono': soporte['telefono'],
+        'telefono_e164': f'+1{soporte["telefono_digits"]}',
+        'email': soporte['email'],
+        'json_ld': {
+            '@context': 'https://schema.org',
+            '@graph': [
+                {
+                    '@type': 'Organization',
+                    '@id': f'{base}/#organizacion',
+                    'name': 'ClinicRD',
+                    'url': f'{base}/',
+                    'logo': imagen,
+                    'email': soporte['email'],
+                    'telephone': f'+1{soporte["telefono_digits"]}',
+                    'areaServed': {
+                        '@type': 'Country',
+                        'name': 'República Dominicana',
+                    },
+                },
+                {
+                    '@type': 'SoftwareApplication',
+                    'name': 'ClinicRD',
+                    'applicationCategory': 'HealthApplication',
+                    'operatingSystem': 'Web',
+                    'url': f'{base}/',
+                    'description': descripcion,
+                    'inLanguage': 'es-DO',
+                    'offers': {
+                        '@type': 'AggregateOffer',
+                        'lowPrice': '20',
+                        'highPrice': '100',
+                        'priceCurrency': 'USD',
+                    },
+                    'publisher': {'@id': f'{base}/#organizacion'},
+                },
+                {
+                    '@type': 'WebSite',
+                    '@id': f'{base}/#sitio',
+                    'name': 'ClinicRD',
+                    'url': f'{base}/',
+                    'inLanguage': 'es-DO',
+                    'publisher': {'@id': f'{base}/#organizacion'},
+                },
+            ],
+        },
+    }
 
 
 def inject_theme():
@@ -190,6 +281,7 @@ def inject_theme():
         ),
         'producto': PRODUCTO,
         'product_name': PRODUCTO['nombre'],
+        'seo': datos_seo(),
     }
 
 

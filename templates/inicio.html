@@ -14,9 +14,29 @@
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="ClinicRD integra gestión médica, expedientes clínicos, citas, recetas, licencias y facturación tradicional y electrónica e-CF en una sola plataforma.">
-    <title>ClinicRD | Gestión médica y facturación conectadas</title>
+    <title>{{ seo.titulo }}</title>
+    <meta name="description" content="{{ seo.descripcion }}">
+    <meta name="keywords" content="{{ seo.keywords }}">
+    <meta name="author" content="ClinicRD">
+    <meta name="robots" content="index, follow">
+    <meta name="theme-color" content="#119c8f">
+    <link rel="canonical" href="{{ seo.canonical }}">
+    <link rel="alternate" hreflang="es-DO" href="{{ seo.canonical }}">
+    <link rel="alternate" hreflang="x-default" href="{{ seo.canonical }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="ClinicRD">
+    <meta property="og:locale" content="{{ seo.locale }}">
+    <meta property="og:url" content="{{ seo.canonical }}">
+    <meta property="og:title" content="{{ seo.titulo }}">
+    <meta property="og:description" content="{{ seo.descripcion }}">
+    <meta property="og:image" content="{{ seo.imagen }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ seo.titulo }}">
+    <meta name="twitter:description" content="{{ seo.descripcion }}">
+    <meta name="twitter:image" content="{{ seo.imagen }}">
+    <script type="application/ld+json" nonce="{{ csp_nonce }}">{{ seo.json_ld | tojson }}</script>
     <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='logos/favicon.png') }}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
@@ -216,9 +236,19 @@
         .demo-form label { display:grid; gap:6px; color:#334155; font-size:.84rem; font-weight:600; }
         .demo-form input, .demo-form select, .demo-form textarea { width:100%; padding:12px 14px; border:1px solid var(--border); border-radius:10px; font:inherit; }
         .demo-aside h3 { margin:0 0 10px; }
+        .contact-phone { display:flex; align-items:center; gap:14px; margin:0 0 18px; padding:16px 18px; border:1px solid var(--border); border-radius:14px; background:var(--primary-soft); text-decoration:none; }
+        .contact-phone i { width:44px; height:44px; display:grid; place-items:center; border-radius:12px; background:var(--primary); color:#fff; font-size:1.1rem; }
+        .contact-phone strong { display:block; color:#16213b; font-size:1.15rem; }
+        .contact-phone span { color:var(--muted); font-size:.78rem; }
+        .contact-flashes { display:grid; gap:10px; margin-bottom:18px; }
+        .contact-flash { padding:12px 14px; border-radius:10px; font-size:.84rem; }
+        .contact-flash-success { background:#ecfdf5; color:#047857; }
+        .contact-flash-error { background:#fef2f2; color:#b91c1c; }
         .demo-flashes { margin-bottom:18px; }
         html[data-color-mode="dark"] .demo-form,
-        html[data-color-mode="dark"] .demo-aside { background:#111a2b; border-color:#29374c; }
+        html[data-color-mode="dark"] .demo-aside,
+        html[data-color-mode="dark"] .contact-phone { background:#111a2b; border-color:#29374c; }
+        html[data-color-mode="dark"] .contact-phone strong { color:#edf3fa; }
         html[data-color-mode="dark"] .demo-form input,
         html[data-color-mode="dark"] .demo-form select,
         html[data-color-mode="dark"] .demo-form textarea { background:#0d1625; border-color:#344258; color:#e7edf6; }
@@ -229,7 +259,7 @@
 <body>
     <nav class="site-nav" aria-label="Navegación principal">
         <div class="container nav-inner">
-            <a class="brand" href="{{ url_for('index') }}" aria-label="ClinicRD inicio"><img class="brand-logo brand-logo-light" src="{{ url_for('static', filename='img/logo.png') }}?v=clinicrd5" alt="ClinicRD"><img class="brand-logo brand-logo-dark" src="{{ url_for('static', filename='img/logo-on-dark.png') }}?v=clinicrd5" alt="ClinicRD"></a>
+            <a class="brand" href="{{ url_for('index') }}" aria-label="ClinicRD, inicio"><img class="brand-logo brand-logo-light" src="{{ url_for('static', filename='img/logo.png') }}?v=clinicrd5" alt="ClinicRD, software médico en República Dominicana"><img class="brand-logo brand-logo-dark" src="{{ url_for('static', filename='img/logo-on-dark.png') }}?v=clinicrd5" alt="ClinicRD, software médico en República Dominicana"></a>
             <div class="nav-links"><a href="#inicio">Inicio</a><a href="#beneficios">Características</a><a href="#integraciones">Integraciones</a><a href="#planes">Precios</a><a href="#contacto">Contacto</a></div>
             <div class="nav-actions">
                 <button class="button button-secondary theme-button" type="button" data-theme-toggle aria-label="Activar modo oscuro" title="Modo oscuro"><i class="fas fa-moon" data-theme-icon></i></button>
@@ -244,8 +274,8 @@
             <div class="container hero-grid">
                 <div>
                     <span class="eyebrow"><i class="fas fa-shield-heart"></i> Plataforma médica integral</span>
-                    <h1>Centraliza tu gestión médica y facturación <span>en un solo lugar.</span></h1>
-                    <p class="hero-copy">ClinicRD conecta recepción, turnos, historias clínicas adaptadas por especialidad, citas, mensajería interna y facturación para que todo el consultorio trabaje coordinado.</p>
+                    <h1>Software de gestión médica y facturación e-CF <span>para consultorios en República Dominicana.</span></h1>
+                    <p class="hero-copy">ClinicRD conecta recepción, turnos, historias clínicas por especialidad, citas, mensajería interna y facturación electrónica e-CF para que el consultorio o centro de salud trabaje coordinado.</p>
                     <div class="hero-actions">
                         <a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Probar 7 días gratis' }} <i class="fas fa-arrow-right"></i></a>
                         {% if not current_user.is_authenticated %}<a class="button button-secondary" href="{{ url_for('login') }}"><i class="fas fa-arrow-right-to-bracket"></i> Iniciar sesión</a>{% endif %}
@@ -385,16 +415,62 @@
                 <div class="plans-action"><a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Probar 7 días' }} <i class="fas fa-arrow-right"></i></a></div>
             </div>
         </section>
+
+        <section class="section section-white" id="contacto">
+            <div class="container">
+                <header class="section-head">
+                    <span class="section-label">Estamos para ayudarte</span>
+                    <h2>Contacto</h2>
+                    <p>Llama o déjanos un mensaje. Te respondemos al correo que indiques.</p>
+                </header>
+                {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                <div class="contact-flashes">
+                    {% for category, message in messages %}
+                    <div class="contact-flash contact-flash-{{ category if category in ['success', 'error'] else 'error' }}">{{ message }}</div>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                {% endwith %}
+                <div class="demo-grid">
+                    <form class="demo-form" method="POST" action="{{ url_for('enviar_contacto') }}">
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <label>Nombre
+                            <input type="text" name="nombre" maxlength="100" required autocomplete="name">
+                        </label>
+                        <label>Tu correo
+                            <input type="email" name="email" maxlength="120" required autocomplete="email">
+                        </label>
+                        <label>Mensaje
+                            <textarea name="mensaje" rows="5" maxlength="2000" required placeholder="Cuéntanos en qué te podemos ayudar"></textarea>
+                        </label>
+                        <button class="button button-primary" type="submit">Enviar correo <i class="fas fa-paper-plane"></i></button>
+                    </form>
+                    <aside class="demo-aside">
+                        <h3>Teléfono</h3>
+                        <a class="contact-phone" href="tel:+1{{ soporte.telefono_digits }}">
+                            <i class="fas fa-phone"></i>
+                            <span>
+                                <strong>{{ soporte.telefono }}</strong>
+                                <span>Línea de ClinicRD</span>
+                            </span>
+                        </a>
+                        <p class="hero-copy">También puedes escribir por WhatsApp o a <a href="mailto:{{ soporte.email }}">{{ soporte.email }}</a>.</p>
+                        <a class="button button-secondary" href="https://wa.me/{{ soporte.whatsapp }}?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20ClinicRD" target="_blank" rel="noopener noreferrer"><i class="fab fa-whatsapp"></i> WhatsApp</a>
+                    </aside>
+                </div>
+            </div>
+        </section>
     </main>
 
-    <a class="whatsapp-float" href="https://wa.me/18098446360?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20ClinicRD" target="_blank" rel="noopener noreferrer" aria-label="Contactar ClinicRD por WhatsApp" title="Escríbenos por WhatsApp"><i class="fab fa-whatsapp"></i></a>
+    <a class="whatsapp-float" href="https://wa.me/{{ soporte.whatsapp }}?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20ClinicRD" target="_blank" rel="noopener noreferrer" aria-label="Contactar ClinicRD por WhatsApp" title="Escríbenos por WhatsApp"><i class="fab fa-whatsapp"></i></a>
 
-    <footer id="contacto"><div class="container">
+    <footer><div class="container">
         <div class="footer-grid">
             <div class="footer-brand"><strong>ClinicRD</strong><p>Plataforma para centralizar la gestión clínica, administrativa y financiera de profesionales y centros médicos.</p></div>
             <div><strong class="footer-title">Producto</strong><div class="footer-links"><a href="#beneficios">Características</a><a href="#integraciones">Integraciones</a><a href="#planes">Planes</a></div></div>
             <div><strong class="footer-title">Recursos</strong><div class="footer-links"><a href="{{ url_for('login') }}">Centro de acceso</a><a href="{{ url_for('registro') }}">Crea tu cuenta gratis</a><a href="#seguridad">Seguridad</a></div></div>
-            <div><strong class="footer-title">Plataforma</strong><div class="footer-links"><a href="#modulos">Cómo funciona</a><a href="#contacto">Contacto</a><a href="{{ url_for('login') }}">Soporte</a></div></div>
+            <div><strong class="footer-title">Contacto</strong><div class="footer-links"><a href="tel:+1{{ soporte.telefono_digits }}">{{ soporte.telefono }}</a><a href="mailto:{{ soporte.email }}">{{ soporte.email }}</a><a href="#contacto">Escribirnos</a></div></div>
         </div>
         <div class="footer-bottom"><span>© {{ current_year }} ClinicRD. Todos los derechos reservados.</span><span>Gestión médica y facturación conectadas.</span></div>
     </div></footer>

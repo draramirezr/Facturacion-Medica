@@ -1,10 +1,9 @@
 """Configuración de entorno y validaciones de arranque."""
 
 import os
-import re
 import secrets
 from datetime import timedelta
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
 
 import pymysql
 from dotenv import load_dotenv
@@ -21,34 +20,72 @@ def parse_mysql_url(url):
     """Parsear una URL MySQL en la configuración aceptada por PyMySQL."""
     if not url:
         return None
-    pattern = r'mysql://([^:]+):([^@]+)@([^:]+):(\d+)/(.+)'
-    match = re.match(pattern, url)
-    if not match:
+    parsed = urlparse(url)
+    if parsed.scheme not in ('mysql', 'mysql+pymysql'):
+        return None
+    database = unquote((parsed.path or '').lstrip('/').split('?')[0])
+    if not parsed.hostname or not database:
         return None
     return {
-        'user': match.group(1),
-        'password': match.group(2),
-        'host': match.group(3),
-        'port': int(match.group(4)),
-        'database': match.group(5),
+        'user': unquote(parsed.username or ''),
+        'password': unquote(parsed.password or ''),
+        'host': parsed.hostname,
+        'port': int(parsed.port or 3306),
+        'database': database,
         'charset': 'utf8mb4',
     }
 
 
-mysql_url = os.getenv('MYSQL_URL', '')
-if mysql_url:
-    DATABASE_CONFIG = parse_mysql_url(mysql_url)
-    if not DATABASE_CONFIG:
-        raise RuntimeError('MYSQL_URL inválida')
-else:
-    DATABASE_CONFIG = {
-        'host': os.getenv('MYSQL_HOST', 'localhost'),
-        'user': os.getenv('MYSQL_USER', 'root'),
-        'password': os.getenv('MYSQL_PASSWORD', ''),
-        'database': os.getenv('MYSQL_DATABASE', 'facturacion_medica'),
-        'port': int(os.getenv('MYSQL_PORT', '3306')),
+def _primer_env(*nombres, default=''):
+    for nombre in nombres:
+        valor = os.getenv(nombre, '').strip()
+        if valor:
+            return valor
+    return default
+
+
+def construir_database_config():
+    """Resolver MySQL para local y Railway (MYSQLHOST / MYSQL_URL)."""
+    for clave in ('MYSQL_URL', 'DATABASE_URL'):
+        url = os.getenv(clave, '').strip()
+        if not url:
+            continue
+        parsed = parse_mysql_url(url)
+        if parsed:
+            return parsed
+        raise RuntimeError(f'{clave} inválida')
+
+    host_railway = os.getenv('MYSQLHOST', '').strip()
+    en_railway = bool(os.getenv('RAILWAY_ENVIRONMENT') or host_railway)
+    host = _primer_env('MYSQL_HOST', 'MYSQLHOST', default='localhost')
+    if host in {'localhost', '127.0.0.1'} and host_railway:
+        host = host_railway
+
+    if en_railway:
+        return {
+            'host': host,
+            'user': _primer_env('MYSQLUSER', 'MYSQL_USER', default='root'),
+            'password': _primer_env('MYSQLPASSWORD', 'MYSQL_PASSWORD'),
+            'database': _primer_env(
+                'MYSQLDATABASE', 'MYSQL_DATABASE', default='railway',
+            ),
+            'port': int(_primer_env('MYSQLPORT', 'MYSQL_PORT', default='3306')),
+            'charset': 'utf8mb4',
+        }
+
+    return {
+        'host': host,
+        'user': _primer_env('MYSQL_USER', 'MYSQLUSER', default='root'),
+        'password': _primer_env('MYSQL_PASSWORD', 'MYSQLPASSWORD'),
+        'database': _primer_env(
+            'MYSQL_DATABASE', 'MYSQLDATABASE', default='facturacion_medica',
+        ),
+        'port': int(_primer_env('MYSQL_PORT', 'MYSQLPORT', default='3306')),
         'charset': 'utf8mb4',
     }
+
+
+DATABASE_CONFIG = construir_database_config()
 
 
 REQUIRED_TENANT_TABLES = (
@@ -144,5 +181,13 @@ def validate_production_startup():
     if parsed_url.scheme != 'https' or not parsed_url.netloc:
         raise RuntimeError(
             'APP_BASE_URL debe ser una URL HTTPS completa en producción.'
+        )
+    if (
+        os.getenv('RAILWAY_ENVIRONMENT')
+        and DATABASE_CONFIG.get('host') in {'localhost', '127.0.0.1'}
+    ):
+        raise RuntimeError(
+            'MySQL apunta a localhost. En Railway vincula el servicio MySQL '
+            'y no definas MYSQL_HOST=localhost. Usa MYSQL_URL o MYSQLHOST.'
         )
     validate_required_tenant_schema()

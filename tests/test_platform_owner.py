@@ -29,6 +29,50 @@ class PlatformOwnerTests(unittest.TestCase):
         ).read_text(encoding='utf-8')
         self.assertNotIn("url_for('solicitar_demo')", plantilla)
         self.assertNotIn('Solicita o activa tu prueba', plantilla)
+        self.assertIn("url_for('enviar_contacto')", plantilla)
+        self.assertIn('soporte.telefono', plantilla)
+        self.assertIn('id="contacto"', plantilla)
+        self.assertIn('application/ld+json', plantilla)
+        self.assertIn('og:title', plantilla)
+        self.assertIn('seo.canonical', plantilla)
+
+    def test_public_seo_files_and_legacy_urls(self):
+        import routes.public as public_routes
+
+        with app_module.app.test_request_context('/robots.txt'):
+            robots = public_routes.robots_txt()
+        with app_module.app.test_request_context('/sitemap.xml'):
+            mapa = public_routes.sitemap_xml()
+        with app_module.app.test_request_context('/contact'):
+            contacto = public_routes.redirects()
+
+        self.assertIn('Disallow: /facturacion', robots.get_data(as_text=True))
+        self.assertIn('sitemap.xml', robots.get_data(as_text=True))
+        self.assertIn('<loc>', mapa.get_data(as_text=True))
+        self.assertEqual(contacto.status_code, 301)
+        self.assertTrue(contacto.location.endswith('/#contacto'))
+
+        base = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'base.html'
+        ).read_text(encoding='utf-8')
+        self.assertNotIn('draramirez.com', base)
+        self.assertIn('noindex, nofollow', base)
+
+    def test_public_contact_requires_message_fields(self):
+        import routes.public as public_routes
+
+        with app_module.app.test_request_context(
+            '/contacto',
+            method='POST',
+            data={'nombre': '', 'email': 'invalido', 'mensaje': ''},
+        ):
+            with patch.object(public_routes, 'flash') as avisos:
+                redireccion = public_routes.enviar_contacto()
+        self.assertEqual(redireccion.status_code, 302)
+        self.assertTrue(redireccion.location.endswith('#contacto'))
+        avisos.assert_called()
 
     def test_public_signup_is_seven_day_demo(self):
         source = (

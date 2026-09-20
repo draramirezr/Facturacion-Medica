@@ -702,6 +702,9 @@ class PhaseZeroSecurityTests(unittest.TestCase):
 
         self.assertIn('email', contexto['soporte'])
         self.assertIn('manual_url', contexto['soporte'])
+        self.assertIn('telefono', contexto['soporte'])
+        self.assertIn('ClinicRD', contexto['seo']['titulo'])
+        self.assertIn('e-CF', contexto['seo']['descripcion'])
 
         base = (
             Path(app_module.__file__).resolve().parent
@@ -711,6 +714,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertIn("url_for('centro_ayuda')", base)
         self.assertIn('Manual de usuario en línea', base)
         self.assertNotIn("mailto:' ~ centro_ayuda.email", base)
+        self.assertNotIn('draramirez.com', base)
 
     def test_help_center_opens_manual_or_placeholder(self):
         import routes.public as public_routes
@@ -785,6 +789,38 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertNotIn('plataforma_alertas', ayuda)
         self.assertNotIn('Dar de alta', ayuda)
         self.assertNotIn('Dueño de ClinicRD', ayuda)
+
+    def test_mysql_config_prefers_railway_host_over_localhost(self):
+        import core.config as config
+
+        with patch.dict(
+            'os.environ',
+            {
+                'MYSQL_URL': '',
+                'DATABASE_URL': '',
+                'MYSQL_HOST': 'localhost',
+                'MYSQL_DATABASE': 'facturacion_medica',
+                'MYSQLHOST': 'mysql.railway.internal',
+                'MYSQLUSER': 'root',
+                'MYSQLPASSWORD': 'secret',
+                'MYSQLDATABASE': 'railway',
+                'MYSQLPORT': '3306',
+            },
+            clear=False,
+        ):
+            datos = config.construir_database_config()
+        self.assertEqual(datos['host'], 'mysql.railway.internal')
+        self.assertEqual(datos['database'], 'railway')
+
+    def test_mysql_url_accepts_query_and_encoded_password(self):
+        import core.config as config
+
+        datos = config.parse_mysql_url(
+            'mysql://user:p%40ss@mysql.railway.internal:3306/railway?ssl=true'
+        )
+        self.assertEqual(datos['password'], 'p@ss')
+        self.assertEqual(datos['host'], 'mysql.railway.internal')
+        self.assertEqual(datos['database'], 'railway')
 
     def test_production_entrypoint_binds_waitress_on_all_interfaces(self):
         fuente = (
