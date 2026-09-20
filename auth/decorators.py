@@ -6,7 +6,16 @@ from functools import wraps
 from flask import current_app, flash, jsonify, redirect, request, url_for
 from flask_login import current_user
 
-from auth.helpers import user_has_permission
+from auth.helpers import (
+    destino_inicio_sesion,
+    user_has_permission,
+    usuario_es_dueno_software,
+)
+
+PERMISOS_PLATAFORMA_DUENO = frozenset({
+    'configuracion.ver',
+    'configuracion.editar',
+})
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +27,19 @@ def permission_required(permission):
         def wrapper(*args, **kwargs):
             if not current_user.is_authenticated:
                 return redirect(url_for('login'))
+            if (
+                usuario_es_dueno_software(current_user)
+                and permission not in PERMISOS_PLATAFORMA_DUENO
+            ):
+                if request.path.startswith('/api/'):
+                    return jsonify({
+                        'error': 'El dueño del software no opera un consultorio',
+                    }), 403
+                flash(
+                    'El dueño de ClinicRD administra empresas, no un consultorio.',
+                    'info',
+                )
+                return redirect(url_for('admin_empresas'))
             if not user_has_permission(current_user, permission):
                 logger.warning(
                     'Permiso denegado: user_id=%s permission=%s endpoint=%s',
@@ -28,7 +50,7 @@ def permission_required(permission):
                 if request.path.startswith('/api/'):
                     return jsonify({'error': 'Permiso denegado'}), 403
                 flash('No tienes permisos para acceder a esta función', 'error')
-                return redirect(url_for('facturacion_menu'))
+                return redirect(url_for(destino_inicio_sesion(current_user)))
             return func(*args, **kwargs)
 
         wrapper.required_permission = permission
@@ -52,7 +74,7 @@ def roles_required(*_legacy_profiles):
                 or not user_has_permission(current_user, permission)
             ):
                 flash('No tienes permisos para acceder a esta función', 'error')
-                return redirect(url_for('facturacion_menu'))
+                return redirect(url_for(destino_inicio_sesion(current_user)))
             return func(*args, **kwargs)
 
         return wrapper

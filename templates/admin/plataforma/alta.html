@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Dar de alta - {{ empresa.nombre }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:720px;">
+    <h1 class="h3 mb-1"><i class="fas fa-handshake me-2"></i>Dar de alta</h1>
+    <p class="text-muted mb-4">
+        Convierte el demo de <strong>{{ empresa.nombre }}</strong> en cliente
+        cuando ya cerraste la negociación. Si no lo haces, al cumplir 7 días
+        el demo se inactiva solo.
+    </p>
+
+    <form method="post" class="p-4 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+            <label class="form-label" for="plan">Plan acordado</label>
+            <select class="form-select" id="plan" name="plan">
+                <option value="basico" {{ 'selected' if empresa.plan=='basico' }}>Básico · US$ 20 / mes</option>
+                <option value="profesional" {{ 'selected' if empresa.plan=='profesional' }}>Profesional · US$ 40 / mes</option>
+                <option value="empresarial" {{ 'selected' if empresa.plan=='empresarial' }}>Empresarial · US$ 100 / mes</option>
+            </select>
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="meses">Periodo</label>
+            <select class="form-select" id="meses" name="meses">
+                <option value="1">1 mes</option>
+                <option value="12">12 meses · 15% menos</option>
+            </select>
+        </div>
+        <div class="form-check mb-4">
+            <input class="form-check-input" type="checkbox" value="1" id="crear_factura" name="crear_factura" checked>
+            <label class="form-check-label" for="crear_factura">Crear factura de cobro ahora</label>
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-primary" type="submit">Dar de alta</button>
+            <a class="btn btn-outline-secondary" href="{{ url_for('admin_empresas') }}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

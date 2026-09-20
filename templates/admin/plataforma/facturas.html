@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}Facturación de clientes - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="fas fa-file-invoice-dollar me-2"></i>Facturar clientes</h1>
+            <p class="text-muted mb-0">Cobros de suscripción a las empresas de ClinicRD.</p>
+        </div>
+        <a class="btn btn-primary" href="{{ url_for('plataforma_factura_nueva') }}">
+            <i class="fas fa-plus me-2"></i>Nueva factura
+        </a>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+                <small class="text-muted">Pendiente</small>
+                <div class="fs-4 fw-bold">US$ {{ '%.2f'|format(resumen.pendiente) }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+                <small class="text-muted">Cobrada</small>
+                <div class="fs-4 fw-bold">US$ {{ '%.2f'|format(resumen.pagada) }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+                <small class="text-muted">Facturas</small>
+                <div class="fs-4 fw-bold">{{ resumen.cantidad }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+                <small class="text-muted">Por cobrar</small>
+                <div class="fs-4 fw-bold">{{ resumen.cantidad_pendiente }}</div>
+            </div>
+        </div>
+    </div>
+
+    <form class="row g-2 mb-3" method="get">
+        <div class="col-md-3">
+            <select name="estado" class="form-select">
+                <option value="">Todos los estados</option>
+                <option value="pendiente" {{ 'selected' if filtros.estado=='pendiente' }}>Pendiente</option>
+                <option value="pagada" {{ 'selected' if filtros.estado=='pagada' }}>Pagada</option>
+                <option value="anulada" {{ 'selected' if filtros.estado=='anulada' }}>Anulada</option>
+            </select>
+        </div>
+        <div class="col-md-3"><input class="form-control" type="date" name="desde" value="{{ filtros.desde }}"></div>
+        <div class="col-md-3"><input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}"></div>
+        <div class="col-md-3"><button class="btn btn-outline-primary w-100" type="submit">Filtrar</button></div>
+    </form>
+
+    <div class="table-empresas" style="background:var(--ars-shell-surface,#fff);border-radius:15px;overflow:hidden;">
+        {% if facturas %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Razón social</th>
+                        <th>Periodo</th>
+                        <th>Plan</th>
+                        <th>Monto</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for factura in facturas %}
+                    <tr>
+                        <td>{{ factura.numero }}<br><small class="text-muted">{{ factura.fecha }}</small></td>
+                        <td>{{ factura.empresa_razon or factura.empresa_nombre }}</td>
+                        <td>{{ factura.periodo_inicio }} · {{ factura.periodo_fin }}</td>
+                        <td>{{ factura.plan|title }} · {{ factura.licencias }} lic.</td>
+                        <td>US$ {{ '%.2f'|format(factura.monto|float) }}</td>
+                        <td>{{ factura.estado|title }}</td>
+                        <td class="text-center text-nowrap">
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('plataforma_factura_pdf', factura_id=factura.id) }}" title="Descargar">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            <form class="d-inline" method="post" action="{{ url_for('plataforma_factura_enviar', factura_id=factura.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-primary" type="submit" title="Enviar por correo a {{ factura.empresa_email }}">
+                                    <i class="fas fa-envelope"></i>
+                                </button>
+                            </form>
+                            {% if factura.estado=='pendiente' %}
+                            <form class="d-inline" method="post" action="{{ url_for('plataforma_factura_estado', factura_id=factura.id, estado='pagada') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-success" type="submit">Cobrar</button>
+                            </form>
+                            <form class="d-inline" method="post" action="{{ url_for('plataforma_factura_estado', factura_id=factura.id, estado='anulada') }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-secondary" type="submit">Anular</button>
+                            </form>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">Aún no hay facturas de clientes.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

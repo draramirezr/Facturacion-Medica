@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}Alertas de licencias - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="empresas-hero mb-4" style="background:linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30);border-radius:20px;padding:2rem;">
+        <h1 class="h3 mb-1"><i class="fas fa-bell me-2"></i>Alertas de licencias</h1>
+        <p class="text-muted mb-0">Empresas vencidas o que vencen en los próximos 30 días.</p>
+    </div>
+
+    <div class="table-empresas" style="background:var(--ars-shell-surface,#fff);border-radius:15px;overflow:hidden;">
+        {% if alertas %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Empresa</th>
+                        <th>Plan</th>
+                        <th>Licencias</th>
+                        <th>Vence</th>
+                        <th>Días</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in alertas %}
+                    <tr>
+                        <td>
+                            <strong>{{ empresa.nombre }}</strong><br>
+                            <small class="text-muted">{{ empresa.email }}</small>
+                        </td>
+                        <td>{{ empresa.plan|title }}{% if empresa.es_demo %} · Demo{% endif %}</td>
+                        <td>{{ empresa.licencias_usadas }}/{{ empresa.licencias_totales }}</td>
+                        <td>{{ empresa.fecha_fin }}</td>
+                        <td>
+                            {% if empresa.dias_restantes < 0 %}
+                            <span class="badge text-bg-danger">Vencida {{ empresa.dias_restantes|abs }}d</span>
+                            {% elif empresa.dias_restantes <= 7 %}
+                            <span class="badge text-bg-danger">{{ empresa.dias_restantes }}d</span>
+                            {% else %}
+                            <span class="badge text-bg-warning">{{ empresa.dias_restantes }}d</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ empresa.estado|title }}</td>
+                        <td class="text-center">
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_empresas_editar', empresa_id=empresa.id) }}" title="Editar"><i class="fas fa-edit"></i></a>
+                            {% if empresa.es_demo %}
+                            <a class="btn btn-sm btn-success" href="{{ url_for('plataforma_empresa_alta', empresa_id=empresa.id) }}" title="Dar de alta"><i class="fas fa-handshake"></i></a>
+                            {% else %}
+                            <a class="btn btn-sm btn-outline-success" href="{{ url_for('plataforma_factura_nueva', empresa_id=empresa.id) }}" title="Facturar"><i class="fas fa-file-invoice-dollar"></i></a>
+                            {% endif %}
+                            <form class="d-inline" method="post" action="{{ url_for('plataforma_empresa_demo', empresa_id=empresa.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-secondary" type="submit" title="Demo {{ demo_dias }} días"><i class="fas fa-hourglass-start"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">No hay licencias próximas a vencer.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

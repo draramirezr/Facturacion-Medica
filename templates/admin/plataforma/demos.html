@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}Solicitudes de demo - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 mb-4">
+        <div>
+            <h1 class="h3 mb-1"><i class="fas fa-flask me-2"></i>Solicitudes de demo</h1>
+            <p class="text-muted mb-0">Quién pidió probar ClinicRD y activación de {{ demo_dias }} días.</p>
+        </div>
+        <form method="get" class="d-flex gap-2">
+            <select name="estado" class="form-select">
+                <option value="">Todas</option>
+                <option value="pendiente" {{ 'selected' if estado=='pendiente' }}>Pendientes</option>
+                <option value="activada" {{ 'selected' if estado=='activada' }}>Activadas</option>
+                <option value="descartada" {{ 'selected' if estado=='descartada' }}>Descartadas</option>
+            </select>
+            <button class="btn btn-outline-primary" type="submit">Filtrar</button>
+        </form>
+    </div>
+
+    <div class="table-empresas" style="background:var(--ars-shell-surface,#fff);border-radius:15px;overflow:hidden;">
+        {% if solicitudes %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Solicitante</th>
+                        <th>Empresa</th>
+                        <th>Tipo</th>
+                        <th>Mensaje</th>
+                        <th>Fecha</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in solicitudes %}
+                    <tr>
+                        <td>
+                            <strong>{{ item.nombre }}</strong><br>
+                            <small>{{ item.email }} · {{ item.telefono }}</small>
+                        </td>
+                        <td>{{ item.nombre_empresa }}{% if item.empresa_activada %}<br><small class="text-muted">{{ item.empresa_activada }}</small>{% endif %}</td>
+                        <td>{{ 'Médico' if item.tipo_empresa=='medico' else 'Centro de salud' }}</td>
+                        <td>{{ item.mensaje or '—' }}</td>
+                        <td>{{ item.creado_en }}</td>
+                        <td>{{ item.estado|title }}</td>
+                        <td class="text-center">
+                            {% if item.estado=='pendiente' %}
+                            <form class="d-inline" method="post" action="{{ url_for('plataforma_demo_activar', solicitud_id=item.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-success" type="submit">Activar {{ demo_dias }} días</button>
+                            </form>
+                            <form class="d-inline" method="post" action="{{ url_for('plataforma_demo_descartar', solicitud_id=item.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-secondary" type="submit">Descartar</button>
+                            </form>
+                            {% else %}
+                            —
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">Nadie ha solicitado un demo todavía.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

@@ -1,39 +1,257 @@
 {% extends "base.html" %}
-
 {% block title %}Manual de usuario - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
+{% macro enlace(permiso, endpoint, etiqueta, extra='') -%}
+{%- if can(permiso) or (extra and can(extra)) -%}
+<a href="{{ url_for(endpoint) }}">{{ etiqueta }}</a>
+{%- else -%}
+<strong>{{ etiqueta }}</strong>
+{%- endif -%}
+{%- endmacro %}
+
 {% block content %}
 <style nonce="{{ csp_nonce }}">
-    .ayuda-shell { max-width: 720px; margin: 0 auto; }
-    .ayuda-card {
-        padding: 2rem;
-        border: 1px solid var(--ars-shell-border);
+    .manual { display: grid; grid-template-columns: 250px 1fr; gap: 1.5rem; align-items: start; }
+    .manual-nav {
+        position: sticky; top: 5.5rem;
+        padding: 1rem;
+        border: 1px solid color-mix(in srgb, var(--primary-color) 22%, var(--ars-shell-border, #e5edf3));
         border-radius: 16px;
         background: var(--ars-shell-surface, #fff);
     }
-    .ayuda-card h1 {
-        margin: 0 0 0.6rem;
-        color: var(--primary-dark);
-        font-size: 1.6rem;
-        font-weight: 800;
+    .manual-nav h2 {
+        font-size: .75rem; letter-spacing: .06em; text-transform: uppercase;
+        color: var(--ars-shell-muted, #64748b); margin: 0 0 .65rem;
+    }
+    .manual-nav a {
+        display: block; padding: .42rem .55rem; border-radius: 8px;
+        color: var(--ars-shell-text, inherit); text-decoration: none; font-size: .9rem;
+    }
+    .manual-nav a:hover { background: {{ tema.primary }}14; color: var(--primary-dark); }
+    .manual-search {
+        width: 100%; margin-bottom: .85rem; padding: .55rem .7rem;
+        border: 1px solid var(--ars-shell-border, #e5edf3);
+        border-radius: 10px; background: var(--ars-shell-surface, #fff);
+        color: var(--ars-shell-text, inherit);
+    }
+    .manual-hero, .manual-card {
+        padding: 1.4rem 1.6rem;
+        border: 1px solid color-mix(in srgb, var(--primary-color) 22%, var(--ars-shell-border, #e5edf3));
+        border-radius: 16px;
+        background: var(--ars-shell-surface, #fff);
+        margin-bottom: 1rem;
+        color: var(--ars-shell-text, inherit);
+    }
+    .manual-hero {
+        background: linear-gradient(135deg, {{ tema.primary }}14 0%, var(--ars-shell-surface, #fff) 70%);
+    }
+    .manual-hero h1 { margin: 0 0 .4rem; font-size: 1.7rem; font-weight: 800; color: var(--primary-dark); }
+    .manual-card h2 { margin: 0 0 .75rem; font-size: 1.2rem; color: var(--primary-dark); }
+    .manual-card ol { margin: 0; padding-left: 1.2rem; }
+    .manual-card li { margin: .5rem 0; }
+    .manual-tip {
+        margin-top: .95rem; padding: .75rem 1rem; border-radius: 10px;
+        background: {{ tema.primary }}12; color: var(--ars-shell-text, inherit);
+    }
+    .manual-hidden { display: none !important; }
+    @media (max-width: 900px) {
+        .manual { grid-template-columns: 1fr; }
+        .manual-nav { position: static; }
     }
 </style>
-<div class="container py-5">
-    <div class="ayuda-shell">
-        <section class="ayuda-card">
-            <h1><i class="far fa-circle-question me-2"></i>Manual de usuario</h1>
-            <p class="text-muted mb-0">
-                El manual en línea se publicará aquí. Mientras tanto puedes seguir usando
-                el sistema con normalidad.
-            </p>
-            {% if soporte is defined and soporte.email %}
-            <p class="text-muted mt-3 mb-0">
-                Si necesitas asistencia, escribe a
-                <a href="mailto:{{ soporte.email }}">{{ soporte.email }}</a>.
-            </p>
-            {% endif %}
-        </section>
+
+<div class="container py-4">
+    <div class="manual">
+        <aside class="manual-nav" aria-label="Temas del manual">
+            <label class="visually-hidden" for="manualSearch">Buscar en el manual</label>
+            <input class="manual-search" id="manualSearch" type="search" placeholder="Buscar: factura, cita, receta…">
+            <h2>Temas</h2>
+            <a href="#empezar">1. Empezar</a>
+            <a href="#pantalla">2. La pantalla</a>
+            <a href="#configurar">3. Preparar el consultorio</a>
+            <a href="#pacientes">4. Pacientes</a>
+            <a href="#turnos">5. Turnos</a>
+            <a href="#agenda">6. Agenda</a>
+            <a href="#consulta">7. Atención del día</a>
+            <a href="#documentos">8. Recetas y licencias</a>
+            <a href="#facturar">9. Facturar</a>
+            <a href="#cobros">10. Reclamaciones y pagos</a>
+            <a href="#reportes">11. Histórico</a>
+            <a href="#equipo">12. Equipo y cuenta</a>
+            <a href="#dudas">13. Dudas frecuentes</a>
+        </aside>
+
+        <div>
+            <section class="manual-hero" id="empezar">
+                <h1><i class="far fa-circle-question me-2"></i>Manual de ClinicRD</h1>
+                <p class="mb-0" style="color: var(--ars-shell-muted, #64748b);">
+                    Guía corta para el día a día del consultorio o centro de salud.
+                    Los enlaces azules abren el módulo si tu usuario tiene permiso.
+                    Si no ves un menú, no es un error: tu rol no lo incluye.
+                </p>
+            </section>
+
+            <article class="manual-card" data-manual-section>
+                <h2>1. Empezar</h2>
+                <ol>
+                    <li>Entra con el correo que te asignaron en el consultorio.</li>
+                    <li>Si es la primera vez, el sistema puede pedirte una contraseña nueva.</li>
+                    <li>Quedas dentro de <strong>tu empresa</strong>. No ves pacientes ni facturas de otros consultorios.</li>
+                    <li>Si olvidaste la clave, usa <strong>Recuperar contraseña</strong> en la pantalla de acceso.</li>
+                </ol>
+                <p class="manual-tip mb-0">Pídele al administrador que revise <em>Roles y permisos</em> si te falta un módulo que usas todos los días.</p>
+            </article>
+
+            <article class="manual-card" id="pantalla" data-manual-section>
+                <h2>2. Cómo se usa la pantalla</h2>
+                <ol>
+                    <li>El menú de la izquierda agrupa el trabajo: Principal, Administración, Gestión, Facturación, Reportes y Cuenta.</li>
+                    <li>El buscador de arriba (o <strong>Ctrl K</strong>) salta rápido a un módulo.</li>
+                    <li>La luna cambia a modo oscuro; se guarda en este equipo.</li>
+                    <li>La campana avisa consultas por facturar y citas vencidas.</li>
+                    <li>Si está activo, el globo abre la mensajería interna del consultorio.</li>
+                </ol>
+            </article>
+
+            <article class="manual-card" id="configurar" data-manual-section>
+                <h2>3. Preparar el consultorio (administrador)</h2>
+                <p>Haz esto una vez, antes de atender. Está en <strong>Administración</strong>.</p>
+                <ol>
+                    <li>{{ enlace('catalogos.editar', 'facturacion_centros_medicos', 'Centros médicos', 'catalogos.crear') }}: sucursal o consultorio donde se atiende.</li>
+                    <li>{{ enlace('catalogos.editar', 'facturacion_medicos', 'Médicos', 'catalogos.crear') }}: profesionales y, si aplica, a qué centro pertenecen.</li>
+                    <li>{{ enlace('catalogos.editar', 'facturacion_ars', 'ARS', 'catalogos.crear') }} y {{ enlace('catalogos.editar', 'facturacion_codigo_ars', 'códigos ARS', 'catalogos.crear') }}: aseguradoras y coberturas.</li>
+                    <li>{{ enlace('catalogos.editar', 'facturacion_servicios', 'Servicios', 'catalogos.crear') }}: lo que se cobra (consulta, procedimiento, etc.).</li>
+                    <li>{{ enlace('catalogos.editar', 'facturacion_ncf', 'NCF', 'catalogos.crear') }}: secuencias fiscales. Sin NCF vigente no se puede emitir factura.</li>
+                </ol>
+                <p class="manual-tip mb-0">Si van a usar <strong>facturación electrónica e-CF</strong>, el administrador la configura en la cuenta de la empresa cuando ya tengan certificado DGII.</p>
+            </article>
+
+            <article class="manual-card" id="pacientes" data-manual-section>
+                <h2>4. Pacientes</h2>
+                <ol>
+                    <li>Abre {{ enlace('pacientes.ver', 'facturacion_pacientes', 'Pacientes') }}.</li>
+                    <li>Busca por nombre, cédula o teléfono <strong>antes</strong> de crear uno nuevo.</li>
+                    <li>Completa los datos básicos. Un adulto sin cédula se marca cuando corresponda.</li>
+                    <li>Desde el paciente puedes ir a citas, historia, recetas o facturación.</li>
+                </ol>
+            </article>
+
+            <article class="manual-card" id="turnos" data-manual-section>
+                <h2>5. Turnos del día</h2>
+                <ol>
+                    <li>Recepción entra a {{ enlace('turnos.ver', 'turnos_recepcion', 'Gestión de turnos') }} y toma el turno del paciente.</li>
+                    <li>El médico ve su lista en <strong>Mi cola</strong>: llama, atiende y cierra.</li>
+                    <li>La sala puede mostrar una pantalla pública con el número, sin datos del paciente.</li>
+                </ol>
+                <p class="manual-tip mb-0">Un médico no administra la cola de todo el centro: solo la suya.</p>
+            </article>
+
+            <article class="manual-card" id="agenda" data-manual-section>
+                <h2>6. Agenda médica</h2>
+                <ol>
+                    <li>En {{ enlace('citas.ver', 'facturacion_citas', 'Agenda médica') }} elige el día en el calendario.</li>
+                    <li>Al hacer clic en un día puedes agendar la cita.</li>
+                    <li>Indica paciente, médico, hora y motivo.</li>
+                    <li>Confirma, reprograma o marca si no asistió.</li>
+                </ol>
+            </article>
+
+            <article class="manual-card" id="consulta" data-manual-section>
+                <h2>7. Atención del día</h2>
+                <ol>
+                    <li>{{ enlace('facturacion.crear', 'facturacion_facturas_nueva', 'Registrar consultas') }}: anota la visita para luego facturar.</li>
+                    <li>{{ enlace('historia_clinica.ver', 'facturacion_historia_clinica', 'Historia clínica') }}: motivo, diagnóstico y evolución. El formulario cambia según la especialidad (ginecología, pediatría, nutrición, etc.).</li>
+                    <li>{{ enlace('emergencia.ver', 'facturacion_historias_emergencia', 'Historia de emergencia') }}: atención urgente.</li>
+                    <li>{{ enlace('enfermeria.ver', 'facturacion_hojas_enfermeria', 'Hoja de enfermería') }}: signos y notas de enfermería.</li>
+                </ol>
+                <p class="manual-tip mb-0">Si eres médico, normalmente ves solo tus pacientes y tus notas.</p>
+            </article>
+
+            <article class="manual-card" id="documentos" data-manual-section>
+                <h2>8. Recetas y licencias</h2>
+                <ol>
+                    <li>{{ enlace('recetas.ver', 'facturacion_recetas_medicas', 'Recetas médicas') }}: indica medicamentos y dosis. Puedes imprimir.</li>
+                    <li>{{ enlace('licencias.ver', 'facturacion_licencias_medicas', 'Licencias médicas') }}: días de reposo y tipo de licencia.</li>
+                    <li>Si te equivocaste, <strong>anula</strong>. El registro queda en el historial; no se borra.</li>
+                </ol>
+            </article>
+
+            <article class="manual-card" id="facturar" data-manual-section>
+                <h2>9. Facturar</h2>
+                <ol>
+                    <li>Las consultas sin factura aparecen en {{ enlace('facturacion.ver', 'facturacion_pacientes_pendientes', 'Facturación pendiente') }}.</li>
+                    <li>Ve a {{ enlace('facturacion.crear', 'facturacion_generar', 'Generar factura') }}, elige ARS o particular, paciente y servicios.</li>
+                    <li>Revisa la vista previa (montos y NCF) y confirma.</li>
+                    <li>Si e-CF está activo, ClinicRD arma el comprobante electrónico. Si no, queda la factura interna para imprimir o enviar.</li>
+                </ol>
+                <p class="manual-tip mb-0">No se factura “al paciente suelto”: se factura una consulta o un grupo de servicios ya registrados.</p>
+            </article>
+
+            <article class="manual-card" id="cobros" data-manual-section>
+                <h2>10. Reclamaciones y pagos</h2>
+                <ol>
+                    <li>{{ enlace('facturacion.ver', 'facturacion_reclamaciones', 'Reclamaciones') }}: se hacen <strong>a una factura</strong>, no al paciente. Usa Ver o Editar en esa factura.</li>
+                    <li>{{ enlace('facturacion.ver', 'facturacion_pagos', 'Pagos') }}: primero la ARS (o particular). El sistema sugiere las 5 facturas más viejas sin pagar. También puedes buscar por número de referencia.</li>
+                    <li>Ver y Editar abren el pago o la reclamación, no solo la lista.</li>
+                </ol>
+            </article>
+
+            <article class="manual-card" id="reportes" data-manual-section>
+                <h2>11. Histórico y vista 360</h2>
+                <ol>
+                    <li>{{ enlace('reportes.ver', 'facturacion_historico', 'Histórico') }}: facturas, consultas, citas, emergencias, recetas, licencias y más. Cada pestaña tiene sus filtros.</li>
+                    <li>La pestaña seleccionada se lee en blanco sobre el color del tema.</li>
+                    <li>{{ enlace('historia_clinica.ver', 'facturacion_reporte_pacientes_360', 'Vista 360') }}: todo lo de un paciente en un solo lugar. El médico también la ve.</li>
+                </ol>
+            </article>
+
+            <article class="manual-card" id="equipo" data-manual-section>
+                <h2>12. Equipo y tu cuenta</h2>
+                <ol>
+                    <li>{{ enlace('usuarios.ver', 'admin_usuarios', 'Usuarios') }}: el administrador crea cuentas de su empresa y gasta una licencia por usuario activo.</li>
+                    <li>{{ enlace('roles.ver', 'admin_roles', 'Roles y permisos') }}: define qué ve recepción, médico o facturación.</li>
+                    <li>
+                        {% if es_administrador %}
+                        <a href="{{ url_for('admin_empresas') }}">Mi empresa</a>
+                        {% else %}
+                        <strong>Mi empresa</strong>
+                        {% endif %}: datos del consultorio y vigencia de la suscripción.
+                    </li>
+                    <li>{{ enlace('configuracion.ver', 'perfil_configuracion', 'Configuración') }}: color, letra, chat y corrector de texto.</li>
+                    <li>En tu nombre, arriba a la derecha, está <strong>Cambiar mi contraseña</strong>.</li>
+                </ol>
+            </article>
+
+            <article class="manual-card" id="dudas" data-manual-section>
+                <h2>13. Dudas frecuentes</h2>
+                <ol>
+                    <li><strong>No veo Facturación o Usuarios.</strong> Tu perfil no tiene ese permiso.</li>
+                    <li><strong>No puedo crear otro usuario.</strong> Se acabaron las licencias de la empresa.</li>
+                    <li><strong>No entra al sistema.</strong> La suscripción puede estar vencida o inactiva. Avísale al administrador del consultorio.</li>
+                    <li><strong>El corrector no marca nada.</strong> Revisa el idioma en Configuración. En el título de la ventana no se corrige, solo en el contenido.</li>
+                    <li><strong>Quiero imprimir.</strong> Recetas, licencias y facturas tienen descarga o impresión desde Ver.</li>
+                </ol>
+                {% if soporte is defined and soporte.email %}
+                <p class="manual-tip mb-0">Si sigues trabado, escribe a <a href="mailto:{{ soporte.email }}">{{ soporte.email }}</a>.</p>
+                {% endif %}
+            </article>
+        </div>
     </div>
 </div>
+
+<script nonce="{{ csp_nonce }}">
+    (() => {
+        const input = document.getElementById('manualSearch');
+        const cards = document.querySelectorAll('[data-manual-section]');
+        if (!input) return;
+        input.addEventListener('input', () => {
+            const termino = input.value.trim().toLowerCase();
+            cards.forEach((card) => {
+                const texto = card.textContent.toLowerCase();
+                card.classList.toggle('manual-hidden', Boolean(termino) && !texto.includes(termino));
+            });
+        });
+    })();
+</script>
 {% endblock %}

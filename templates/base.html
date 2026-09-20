@@ -758,11 +758,11 @@
         }
         
         /* Links y enlaces */
-        a:not(.btn):not(.dropdown-item):not(.nav-link) {
+        a:not(.btn):not(.dropdown-item):not(.nav-link):not(.historico-tab):not(.ars-nav-link):not(.ars-sidebar-brand) {
             color: var(--primary-color) !important;
         }
         
-        a:not(.btn):not(.dropdown-item):not(.nav-link):hover {
+        a:not(.btn):not(.dropdown-item):not(.nav-link):not(.historico-tab):not(.ars-nav-link):not(.ars-sidebar-brand):hover {
             color: var(--primary-dark) !important;
         }
         
@@ -1136,9 +1136,10 @@
     {% set nombre_partes = current_user.nombre.split() %}
     {% set es_medico_operativo = es_medico_operativo if es_medico_operativo is defined else false %}
     {% set es_administrador = es_administrador if es_administrador is defined else current_user.perfil == 'Administrador' %}
+    {% set es_dueno_software = es_dueno_software if es_dueno_software is defined else (current_user.perfil == 'Administrador' and current_user.tenant_id is none) %}
     <div class="ars-app-shell">
         <aside class="ars-sidebar" id="arsSidebar" aria-label="Navegación principal">
-            <a class="ars-sidebar-brand" href="{{ url_for('facturacion_menu') }}" aria-label="Ir al inicio de ClinicRD">
+            <a class="ars-sidebar-brand" href="{{ url_for('admin_empresas' if es_dueno_software else 'facturacion_menu') }}" aria-label="Ir al inicio de ClinicRD">
                 <span class="ars-brand-crop">
                     <img class="brand-logo brand-logo-light" src="{{ url_for('static', filename='img/logo.png') }}?v=clinicrd5" alt="ClinicRD Gestión Médica">
                     <img class="brand-logo brand-logo-dark" src="{{ url_for('static', filename='img/logo-on-dark.png') }}?v=clinicrd5" alt="ClinicRD Gestión Médica">
@@ -1146,6 +1147,55 @@
             </a>
 
             <nav class="ars-sidebar-scroll">
+                {% if es_dueno_software %}
+                <button class="ars-nav-section ars-nav-group-toggle" type="button"
+                        data-nav-target="nav-plataforma" aria-expanded="true" aria-controls="nav-plataforma">
+                    <span>Plataforma</span>
+                    <i class="fas fa-chevron-down"></i>
+                </button>
+                <div class="ars-nav-group" id="nav-plataforma">
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'admin_empresas' else '' }}"
+                       href="{{ url_for('admin_empresas') }}">
+                        <i class="fas fa-building"></i>
+                        <span>Empresas</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'admin_empresas_nueva' else '' }}"
+                       href="{{ url_for('admin_empresas_nueva') }}">
+                        <i class="fas fa-plus"></i>
+                        <span>Nueva empresa</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'plataforma_alertas' else '' }}"
+                       href="{{ url_for('plataforma_alertas') }}">
+                        <i class="fas fa-bell"></i>
+                        <span>Alertas</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('plataforma_factura') else '' }}"
+                       href="{{ url_for('plataforma_facturas') }}">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <span>Facturar clientes</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'plataforma_reportes' else '' }}"
+                       href="{{ url_for('plataforma_reportes') }}">
+                        <i class="fas fa-chart-column"></i>
+                        <span>Reportes</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('plataforma_demo') else '' }}"
+                       href="{{ url_for('plataforma_demos') }}">
+                        <i class="fas fa-flask"></i>
+                        <span>Demos</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('verificar_multitenant') else '' }}"
+                       href="{{ url_for('verificar_multitenant_visual') }}">
+                        <i class="fas fa-shield-halved"></i>
+                        <span>Verificación</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'perfil_configuracion' else '' }}"
+                       href="{{ url_for('perfil_configuracion') }}">
+                        <i class="fas fa-gear"></i>
+                        <span>Configuración</span>
+                    </a>
+                </div>
+                {% else %}
                 {% if es_medico_operativo or can('dashboard.ver') %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-principal" aria-expanded="false" aria-controls="nav-principal">
@@ -1261,6 +1311,11 @@
                         <i class="fas fa-notes-medical"></i>
                         <span>Historia Clínica</span>
                     </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'facturacion_reporte_pacientes_360' else '' }}"
+                       href="{{ url_for('facturacion_reporte_pacientes_360') }}">
+                        <i class="fas fa-address-card"></i>
+                        <span>Vista 360</span>
+                    </a>
                     {% endif %}
                     {% if can('emergencia.ver') %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_historias_emergencia') or endpoint.startswith('facturacion_historia_emergencia_') else '' }}"
@@ -1320,23 +1375,27 @@
                 </div>
                 {% endif %}
 
-                {% if can('reportes.ver') and not es_medico_operativo %}
+                {% if (can('reportes.ver') and not es_medico_operativo) or can('historia_clinica.ver') %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-reportes" aria-expanded="false" aria-controls="nav-reportes">
                     <span>Reportes</span>
                     <i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="ars-nav-group collapsed" id="nav-reportes">
+                    {% if can('reportes.ver') and not es_medico_operativo %}
                     <a class="ars-nav-link {{ 'active' if endpoint in ['facturacion_historico', 'facturacion_ver_factura', 'facturacion_editar_factura'] else '' }}"
                        href="{{ url_for('facturacion_historico') }}">
                         <i class="fas fa-clock-rotate-left"></i>
                         <span>Histórico</span>
                     </a>
+                    {% endif %}
+                    {% if can('historia_clinica.ver') %}
                     <a class="ars-nav-link {{ 'active' if endpoint == 'facturacion_reporte_pacientes_360' else '' }}"
                        href="{{ url_for('facturacion_reporte_pacientes_360') }}">
                         <i class="fas fa-address-card"></i>
                         <span>Vista 360</span>
                     </a>
+                    {% endif %}
                 </div>
                 {% endif %}
 
@@ -1375,14 +1434,16 @@
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('admin_empresas') else '' }}"
                        href="{{ url_for('admin_empresas') }}">
                         <i class="fas fa-building"></i>
-                        <span>Empresas</span>
+                        <span>Mi empresa</span>
                     </a>
                     {% endif %}
                 </div>
                 {% endif %}
+                {% endif %}
             </nav>
 
             <div class="ars-sidebar-footer">
+                {% if not es_dueno_software %}
                 {% set centro_ayuda = soporte if soporte is defined else {'manual_url': '', 'email': 'soporte@arsflow.com'} %}
                 <a class="ars-help-card"
                    href="{{ centro_ayuda.manual_url or url_for('centro_ayuda') }}"
@@ -1393,6 +1454,7 @@
                         <small>Manual de usuario en línea</small>
                     </span>
                 </a>
+                {% endif %}
             </div>
         </aside>
 
@@ -1405,6 +1467,7 @@
                     <i class="fas fa-bars"></i>
                 </button>
 
+                {% if not es_dueno_software %}
                 <div class="ars-search" role="search">
                     <input id="arsModuleSearch" type="search"
                            placeholder="Buscador global"
@@ -1412,6 +1475,7 @@
                     <kbd>Ctrl K</kbd>
                     <div class="ars-search-results" id="arsSearchResults" aria-live="polite"></div>
                 </div>
+                {% endif %}
 
                 <div class="ars-topbar-spacer"></div>
 
@@ -1436,7 +1500,7 @@
                         {% if notificaciones %}
                             {% for notificacion in notificaciones %}
                             <a class="ars-notification-item" href="{{ notificacion['url'] }}">
-                                <i class="fas {{ 'fa-file-invoice-dollar' if notificacion['tipo'] == 'facturacion' else 'fa-calendar-xmark' }}"></i>
+                                <i class="fas {{ 'fa-hourglass-end' if notificacion['tipo'] == 'licencia' else ('fa-flask' if notificacion['tipo'] == 'demo' else ('fa-file-invoice-dollar' if notificacion['tipo'] == 'facturacion' else 'fa-calendar-xmark')) }}"></i>
                                 <span>
                                     <strong>{{ notificacion['titulo'] }}</strong>
                                     <small>{{ notificacion['detalle'] }}{% if notificacion['fecha'] %} · {{ notificacion['fecha'] }}{% endif %}</small>
@@ -1460,12 +1524,14 @@
                         </span>
                         <span class="ars-user-copy">
                             <strong>{{ current_user.nombre }}</strong>
-                            <small>{{ current_user.perfil }}</small>
+                            <small>{{ 'Dueño de ClinicRD' if es_dueno_software else current_user.perfil }}</small>
                         </span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-end">
                         <li><h6 class="dropdown-header">{{ current_user.email }}</h6></li>
-                        {% if empresa and empresa.empresa_nombre %}
+                        {% if es_dueno_software %}
+                        <li><span class="dropdown-item-text"><small><i class="fas fa-crown me-2"></i>Dueño del software</small></span></li>
+                        {% elif empresa and empresa.empresa_nombre %}
                         <li><span class="dropdown-item-text"><small><i class="fas fa-building me-2"></i>{{ empresa.empresa_nombre }}</small></span></li>
                         {% endif %}
                         <li><hr class="dropdown-divider"></li>
@@ -1490,7 +1556,7 @@
                 </div>
             </header>
 
-            {% if current_user.mostrar_chat %}
+            {% if current_user.mostrar_chat and not es_dueno_software %}
             <button class="ars-chat-fab" id="arsChatToggle" type="button"
                     aria-label="Abrir mensajería" aria-controls="arsChatPanel"
                     aria-expanded="false" title="Mensajería interna">
@@ -1750,7 +1816,7 @@
     {% if current_user.is_authenticated %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}?v=1.4" defer></script>
     <script src="{{ url_for('static', filename='js/patient-search.js') }}?v=2" defer></script>
-    {% if current_user.mostrar_chat %}
+    {% if current_user.mostrar_chat and not es_dueno_software %}
     <script src="{{ url_for('static', filename='js/chat.js') }}?v=2" defer></script>
     {% endif %}
     {% endif %}

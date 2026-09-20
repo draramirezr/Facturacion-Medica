@@ -748,6 +748,65 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertEqual(redireccion.status_code, 302)
         self.assertEqual(redireccion.location, 'https://manual.arsflow.com')
 
+    def test_owner_is_redirected_away_from_clinic_manual(self):
+        import routes.public as public_routes
+
+        dueno = SimpleNamespace(
+            is_authenticated=True,
+            is_active=True,
+            is_anonymous=False,
+            tenant_id=None,
+            perfil='Administrador',
+            get_id=lambda: '1',
+        )
+        with self.flask_app.test_request_context('/ayuda'):
+            with patch('flask_login.utils._get_user', return_value=dueno):
+                with patch.object(
+                    public_routes,
+                    'usuario_es_dueno_software',
+                    return_value=True,
+                ):
+                    redireccion = public_routes.centro_ayuda()
+
+        self.assertEqual(redireccion.status_code, 302)
+        self.assertTrue(redireccion.location.endswith('/admin/empresas'))
+
+    def test_clinic_manual_covers_daily_work_not_platform(self):
+        ayuda = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'ayuda.html'
+        ).read_text(encoding='utf-8')
+        self.assertIn('Manual de ClinicRD', ayuda)
+        self.assertIn('Generar factura', ayuda)
+        self.assertIn('e-CF', ayuda)
+        self.assertIn('Reclamaciones', ayuda)
+        self.assertNotIn('El manual en línea se publicará aquí', ayuda)
+        self.assertNotIn('plataforma_alertas', ayuda)
+        self.assertNotIn('Dar de alta', ayuda)
+        self.assertNotIn('Dueño de ClinicRD', ayuda)
+
+    def test_production_entrypoint_binds_waitress_on_all_interfaces(self):
+        fuente = (
+            Path(app_module.__file__).resolve().parent / 'app.py'
+        ).read_text(encoding='utf-8')
+        self.assertIn("from waitress import serve", fuente)
+        self.assertIn("host='0.0.0.0'", fuente)
+        self.assertNotIn(
+            'No uses el servidor de desarrollo en producción',
+            fuente,
+        )
+
+    def test_public_base_url_falls_back_to_railway_domain(self):
+        import core.config as config
+
+        with patch.dict(
+            'os.environ',
+            {'APP_BASE_URL': '', 'RAILWAY_PUBLIC_DOMAIN': 'www.clinicrd.com'},
+            clear=False,
+        ):
+            self.assertEqual(config.url_publica_base(), 'https://www.clinicrd.com')
+
     def test_theme_context_includes_health_center_name(self):
         import core.presentation as presentation
 

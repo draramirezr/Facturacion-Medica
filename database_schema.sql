@@ -31,6 +31,7 @@ CREATE TABLE IF NOT EXISTS empresas (
     estado ENUM('activo', 'suspendido', 'inactivo') NOT NULL DEFAULT 'activo',
     tipo_empresa ENUM('medico', 'centro_salud') NOT NULL,
     creado_por INT NULL,
+    es_demo TINYINT(1) NOT NULL DEFAULT 0,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_empresas_rnc (rnc)
@@ -418,6 +419,50 @@ CREATE TABLE IF NOT EXISTS auditoria (
 -- Crear el primer administrador con crear_admin.py.
 
 -- Los catálogos se crean desde la aplicación después de registrar una empresa.
+
+-- ============================================
+-- TABLA: solicitudes_demo
+-- Leads públicos para probar ClinicRD 7 días
+-- ============================================
+CREATE TABLE IF NOT EXISTS solicitudes_demo (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    email VARCHAR(100) NOT NULL,
+    telefono VARCHAR(20) NOT NULL,
+    nombre_empresa VARCHAR(255) NOT NULL,
+    tipo_empresa ENUM('medico','centro_salud') NOT NULL DEFAULT 'medico',
+    mensaje VARCHAR(1000) NULL,
+    estado ENUM('pendiente','activada','descartada') NOT NULL DEFAULT 'pendiente',
+    empresa_id INT NULL,
+    creado_en TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    activado_en DATETIME NULL,
+    INDEX idx_solicitudes_demo_estado (estado),
+    INDEX idx_solicitudes_demo_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ============================================
+-- TABLA: facturas_plataforma
+-- Facturas del dueño a empresas clientes
+-- ============================================
+CREATE TABLE IF NOT EXISTS facturas_plataforma (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    empresa_id INT NOT NULL,
+    numero VARCHAR(30) NOT NULL,
+    fecha DATE NOT NULL,
+    periodo_inicio DATE NOT NULL,
+    periodo_fin DATE NOT NULL,
+    plan ENUM('basico','profesional','empresarial') NOT NULL,
+    licencias INT NOT NULL DEFAULT 1,
+    monto DECIMAL(12,2) NOT NULL,
+    estado ENUM('pendiente','pagada','anulada') NOT NULL DEFAULT 'pendiente',
+    notas VARCHAR(500) NULL,
+    creado_por INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_factura_plataforma_numero (numero),
+    INDEX idx_fp_empresa (empresa_id),
+    INDEX idx_fp_fecha (fecha),
+    INDEX idx_fp_estado (estado)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
 -- FIN DEL SCRIPT

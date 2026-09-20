@@ -7,6 +7,7 @@ from flask import jsonify, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from core.extensions import csrf
+from auth.helpers import usuario_es_dueno_software
 from core.presentation import obtener_soporte
 from core.security import rate_limit
 
@@ -40,7 +41,9 @@ def redirects():
 
 @login_required
 def centro_ayuda():
-    """Abrir el manual en línea o la pantalla temporal si aún no está publicado."""
+    """Manual del consultorio. El dueño del software no lo necesita."""
+    if usuario_es_dueno_software(current_user):
+        return redirect(url_for('admin_empresas'))
     destino = (obtener_soporte() or {}).get('manual_url') or ''
     if destino:
         return redirect(destino)

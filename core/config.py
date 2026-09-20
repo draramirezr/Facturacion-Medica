@@ -126,9 +126,20 @@ def validate_required_tenant_schema(connection_factory=None):
         )
 
 
+def url_publica_base():
+    """URL HTTPS pública: APP_BASE_URL o el dominio que Railway publica."""
+    configurada = os.getenv('APP_BASE_URL', '').strip()
+    if configurada:
+        return configurada
+    dominio_railway = os.getenv('RAILWAY_PUBLIC_DOMAIN', '').strip()
+    if dominio_railway:
+        return f'https://{dominio_railway}'
+    return ''
+
+
 def validate_production_startup():
     """Validar controles que no pueden degradarse silenciosamente."""
-    public_base_url = os.getenv('APP_BASE_URL', '').strip()
+    public_base_url = url_publica_base()
     parsed_url = urlparse(public_base_url)
     if parsed_url.scheme != 'https' or not parsed_url.netloc:
         raise RuntimeError(

@@ -38,12 +38,37 @@ def get_empresa_info(tenant_id=None):
     return execute_query('SELECT * FROM empresas WHERE id=%s', (tenant_id,))
 
 
+def inactivar_demos_vencidos():
+    """El demo de 7 días se apaga solo al vencer."""
+    try:
+        pendientes = execute_query(
+            """
+            SELECT COUNT(*) AS total FROM empresas
+            WHERE es_demo=1 AND estado='activo' AND fecha_fin<CURDATE()
+            """
+        ) or {}
+        total = int(pendientes.get('total') or 0)
+        if total:
+            execute_update(
+                """
+                UPDATE empresas SET estado='inactivo'
+                WHERE es_demo=1 AND estado='activo' AND fecha_fin<CURDATE()
+                """
+            )
+        return total
+    except Exception as error:
+        logger.error('Error inactivando demos vencidos: %s', error)
+        return 0
+
+
 def verificar_suscripciones_vencidas():
     try:
+        inactivar_demos_vencidos()
         return execute_update(
             """
             UPDATE empresas SET estado='suspendido'
             WHERE fecha_fin<CURDATE() AND estado='activo'
+              AND IFNULL(es_demo, 0)=0
             """
         ) or 0
     except Exception as error:

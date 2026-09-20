@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Histórico{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -219,13 +219,19 @@
         font-weight: 600;
         font-size: 0.85rem;
     }
-    .historico-tab.active {
+    .historico-tab.active,
+    a.historico-tab.active,
+    a.historico-tab.active i {
         background: {{ tema.primary }};
         border-color: {{ tema.primary }};
-        color: #fff;
+        color: #fff !important;
     }
     .historico-tab:hover { color: inherit; }
-    .historico-tab.active:hover { color: #fff; }
+    .historico-tab.active:hover,
+    a.historico-tab.active:hover,
+    a.historico-tab.active:hover i {
+        color: #fff !important;
+    }
 </style>
 
 {% set filtros = filtros if filtros is defined else {} %}

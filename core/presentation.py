@@ -9,6 +9,7 @@ from flask_login import current_user
 from auth.helpers import (
     user_has_permission,
     usuario_es_administrador,
+    usuario_es_dueno_software,
     usuario_es_medico_operativo,
 )
 
@@ -178,6 +179,10 @@ def inject_theme():
         'es_administrador': (
             current_user.is_authenticated
             and usuario_es_administrador(current_user)
+        ),
+        'es_dueno_software': (
+            current_user.is_authenticated
+            and usuario_es_dueno_software(current_user)
         ),
         'es_medico_operativo': (
             current_user.is_authenticated

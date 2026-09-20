@@ -204,14 +204,23 @@ EMAIL_FROM=tu_email_verificado@dominio.com
 2. Crear nuevo proyecto desde GitHub
 3. Agregar servicio MySQL
 4. Configurar variables de entorno
-5. Configurar el comando de inicio productivo:
+5. Configurar el comando de inicio productivo (Settings → Deploy):
 
 ```bash
-waitress-serve --host=0.0.0.0 --port=$PORT app:app
+python app.py
 ```
 
-`SECRET_KEY` y `APP_BASE_URL` son obligatorias en producción. El proceso
-validará también que las tablas principales tengan `tenant_id`.
+Ese comando usa Waitress en `0.0.0.0` y el `PORT` que inyecta Railway.
+No pongas `PORT=5000` en Variables de Railway: choca con el puerto
+público (casi siempre 8080) y el dominio responde 502.
+
+En Networking, el dominio (`www.clinicrd.com`) debe apuntar al mismo
+puerto que escucha la app. Si Railway muestra **Port 8080**, deja que
+`PORT` lo ponga Railway; no lo fijes a mano.
+
+`SECRET_KEY` es obligatoria. `APP_BASE_URL` debe ser
+`https://www.clinicrd.com`. El proceso validará también que las tablas
+principales tengan `tenant_id`.
 
 ### Otras plataformas
 

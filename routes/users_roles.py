@@ -240,7 +240,7 @@ def admin_usuarios():
             'Selecciona una empresa antes de administrar sus usuarios.',
             'error',
         )
-        return redirect(url_for('facturacion_menu'))
+        return redirect(url_for('admin_empresas'))
     return render_template(
         'usuarios/lista.html',
         usuarios=listar_usuarios_del_tenant(tenant_id),

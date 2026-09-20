@@ -18,6 +18,23 @@ def usuario_es_administrador(user):
     )
 
 
+def usuario_es_dueno_software(user):
+    """Dueño del software: administra todas las empresas, no un tenant."""
+    if not user or getattr(user, 'tenant_id', 1) is not None:
+        return False
+    return (
+        getattr(user, 'perfil', None) == 'Administrador'
+        or usuario_es_administrador(user)
+    )
+
+
+def destino_inicio_sesion(user=None):
+    """Página inicial según si opera el software o un consultorio."""
+    if usuario_es_dueno_software(user):
+        return 'admin_empresas'
+    return 'facturacion_menu'
+
+
 def usuario_es_medico_operativo(user):
     """Médico de cola: no aplica a quien administra usuarios o la empresa."""
     if not user or usuario_es_administrador(user):

@@ -239,7 +239,7 @@ class InternalMessagingTests(unittest.TestCase):
         self.assertIn("mostrar_chat TINYINT(1) NOT NULL DEFAULT 1", migration)
         self.assertIn("id=\"arsChatPanel\"", template)
         self.assertIn("class=\"ars-chat-fab\"", template)
-        self.assertIn("{% if current_user.mostrar_chat %}", template)
+        self.assertIn("current_user.mostrar_chat", template)
         self.assertIn("js/chat.js", template)
         self.assertIn('name="mostrar_chat"', settings)
 

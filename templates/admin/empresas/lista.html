@@ -138,22 +138,52 @@
         box-shadow: 0 6px 20px {{ tema.primary }}50;
     }
     
-    .btn-editar {
-        background:var(--ars-shell-surface, #fff);
-        border: 2px solid var(--primary-color);
-        color: var(--primary-color);
-        padding: 0.4rem 0.8rem;
-        border-radius: 8px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
+    .acciones-fila {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
     }
-    
-    .btn-editar:hover {
-        background: var(--primary-color);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 4px 10px {{ tema.primary }}50;
+
+    .acciones-fila form {
+        display: inline-flex;
+        margin: 0;
+        padding: 0;
+        width: 36px;
+        height: 36px;
+    }
+
+    .acciones-fila .btn,
+    .acciones-fila .btn-editar,
+    .acciones-fila a.btn,
+    .acciones-fila button.btn {
+        width: 36px !important;
+        height: 36px !important;
+        min-width: 36px !important;
+        max-width: 36px !important;
+        min-height: 36px !important;
+        max-height: 36px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        line-height: 1 !important;
+        font-size: 0.85rem !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        flex: 0 0 36px !important;
+        background: var(--ars-shell-surface, #fff);
+        border: 2px solid var(--primary-color) !important;
+        color: var(--primary-color) !important;
+        border-radius: 8px !important;
+        box-sizing: border-box !important;
+    }
+
+    .acciones-fila .btn:hover,
+    .acciones-fila .btn-editar:hover {
+        background: var(--primary-color) !important;
+        color: white !important;
     }
 
     .empresas-title {
@@ -163,14 +193,13 @@
         margin-bottom: 0.5rem;
     }
 
-    .col-nombre { width: 20%; }
-    .col-razon { width: 18%; }
+    .col-razon { width: 28%; }
     .col-licencias { width: 13%; }
     .col-usuarios { width: 9%; }
-    .col-suscripcion { width: 14%; }
-    .col-plan { width: 9%; }
-    .col-estado { width: 8%; }
-    .col-acciones { width: 9%; }
+    .col-suscripcion { width: 16%; }
+    .col-plan { width: 10%; }
+    .col-estado { width: 9%; }
+    .col-acciones { width: 15%; }
     .licencias-count { font-size: 0.85rem; font-weight: 600; }
     .subscription-badge-small { font-size: 0.75rem; }
     .empty-icon { font-size: 3rem; color: var(--text-muted); opacity: 0.5; }
@@ -189,15 +218,23 @@
             <div>
                 <h1 class="empresas-title">
                     <i class="fas fa-building me-2"></i>
-                    Gestión de Empresas
+                    {% if es_dueno_software %}Empresas de ClinicRD{% else %}Mi empresa{% endif %}
                 </h1>
-                <p class="text-muted mb-0">Sistema Multi-Tenant - Administración de empresas</p>
+                <p class="text-muted mb-0">
+                    {% if es_dueno_software %}
+                    Dueño del software · todas las empresas, licencias y suscripciones
+                    {% else %}
+                    Datos de tu consultorio o centro de salud
+                    {% endif %}
+                </p>
             </div>
+            {% if es_dueno_software %}
             <div>
                 <a href="{{ url_for('admin_empresas_nueva') }}" class="btn btn-nuevo">
                     <i class="fas fa-plus me-2"></i>Nueva Empresa
                 </a>
             </div>
+            {% endif %}
         </div>
     </div>
 
@@ -208,7 +245,6 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th class="col-nombre">Nombre</th>
                         <th class="col-razon">Razón Social</th>
                         <th class="col-licencias">Licencias</th>
                         <th class="col-usuarios">Usuarios</th>
@@ -221,8 +257,7 @@
                 <tbody>
                     {% for empresa in empresas %}
                     <tr>
-                        <td><strong>{{ empresa['nombre'] }}</strong></td>
-                        <td>{{ empresa['razon_social'] }}</td>
+                        <td><strong>{{ empresa['razon_social'] or empresa['nombre'] }}</strong></td>
                         <td>
                             <div class="licencias-info">
                                 <span class="licencias-count">
@@ -252,17 +287,40 @@
                             <span class="badge-plan badge-{{ empresa['plan'] }}">
                                 {{ empresa['plan']|title }}
                             </span>
+                            {% if empresa.get('es_demo') %}
+                            <br><small class="text-muted">Demo</small>
+                            {% endif %}
                         </td>
                         <td>
                             <span class="badge-estado badge-{{ empresa['estado'] }}">
                                 {{ empresa['estado']|title }}
                             </span>
                         </td>
-                        <td class="text-center">
-                            <a href="{{ url_for('admin_empresas_editar', empresa_id=empresa['id']) }}" 
-                               class="btn btn-editar">
-                                <i class="fas fa-edit"></i> Editar
-                            </a>
+                        <td class="text-center col-acciones">
+                            <div class="acciones-fila">
+                                <a href="{{ url_for('admin_empresas_editar', empresa_id=empresa['id']) }}"
+                                   class="btn btn-editar" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                {% if es_dueno_software %}
+                                <a href="{{ url_for('plataforma_factura_nueva', empresa_id=empresa['id']) }}"
+                                   class="btn btn-editar" title="Facturar">
+                                    <i class="fas fa-file-invoice-dollar"></i>
+                                </a>
+                                {% if empresa.get('es_demo') %}
+                                <a href="{{ url_for('plataforma_empresa_alta', empresa_id=empresa['id']) }}"
+                                   class="btn btn-editar" title="Dar de alta">
+                                    <i class="fas fa-handshake"></i>
+                                </a>
+                                {% endif %}
+                                <form method="post" action="{{ url_for('plataforma_empresa_demo', empresa_id=empresa['id']) }}">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-editar" type="submit" title="Demo 7 días">
+                                        <i class="fas fa-hourglass-start"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -273,9 +331,11 @@
         <div class="text-center py-5">
             <i class="fas fa-inbox empty-icon"></i>
             <p class="text-muted mt-3">No hay empresas registradas</p>
+            {% if es_dueno_software %}
             <a href="{{ url_for('admin_empresas_nueva') }}" class="btn btn-nuevo mt-2">
                 <i class="fas fa-plus me-2"></i>Crear primera empresa
             </a>
+            {% endif %}
         </div>
         {% endif %}
     </div>

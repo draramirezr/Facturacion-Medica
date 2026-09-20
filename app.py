@@ -40,6 +40,7 @@ from core.tenant import (
 )
 from routes import register_operation_routes
 from routes.admin_companies import register_admin_company_routes
+from routes.platform import register_platform_routes
 from routes.public import register_public_routes
 from routes.search import register_search_routes
 from services.notifications import init_notifications
@@ -63,6 +64,7 @@ def configure(flask_app):
     register_public_routes(flask_app)
     register_auth_routes(flask_app)
     register_admin_company_routes(flask_app)
+    register_platform_routes(flask_app)
     register_search_routes(flask_app)
     register_operation_routes(flask_app)
 
@@ -93,14 +95,27 @@ __all__ = [
 ]
 
 
-if __name__ == '__main__':
-    if IS_PRODUCTION:
-        raise RuntimeError(
-            'No uses el servidor de desarrollo en producción. '
-            'Inicia la aplicación con Waitress u otro servidor WSGI.'
-        )
+def _corre_en_railway():
+    return bool(
+        os.getenv('RAILWAY_ENVIRONMENT')
+        or os.getenv('RAILWAY_PROJECT_ID')
+    )
+
+
+def run():
+    """Arrancar el servidor HTTP. En Railway/producción usa Waitress en 0.0.0.0."""
+    puerto = int(os.getenv('PORT', '8080' if _corre_en_railway() else '5000'))
+    if IS_PRODUCTION or _corre_en_railway():
+        from waitress import serve
+
+        serve(app, host='0.0.0.0', port=puerto, ident='ClinicRD', threads=8)
+        return
     app.run(
         host=os.getenv('HOST', '127.0.0.1'),
-        port=int(os.getenv('PORT', 5000)),
+        port=puerto,
         debug=ENVIRONMENT == 'development',
     )
+
+
+if __name__ == '__main__':
+    run()

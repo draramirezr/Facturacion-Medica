@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Reportes de plataforma - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h1 class="h3 mb-1"><i class="fas fa-chart-column me-2"></i>Reportes</h1>
+    <p class="text-muted mb-4">Empresas pendientes de pago y cobros de suscripción.</p>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+                <small class="text-muted">Empresas pendientes</small>
+                <div class="fs-3 fw-bold">{{ resumen.empresas_deudoras }}</div>
+                <small>con factura sin cobrar</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+                <small class="text-muted">Por cobrar</small>
+                <div class="fs-3 fw-bold">US$ {{ '%.2f'|format(resumen.monto_deudoras) }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+                <small class="text-muted">Cobrado en periodo</small>
+                <div class="fs-3 fw-bold">US$ {{ '%.2f'|format(resumen.pagada) }}</div>
+                <small>{{ resumen.cantidad_pagada }} facturas</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+                <small class="text-muted">Pendiente en periodo</small>
+                <div class="fs-3 fw-bold">US$ {{ '%.2f'|format(resumen.pendiente) }}</div>
+                <small>{{ resumen.cantidad_pendiente }} facturas</small>
+            </div>
+        </div>
+    </div>
+
+    <h2 class="h5 mb-3">Empresas pendientes de pago</h2>
+    <div class="table-empresas mb-5" style="background:var(--ars-shell-surface,#fff);border-radius:15px;overflow:hidden;">
+        {% if deudoras %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Razón social</th>
+                        <th>Plan</th>
+                        <th>Facturas</th>
+                        <th>Monto pendiente</th>
+                        <th>Más antigua</th>
+                        <th>Última</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for empresa in deudoras %}
+                    <tr>
+                        <td>
+                            <strong>{{ empresa.razon_social or empresa.nombre }}</strong><br>
+                            <small class="text-muted">{{ empresa.email }}</small>
+                        </td>
+                        <td>{{ empresa.plan|title }}{% if empresa.es_demo %} · Demo{% endif %}</td>
+                        <td>{{ empresa.facturas_pendientes }}</td>
+                        <td>US$ {{ '%.2f'|format(empresa.monto_pendiente|float) }}</td>
+                        <td>{{ empresa.factura_mas_vieja }}</td>
+                        <td>{{ empresa.ultima_factura }}</td>
+                        <td class="text-center text-nowrap">
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('plataforma_facturas', estado='pendiente', empresa_id=empresa.id) }}" title="Ver facturas">
+                                <i class="fas fa-file-invoice-dollar"></i>
+                            </a>
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('plataforma_factura_nueva', empresa_id=empresa.id) }}" title="Nueva factura">
+                                <i class="fas fa-plus"></i>
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">Ninguna empresa tiene pagos pendientes.</div>
+        {% endif %}
+    </div>
+
+    <h2 class="h5 mb-3">Facturas del periodo</h2>
+    <form class="row g-2 mb-3" method="get">
+        <div class="col-md-3"><input class="form-control" type="date" name="desde" value="{{ filtros.desde }}"></div>
+        <div class="col-md-3"><input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}"></div>
+        <div class="col-md-3">
+            <select name="estado" class="form-select">
+                <option value="">Todas</option>
+                <option value="pendiente" {{ 'selected' if filtros.estado=='pendiente' }}>Pendiente</option>
+                <option value="pagada" {{ 'selected' if filtros.estado=='pagada' }}>Pagada</option>
+                <option value="anulada" {{ 'selected' if filtros.estado=='anulada' }}>Anulada</option>
+            </select>
+        </div>
+        <div class="col-md-3"><button class="btn btn-outline-primary w-100" type="submit">Filtrar</button></div>
+    </form>
+
+    <div class="table-empresas" style="background:var(--ars-shell-surface,#fff);border-radius:15px;overflow:hidden;">
+        {% if facturas %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Número</th>
+                        <th>Razón social</th>
+                        <th>Fecha</th>
+                        <th>Periodo</th>
+                        <th>Plan</th>
+                        <th>Monto</th>
+                        <th>Estado</th>
+                        <th class="text-center">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for factura in facturas %}
+                    <tr>
+                        <td>{{ factura.numero }}</td>
+                        <td>{{ factura.empresa_razon or factura.empresa_nombre }}</td>
+                        <td>{{ factura.fecha }}</td>
+                        <td>{{ factura.periodo_inicio }} · {{ factura.periodo_fin }}</td>
+                        <td>{{ factura.plan|title }}</td>
+                        <td>US$ {{ '%.2f'|format(factura.monto|float) }}</td>
+                        <td>{{ factura.estado|title }}</td>
+                        <td class="text-center text-nowrap">
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('plataforma_factura_pdf', factura_id=factura.id) }}" title="Descargar">
+                                <i class="fas fa-download"></i>
+                            </a>
+                            <form class="d-inline" method="post" action="{{ url_for('plataforma_factura_enviar', factura_id=factura.id) }}">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button class="btn btn-sm btn-outline-primary" type="submit" title="Enviar por correo">
+                                    <i class="fas fa-envelope"></i>
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">No hay facturas en ese periodo.</div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

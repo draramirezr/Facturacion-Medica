@@ -8,19 +8,19 @@ from flask_login import current_user, login_required
 
 from core.config import REQUIRED_TENANT_TABLES
 from core.database import execute_query, execute_update
-from auth.helpers import usuario_es_administrador
+from auth.helpers import usuario_es_dueno_software
 from core.tenant import get_current_tenant_id
 from routes.support import sanitize_input, validate_digits, validate_email, validate_int
-from services.subscriptions import verificar_suscripciones_vencidas
+from services.subscriptions import (
+    inactivar_demos_vencidos,
+    verificar_suscripciones_vencidas,
+)
 
 logger = logging.getLogger(__name__)
 
 
 def _es_super_administrador():
-    return (
-        usuario_es_administrador(current_user)
-        and get_current_tenant_id() is None
-    )
+    return usuario_es_dueno_software(current_user)
 
 
 @login_required
@@ -50,7 +50,13 @@ def admin_empresas():
             (tenant_id,),
             fetch='all',
         ) or []
+    demos_apagados = inactivar_demos_vencidos()
     suspendidas = verificar_suscripciones_vencidas()
+    if demos_apagados > 0:
+        flash(
+            f'{demos_apagados} demo(s) inactivado(s) al cumplir los 7 días',
+            'warning',
+        )
     if suspendidas > 0:
         flash(
             f'{suspendidas} empresa(s) suspendida(s) por vencimiento '
@@ -78,7 +84,11 @@ def _decorate_subscription(empresa):
             fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
         dias = (fecha_fin - date.today()).days
         empresa['dias_restantes'] = dias
-        if dias < 0:
+        if empresa.get('es_demo') and dias < 0:
+            values = ('demo_vencido', 'DEMO VENCIDO', 'danger', 'ban')
+        elif empresa.get('es_demo'):
+            values = ('demo', f'DEMO {dias}d', 'info', 'flask')
+        elif dias < 0:
             values = ('vencida', 'VENCIDA', 'danger', 'exclamation-circle')
         elif dias <= 7:
             values = ('urgente', f'{dias}d - URGENTE', 'danger', 'exclamation-triangle')
@@ -375,13 +385,14 @@ def verificar_multitenant():
 def verificar_multitenant_visual():
     if not _es_super_administrador():
         flash('No tienes permisos', 'error')
-        return redirect(url_for('facturacion_menu'))
+        return redirect(url_for('admin_empresas'))
     return render_template('admin/empresas/verificar.html')
 
 
 @login_required
 def admin():
-    return redirect(url_for('facturacion_menu'))
+    from auth.helpers import destino_inicio_sesion
+    return redirect(url_for(destino_inicio_sesion(current_user)))
 
 
 def register_admin_company_routes(app):

@@ -41,6 +41,13 @@ def require_tenant(func):
         if not current_user.is_authenticated:
             return redirect(url_for('login'))
         if not getattr(current_user, 'tenant_id', None):
+            from auth.helpers import usuario_es_dueno_software
+            if usuario_es_dueno_software(current_user):
+                flash(
+                    'El dueño de ClinicRD administra empresas, no un consultorio.',
+                    'info',
+                )
+                return redirect(url_for('admin_empresas'))
             flash('Error: Usuario sin empresa asignada', 'error')
             return redirect(url_for('logout'))
         return func(*args, **kwargs)

@@ -13,6 +13,7 @@ from flask import current_app, flash, jsonify, make_response, redirect, render_t
 from flask_login import current_user, login_required
 from markupsafe import escape
 from auth import permission_required, user_has_permission
+from auth.helpers import usuario_es_dueno_software
 from core.database import database_transaction, execute_query, execute_update, get_db_connection
 from core.tenant import get_current_tenant_id, validate_tenant_access
 from ecf import ECFBuildError, ECFBuilder, ECFCertificateResolutionError, ECFPrintableError, ECFSchemaError, ECFSigningError, ECFValidationError, ECFValidator, TenantCertificateProvider, build_encf, build_stamp, generate_e31_pdf, generate_qr, reserve_encf
@@ -50,6 +51,8 @@ except ImportError:
 @login_required
 def facturacion_menu():
     """Menú principal de facturación"""
+    if usuario_es_dueno_software(current_user):
+        return redirect(url_for('admin_empresas'))
     roles_rbac = set(getattr(current_user, 'rbac_roles', ()))
     es_administrador = (
         'Administrador' in roles_rbac

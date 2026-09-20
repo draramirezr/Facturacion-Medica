@@ -11,6 +11,7 @@ from flask import (
     flash, redirect, render_template, request, session, url_for,
 )
 from flask_login import current_user, login_required, login_user, logout_user
+from auth.helpers import destino_inicio_sesion
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from auth.models import User
@@ -20,6 +21,7 @@ from core.security import rate_limit, rate_limit_lock, request_counts
 from routes.support import (
     sanitize_input, validar_password_segura, validate_digits, validate_email,
 )
+from services.platform import asegurar_tablas_plataforma
 from services.subscriptions import (
     check_license_available, verificar_suscripciones_vencidas,
 )
@@ -67,7 +69,8 @@ def login():
         user_data = execute_query(
             """
             SELECT u.*, e.nombre AS empresa_nombre,
-                   e.estado AS empresa_estado, e.fecha_fin AS empresa_fecha_fin
+                   e.estado AS empresa_estado, e.fecha_fin AS empresa_fecha_fin,
+                   e.es_demo AS empresa_es_demo
             FROM usuarios u
             LEFT JOIN empresas e ON u.tenant_id=e.id
             WHERE u.email=%s
@@ -75,26 +78,39 @@ def login():
             (email,),
         )
         if user_data and user_data['activo']:
+            es_dueno = user_data.get('tenant_id') is None
             estado = user_data.get('empresa_estado')
-            if estado != 'activo':
+            if not es_dueno and estado != 'activo':
                 message = (
-                    'Suscripción vencida o suspendida. Contacta al administrador '
-                    'del sistema.'
-                    if estado == 'suspendido'
-                    else 'La empresa asociada a este usuario está inactiva'
+                    'Tu demo de 7 días terminó. Si cerraron el acuerdo, '
+                    'ClinicRD puede darte de alta.'
+                    if user_data.get('empresa_es_demo')
+                    else (
+                        'Suscripción vencida o suspendida. Contacta al administrador '
+                        'del sistema.'
+                        if estado == 'suspendido'
+                        else 'La empresa asociada a este usuario está inactiva'
+                    )
                 )
                 flash(message, 'error')
                 return _redirigir_login()
             fecha_fin = user_data.get('empresa_fecha_fin')
             if isinstance(fecha_fin, str):
                 fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
-            if fecha_fin and fecha_fin < date.today():
+            if not es_dueno and fecha_fin and fecha_fin < date.today():
+                es_demo = bool(user_data.get('empresa_es_demo'))
                 execute_update(
-                    "UPDATE empresas SET estado='suspendido' "
+                    "UPDATE empresas SET estado=%s "
                     "WHERE id=%s AND estado='activo'",
-                    (user_data.get('tenant_id'),),
+                    (
+                        'inactivo' if es_demo else 'suspendido',
+                        user_data.get('tenant_id'),
+                    ),
                 )
                 flash(
+                    'Tu demo de 7 días terminó. Si cerraron el acuerdo, '
+                    'ClinicRD puede darte de alta.'
+                    if es_demo else
                     'La suscripción de tu empresa ha vencido. '
                     'Contacta al administrador.',
                     'error',
@@ -117,7 +133,7 @@ def login():
                     'WHERE id=%s AND tenant_id <=> %s',
                     (datetime.now(), user.id, user.tenant_id),
                 )
-                return redirect(url_retorno_segura())
+                return redirect(url_retorno_segura(destino_inicio_sesion(user)))
             flash('Contraseña incorrecta', 'error')
         else:
             flash('Usuario no encontrado o inactivo', 'error')
@@ -156,7 +172,7 @@ def _build_user(data):
 @rate_limit(max_requests=5, window=300)
 def registro():
     if current_user.is_authenticated:
-        return redirect(url_for('facturacion_menu'))
+        return redirect(url_for(destino_inicio_sesion(current_user)))
     if request.method == 'GET':
         return render_template('registro.html')
     nombre_empresa = sanitize_input(request.form.get('nombre_empresa', ''), 255)
@@ -199,15 +215,17 @@ def registro():
         )
         return render_template('registro.html')
     fecha_inicio = date.today()
-    fecha_fin = fecha_inicio + timedelta(days=30)
+    fecha_fin = fecha_inicio + timedelta(days=7)
+    asegurar_tablas_plataforma()
     try:
         with database_transaction():
             empresa_id = execute_update(
                 """
                 INSERT INTO empresas (
                     nombre, razon_social, telefono, email, fecha_inicio, fecha_fin,
-                    licencias_totales, licencias_usadas, plan, estado, tipo_empresa
-                ) VALUES (%s,%s,%s,%s,%s,%s,5,1,'basico','activo',%s)
+                    licencias_totales, licencias_usadas, plan, estado, tipo_empresa,
+                    es_demo
+                ) VALUES (%s,%s,%s,%s,%s,%s,5,1,'basico','activo',%s,1)
                 """,
                 (
                     nombre_empresa, nombre_empresa, telefono, email,
@@ -227,7 +245,7 @@ def registro():
             )
             if not user_id:
                 raise RuntimeError('No se pudo crear el usuario administrador')
-        flash('Cuenta creada exitosamente. Ya puedes iniciar sesión.', 'success')
+        flash('Demo de 7 días activado. Ya puedes iniciar sesión.', 'success')
         return redirect(url_for('login'))
     except Exception as error:
         logger.error('Error en registro público: %s', error, exc_info=True)
@@ -253,8 +271,12 @@ def logout():
     return redirect(url_for('index'))
 
 
-def url_retorno_segura(destino_alterno='facturacion_menu'):
+def url_retorno_segura(destino_alterno=None):
     """Devolver la página previa solo si pertenece a esta aplicación."""
+    if destino_alterno is None:
+        destino_alterno = destino_inicio_sesion(
+            current_user if current_user.is_authenticated else None
+        )
     candidato = (
         request.values.get('volver')
         or request.values.get('next')
@@ -364,15 +386,16 @@ def cambiar_password_obligatorio():
         'cambio_password_tenant_id',
     ):
         session.pop(key, None)
-    login_user(_build_user(data), remember=True)
+    user = _build_user(data)
+    login_user(user, remember=True)
     flash('Contraseña cambiada exitosamente', 'success')
-    return redirect(url_for('facturacion_menu'))
+    return redirect(url_for(destino_inicio_sesion(user)))
 
 
 @rate_limit(max_requests=3, window=300)
 def solicitar_recuperacion():
     if current_user.is_authenticated:
-        return redirect(url_for('facturacion_menu'))
+        return redirect(url_for(destino_inicio_sesion(current_user)))
     if request.method == 'GET':
         return render_template('solicitar_recuperacion.html')
     email = request.form.get('email', '').strip().lower()
@@ -452,7 +475,7 @@ def _send_recovery_email(usuario, email, token):
 
 def recuperar_password(token):
     if current_user.is_authenticated:
-        return redirect(url_for('facturacion_menu'))
+        return redirect(url_for(destino_inicio_sesion(current_user)))
     usuario = execute_query(
         """
         SELECT * FROM usuarios

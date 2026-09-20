@@ -4,7 +4,13 @@ from unittest.mock import patch
 
 import app as app_module
 import routes.turnos_screens as turnos_routes
-from auth.helpers import usuario_es_administrador, usuario_es_medico_operativo
+from auth.decorators import permission_required
+from auth.helpers import (
+    destino_inicio_sesion,
+    usuario_es_administrador,
+    usuario_es_dueno_software,
+    usuario_es_medico_operativo,
+)
 from rbac_catalog import PERMISOS_ROLES_SISTEMA, TODOS_LOS_PERMISOS
 from turnos import EstadoTurno, transicion_permitida, validar_transicion
 
@@ -51,6 +57,20 @@ class RbacCatalogTests(unittest.TestCase):
         self.assertFalse(usuario_es_medico_operativo(admin))
         self.assertTrue(admin.has_permission('usuarios.ver'))
 
+        medico = app_module.User(
+            11,
+            'Médico',
+            'medico.general@arsflow.local',
+            'Médico',
+            permissions=PERMISOS_ROLES_SISTEMA['Médico'],
+            rbac_roles=('Médico',),
+            rbac_role_count=1,
+            medico_id=22,
+        )
+        self.assertTrue(usuario_es_medico_operativo(medico))
+        self.assertTrue(medico.has_permission('historia_clinica.ver'))
+        self.assertFalse(medico.has_permission('reportes.ver'))
+
         plantilla = (
             Path(app_module.__file__).resolve().parent
             / 'templates'
@@ -61,6 +81,75 @@ class RbacCatalogTests(unittest.TestCase):
             plantilla,
         )
         self.assertIn('can(\'usuarios.ver\') or es_administrador', plantilla)
+        self.assertIn("url_for('facturacion_reporte_pacientes_360')", plantilla)
+        self.assertIn(
+            "or can('historia_clinica.ver')",
+            plantilla,
+        )
+        self.assertGreaterEqual(
+            plantilla.count("url_for('facturacion_reporte_pacientes_360')"),
+            2,
+        )
+
+
+class DuenoSoftwareTests(unittest.TestCase):
+    def test_owner_is_not_a_tenant_admin(self):
+        owner = app_module.User(
+            1,
+            'Dueño',
+            'dueno@clinicrd.com',
+            'Administrador',
+            tenant_id=None,
+        )
+        tenant_admin = app_module.User(
+            2,
+            'Admin',
+            'admin@facturacion.com',
+            'Administrador',
+            tenant_id=1,
+            rbac_roles=('Administrador',),
+            rbac_role_count=1,
+        )
+        self.assertTrue(usuario_es_dueno_software(owner))
+        self.assertTrue(usuario_es_administrador(owner))
+        self.assertEqual(destino_inicio_sesion(owner), 'admin_empresas')
+        self.assertFalse(usuario_es_dueno_software(tenant_admin))
+        self.assertTrue(usuario_es_administrador(tenant_admin))
+        self.assertEqual(destino_inicio_sesion(tenant_admin), 'facturacion_menu')
+
+    def test_owner_cannot_open_tenant_modules(self):
+        owner = app_module.User(
+            3,
+            'Dueño',
+            'dueno@clinicrd.com',
+            'Administrador',
+            tenant_id=None,
+        )
+
+        @permission_required('pacientes.ver')
+        def ver_pacientes():
+            return 'consultorio'
+
+        with app_module.app.test_request_context('/facturacion/pacientes'):
+            with patch('auth.decorators.current_user', owner):
+                response = ver_pacientes()
+        self.assertEqual(response.status_code, 302)
+        self.assertTrue(response.location.endswith('/admin/empresas'))
+
+    def test_shell_hides_clinic_nav_for_owner(self):
+        plantilla = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'base.html'
+        ).read_text(encoding='utf-8')
+        self.assertIn('{% if es_dueno_software %}', plantilla)
+        self.assertIn('Dueño de ClinicRD', plantilla)
+        self.assertIn('nav-plataforma', plantilla)
+        self.assertIn('{% if not es_dueno_software %}', plantilla)
+        self.assertLess(
+            plantilla.find('{% if not es_dueno_software %}'),
+            plantilla.find('ars-help-card'),
+        )
 
 
 class QueueDomainTests(unittest.TestCase):

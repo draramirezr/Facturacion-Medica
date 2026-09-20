@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Nueva factura de cliente - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container py-5" style="max-width:720px;">
+    <h1 class="h3 mb-1"><i class="fas fa-file-invoice-dollar me-2"></i>Nueva factura</h1>
+    <p class="text-muted mb-4">Cobra la suscripción a una empresa cliente.</p>
+
+    <form method="post" class="p-4 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="mb-3">
+            <label class="form-label" for="empresa_id">Cliente</label>
+            <select class="form-select" id="empresa_id" name="empresa_id" required>
+                <option value="">Selecciona una empresa</option>
+                {% for empresa in empresas %}
+                <option value="{{ empresa.id }}" {{ 'selected' if empresa_id==empresa.id }}
+                        data-plan="{{ empresa.plan }}"
+                        data-licencias="{{ empresa.licencias_totales }}"
+                        data-precio="{{ precios.get(empresa.plan, 20) }}">
+                    {{ empresa.nombre }} · {{ empresa.plan|title }}
+                </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label class="form-label" for="fecha">Fecha</label>
+                <input class="form-control" id="fecha" name="fecha" type="date" value="{{ valores.fecha }}" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="periodo_inicio">Periodo desde</label>
+                <input class="form-control" id="periodo_inicio" name="periodo_inicio" type="date" value="{{ valores.periodo_inicio }}" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="periodo_fin">Periodo hasta</label>
+                <input class="form-control" id="periodo_fin" name="periodo_fin" type="date" value="{{ valores.periodo_fin }}" required>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="plan">Plan</label>
+                <select class="form-select" id="plan" name="plan">
+                    <option value="basico" {{ 'selected' if valores.plan=='basico' }}>Básico · US$ 20</option>
+                    <option value="profesional" {{ 'selected' if valores.plan=='profesional' }}>Profesional · US$ 40</option>
+                    <option value="empresarial" {{ 'selected' if valores.plan=='empresarial' }}>Empresarial · US$ 100</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="licencias">Licencias</label>
+                <input class="form-control" id="licencias" name="licencias" type="number" min="1" value="{{ valores.licencias }}">
+            </div>
+            <div class="col-md-4">
+                <label class="form-label" for="monto">Monto US$</label>
+                <input class="form-control" id="monto" name="monto" type="number" min="0" step="0.01" value="{{ valores.monto }}">
+            </div>
+            <div class="col-12">
+                <label class="form-label" for="notas">Notas</label>
+                <textarea class="form-control" id="notas" name="notas" rows="2">{{ valores.notas }}</textarea>
+            </div>
+        </div>
+        <div class="d-flex gap-2 mt-4">
+            <button class="btn btn-primary" type="submit">Guardar factura</button>
+            <a class="btn btn-outline-secondary" href="{{ url_for('plataforma_facturas') }}">Cancelar</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
