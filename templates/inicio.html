@@ -167,11 +167,11 @@
         .billing-option.active { background:var(--primary); color:white; }
         .billing-option small { margin-left:5px; font-size:.62rem; }
         .plan-options { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-        .plan-option { padding:28px; border:1px solid var(--border); border-radius:16px; background:var(--ars-shell-surface, #fff); }
-        .plan-option-icon { width:46px; height:46px; display:grid; place-items:center; margin-bottom:20px; border-radius:11px; background:var(--primary-soft); color:var(--primary-dark); }
+        .plan-option { padding:24px 22px; border:1px solid var(--border); border-radius:16px; background:var(--ars-shell-surface, #fff); }
+        .plan-option-icon { width:46px; height:46px; display:grid; place-items:center; margin-bottom:16px; border-radius:11px; background:var(--primary-soft); color:var(--primary-dark); }
         .plan-option h3 { margin:0 0 8px; color:#21304c; font-size:1.05rem; }
-        .plan-option > p { min-height:42px; margin:0 0 18px; color:var(--muted); font-size:.78rem; line-height:1.55; }
-        .plan-price { min-height:68px; margin-bottom:18px; padding-bottom:17px; border-bottom:1px solid var(--border); }
+        .plan-option > p { margin:0 0 16px; color:var(--muted); font-size:.78rem; line-height:1.55; }
+        .plan-price { min-height:68px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--border); }
         .plan-price strong { color:#172554; font-size:1.75rem; letter-spacing:-.04em; }
         .plan-price span { color:var(--muted); font-size:.7rem; }
         .annual-detail { display:none; margin-top:4px; color:var(--primary-dark); font-size:.63rem; font-weight:700; }
@@ -225,7 +225,7 @@
         html[data-color-mode="dark"] .security-note { background:#10241f !important; border-color:#285349; color:#a9b7c7; }
         html[data-color-mode="dark"] .brand { background:transparent; }
         @media(max-width:1100px){.features{grid-template-columns:repeat(3,1fr)}.security-cards{grid-template-columns:repeat(2,1fr)}}
-        @media(max-width:960px){ .nav-links{display:none}.hero{padding-top:64px}.hero-grid,.security-grid,.integrations,.demo-grid{grid-template-columns:1fr}.app-preview{max-width:620px}.features{grid-template-columns:repeat(2,1fr)}.workflow{grid-template-columns:repeat(2,1fr)}.results{grid-template-columns:repeat(2,1fr)}.footer-grid{grid-template-columns:1.4fr repeat(2,1fr)} }
+        @media(max-width:960px){ .nav-links{display:none}.hero{padding-top:64px}.hero-grid,.security-grid,.integrations,.demo-grid,.plan-options{grid-template-columns:1fr}.app-preview{max-width:620px}.features{grid-template-columns:repeat(2,1fr)}.workflow{grid-template-columns:repeat(2,1fr)}.results{grid-template-columns:repeat(2,1fr)}.footer-grid{grid-template-columns:1.4fr repeat(2,1fr)} }
         .demo-grid { display:grid; grid-template-columns:1.2fr .8fr; gap:28px; align-items:start; }
         .demo-form, .demo-aside { padding:24px; border:1px solid var(--border); border-radius:16px; background:var(--surface); }
         .demo-form { display:grid; gap:14px; }
@@ -378,7 +378,7 @@
                 <div class="plans-intro">
                     <span class="section-label">Propuesta de planes</span>
                     <h2>Una renta según el tamaño de tu operación</h2>
-                    <p>Todos los planes incluyen pacientes y facturas ilimitadas. La cantidad de usuarios diferencia cada opción y el pago anual incluye descuento.</p>
+                    <p>Todos los planes incluyen 7 días gratis, pacientes ilimitados y facturación electrónica. El pago anual tiene 15% de descuento.</p>
                     <div class="billing-switch" aria-label="Modalidad de pago">
                         <button class="billing-option active" type="button" data-period="monthly">Pago mensual</button>
                         <button class="billing-option" type="button" data-period="annual">Pago anual <small>15% menos</small></button>
@@ -389,22 +389,48 @@
                         <div class="plan-option-icon"><i class="fas fa-user-doctor"></i></div>
                         <h3>Independiente</h3>
                         <p>Para un profesional que gestiona directamente su consulta.</p>
-                        <div class="plan-price" data-monthly="US$ 20" data-annual="US$ 17"><strong>US$ 20</strong> <span>/ mes</span><div class="annual-detail">US$ 204 facturados anualmente</div></div>
-                        <ul class="plan-limits"><li><i class="fas fa-user"></i>1 usuario</li><li><i class="fas fa-user-plus"></i>Usuario adicional US$ 5</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-hospital-user"></i>Pacientes ilimitados</li><li><i class="fas fa-check"></i>Historia adaptada a su especialidad</li></ul>
+                        <div class="plan-price" data-monthly="RD$ 995" data-annual="RD$ 846"><strong>RD$ 995</strong> <span>/ mes</span><div class="annual-detail">RD$ 10,149 facturados anualmente</div></div>
+                        <ul class="plan-limits">
+                            <li><i class="fas fa-user-doctor"></i>1 médico</li>
+                            <li><i class="fas fa-hospital-user"></i>Pacientes ilimitados</li>
+                            <li><i class="fas fa-notes-medical"></i>Historia clínica especializada</li>
+                            <li><i class="fas fa-calendar-check"></i>Agenda y citas</li>
+                            <li><i class="fas fa-prescription"></i>Recetas y certificados</li>
+                            <li><i class="fas fa-file-invoice"></i>Facturación electrónica</li>
+                            <li><i class="fas fa-circle-notch"></i>Vista 360</li>
+                            <li><i class="fas fa-chart-line"></i>Dashboard</li>
+                            <li><i class="fas fa-user-slash"></i>No se adicionan usuarios</li>
+                            <li><i class="fas fa-gift"></i>7 días gratis</li>
+                        </ul>
                     </article>
                     <article class="plan-option">
                         <div class="plan-option-icon"><i class="fas fa-house-medical"></i></div>
                         <h3>Consultorio</h3>
                         <p>Para equipos pequeños con varios profesionales y pacientes.</p>
-                        <div class="plan-price" data-monthly="US$ 40" data-annual="US$ 34"><strong>US$ 40</strong> <span>/ mes</span><div class="annual-detail">US$ 408 facturados anualmente</div></div>
-                        <ul class="plan-limits"><li><i class="fas fa-users"></i>Hasta 3 usuarios</li><li><i class="fas fa-user-plus"></i>Usuario adicional US$ 5</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-ticket"></i>Turnos y cola médica</li><li><i class="fas fa-comments"></i>Mensajería y roles internos</li></ul>
+                        <div class="plan-price" data-monthly="RD$ 1,995" data-annual="RD$ 1,696"><strong>RD$ 1,995</strong> <span>/ mes</span><div class="annual-detail">RD$ 20,349 facturados anualmente</div></div>
+                        <ul class="plan-limits">
+                            <li><i class="fas fa-users"></i>Hasta 3 usuarios</li>
+                            <li><i class="fas fa-layer-group"></i>Todo lo anterior</li>
+                            <li><i class="fas fa-ticket"></i>Turnos y sala de espera</li>
+                            <li><i class="fas fa-user-shield"></i>Roles y permisos</li>
+                            <li><i class="fas fa-user-plus"></i>Acepta usuarios adicionales</li>
+                            <li><i class="fas fa-gift"></i>7 días gratis</li>
+                        </ul>
                     </article>
                     <article class="plan-option">
                         <div class="plan-option-icon"><i class="fas fa-hospital"></i></div>
-                        <h3>Clínica</h3>
+                        <h3>Clínica / Centro médico</h3>
                         <p>Para centros con mayor volumen clínico y administrativo.</p>
-                        <div class="plan-price" data-monthly="US$ 100" data-annual="US$ 85"><strong>US$ 100</strong> <span>/ mes</span><div class="annual-detail">US$ 1,020 facturados anualmente</div></div>
-                        <ul class="plan-limits"><li><i class="fas fa-users"></i>Hasta 10 usuarios</li><li><i class="fas fa-user-plus"></i>Usuario adicional US$ 5</li><li><i class="fas fa-file-invoice"></i>Facturas ilimitadas</li><li><i class="fas fa-display"></i>Pantallas públicas de turnos</li><li><i class="fas fa-check"></i>Múltiples áreas, roles y profesionales</li></ul>
+                        <div class="plan-price" data-monthly="RD$ 3,995" data-annual="RD$ 3,396"><strong>RD$ 3,995</strong> <span>/ mes</span><div class="annual-detail">RD$ 40,749 facturados anualmente</div></div>
+                        <ul class="plan-limits">
+                            <li><i class="fas fa-users"></i>Hasta 5 usuarios</li>
+                            <li><i class="fas fa-layer-group"></i>Todo lo anterior</li>
+                            <li><i class="fas fa-user-doctor"></i>Múltiples médicos y áreas</li>
+                            <li><i class="fas fa-ticket"></i>Turnos y sala de espera</li>
+                            <li><i class="fas fa-display"></i>Pantalla pública de turnos</li>
+                            <li><i class="fas fa-comments"></i>Mensajería interna</li>
+                            <li><i class="fas fa-kit-medical"></i>Historia clínica de emergencia</li>
+                        </ul>
                     </article>
                 </div>
                 <div class="plans-action"><a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Probar 7 días' }} <i class="fas fa-arrow-right"></i></a></div>

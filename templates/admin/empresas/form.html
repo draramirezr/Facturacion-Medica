@@ -263,13 +263,13 @@
                     <label for="plan" class="form-label">Plan <span class="required-asterisk">*</span></label>
                     <select class="form-select" id="plan" name="plan" required>
                         <option value="basico" {{ 'selected' if empresa and empresa['plan'] == 'basico' else '' }}>
-                            Básico (1-5 usuarios)
+                            Independiente (1 médico)
                         </option>
                         <option value="profesional" {{ 'selected' if empresa and empresa['plan'] == 'profesional' else 'selected' }}>
-                            Profesional (6-20 usuarios)
+                            Consultorio (hasta 3 usuarios)
                         </option>
                         <option value="empresarial" {{ 'selected' if empresa and empresa['plan'] == 'empresarial' else '' }}>
-                            Empresarial (20+ usuarios)
+                            Clínica / Centro médico (hasta 5 usuarios)
                         </option>
                     </select>
                 </div>

@@ -18,20 +18,20 @@
         <div class="col-md-3">
             <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
                 <small class="text-muted">Por cobrar</small>
-                <div class="fs-3 fw-bold">US$ {{ '%.2f'|format(resumen.monto_deudoras) }}</div>
+                <div class="fs-3 fw-bold">RD$ {{ '%.2f'|format(resumen.monto_deudoras) }}</div>
             </div>
         </div>
         <div class="col-md-3">
             <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
                 <small class="text-muted">Cobrado en periodo</small>
-                <div class="fs-3 fw-bold">US$ {{ '%.2f'|format(resumen.pagada) }}</div>
+                <div class="fs-3 fw-bold">RD$ {{ '%.2f'|format(resumen.pagada) }}</div>
                 <small>{{ resumen.cantidad_pagada }} facturas</small>
             </div>
         </div>
         <div class="col-md-3">
             <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
                 <small class="text-muted">Pendiente en periodo</small>
-                <div class="fs-3 fw-bold">US$ {{ '%.2f'|format(resumen.pendiente) }}</div>
+                <div class="fs-3 fw-bold">RD$ {{ '%.2f'|format(resumen.pendiente) }}</div>
                 <small>{{ resumen.cantidad_pendiente }} facturas</small>
             </div>
         </div>
@@ -62,7 +62,7 @@
                         </td>
                         <td>{{ empresa.plan|title }}{% if empresa.es_demo %} · Demo{% endif %}</td>
                         <td>{{ empresa.facturas_pendientes }}</td>
-                        <td>US$ {{ '%.2f'|format(empresa.monto_pendiente|float) }}</td>
+                        <td>RD$ {{ '%.2f'|format(empresa.monto_pendiente|float) }}</td>
                         <td>{{ empresa.factura_mas_vieja }}</td>
                         <td>{{ empresa.ultima_factura }}</td>
                         <td class="text-center text-nowrap">
@@ -122,7 +122,7 @@
                         <td>{{ factura.fecha }}</td>
                         <td>{{ factura.periodo_inicio }} · {{ factura.periodo_fin }}</td>
                         <td>{{ factura.plan|title }}</td>
-                        <td>US$ {{ '%.2f'|format(factura.monto|float) }}</td>
+                        <td>RD$ {{ '%.2f'|format(factura.monto|float) }}</td>
                         <td>{{ factura.estado|title }}</td>
                         <td class="text-center text-nowrap">
                             <a class="btn btn-sm btn-outline-primary" href="{{ url_for('plataforma_factura_pdf', factura_id=factura.id) }}" title="Descargar">

@@ -216,7 +216,7 @@ def plataforma_factura_nueva():
                 'periodo_fin': hoy.isoformat(),
                 'plan': plan,
                 'licencias': PLAN_LICENCIAS.get(plan, 1),
-                'monto': PLAN_PRECIOS.get(plan, 20),
+                'monto': PLAN_PRECIOS.get(plan, 995),
                 'notas': '',
             },
             precios=PLAN_PRECIOS,

@@ -15,14 +15,14 @@ logger = logging.getLogger(__name__)
 
 DEMO_DIAS = 7
 PLAN_PRECIOS = {
-    'basico': 20,
-    'profesional': 40,
-    'empresarial': 100,
+    'basico': 995,
+    'profesional': 1995,
+    'empresarial': 3995,
 }
 PLAN_LICENCIAS = {
     'basico': 1,
     'profesional': 3,
-    'empresarial': 10,
+    'empresarial': 5,
 }
 
 
@@ -492,7 +492,7 @@ def generar_pdf_factura_plataforma(factura):
         Spacer(1, 0.2 * inch),
         tabla,
         Spacer(1, 0.25 * inch),
-        Paragraph(f"Total US$ {monto_valor:,.2f}", monto),
+        Paragraph(f"Total RD$ {monto_valor:,.2f}", monto),
         Spacer(1, 0.35 * inch),
         Paragraph(
             f"ClinicRD · {os.getenv('SOPORTE_EMAIL', SOPORTE_EMAIL_PREDETERMINADO)}",
@@ -528,7 +528,7 @@ def enviar_factura_plataforma_por_correo(factura, destinatario=None):
             f"<p>Adjuntamos la factura <strong>{numero}</strong> de "
             f"{PRODUCTO['nombre']} para {factura.get('empresa_nombre') or 'su empresa'}.</p>"
             f"<p>Periodo: {factura.get('periodo_inicio')} · {factura.get('periodo_fin')}<br>"
-            f"Monto: US$ {float(factura.get('monto') or 0):,.2f}</p>"
+            f"Monto: RD$ {float(factura.get('monto') or 0):,.2f}</p>"
             f"<p>Gracias.</p>"
         ),
     )

@@ -39,9 +39,9 @@
             <div class="col-md-4">
                 <label class="form-label" for="plan">Plan</label>
                 <select class="form-select" id="plan" name="plan">
-                    <option value="basico" {{ 'selected' if valores.plan=='basico' }}>Básico · US$ 20</option>
-                    <option value="profesional" {{ 'selected' if valores.plan=='profesional' }}>Profesional · US$ 40</option>
-                    <option value="empresarial" {{ 'selected' if valores.plan=='empresarial' }}>Empresarial · US$ 100</option>
+                    <option value="basico" {{ 'selected' if valores.plan=='basico' }}>Independiente · RD$ 995</option>
+                    <option value="profesional" {{ 'selected' if valores.plan=='profesional' }}>Consultorio · RD$ 1,995</option>
+                    <option value="empresarial" {{ 'selected' if valores.plan=='empresarial' }}>Clínica / Centro médico · RD$ 3,995</option>
                 </select>
             </div>
             <div class="col-md-4">
@@ -49,7 +49,7 @@
                 <input class="form-control" id="licencias" name="licencias" type="number" min="1" value="{{ valores.licencias }}">
             </div>
             <div class="col-md-4">
-                <label class="form-label" for="monto">Monto US$</label>
+                <label class="form-label" for="monto">Monto RD$</label>
                 <input class="form-control" id="monto" name="monto" type="number" min="0" step="0.01" value="{{ valores.monto }}">
             </div>
             <div class="col-12">
