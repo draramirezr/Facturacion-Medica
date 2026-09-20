@@ -16,7 +16,7 @@ from clinical_specialties import (
 
 
 class ClinicalSpecialtySchemaTests(unittest.TestCase):
-    def test_ten_requested_specialties_have_dedicated_schemas(self):
+    def test_requested_specialties_have_dedicated_schemas(self):
         expected = {
             "medicina-general",
             "pediatria",
@@ -28,9 +28,10 @@ class ClinicalSpecialtySchemaTests(unittest.TestCase):
             "otorrinolaringologia",
             "neurologia",
             "psiquiatria",
+            "nutricion",
         }
         self.assertTrue(expected.issubset(SPECIALTY_SCHEMAS))
-        self.assertEqual(len(expected), 10)
+        self.assertEqual(len(expected), 11)
         for key in expected:
             schema = SPECIALTY_SCHEMAS[key]
             self.assertTrue(schema["sections"])
@@ -43,6 +44,7 @@ class ClinicalSpecialtySchemaTests(unittest.TestCase):
             "Ortopedia y Traumatología": "ortopedia",
             "Otorrinolaringología": "otorrinolaringologia",
             "ORL": "otorrinolaringologia",
+            "Nutrición": "nutricion",
         }
         for source, expected in cases.items():
             with self.subTest(source=source):
@@ -52,6 +54,15 @@ class ClinicalSpecialtySchemaTests(unittest.TestCase):
         schema = get_specialty_schema("Medicina del deporte")
         self.assertEqual(schema["key"], "general")
         self.assertEqual(schema["source_specialty"], "Medicina del deporte")
+
+    def test_nutrition_keeps_only_essential_fields(self):
+        schema = get_specialty_schema("Nutrición")
+        fields = schema["sections"][0]["fields"]
+        names = {field["name"] for field in fields}
+        self.assertEqual(len(fields), 6)
+        self.assertIn("objetivo_nutricional", names)
+        self.assertIn("recordatorio_24h", names)
+        self.assertIn("plan_alimentario", names)
 
     def test_required_and_numeric_fields_are_validated(self):
         schema = get_specialty_schema("Ortopedia")
@@ -197,7 +208,7 @@ class ClinicalSpecialtyIntegrationTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         insert_params = updates[0][1]
         self.assertEqual(insert_params[3], "Cardiología")
-        self.assertEqual(insert_params[4], 1)
+        self.assertEqual(insert_params[4], 2)
         specialty_data = json.loads(insert_params[5])
         self.assertEqual(specialty_data["disnea_clase"], "NYHA II")
         self.assertEqual(specialty_data["fraccion_eyeccion"], 58.5)

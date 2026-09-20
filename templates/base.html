@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html lang="{{ current_user.idioma_correccion if current_user.is_authenticated else 'es' }}"
+<html lang="{{ 'es' if not current_user.is_authenticated or current_user.idioma_correccion == 'none' else current_user.idioma_correccion }}"
       data-font="{{ fuente_nombre|default('arsflow') }}">
 <head>
     <script nonce="{{ csp_nonce }}">
@@ -49,14 +49,14 @@
     <meta property="og:url" content="https://www.draramirez.com{{ request.path }}">
     <meta property="og:title" content="{% block og_title %}Dra. Shirley Ramírez - Ginecóloga y Obstetra{% endblock %}">
     <meta property="og:description" content="{% block og_description %}Especialista en salud femenina, embarazo y parto. Atención personalizada y profesional.{% endblock %}">
-    <meta property="og:image" content="{{ url_for('static', filename='logos/logo-dra-shirley.png', _external=True) }}">
+    <meta property="og:image" content="{{ url_for('static', filename='img/logo.png', _external=True) }}">
     
     <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image">
     <meta property="twitter:url" content="https://www.draramirez.com{{ request.path }}">
     <meta property="twitter:title" content="{% block twitter_title %}Dra. Shirley Ramírez - Ginecóloga y Obstetra{% endblock %}">
     <meta property="twitter:description" content="{% block twitter_description %}Especialista en salud femenina, embarazo y parto.{% endblock %}">
-    <meta property="twitter:image" content="{{ url_for('static', filename='logos/logo-dra-shirley.png', _external=True) }}">
+    <meta property="twitter:image" content="{{ url_for('static', filename='img/logo.png', _external=True) }}">
     
     <!-- Schema.org Structured Data para SEO Médico - Optimizado para Google -->
     <script type="application/ld+json" nonce="{{ csp_nonce }}">
@@ -65,8 +65,8 @@
       "@type": ["Physician", "MedicalBusiness", "LocalBusiness"],
       "name": "Dra. Shirley Ramírez Montero - Ginecóloga y Obstetra",
       "alternateName": "Dra. Shirley Ramírez",
-      "image": "{{ url_for('static', filename='logos/logo-dra-shirley.png', _external=True) }}",
-      "logo": "{{ url_for('static', filename='logos/logo-dra-shirley.png', _external=True) }}",
+      "image": "{{ url_for('static', filename='img/logo.png', _external=True) }}",
+      "logo": "{{ url_for('static', filename='img/logo.png', _external=True) }}",
       "description": "Ginecóloga y Obstetra en Santo Domingo especializada en salud femenina, embarazo, control prenatal, medicina reproductiva y tratamientos estéticos ginecológicos. Atención personalizada con tecnología de vanguardia.",
       "medicalSpecialty": ["Gynecology", "Obstetrics", "Women's Health", "Reproductive Medicine", "Aesthetic Gynecology"],
       "priceRange": "$$",
@@ -139,7 +139,7 @@
     
     <!-- Favicon -->
     <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='logos/favicon.ico') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='logos/logo-dra-shirley.png') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='logos/favicon.png') }}">
     
     <!-- DNS Prefetch y Preconnect para máxima velocidad -->
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
@@ -150,6 +150,7 @@
     <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=Inter:wght@300;400;500;600;700;800&family=Manrope:wght@300;400;500;600;700;800&family=Montserrat:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     
     <!-- Preload de recursos críticos -->
     <link rel="preload" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" as="style">
@@ -162,9 +163,9 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive-enhanced.min.css') }}?v=3.0">
     
     <!-- CSS local - Carga directa para prevenir FOUC -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}?v=3.0">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/typography.css') }}?v=3.1">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/custom-colors.css') }}?v=2.1">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-design.css') }}?v=2.2">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/layout-design.css') }}?v=2.3">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/csp-utilities.css') }}?v=1">
     <!-- Archivos eliminados para permitir temas dinámicos:
     <link rel="stylesheet" href="{{ url_for('static', filename='css/piggy-pink-background.css') }}?v=2.1">
@@ -176,11 +177,11 @@
     <link href="{{ url_for('static', filename='css/responsive-enhanced.min.css') }}?v=3.0" rel="stylesheet">
     
     <!-- Botones Estandarizados - Todos los botones con tamaño consistente -->
-    <link href="{{ url_for('static', filename='css/botones-estandarizados.min.css') }}?v=1.4" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/botones-estandarizados.min.css') }}?v=1.5" rel="stylesheet">
 
     {% if current_user.is_authenticated %}
-    <!-- Shell autenticado ARSFlow -->
-    <link href="{{ url_for('static', filename='css/app-shell.css') }}?v=1.12" rel="stylesheet">
+    <!-- Shell autenticado ClinicRD -->
+    <link href="{{ url_for('static', filename='css/app-shell.css') }}?v=1.16" rel="stylesheet">
     {% endif %}
     
     <!-- Estilos Críticos Inline - Prevenir FOUC (Flash of Unstyled Content) -->
@@ -306,7 +307,7 @@
         .service-card {
             text-align: center;
             padding: 2rem;
-            background: white;
+            background:var(--ars-shell-surface, #fff);
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(206, 176, 183, 0.15);
             transition: all 0.3s ease;
@@ -335,7 +336,7 @@
         }
         
         .testimonial-card {
-            background: white;
+            background:var(--ars-shell-surface, #fff);
             padding: 2rem;
             border-radius: 12px;
             box-shadow: 0 4px 20px rgba(74, 144, 164, 0.1);
@@ -543,7 +544,7 @@
         /* Estilos globales para botones de formularios */
         .btn-cancelar, .btn-volver, .btn-limpiar, 
         .btn-outline-secondary:not(.btn-accion-eliminar) {
-            background: white !important;
+            background:var(--ars-shell-surface, #fff) !important;
             border: 2px solid var(--primary-color) !important;
             color: var(--primary-color) !important;
             padding: 0.8rem 2rem !important;
@@ -579,7 +580,7 @@
             border: 2px solid {{ tema.primary }}50 !important;
             border-radius: 10px !important;
             padding: 0.75rem 1rem !important;
-            background-color: white !important;
+            background-color:var(--ars-shell-surface, #fff) !important;
             color: #1E293B !important;
             font-weight: 500 !important;
             transition: all 0.3s ease !important;
@@ -608,7 +609,7 @@
         
         /* Opciones del dropdown - Estilos específicos por navegador */
         select option, .form-select option {
-            background-color: white;
+            background-color:var(--ars-shell-surface, #fff);
             color: #1E293B;
             padding: 12px 16px;
             font-weight: 500;
@@ -617,7 +618,7 @@
         /* Firefox - Mayor control de opciones */
         @-moz-document url-prefix() {
             select option, .form-select option {
-                background-color: white !important;
+                background-color:var(--ars-shell-surface, #fff) !important;
                 color: #1E293B !important;
             }
             
@@ -634,7 +635,7 @@
         /* Chrome/Safari - Forzar fondo blanco */
         @supports (-webkit-appearance: none) {
             select option {
-                background: white;
+                background:var(--ars-shell-surface, #fff);
                 color: #1E293B;
             }
         }
@@ -707,7 +708,7 @@
         button[class*="volver"],
         .btn-menu,
         a[style*="ACACAD"] {
-            background: white !important;
+            background:var(--ars-shell-surface, #fff) !important;
             border: 2px solid var(--primary-color) !important;
             color: var(--primary-color) !important;
         }
@@ -779,7 +780,7 @@
             border-radius: 10px !important;
             padding: 0.75rem 1rem !important;
             transition: all 0.3s ease !important;
-            background-color: white !important;
+            background-color:var(--ars-shell-surface, #fff) !important;
         }
         
         input[type="text"]:focus,
@@ -852,6 +853,19 @@
         
         .whatsapp-float i {
             color: white !important;
+        }
+
+        html[data-color-mode="dark"] .whatsapp-float,
+        html[data-color-mode="dark"] .whatsapp-float:hover {
+            background: #25d366 !important;
+            background-image: none !important;
+            border: 0 !important;
+            color: #fff !important;
+        }
+
+        html[data-color-mode="dark"] .whatsapp-float i {
+            color: #fff !important;
+            filter: none !important;
         }
         
         /* Instagram Button - Gradiente Instagram */
@@ -1120,12 +1134,14 @@
     {% if current_user.is_authenticated %}
     {% set endpoint = request.endpoint or '' %}
     {% set nombre_partes = current_user.nombre.split() %}
-    {% set es_medico_operativo = current_user.medico_id and can('turnos.cola_propia') %}
+    {% set es_medico_operativo = es_medico_operativo if es_medico_operativo is defined else false %}
+    {% set es_administrador = es_administrador if es_administrador is defined else current_user.perfil == 'Administrador' %}
     <div class="ars-app-shell">
         <aside class="ars-sidebar" id="arsSidebar" aria-label="Navegación principal">
-            <a class="ars-sidebar-brand" href="{{ url_for('facturacion_menu') }}" aria-label="Ir al inicio de ARSFlow">
+            <a class="ars-sidebar-brand" href="{{ url_for('facturacion_menu') }}" aria-label="Ir al inicio de ClinicRD">
                 <span class="ars-brand-crop">
-                    <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ARSFlow Gestión de Facturas Médicas">
+                    <img class="brand-logo brand-logo-light" src="{{ url_for('static', filename='img/logo.png') }}?v=clinicrd5" alt="ClinicRD Gestión Médica">
+                    <img class="brand-logo brand-logo-dark" src="{{ url_for('static', filename='img/logo-on-dark.png') }}?v=clinicrd5" alt="ClinicRD Gestión Médica">
                 </span>
             </a>
 
@@ -1327,35 +1343,35 @@
                 {% if not es_medico_operativo
                       and (can('configuracion.ver') or can('usuarios.ver')
                            or can('roles.ver')
-                           or current_user.perfil == 'Administrador') %}
+                           or es_administrador) %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-cuenta" aria-expanded="false" aria-controls="nav-cuenta">
                     <span>Cuenta</span>
                     <i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="ars-nav-group collapsed" id="nav-cuenta">
-                    {% if can('configuracion.ver') %}
+                    {% if can('configuracion.ver') or es_administrador %}
                     <a class="ars-nav-link {{ 'active' if endpoint == 'perfil_configuracion' else '' }}"
                        href="{{ url_for('perfil_configuracion') }}">
                         <i class="fas fa-gear"></i>
                         <span>Configuración</span>
                     </a>
                     {% endif %}
-                    {% if can('usuarios.ver') %}
+                    {% if can('usuarios.ver') or es_administrador %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('admin_usuarios') else '' }}"
                        href="{{ url_for('admin_usuarios') }}">
                         <i class="fas fa-users-gear"></i>
                         <span>Usuarios</span>
                     </a>
                     {% endif %}
-                    {% if can('roles.ver') %}
+                    {% if can('roles.ver') or es_administrador %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('admin_roles') else '' }}"
                        href="{{ url_for('admin_roles') }}">
                         <i class="fas fa-user-shield"></i>
                         <span>Roles y permisos</span>
                     </a>
                     {% endif %}
-                    {% if current_user.perfil == 'Administrador' %}
+                    {% if es_administrador or current_user.perfil == 'Administrador' %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('admin_empresas') else '' }}"
                        href="{{ url_for('admin_empresas') }}">
                         <i class="fas fa-building"></i>
@@ -1367,11 +1383,14 @@
             </nav>
 
             <div class="ars-sidebar-footer">
-                <a class="ars-help-card" href="mailto:soporte@arsflow.com">
+                {% set centro_ayuda = soporte if soporte is defined else {'manual_url': '', 'email': 'soporte@arsflow.com'} %}
+                <a class="ars-help-card"
+                   href="{{ centro_ayuda.manual_url or url_for('centro_ayuda') }}"
+                   {% if centro_ayuda.manual_url %}target="_blank" rel="noopener noreferrer"{% endif %}>
                     <i class="far fa-circle-question"></i>
                     <span>
                         <strong>Centro de ayuda</strong>
-                        <small>Soporte y asistencia</small>
+                        <small>Manual de usuario en línea</small>
                     </span>
                 </a>
             </div>
@@ -1458,7 +1477,7 @@
                         </li>
                         {% endif %}
                         <li>
-                            <a class="dropdown-item" href="{{ url_for('cambiar_mi_password') }}">
+                            <a class="dropdown-item" href="{{ url_for('cambiar_mi_password', volver=request.full_path.rstrip('?')) }}">
                                 <i class="fas fa-key me-2"></i> Cambiar mi contraseña
                             </a>
                         </li>
@@ -1552,8 +1571,9 @@
     </main>
 
     {% if current_user.is_authenticated %}
-    <link href="{{ url_for('static', filename='css/visual-refresh.css') }}?v=2.1" rel="stylesheet">
-    <link href="{{ url_for('static', filename='css/dark-mode.css') }}?v=1.1" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/visual-refresh.css') }}?v=2.3" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/dark-mode.css') }}?v=1.8" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/typography.css') }}?v=3.1" rel="stylesheet">
     {% endif %}
 
     {% if current_user.is_authenticated %}
@@ -1724,6 +1744,7 @@
     <!-- JavaScript - Carga optimizada con defer para máxima velocidad -->
     <script src="{{ url_for('static', filename='js/csrf.js') }}?v=1" defer></script>
     <script src="{{ url_for('static', filename='js/csp-events.js') }}?v=1" defer></script>
+    <script src="{{ url_for('static', filename='js/spellcheck-ui.js') }}?v=1" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" defer></script>
 
     {% if current_user.is_authenticated %}

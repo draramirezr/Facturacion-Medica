@@ -406,11 +406,7 @@ def facturacion_licencias_medicas_nueva():
 def facturacion_licencia_medica_ver(licencia_id):
     tenant_id = get_current_tenant_id()
     actualizar_licencias_vencidas(tenant_id)
-    licencia = obtener_licencia_medica(
-        licencia_id,
-        tenant_id,
-        medico_id_licencias_restringido(),
-    )
+    licencia = obtener_licencia_medica(licencia_id, tenant_id)
     if not licencia:
         flash('Licencia médica no encontrada', 'error')
         return redirect(url_for('facturacion_licencias_medicas'))
@@ -582,7 +578,6 @@ def facturacion_licencia_medica_imprimir(licencia_id):
     licencia = obtener_licencia_medica(
         licencia_id,
         get_current_tenant_id(),
-        medico_id_licencias_restringido(),
     )
     if not licencia:
         flash('Licencia médica no encontrada', 'error')

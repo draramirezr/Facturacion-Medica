@@ -1,6 +1,17 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <script nonce="{{ csp_nonce }}">
+        (() => {
+            try {
+                const saved = localStorage.getItem('arsflow-color-mode');
+                const mode = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.dataset.colorMode = mode;
+            } catch (error) {
+                document.documentElement.dataset.colorMode = 'light';
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>404 - Página No Encontrada</title>
@@ -81,6 +92,7 @@
         }
     </style>
     <link href="{{ url_for('static', filename='css/error-refresh.css') }}?v=2.0" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/public-theme.css') }}?v=2" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
 <body>

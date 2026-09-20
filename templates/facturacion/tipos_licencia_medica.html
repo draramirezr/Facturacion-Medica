@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Tipos de Licencia Médica - ARSFlow{% endblock %}
+{% block title %}Tipos de Licencia Médica - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
 <style nonce="{{ csp_nonce }}">
-    .types-card { background:white; border:1px solid {{ tema.primary }}20; border-radius:15px; padding:1.3rem; margin-bottom:1.2rem; }
+    .types-card { background:var(--ars-shell-surface, #fff); border:1px solid {{ tema.primary }}20; border-radius:15px; padding:1.3rem; margin-bottom:1.2rem; }
     .types-card th { background:var(--primary-dark) !important; color:white !important; }
 </style>
 <div class="container py-4">

@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_patient_search.html" import patient_search %}
 
-{% block title %}{{ 'Editar' if licencia else 'Nueva' }} Licencia Médica - ARSFlow{% endblock %}
+{% block title %}{{ 'Editar' if licencia else 'Nueva' }} Licencia Médica - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
@@ -11,7 +11,7 @@
 {% set tipo_valor = form_data.get('tipo_licencia_id', '') %}
 <style nonce="{{ csp_nonce }}">
     .license-header { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 1.7rem; margin-bottom: 1.25rem; }
-    .license-section { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.35rem; margin-bottom: 1.25rem; }
+    .license-section { background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.35rem; margin-bottom: 1.25rem; }
     .license-section h2 { color: var(--primary-dark); font-size: 1.05rem; border-bottom: 1px solid {{ tema.primary }}20; padding-bottom: .7rem; margin-bottom: 1rem; }
     .required::after { content: " *"; color: var(--primary-color); }
     .overlap-warning { background:{{ tema.primary }}12; border:1px solid {{ tema.primary }}45; }

@@ -1,10 +1,21 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
+    <script nonce="{{ csp_nonce }}">
+        (() => {
+            try {
+                const saved = localStorage.getItem('arsflow-color-mode');
+                const mode = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+                document.documentElement.dataset.colorMode = mode;
+            } catch (error) {
+                document.documentElement.dataset.colorMode = 'light';
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Recuperar Contraseña - ARSFLOW Gestion de Factras Medicas</title>
+    <title>Recuperar Contraseña - ClinicRD Gestión Médica</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
     
@@ -26,7 +37,7 @@
         }
         
         .recovery-container {
-            background: white;
+            background:var(--ars-shell-surface, #fff);
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
             overflow: hidden;
@@ -218,14 +229,15 @@
             }
         }
     </style>
-    <link href="{{ url_for('static', filename='css/auth-refresh.css') }}?v=2.1" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/auth-refresh.css') }}?v=2.2" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/public-theme.css') }}?v=2" rel="stylesheet">
 </head>
 <body>
     <div class="recovery-container">
         <div class="recovery-header">
-            <div class="recovery-icon">AF</div>
+            <div class="recovery-icon">CR</div>
             <h1>Recuperar contraseña</h1>
-            <p>ARSFlow · Gestión de Facturas Médicas</p>
+            <p>ClinicRD · Gestión Médica</p>
         </div>
         
         <div class="recovery-body">
@@ -271,6 +283,7 @@
         </div>
     </div>
     <script src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
+    <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=1"></script>
 </body>
 </html>
 

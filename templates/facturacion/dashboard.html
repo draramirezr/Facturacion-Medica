@@ -18,7 +18,7 @@
     
     body {
         background: linear-gradient(135deg, #f5f7fa 0%, #f8f9fc 100%);
-        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        font-family: var(--font-body, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
     }
     
     .dashboard-container {
@@ -36,9 +36,9 @@
     }
     
     .btn-volver {
-        background: white;
+        background: color-mix(in srgb, var(--primary-color) 16%, var(--ars-shell-surface, #fff));
         border: 2px solid var(--primary-color);
-        color: var(--primary-color);
+        color: var(--primary-dark);
         padding: 0.7rem 1.5rem;
         border-radius: 15px;
         font-weight: 600;
@@ -116,7 +116,7 @@
         border-radius: 12px;
         font-size: 1rem;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         font-weight: 500;
     }
     
@@ -140,14 +140,23 @@
         border-radius: 12px;
         font-size: 1rem;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         font-weight: 500;
         cursor: pointer;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        color: #2c3e50;
+        gap: 0.75rem;
+        color: var(--ars-shell-text, #2c3e50);
         text-align: left;
+    }
+
+    .multiselect-button [id$="-selected-text"] {
+        flex: 1;
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     
     .multiselect-button:hover {
@@ -174,7 +183,7 @@
         top: calc(100% + 5px);
         left: 0;
         right: 0;
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border: 2px solid var(--primary-color);
         border-radius: 12px;
         box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
@@ -225,41 +234,31 @@
         accent-color: var(--primary-color);
     }
     
-    .multiselect-option label {
+    .multiselect-option label,
+    .multiselect-option span {
         cursor: pointer;
         margin: 0;
         flex: 1;
         font-weight: 500;
-        color: #2c3e50;
+        color: var(--ars-shell-text, #2c3e50);
     }
     
     .multiselect-header {
-        padding: 0.8rem 1rem;
-        background: {{ tema.primary }}08;
-        border-bottom: 2px solid {{ tema.primary }}30;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+        padding: 0;
+        background: var(--ars-shell-surface, #fff);
+        border-bottom: 1px solid var(--ars-shell-border, {{ tema.primary }}30);
         position: sticky;
         top: 0;
         z-index: 10;
     }
-    
-    .select-all-btn {
-        background: transparent;
-        border: 1px solid var(--primary-color);
-        color: var(--primary-color);
-        padding: 0.3rem 0.8rem;
-        border-radius: 6px;
-        font-size: 0.85rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
+
+    .multiselect-option.is-all {
+        background: var(--ars-shell-surface, #fff);
+        font-weight: 700;
     }
-    
-    .select-all-btn:hover {
-        background: var(--primary-color);
-        color: white;
+
+    .multiselect-option.is-all label {
+        color: var(--primary-dark);
     }
     
     .btn-filter {
@@ -286,7 +285,7 @@
     
     /* Tarjetas Estadísticas Ultra Modernas */
     .stat-card {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border-radius: 20px;
         padding: 2rem;
         box-shadow: 
@@ -401,7 +400,7 @@
     
     /* Gráficos Modernos */
     .chart-card {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border-radius: 20px;
         padding: 2.5rem;
         box-shadow: 
@@ -439,10 +438,10 @@
     
     /* Botón Volver Moderno */
     .btn-volver {
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(10px);
-        border: 2px solid rgba(255, 255, 255, 0.3);
-        color: white;
+        background: color-mix(in srgb, var(--primary-color) 16%, var(--ars-shell-surface, #fff));
+        backdrop-filter: none;
+        border: 2px solid var(--primary-color);
+        color: var(--primary-dark);
         border-radius: 15px;
         padding: 0.85rem 1.8rem;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -455,10 +454,10 @@
     }
     
     .btn-volver:hover {
-        background: rgba(255, 255, 255, 0.3);
-        border-color: rgba(255, 255, 255, 0.5);
+        background: var(--primary-color);
+        border-color: var(--primary-color);
         transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        box-shadow: 0 8px 25px color-mix(in srgb, var(--primary-color) 35%, transparent);
         color: white;
     }
     
@@ -486,8 +485,32 @@
     }
 
     .dashboard-subtitle {
-        color: #666;
+        color: var(--ars-shell-muted, #666);
         margin: 0;
+    }
+
+    .dashboard-center {
+        display: inline-flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 0.45rem 0.65rem;
+        margin: 0 0 0.7rem;
+        padding: 0.45rem 0.85rem;
+        border: 1px solid color-mix(in srgb, var(--primary-color) 35%, var(--ars-shell-border, #e5edf3));
+        border-radius: 999px;
+        background: color-mix(in srgb, var(--primary-color) 12%, var(--ars-shell-surface, #fff));
+        color: var(--primary-dark);
+        font-size: 0.92rem;
+        font-weight: 700;
+    }
+
+    .dashboard-center i {
+        color: var(--primary-color);
+    }
+
+    .dashboard-center strong {
+        color: var(--ars-shell-text, #172033);
+        font-size: 1.05rem;
     }
 
     .filter-title {
@@ -503,8 +526,16 @@
     }
 
     .btn-filter-secondary {
-        background: #adb5bd;
-        border-color: #adb5bd;
+        background: color-mix(in srgb, var(--primary-color) 16%, var(--ars-shell-surface, #fff));
+        border: 2px solid var(--primary-color);
+        color: var(--primary-dark);
+        box-shadow: none;
+    }
+
+    .btn-filter-secondary:hover {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: #fff;
     }
 
     .delay-01 { animation-delay: 0.1s; }
@@ -667,6 +698,13 @@
                     <i class="fas fa-chart-line me-2"></i>
                     Dashboard de Facturación
                 </h1>
+                {% if empresa and empresa.empresa_nombre %}
+                <p class="dashboard-center">
+                    <i class="fas {{ 'fa-hospital' if empresa.tipo_empresa == 'centro_salud' else 'fa-user-md' }}"></i>
+                    <span>{{ 'Centro de salud' if empresa.tipo_empresa == 'centro_salud' else 'Consultorio' }}</span>
+                    <strong>{{ empresa.empresa_nombre }}</strong>
+                </p>
+                {% endif %}
                 <p class="dashboard-subtitle">Indicadores y estadísticas en tiempo real</p>
             </div>
             <div>
@@ -695,13 +733,15 @@
                 <label>ARS:</label>
                 <div class="custom-multiselect">
                     <div class="multiselect-button" data-csp-click="toggleDropdown" data-csp-args='["ars"]'>
-                        <span id="ars-selected-text">Todos</span>
+                        <span id="ars-selected-text" data-all-label="Todas las ARS" data-empty-label="Ninguna ARS">Todas las ARS</span>
                         <i class="fas fa-chevron-down multiselect-arrow"></i>
                     </div>
                     <div class="multiselect-dropdown" id="ars-dropdown">
                         <div class="multiselect-header">
-                            <span class="filter-title">Seleccionar ARS</span>
-                            <button type="button" class="select-all-btn" data-csp-click="toggleAllOptions" data-csp-args='["ars"]'>Todos</button>
+                            <div class="multiselect-option is-all" data-csp-click="toggleAllOptions" data-csp-args='["ars"]'>
+                                <input type="checkbox" id="ars-all" data-select-all tabindex="-1">
+                                <span>Todas las ARS</span>
+                            </div>
                         </div>
                         {% for ars in ars_list %}
                         <div class="multiselect-option" data-csp-click="toggleOption" data-csp-args='["ars"]' data-csp-pass="event">
@@ -723,13 +763,15 @@
                 <label>Médico Factura:</label>
                 <div class="custom-multiselect">
                     <div class="multiselect-button" data-csp-click="toggleDropdown" data-csp-args='["medico_factura"]'>
-                        <span id="medico_factura-selected-text">Todos</span>
+                        <span id="medico_factura-selected-text" data-all-label="Todos los médicos" data-empty-label="Ningún médico">Todos los médicos</span>
                         <i class="fas fa-chevron-down multiselect-arrow"></i>
                     </div>
                     <div class="multiselect-dropdown" id="medico_factura-dropdown">
                         <div class="multiselect-header">
-                            <span class="filter-title">Seleccionar Médico</span>
-                            <button type="button" class="select-all-btn" data-csp-click="toggleAllOptions" data-csp-args='["medico_factura"]'>Todos</button>
+                            <div class="multiselect-option is-all" data-csp-click="toggleAllOptions" data-csp-args='["medico_factura"]'>
+                                <input type="checkbox" id="medico_factura-all" data-select-all tabindex="-1">
+                                <span>Todos los médicos</span>
+                            </div>
                         </div>
                         {% for medico in medicos_factura_list %}
                         <div class="multiselect-option" data-csp-click="toggleOption" data-csp-args='["medico_factura"]' data-csp-pass="event">
@@ -751,13 +793,15 @@
                 <label>Médico Paciente:</label>
                 <div class="custom-multiselect">
                     <div class="multiselect-button" data-csp-click="toggleDropdown" data-csp-args='["medico_consulta"]'>
-                        <span id="medico_consulta-selected-text">Todos</span>
+                        <span id="medico_consulta-selected-text" data-all-label="Todos los médicos" data-empty-label="Ningún médico">Todos los médicos</span>
                         <i class="fas fa-chevron-down multiselect-arrow"></i>
                     </div>
                     <div class="multiselect-dropdown" id="medico_consulta-dropdown">
                         <div class="multiselect-header">
-                            <span class="filter-title">Seleccionar Médico</span>
-                            <button type="button" class="select-all-btn" data-csp-click="toggleAllOptions" data-csp-args='["medico_consulta"]'>Todos</button>
+                            <div class="multiselect-option is-all" data-csp-click="toggleAllOptions" data-csp-args='["medico_consulta"]'>
+                                <input type="checkbox" id="medico_consulta-all" data-select-all tabindex="-1">
+                                <span>Todos los médicos</span>
+                            </div>
                         </div>
                         {% for medico in medicos_consulta_list %}
                         <div class="multiselect-option" data-csp-click="toggleOption" data-csp-args='["medico_consulta"]' data-csp-pass="event">
@@ -913,59 +957,65 @@
         }
     }
     
+    function optionCheckboxes(dropdown) {
+        return dropdown.querySelectorAll('.multiselect-option:not(.is-all) input[type="checkbox"]');
+    }
+
     // Marcar/desmarcar opción
     function toggleOption(event, filterName) {
-        // Si el clic fue directamente en el checkbox, el navegador ya lo manejó
-        if (event.target.type === 'checkbox') {
+        if (event.target.type === 'checkbox' || event.target.tagName === 'LABEL') {
             updateSelectedText(filterName);
             return;
         }
-        
-        // Si el clic fue en el label o el div contenedor
         const option = event.target.closest('.multiselect-option');
         const checkbox = option.querySelector('input[type="checkbox"]');
         checkbox.checked = !checkbox.checked;
-        
         updateSelectedText(filterName);
     }
     
     // Seleccionar/deseleccionar todos
     function toggleAllOptions(filterName) {
         const dropdown = document.getElementById(filterName + '-dropdown');
-        const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
-        
-        // Verificar si todos están marcados
+        const checkboxes = optionCheckboxes(dropdown);
         const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-        
-        // Si todos están marcados, desmarcar todos; si no, marcar todos
         checkboxes.forEach(cb => {
             cb.checked = !allChecked;
         });
-        
         updateSelectedText(filterName);
     }
     
     // Actualizar texto de selección
     function updateSelectedText(filterName) {
         const dropdown = document.getElementById(filterName + '-dropdown');
-        const checkboxes = dropdown.querySelectorAll('input[type="checkbox"]');
-        const selectedCount = Array.from(checkboxes).filter(cb => cb.checked).length;
-        const totalCount = checkboxes.length;
+        const checkboxes = optionCheckboxes(dropdown);
+        const selected = Array.from(checkboxes).filter(cb => cb.checked);
+        const names = selected.map((cb) => {
+            const row = cb.closest('.multiselect-option');
+            const caption = row.querySelector('label, span');
+            return caption ? caption.textContent.trim() : '';
+        }).filter(Boolean);
         const textElement = document.getElementById(filterName + '-selected-text');
-        
-        if (selectedCount === 0) {
-            textElement.textContent = 'Ninguno seleccionado';
-            textElement.classList.add('selection-empty');
-            textElement.classList.remove('selection-present');
-        } else if (selectedCount === totalCount) {
-            textElement.textContent = 'Todos';
-            textElement.classList.add('selection-present');
-            textElement.classList.remove('selection-empty');
-        } else {
-            textElement.textContent = `${selectedCount} de ${totalCount} seleccionados`;
-            textElement.classList.add('selection-present');
-            textElement.classList.remove('selection-empty');
+        const master = dropdown.querySelector('[data-select-all]');
+        const allLabel = textElement.dataset.allLabel || 'Todos';
+        const emptyLabel = textElement.dataset.emptyLabel || 'Ninguno seleccionado';
+
+        if (master) {
+            master.checked = selected.length === checkboxes.length && checkboxes.length > 0;
+            master.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
         }
+
+        if (selected.length === 0) {
+            textElement.textContent = emptyLabel;
+        } else if (selected.length === checkboxes.length) {
+            textElement.textContent = allLabel;
+        } else if (names.length <= 2) {
+            textElement.textContent = names.join(', ');
+        } else {
+            textElement.textContent = `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
+        }
+        textElement.title = names.join(', ') || emptyLabel;
+        textElement.classList.toggle('selection-empty', selected.length === 0);
+        textElement.classList.toggle('selection-present', selected.length > 0);
     }
     
     // Inicializar textos al cargar la página

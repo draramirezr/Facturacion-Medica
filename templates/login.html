@@ -17,7 +17,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <meta name="robots" content="noindex, nofollow">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <title>Iniciar sesión - ARSFlow</title>
+    <title>Iniciar sesión - ClinicRD</title>
     <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -30,7 +30,7 @@
             --primary-dark: #0891b2;
             --primary-soft: #ecfeff;
             --surface: #ffffff;
-            --background: #f7f9fc;
+            --background:var(--ars-shell-bg, #f7f9fc);
             --border: #e8edf3;
             --text: #172033;
             --muted: #718096;
@@ -82,19 +82,20 @@
         }
 
         .brand-crop {
-            position: relative;
-            width: 245px;
-            height: 78px;
-            overflow: hidden;
+            display: flex;
+            align-items: center;
+            width: min(280px, 100%);
+            height: 64px;
             flex: 0 0 auto;
         }
 
         .brand-crop img {
-            position: absolute;
-            top: -141px;
-            left: -68px;
-            width: 380px;
-            max-width: none;
+            display: block;
+            width: auto;
+            max-width: 100%;
+            height: 64px;
+            object-fit: contain;
+            object-position: left center;
         }
 
         .brand-copy {
@@ -252,7 +253,7 @@
             border: 1px solid #dce3eb;
             border-radius: 10px;
             outline: none;
-            background: white;
+            background:var(--ars-shell-surface, #fff);
             color: var(--text);
             font: inherit;
             font-size: .86rem;
@@ -350,7 +351,7 @@
         html[data-color-mode="dark"] .feature-list li { color:#b4c0cf; }
         html[data-color-mode="dark"] .feature-list i,
         html[data-color-mode="dark"] .flash { background:#142333; border-color:#30425a; color:#c9d5e2; }
-        html[data-color-mode="dark"] .brand-crop { background:white; border-radius:8px; }
+        html[data-color-mode="dark"] .brand-crop { background:transparent; }
 
         @media (max-width: 820px) {
             body { padding: 16px; }
@@ -363,20 +364,22 @@
         }
 
         @media (max-width: 420px) {
-            body { padding: 0; background: white; }
+            body { padding: 0; background:var(--ars-shell-surface, #fff); }
             .login-shell { min-height: 100vh; border: 0; border-radius: 0; }
             .brand-panel { min-height: 205px; padding: 23px; }
             .form-panel { padding: 30px 23px; align-items: flex-start; }
             .form-options { align-items: flex-start; flex-direction: column; gap: 12px; }
         }
     </style>
+    <link href="{{ url_for('static', filename='css/public-theme.css') }}?v=2" rel="stylesheet">
 </head>
 <body>
     <button class="login-theme-toggle" type="button" data-theme-toggle aria-label="Activar modo oscuro" title="Modo oscuro"><i class="fas fa-moon" data-theme-icon></i></button>
     <main class="login-shell">
-        <section class="brand-panel" aria-label="ARSFlow">
+        <section class="brand-panel" aria-label="ClinicRD">
             <a class="brand-crop" href="{{ url_for('index') }}" aria-label="Volver al inicio">
-                <img src="{{ url_for('static', filename='img/logo.png') }}" alt="ARSFlow Gestión de Facturas Médicas">
+                <img class="brand-logo brand-logo-light" src="{{ url_for('static', filename='img/logo.png') }}?v=clinicrd5" alt="ClinicRD Gestión Médica">
+                <img class="brand-logo brand-logo-dark" src="{{ url_for('static', filename='img/logo-on-dark.png') }}?v=clinicrd5" alt="ClinicRD Gestión Médica">
             </a>
 
             <div class="brand-copy">
@@ -390,7 +393,7 @@
                 </ul>
             </div>
 
-            <div class="brand-footer">ARSFlow · Gestión de Facturas Médicas</div>
+            <div class="brand-footer">ClinicRD · Gestión Médica</div>
         </section>
 
         <section class="form-panel">
@@ -413,6 +416,9 @@
 
                 <form method="POST" action="{{ url_for('login') }}" id="loginForm">
                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    {% if request.values.get('next') or request.values.get('volver') %}
+                    <input type="hidden" name="volver" value="{{ request.values.get('next') or request.values.get('volver') }}">
+                    {% endif %}
                     <div class="form-group">
                         <label for="email">Correo electrónico</label>
                         <div class="input-wrap">

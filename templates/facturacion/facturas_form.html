@@ -23,7 +23,7 @@
     }
     
     .form-container {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border-radius: 20px;
         padding: 2rem;
         margin: 2rem 0;
@@ -61,7 +61,7 @@
     }
     
     .tabla-lineas {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border-radius: 15px;
         overflow: hidden;
         margin: 2rem 0;
@@ -142,7 +142,7 @@
     }
     
     .btn-eliminar-linea {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border: 2px solid #ACACAD;
         color: #ACACAD;
         border-radius: 4px;
@@ -164,7 +164,7 @@
     }
     
     .btn-agregar-linea-mini {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border: 2px solid var(--primary-color);
         color: var(--primary-color);
         border-radius: 4px;
@@ -300,7 +300,7 @@
     .csp-u-005 { border-left: 4px solid {{ tema.primary }}; background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(240, 253, 250, 0.5) 100%); color: #666; }
     .csp-u-006 { background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(240, 253, 250, 0.5) 100%); border-left: 4px solid {{ tema.primary }}; border-radius: 10px; margin-top: 1.5rem; }
     .csp-u-007 { color: var(--primary-color); font-weight: 700; margin-bottom: 1rem; }
-    .csp-u-008 { background: white; border: 2px solid var(--primary-color); color: var(--primary-color); border-radius: 10px; font-weight: 600; }
+    .csp-u-008 { background:var(--ars-shell-surface, #fff); border: 2px solid var(--primary-color); color: var(--primary-color); border-radius: 10px; font-weight: 600; }
     .csp-u-009 { background: var(--gradient-primary); color: white; border: none; border-radius: 10px; font-weight: 600; margin: 0; cursor: pointer; }
     .csp-u-010 { display: none; }
     .csp-u-011 { color: #666; display: block; margin-top: 0.5rem; }
@@ -322,7 +322,7 @@
     .csp-u-027 { flex-shrink: 0; width: 32px; height: 32px; padding: 0; display: flex; align-items: center; justify-content: center; }
     .csp-u-028 { font-size: 0.7rem; }
     .csp-u-029 { background: rgba(240, 253, 250, 0.6); border-left-color: var(--primary-color); }
-    .csp-u-030 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 3rem; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 9999; max-width: 500px; text-align: center; border: 3px solid {{ tema.primary }}; }
+    .csp-u-030 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background:var(--ars-shell-surface, #fff); padding: 3rem; border-radius: 20px; box-shadow: 0 10px 40px rgba(0,0,0,0.3); z-index: 9999; max-width: 500px; text-align: center; border: 3px solid {{ tema.primary }}; }
     .csp-u-031 { background: var(--gradient-primary); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; }
     .csp-u-032 { font-size: 3rem; color: white; }
     .csp-u-033 { color: {{ tema.primary_dark }}; font-weight: 800; margin-bottom: 1rem; font-size: 1.5rem; }
@@ -332,12 +332,12 @@
     .csp-u-037 { color: var(--primary-color); }
     .csp-u-038 { background: var(--gradient-primary); color: white; border: none; padding: 1rem 3rem; border-radius: 15px; font-weight: 700; cursor: pointer; font-size: 1.1rem; width: 100%; box-shadow: 0 4px 15px {{ tema.primary }}60; }
     .csp-u-039 { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 9998; }
-    .csp-u-040 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 9999; }
+    .csp-u-040 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background:var(--ars-shell-surface, #fff); padding: 2rem; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); z-index: 9999; }
     .csp-u-041 { text-align: center; }
     .csp-u-042 { font-size: 3rem; color: var(--primary-color); }
     .csp-u-043 { margin-top: 1rem; color: #666; font-weight: 600; }
     .csp-u-044 { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 9998; }
-    .csp-u-045 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); z-index: 9999; max-width: 700px; max-height: 85vh; overflow-y: auto; }
+    .csp-u-045 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background:var(--ars-shell-surface, #fff); padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); z-index: 9999; max-width: 700px; max-height: 85vh; overflow-y: auto; }
     .csp-u-046 { text-align: center; margin-bottom: 1.5rem; }
     .csp-u-047 { background: linear-gradient(135deg, #dc3545 0%, #c82333 100%); width: 80px; height: 80px; border-radius: 50%; margin: 0 auto 1rem; display: flex; align-items: center; justify-content: center; }
     .csp-u-048 { color: #dc3545; font-weight: 800; margin-bottom: 0.5rem; }
@@ -349,14 +349,14 @@
     .csp-u-054 { max-height: 300px; overflow-y: auto; font-size: 0.9rem; }
     .csp-u-055 { margin: 0.5rem 0; color: #721c24; font-weight: 500; }
     .csp-u-056 { margin: 0; color: #666; font-size: 0.9rem; line-height: 1.6; }
-    .csp-u-057 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2.5rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); z-index: 9999; max-width: 500px; text-align: center; }
+    .csp-u-057 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background:var(--ars-shell-surface, #fff); padding: 2.5rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); z-index: 9999; max-width: 500px; text-align: center; }
     .csp-u-058 { color: var(--primary-color); margin-bottom: 1rem; font-weight: 800; }
     .csp-u-059 { background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(240, 253, 250, 0.5) 100%); padding: 1.5rem; border-radius: 10px; margin-bottom: 1.5rem; }
     .csp-u-060 { color: var(--primary-color); font-weight: 700; font-size: 1.3rem; margin: 0; }
     .csp-u-061 { color: #666; font-size: 0.9rem; margin: 0.5rem 0 0 0; }
     .csp-u-062 { color: #666; font-size: 0.9rem; margin-bottom: 1.5rem; }
     .csp-u-063 { background: var(--gradient-primary); color: white; border: none; padding: 0.8rem 2rem; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; font-size: 1rem; }
-    .csp-u-064 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); z-index: 9999; max-width: 600px; }
+    .csp-u-064 { position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background:var(--ars-shell-surface, #fff); padding: 2rem; border-radius: 15px; box-shadow: 0 4px 30px rgba(0,0,0,0.3); z-index: 9999; max-width: 600px; }
     .csp-u-065 { color: #666; font-size: 1rem; margin-bottom: 0.5rem; }
     .csp-u-066 { color: #999; font-size: 0.85rem; }
     .autorizacion-duplicada {

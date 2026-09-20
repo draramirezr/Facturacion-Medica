@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ 'Editar' if consulta else 'Nueva' }} Consulta Clínica - ARSFlow{% endblock %}
+{% block title %}{{ 'Editar' if consulta else 'Nueva' }} Consulta Clínica - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
@@ -12,16 +12,16 @@
 {% set plan = consulta.plan_tratamiento if consulta else {} %}
 <style nonce="{{ csp_nonce }}">
     .hc-form-shell { max-width: 1100px; margin: 0 auto; }
-    .hc-patient-bar, .hc-form-card { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.3rem; }
+    .hc-patient-bar, .hc-form-card { background: var(--ars-shell-surface); color: var(--ars-shell-text); border: 1px solid var(--ars-shell-border); border-radius: 15px; padding: 1.3rem; }
     .hc-form-card { border-top-left-radius: 0; }
     .hc-tabs { border-bottom: 0; gap: .35rem; }
-    .hc-tabs .nav-link { color: var(--ars-shell-muted); border: 1px solid #e5eaf0; background: #f8fafc; font-weight: 700; }
-    .hc-tabs .nav-link.active { color: var(--primary-dark); border-color: {{ tema.primary }}35; border-bottom-color: white; background: white; }
+    .hc-tabs .nav-link { color: var(--ars-shell-muted); border: 1px solid var(--ars-shell-border); background: var(--ars-shell-bg); font-weight: 700; }
+    .hc-tabs .nav-link.active { color: var(--primary-dark); border-color: {{ tema.primary }}35; border-bottom-color: var(--ars-shell-surface); background: var(--ars-shell-surface); }
     .hc-section-title { font-size: 1rem; font-weight: 800; margin: .5rem 0 1rem; color: var(--primary-dark); }
     .hc-checks { display: flex; flex-wrap: wrap; gap: .8rem 1.25rem; }
     .hc-checks label { display: inline-flex; align-items: center; gap: .4rem; }
     .hc-checks input { width: 18px; height: 18px; accent-color: var(--primary-color); }
-    .hc-specialty-intro { border-left: 4px solid var(--primary-color); background: #f8fafc; border-radius: 8px; padding: .85rem 1rem; }
+    .hc-specialty-intro { border-left: 4px solid var(--primary-color); background: var(--ars-shell-bg); border-radius: 8px; padding: .85rem 1rem; }
     .hc-specialty-empty { color: var(--ars-shell-muted); padding: 1rem 0; }
 </style>
 
@@ -71,7 +71,6 @@
                             </select>
                             {% endif %}
                         </div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Ocupación</label><input class="form-control" name="ocupacion" maxlength="150" value="{{ paciente['ocupacion'] or '' }}"></div>
                         <div class="col-12 mb-3"><label class="form-label">Motivo de consulta *</label><textarea class="form-control" name="motivo_consulta" rows="2" required>{{ consulta['motivo_consulta'] if consulta else motivo_preseleccionado|default('') }}</textarea></div>
                     </div>
                     <h2 class="hc-section-title">Enfermedad actual</h2>
@@ -79,10 +78,7 @@
                         <div class="col-md-6 mb-3"><label class="form-label">Inicio de los síntomas</label><textarea class="form-control" name="inicio_sintomas" rows="2">{{ ea.get('inicio_sintomas','') }}</textarea></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Evolución</label><textarea class="form-control" name="evolucion" rows="2">{{ ea.get('evolucion','') }}</textarea></div>
                         <div class="col-md-4 mb-3"><label class="form-label">Intensidad</label><input class="form-control" name="intensidad" value="{{ ea.get('intensidad','') }}" placeholder="Ej: 7/10"></div>
-                        <div class="col-md-4 mb-3"><label class="form-label">Factores que agravan</label><textarea class="form-control" name="factores_agravan" rows="2">{{ ea.get('factores_agravan','') }}</textarea></div>
-                        <div class="col-md-4 mb-3"><label class="form-label">Factores que alivian</label><textarea class="form-control" name="factores_alivian" rows="2">{{ ea.get('factores_alivian','') }}</textarea></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Síntomas asociados</label><textarea class="form-control" name="sintomas_asociados" rows="2">{{ ea.get('sintomas_asociados','') }}</textarea></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Tratamientos utilizados previamente</label><textarea class="form-control" name="tratamientos_previos" rows="2">{{ ea.get('tratamientos_previos','') }}</textarea></div>
+                        <div class="col-md-8 mb-3"><label class="form-label">Síntomas asociados</label><textarea class="form-control" name="sintomas_asociados" rows="2">{{ ea.get('sintomas_asociados','') }}</textarea></div>
                     </div>
                 </div>
 
@@ -146,7 +142,7 @@
                 <div class="tab-pane fade" id="tab-antecedentes">
                     <h2 class="hc-section-title">Antecedentes personales</h2>
                     <div class="row">
-                        {% for campo, etiqueta in [('enfermedades_previas','Enfermedades previas'),('cirugias','Cirugías'),('hospitalizaciones','Hospitalizaciones'),('alergias','Alergias'),('medicamentos_actuales','Medicamentos actuales'),('habitos','Hábitos'),('otros','Otros antecedentes relevantes')] %}
+                        {% for campo, etiqueta in [('enfermedades_previas','Enfermedades previas'),('cirugias','Cirugías y hospitalizaciones'),('alergias','Alergias'),('medicamentos_actuales','Medicamentos actuales'),('habitos','Hábitos')] %}
                         <div class="col-md-6 mb-3"><label class="form-label">{{ etiqueta }}</label><textarea class="form-control" name="{{ 'otros_antecedentes' if campo == 'otros' else campo }}" rows="2">{{ ap.get(campo,'') }}</textarea></div>
                         {% endfor %}
                     </div>
@@ -158,8 +154,7 @@
                         <label><input type="checkbox" name="familiar_cancer" value="1" {% if af.get('cancer') %}checked{% endif %}> Cáncer</label>
                     </div>
                     <div class="row">
-                        <div class="col-md-6 mb-3"><label class="form-label">Enfermedades hereditarias</label><textarea class="form-control" name="familiar_hereditarias" rows="2">{{ af.get('hereditarias','') }}</textarea></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Otros</label><textarea class="form-control" name="otros_antecedentes_familiares" rows="2">{{ af.get('otros','') }}</textarea></div>
+                        <div class="col-12 mb-3"><label class="form-label">Otros antecedentes familiares relevantes</label><textarea class="form-control" name="otros_antecedentes_familiares" rows="2">{{ af.get('otros','') }}</textarea></div>
                     </div>
                 </div>
 
@@ -177,7 +172,7 @@
                     </div>
                     <h2 class="hc-section-title">Examen físico</h2>
                     <div class="row">
-                        {% for campo, etiqueta in [('estado_general','Estado general'),('cabeza_cuello','Cabeza y cuello'),('cardiovascular','Cardiovascular'),('respiratorio','Respiratorio'),('abdomen','Abdomen'),('extremidades','Extremidades'),('neurologico','Neurológico'),('otros','Otros hallazgos')] %}
+                        {% for campo, etiqueta in [('estado_general','Estado general'),('cardiovascular','Cardiovascular'),('respiratorio','Respiratorio'),('abdomen','Abdomen'),('neurologico','Neurológico'),('otros','Otros hallazgos')] %}
                         <div class="col-md-6 mb-3"><label class="form-label">{{ etiqueta }}</label><textarea class="form-control" name="{{ 'otros_hallazgos' if campo == 'otros' else campo }}" rows="2">{{ ef.get(campo,'') }}</textarea></div>
                         {% endfor %}
                     </div>
@@ -186,19 +181,12 @@
                 <div class="tab-pane fade" id="tab-diagnostico">
                     <div class="mb-3"><label class="form-label">Diagnóstico principal *</label><textarea class="form-control" name="diagnostico_principal" rows="3">{{ consulta['diagnostico_principal'] if consulta else '' }}</textarea></div>
                     <div class="mb-3"><label class="form-label">Diagnósticos secundarios</label><textarea class="form-control" name="diagnosticos_secundarios" rows="2">{{ consulta['diagnosticos_secundarios'] if consulta else '' }}</textarea></div>
-                    <div class="row">
-                        <div class="col-md-6 mb-3"><label class="form-label">Diagnóstico presuntivo</label><textarea class="form-control" name="diagnostico_presuntivo" rows="2">{{ consulta['diagnostico_presuntivo'] if consulta else '' }}</textarea></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Diagnóstico diferencial</label><textarea class="form-control" name="diagnostico_diferencial" rows="2">{{ consulta['diagnostico_diferencial'] if consulta else '' }}</textarea></div>
-                        <div class="col-md-4 mb-3"><label class="form-label">Código CIE-10</label><input class="form-control text-uppercase" name="codigo_cie10" maxlength="30" value="{{ consulta['codigo_cie10'] if consulta else '' }}"></div>
-                    </div>
+                    <div class="mb-3"><label class="form-label">Código CIE-10</label><input class="form-control text-uppercase" name="codigo_cie10" maxlength="30" value="{{ consulta['codigo_cie10'] if consulta else '' }}"></div>
                 </div>
 
                 <div class="tab-pane fade" id="tab-plan">
                     <div class="row">
-                        <div class="col-md-6 mb-3"><label class="form-label">Medicamentos</label><textarea class="form-control" name="plan_medicamentos" rows="3">{{ plan.get('medicamentos','') }}</textarea></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Dosis</label><textarea class="form-control" name="plan_dosis" rows="3">{{ plan.get('dosis','') }}</textarea></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Frecuencia</label><textarea class="form-control" name="plan_frecuencia" rows="2">{{ plan.get('frecuencia','') }}</textarea></div>
-                        <div class="col-md-6 mb-3"><label class="form-label">Duración</label><textarea class="form-control" name="plan_duracion" rows="2">{{ plan.get('duracion','') }}</textarea></div>
+                        <div class="col-12 mb-3"><label class="form-label">Medicamentos e indicaciones</label><textarea class="form-control" name="plan_medicamentos" rows="3">{{ plan.get('medicamentos','') }}</textarea></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Estudios de laboratorio</label><textarea class="form-control" name="estudios_laboratorio" rows="2">{{ plan.get('laboratorios','') }}</textarea></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Estudios de imágenes</label><textarea class="form-control" name="estudios_imagenes" rows="2">{{ plan.get('imagenes','') }}</textarea></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Procedimientos</label><textarea class="form-control" name="procedimientos" rows="2">{{ plan.get('procedimientos','') }}</textarea></div>

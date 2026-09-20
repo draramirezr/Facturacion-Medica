@@ -1,16 +1,26 @@
-/* Modo oscuro compartido por la aplicación autenticada */
+/* Modo oscuro compartido por la aplicación autenticada.
+   Esta hoja se carga de última y debe ganarle a layout-design.css,
+   visual-refresh.css y a los estilos por plantilla que fijan blanco. */
 html[data-color-mode="dark"] {
     --ars-shell-bg: #0b1220;
     --ars-shell-surface: #111a2b;
+    --ars-shell-surface-alt: #0f1828;
+    --ars-shell-surface-raised: #162135;
     --ars-shell-border: #263349;
     --ars-shell-text: #e6edf7;
     --ars-shell-muted: #9aa9bc;
     --text-dark: #e6edf7;
+    --text-medium: #c3cedd;
+    --text-light: #a8b4c5;
+    --text-muted: #8e9cb0;
     --text-gray: #a8b4c5;
     --background-light: #0b1220;
     color-scheme: dark;
 }
 
+/* ============================================================
+   1. Estructura general
+   ============================================================ */
 html[data-color-mode="dark"] body.ars-app-body,
 html[data-color-mode="dark"] .ars-app-shell,
 html[data-color-mode="dark"] .ars-main-column,
@@ -26,15 +36,437 @@ html[data-color-mode="dark"] .ars-chat-panel,
 html[data-color-mode="dark"] .ars-chat-conversation,
 html[data-color-mode="dark"] .ars-chat-compose,
 html[data-color-mode="dark"] .dropdown-menu,
-html[data-color-mode="dark"] .modal-content {
+html[data-color-mode="dark"] .modal-content,
+html[data-color-mode="dark"] .offcanvas {
     background: var(--ars-shell-surface) !important;
+    background-image: none !important;
     border-color: var(--ars-shell-border) !important;
     color: var(--ars-shell-text) !important;
 }
 
+html[data-color-mode="dark"] .modal-header,
+html[data-color-mode="dark"] .modal-footer,
+html[data-color-mode="dark"] .card-header,
+html[data-color-mode="dark"] .card-footer {
+    background: var(--ars-shell-surface-raised) !important;
+    border-color: var(--ars-shell-border) !important;
+    color: var(--ars-shell-text) !important;
+}
+
+html[data-color-mode="dark"] .ars-sidebar-brand {
+    background: transparent;
+}
+
+html[data-color-mode="dark"] .ars-nav-link,
+html[data-color-mode="dark"] .ars-help-card,
+html[data-color-mode="dark"] .ars-user-menu,
+html[data-color-mode="dark"] .ars-icon-button,
+html[data-color-mode="dark"] .ars-sidebar-toggle {
+    color: #b8c3d2;
+    border-color: var(--ars-shell-border);
+}
+
+html[data-color-mode="dark"] .ars-nav-link:hover,
+html[data-color-mode="dark"] .ars-nav-link:focus-visible,
+html[data-color-mode="dark"] .ars-nav-link.active,
+html[data-color-mode="dark"] .ars-icon-button:hover,
+html[data-color-mode="dark"] .ars-sidebar-toggle:hover {
+    color: #e7fbff;
+    background: color-mix(in srgb, var(--primary-color) 20%, #111a2b) !important;
+}
+
+/* ============================================================
+   2. Superficies de contenido (tarjetas, barras, paneles)
+   ============================================================ */
+html[data-color-mode="dark"] .ars-content :is(
+    .card,
+    [class$="-card"],
+    [class*="-card "],
+    [class$="-section"],
+    [class*="-section "],
+    [class$="-surface"],
+    [class*="-surface "],
+    [class$="-paper"],
+    [class*="-paper "],
+    [class$="-summary"],
+    [class*="-summary "],
+    [class$="-block"],
+    [class*="-block "],
+    [class$="-bar"],
+    [class*="-bar "],
+    [class$="-toolbar"],
+    [class*="-toolbar "],
+    [class$="-box"],
+    [class*="-box "],
+    [class$="-hero"],
+    [class*="-hero "],
+    [class$="-header"],
+    [class*="-header "],
+    [class$="-panel"],
+    [class*="-panel "],
+    [class$="-filter"],
+    [class*="-filter "],
+    [class$="-tile"],
+    [class*="-tile "],
+    [class$="-item"],
+    [class*="-item "],
+    [class$="-option"],
+    [class*="-option "],
+    [class$="-stat"],
+    [class*="-stat "],
+    [class$="-container"],
+    [class*="-container "],
+    [class$="-queue"],
+    [class*="-queue "],
+    [class$="-turn"],
+    [class*="-turn "],
+    [class$="-activity"],
+    [class*="-activity "],
+    [class$="-filters"],
+    [class*="-filters "],
+    [class$="__header"],
+    [class*="__header "],
+    [class$="__filters"],
+    [class*="__filters "],
+    [class$="__activity"],
+    [class*="__activity "],
+    [class$="__card"],
+    [class*="__card "],
+    [class$="__panel"],
+    [class*="__panel "]
+):not(.progress-bar):not(.patient-search__results):not(.nav-item):not(.dropdown-item):not(.btn):not([class*="btn-"]):not(i):not(.fa):not(.fas):not(.far):not(.fab):not(.fal) {
+    background-color: var(--ars-shell-surface) !important;
+    background-image: none !important;
+    border-color: var(--ars-shell-border) !important;
+    color: var(--ars-shell-text);
+    box-shadow: none !important;
+}
+
+html[data-color-mode="dark"] .ars-content :is(
+    h1, h2, h3, h4, h5, h6, strong, label, .form-label, .card-title, dt
+) {
+    color: #e8eef7;
+}
+
+html[data-color-mode="dark"] .text-muted,
+html[data-color-mode="dark"] .text-secondary,
+html[data-color-mode="dark"] small,
+html[data-color-mode="dark"] .record-meta,
+html[data-color-mode="dark"] .detail-label {
+    color: var(--ars-shell-muted) !important;
+}
+
+html[data-color-mode="dark"] .text-dark,
+html[data-color-mode="dark"] .text-body {
+    color: var(--ars-shell-text) !important;
+}
+
+/* ============================================================
+   3. Formularios
+   ============================================================ */
+html[data-color-mode="dark"] .ars-search input,
+html[data-color-mode="dark"] .form-control,
+html[data-color-mode="dark"] .form-select,
+html[data-color-mode="dark"] textarea,
+html[data-color-mode="dark"] input:not([type="checkbox"]):not([type="radio"]) {
+    background-color: var(--ars-shell-surface-alt) !important;
+    border-color: #314057 !important;
+    color: #e8eef7 !important;
+}
+
+html[data-color-mode="dark"] .form-control:focus,
+html[data-color-mode="dark"] .form-select:focus,
+html[data-color-mode="dark"] textarea:focus {
+    background-color: var(--ars-shell-surface-alt) !important;
+    border-color: var(--primary-color) !important;
+    box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--primary-color) 25%, transparent) !important;
+}
+
+html[data-color-mode="dark"] .form-select option,
+html[data-color-mode="dark"] select option {
+    background-color: var(--ars-shell-surface) !important;
+    color: #e8eef7 !important;
+}
+
+html[data-color-mode="dark"] .input-group-text {
+    background-color: var(--ars-shell-surface-raised) !important;
+    border-color: #314057 !important;
+    color: var(--ars-shell-muted) !important;
+}
+
+html[data-color-mode="dark"] .form-control::placeholder,
+html[data-color-mode="dark"] input::placeholder,
+html[data-color-mode="dark"] textarea::placeholder {
+    color: #738197 !important;
+}
+
+html[data-color-mode="dark"] .form-control:disabled,
+html[data-color-mode="dark"] .form-control[readonly],
+html[data-color-mode="dark"] .form-select:disabled {
+    background-color: #182235 !important;
+    color: #9ba9bb !important;
+}
+
+html[data-color-mode="dark"] .form-check-input:not(:checked) {
+    background-color: var(--ars-shell-surface-alt) !important;
+}
+
+/* ============================================================
+   4. Botones
+   ============================================================ */
+html[data-color-mode="dark"] .ars-app-body .ars-content :is(
+    .btn-outline-primary,
+    .btn-outline-secondary,
+    .btn-secondary,
+    .btn-cancelar,
+    .btn-volver,
+    .btn-limpiar,
+    .btn-filter-secondary,
+    .btn-ver-factura,
+    .btn-editar-factura,
+    .btn-light
+):not(.btn-eliminar):not(.btn-accion-eliminar) {
+    background: color-mix(in srgb, var(--primary-color) 22%, #111a2b) !important;
+    border-color: color-mix(in srgb, var(--primary-color) 55%, var(--ars-shell-border)) !important;
+    color: #d8f4fb !important;
+}
+
+html[data-color-mode="dark"] .ars-app-body .ars-content :is(
+    .btn-outline-primary,
+    .btn-outline-secondary,
+    .btn-secondary,
+    .btn-cancelar,
+    .btn-volver,
+    .btn-limpiar,
+    .btn-filter-secondary,
+    .btn-ver-factura,
+    .btn-editar-factura,
+    .btn-light
+):not(.btn-eliminar):not(.btn-accion-eliminar):hover {
+    background: var(--primary-color) !important;
+    color: #ffffff !important;
+}
+
+html[data-color-mode="dark"] .ars-app-body .ars-content .btn-primary {
+    background: var(--primary-dark, #0f6f86) !important;
+    border-color: var(--primary-dark, #0f6f86) !important;
+    color: #ffffff !important;
+}
+
+html[data-color-mode="dark"] .ars-app-body .ars-content .btn-primary:hover,
+html[data-color-mode="dark"] .ars-app-body .ars-content .btn-primary:focus,
+html[data-color-mode="dark"] .ars-app-body .ars-content .btn-primary:active {
+    background: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: #ffffff !important;
+}
+
+html[data-color-mode="dark"] .btn i,
+html[data-color-mode="dark"] .btn .fa,
+html[data-color-mode="dark"] .btn .fas,
+html[data-color-mode="dark"] .btn .far,
+html[data-color-mode="dark"] .btn .fab,
+html[data-color-mode="dark"] .btn [class*="fa-"] {
+    background: transparent !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border: 0 !important;
+    box-shadow: none !important;
+    color: inherit !important;
+    filter: none !important;
+}
+
+html[data-color-mode="dark"] .btn-close {
+    filter: invert(1) grayscale(1);
+}
+
+html[data-color-mode="dark"] .whatsapp-float,
+html[data-color-mode="dark"] a.whatsapp-float {
+    background: #25d366 !important;
+    background-image: none !important;
+    border: 0 !important;
+    color: #fff !important;
+}
+
+html[data-color-mode="dark"] .whatsapp-float i,
+html[data-color-mode="dark"] .whatsapp-float .fab {
+    color: #fff !important;
+    background: transparent !important;
+    filter: none !important;
+}
+
+/* ============================================================
+   5. Tablas
+   ============================================================ */
+html[data-color-mode="dark"] .ars-content .table,
+html[data-color-mode="dark"] .ars-content table,
+html[data-color-mode="dark"] .modal-content .table,
+html[data-color-mode="dark"] .modal-content table {
+    --bs-table-bg: transparent;
+    --bs-table-color: #dbe4ef;
+    --bs-table-striped-bg: #131e30;
+    --bs-table-striped-color: #dbe4ef;
+    --bs-table-hover-bg: #1a2739;
+    --bs-table-hover-color: #ffffff;
+    --bs-table-border-color: var(--ars-shell-border);
+    background-color: transparent !important;
+    background-image: none !important;
+    color: #dbe4ef !important;
+}
+
+html[data-color-mode="dark"] .ars-content .table > :not(caption) > * > *,
+html[data-color-mode="dark"] .ars-content table > thead > tr > *,
+html[data-color-mode="dark"] .ars-content table > tbody > tr > *,
+html[data-color-mode="dark"] .ars-content table > tfoot > tr > * {
+    border-color: var(--ars-shell-border) !important;
+    color: inherit;
+}
+
+html[data-color-mode="dark"] .ars-content .table > tbody > tr,
+html[data-color-mode="dark"] .ars-content table > tbody > tr {
+    background-color: transparent !important;
+    color: #dbe4ef;
+}
+
+html[data-color-mode="dark"] .ars-content thead th,
+html[data-color-mode="dark"] .ars-content thead td,
+html[data-color-mode="dark"] .calendar-weekday {
+    background-color: var(--ars-shell-surface-raised) !important;
+    background-image: none !important;
+    color: #aab8c9 !important;
+}
+
+html[data-color-mode="dark"] .ars-content tbody tr:hover > *,
+html[data-color-mode="dark"] .ars-content tbody tr:hover {
+    background-color: #1a2739 !important;
+    color: #ffffff;
+}
+
+html[data-color-mode="dark"] .ars-content .table-responsive {
+    background-color: transparent !important;
+}
+
+/* ============================================================
+   6. Insignias, alertas y estados
+   ============================================================ */
+html[data-color-mode="dark"] .ars-app-body .ars-content .badge,
+html[data-color-mode="dark"] .ars-app-body .ars-content .badge.bg-info,
+html[data-color-mode="dark"] .ars-app-body .ars-content .badge.bg-success,
+html[data-color-mode="dark"] .ars-app-body .ars-content .badge.bg-secondary,
+html[data-color-mode="dark"] .ars-content [class$="-status"],
+html[data-color-mode="dark"] .ars-content [class$="-pill"],
+html[data-color-mode="dark"] .ars-content [class$="-chip"],
+html[data-color-mode="dark"] .ars-content [class$="-tag"] {
+    background: color-mix(in srgb, var(--primary-color) 22%, #111a2b) !important;
+    border-color: color-mix(in srgb, var(--primary-color) 45%, #111a2b) !important;
+    color: #d8f4fb !important;
+    box-shadow: none !important;
+}
+
+html[data-color-mode="dark"] .ars-app-body .ars-content .badge.bg-danger,
+html[data-color-mode="dark"] .ars-app-body .ars-content .badge.bg-warning {
+    background: #3a2434 !important;
+    border-color: #6b3b4a !important;
+    color: #ffd7de !important;
+}
+
+html[data-color-mode="dark"] .alert {
+    background-color: #172338 !important;
+    background-image: none !important;
+    border-color: #30405a !important;
+    color: #dce6f2 !important;
+}
+
+html[data-color-mode="dark"] .alert-success {
+    background-color: #13291f !important;
+    border-color: #2b5f42 !important;
+    color: #bbf0d0 !important;
+}
+
+html[data-color-mode="dark"] .alert-warning {
+    background-color: #2d2413 !important;
+    border-color: #6a5320 !important;
+    color: #f3dfae !important;
+}
+
+html[data-color-mode="dark"] .alert-danger,
+html[data-color-mode="dark"] .alert-error {
+    background-color: #2d1719 !important;
+    border-color: #6d2f33 !important;
+    color: #f6c5c8 !important;
+}
+
+/* ============================================================
+   7. Menús, paginación y utilidades de Bootstrap
+   ============================================================ */
+html[data-color-mode="dark"] .dropdown-item,
+html[data-color-mode="dark"] .dropdown-item-text,
+html[data-color-mode="dark"] .dropdown-header {
+    color: #dbe4ef;
+}
+
+html[data-color-mode="dark"] .dropdown-item:hover,
+html[data-color-mode="dark"] .dropdown-item:focus {
+    background: #1a273b;
+    color: #fff;
+}
+
+html[data-color-mode="dark"] .page-link {
+    background-color: var(--ars-shell-surface) !important;
+    border-color: var(--ars-shell-border) !important;
+    color: #cfdbea !important;
+}
+
+html[data-color-mode="dark"] .page-item.active .page-link {
+    background-color: var(--primary-color) !important;
+    border-color: var(--primary-color) !important;
+    color: #08131f !important;
+}
+
+html[data-color-mode="dark"] .page-item.disabled .page-link {
+    background-color: var(--ars-shell-surface-alt) !important;
+    color: #61708a !important;
+}
+
+html[data-color-mode="dark"] .nav-tabs .nav-link {
+    background: var(--ars-shell-surface-alt);
+    border-color: var(--ars-shell-border);
+    color: var(--ars-shell-muted);
+}
+
+html[data-color-mode="dark"] .nav-tabs .nav-link.active {
+    background: var(--ars-shell-surface);
+    border-bottom-color: var(--ars-shell-surface);
+    color: #e7fbff;
+}
+
+html[data-color-mode="dark"] .list-group-item {
+    background-color: var(--ars-shell-surface) !important;
+    border-color: var(--ars-shell-border) !important;
+    color: var(--ars-shell-text) !important;
+}
+
+html[data-color-mode="dark"] .dropdown-divider,
+html[data-color-mode="dark"] hr,
+html[data-color-mode="dark"] .border,
+html[data-color-mode="dark"] .border-bottom,
+html[data-color-mode="dark"] .border-top,
+html[data-color-mode="dark"] .border-start,
+html[data-color-mode="dark"] .border-end {
+    border-color: var(--ars-shell-border) !important;
+}
+
+html[data-color-mode="dark"] .bg-white,
+html[data-color-mode="dark"] .bg-light {
+    background-color: var(--ars-shell-surface) !important;
+}
+
+/* ============================================================
+   8. Componentes propios
+   ============================================================ */
 html[data-color-mode="dark"] .ars-chat-contacts,
 html[data-color-mode="dark"] .ars-chat-messages {
-    background: #0f1828;
+    background: var(--ars-shell-surface-alt);
     border-color: var(--ars-shell-border);
 }
 
@@ -56,127 +488,15 @@ html[data-color-mode="dark"] .ars-chat-message.sent .ars-chat-bubble {
     color: white;
 }
 
-html[data-color-mode="dark"] .ars-sidebar-brand {
-    background: #fff;
-}
-
-html[data-color-mode="dark"] .ars-nav-link,
-html[data-color-mode="dark"] .ars-help-card,
-html[data-color-mode="dark"] .ars-user-menu,
-html[data-color-mode="dark"] .ars-icon-button,
-html[data-color-mode="dark"] .ars-sidebar-toggle {
-    color: #b8c3d2;
-    border-color: var(--ars-shell-border);
-}
-
-html[data-color-mode="dark"] .ars-nav-link:hover,
-html[data-color-mode="dark"] .ars-nav-link:focus-visible,
-html[data-color-mode="dark"] .ars-nav-link.active {
-    color: #e7fbff;
-    background: color-mix(in srgb, var(--primary-color) 20%, #111a2b) !important;
-}
-
-html[data-color-mode="dark"] .ars-search input,
-html[data-color-mode="dark"] .form-control,
-html[data-color-mode="dark"] .form-select,
-html[data-color-mode="dark"] textarea,
-html[data-color-mode="dark"] input:not([type="checkbox"]):not([type="radio"]) {
-    background-color: #0f1828 !important;
-    border-color: #314057 !important;
-    color: #e8eef7 !important;
-}
-
-html[data-color-mode="dark"] .form-control::placeholder,
-html[data-color-mode="dark"] input::placeholder,
-html[data-color-mode="dark"] textarea::placeholder {
-    color: #738197 !important;
-}
-
-html[data-color-mode="dark"] .form-control:disabled,
-html[data-color-mode="dark"] .form-control[readonly],
-html[data-color-mode="dark"] .form-select:disabled {
-    background-color: #182235 !important;
-    color: #9ba9bb !important;
-}
-
-html[data-color-mode="dark"] .ars-content :is(
-    .card,
-    [class$="-card"],
-    [class*="-card "],
-    [class$="-section"],
-    [class*="-section "],
-    [class$="-surface"],
-    [class*="-surface "],
-    [class$="-paper"],
-    [class*="-paper "],
-    [class$="-summary"],
-    [class*="-summary "],
-    [class$="-block"],
-    [class*="-block "]
-) {
-    background-color: var(--ars-shell-surface) !important;
-    background-image: none !important;
+html[data-color-mode="dark"] .patient-search__results {
+    background: var(--ars-shell-surface) !important;
     border-color: var(--ars-shell-border) !important;
-    color: var(--ars-shell-text);
-    box-shadow: none !important;
+    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.45) !important;
 }
 
-html[data-color-mode="dark"] .ars-content :is(
-    h1, h2, h3, h4, h5, h6, strong, label, .form-label, .card-title
-) {
-    color: #e8eef7;
-}
-
-html[data-color-mode="dark"] .text-muted,
-html[data-color-mode="dark"] small,
-html[data-color-mode="dark"] .record-meta,
-html[data-color-mode="dark"] .detail-label {
-    color: var(--ars-shell-muted) !important;
-}
-
-html[data-color-mode="dark"] .table,
-html[data-color-mode="dark"] table {
-    --bs-table-bg: transparent;
-    --bs-table-color: #dbe4ef;
-    --bs-table-border-color: var(--ars-shell-border);
-    color: #dbe4ef !important;
-}
-
-html[data-color-mode="dark"] .table thead,
-html[data-color-mode="dark"] table thead,
-html[data-color-mode="dark"] .calendar-weekday {
-    background: #162135 !important;
-    color: #aab8c9 !important;
-}
-
-html[data-color-mode="dark"] .table tbody tr:hover,
-html[data-color-mode="dark"] table tbody tr:hover {
-    background: #152034 !important;
-}
-
-html[data-color-mode="dark"] .dropdown-item,
-html[data-color-mode="dark"] .dropdown-item-text,
-html[data-color-mode="dark"] .dropdown-header {
-    color: #dbe4ef;
-}
-
-html[data-color-mode="dark"] .dropdown-item:hover,
-html[data-color-mode="dark"] .dropdown-item:focus {
-    background: #1a273b;
-    color: #fff;
-}
-
-html[data-color-mode="dark"] .dropdown-divider,
-html[data-color-mode="dark"] hr,
-html[data-color-mode="dark"] .border,
-html[data-color-mode="dark"] .border-bottom,
-html[data-color-mode="dark"] .border-top {
-    border-color: var(--ars-shell-border) !important;
-}
-
-html[data-color-mode="dark"] .bg-white,
-html[data-color-mode="dark"] .bg-light {
-    background-color: var(--ars-shell-surface) !important;
+html[data-color-mode="dark"] .patient-search__result:hover,
+html[data-color-mode="dark"] .patient-search__result.active {
+    background: #1a273b !important;
 }
 
 html[data-color-mode="dark"] .calendar-day,
@@ -191,12 +511,27 @@ html[data-color-mode="dark"] .calendar-day.other-month {
     color: #65738a;
 }
 
-html[data-color-mode="dark"] .alert {
-    background: #172338;
-    border-color: #30405a;
-    color: #dce6f2;
+html[data-color-mode="dark"] ::-webkit-scrollbar-track {
+    background: #0d1523;
 }
 
-html[data-color-mode="dark"] .btn-close {
-    filter: invert(1) grayscale(1);
+/* ============================================================
+   9. Impresión: los documentos siempre salen en claro
+   ============================================================ */
+@media print {
+    html[data-color-mode="dark"] body,
+    html[data-color-mode="dark"] .ars-content,
+    html[data-color-mode="dark"] .ars-content *,
+    html[data-color-mode="dark"] .table,
+    html[data-color-mode="dark"] table,
+    html[data-color-mode="dark"] thead th,
+    html[data-color-mode="dark"] .card,
+    html[data-color-mode="dark"] .alert,
+    html[data-color-mode="dark"] .badge {
+        background-color: #ffffff !important;
+        background-image: none !important;
+        color: #000000 !important;
+        border-color: #999999 !important;
+        box-shadow: none !important;
+    }
 }

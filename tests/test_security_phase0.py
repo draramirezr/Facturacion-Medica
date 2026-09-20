@@ -144,6 +144,55 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertIn('WHERE e.id = %s', queries[0][0])
         self.assertEqual(queries[0][1], (22,))
 
+    def test_user_list_is_scoped_to_current_tenant(self):
+        from routes.users_roles import listar_usuarios_del_tenant
+
+        self.assertEqual(listar_usuarios_del_tenant(None), [])
+        with patch.object(
+            user_routes,
+            'execute_query',
+            return_value=[{'id': 1, 'nombre': 'Mio'}],
+        ) as query:
+            filas = listar_usuarios_del_tenant(22)
+
+        self.assertEqual(filas[0]['nombre'], 'Mio')
+        sql, params = query.call_args.args[:2]
+        self.assertIn('u.tenant_id = %s', sql)
+        self.assertNotIn('u.*', sql)
+        self.assertEqual(params, (22,))
+
+        with self.flask_app.test_request_context('/admin/usuarios'):
+            with (
+                patch_current_user(SimpleNamespace(
+                    id=10,
+                    perfil='Administrador',
+                    tenant_id=None,
+                    is_authenticated=True,
+                )),
+                patch.object(user_routes, 'execute_query') as list_query,
+            ):
+                respuesta = user_routes.admin_usuarios.__wrapped__()
+
+        self.assertEqual(respuesta.status_code, 302)
+        list_query.assert_not_called()
+
+    def test_tenant_admin_cannot_see_other_tenants_user_counts(self):
+        with self.flask_app.test_request_context('/admin/verificar-multitenant'):
+            with (
+                patch_current_user(self.user),
+                patch.object(company_routes, 'current_user', self.user),
+                patch.object(company_routes, 'execute_query') as query,
+            ):
+                respuesta = company_routes.verificar_multitenant.__wrapped__()
+
+        estado = (
+            respuesta[1]
+            if isinstance(respuesta, tuple)
+            else respuesta.status_code
+        )
+        self.assertEqual(estado, 403)
+        query.assert_not_called()
+
     def test_dashboard_financial_queries_are_tenant_scoped(self):
         queries = []
 
@@ -581,6 +630,304 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertNotIn('admin@facturacion.com', template)
         self.assertNotIn('Entrar2026!', template)
 
+    def test_safe_return_url_rejects_login_and_keeps_app_page(self):
+        with self.flask_app.test_request_context(
+            '/mi-cuenta/cambiar-password',
+            query_string={'volver': '/login'},
+        ):
+            self.assertEqual(
+                auth_routes.url_retorno_segura(),
+                '/facturacion',
+            )
+
+        with self.flask_app.test_request_context(
+            '/mi-cuenta/cambiar-password',
+            query_string={'volver': '/facturacion/historia-clinica'},
+        ):
+            self.assertEqual(
+                auth_routes.url_retorno_segura(),
+                '/facturacion/historia-clinica',
+            )
+
+    def test_change_password_template_returns_to_previous_page(self):
+        template = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'cambiar_mi_password.html'
+        ).read_text(encoding='utf-8')
+
+        self.assertIn('href="{{ volver_url }}"', template)
+        self.assertNotIn("url_for('facturacion_menu')", template)
+
+    def test_dark_mode_stylesheets_use_theme_tokens(self):
+        static_css = Path(app_module.__file__).resolve().parent / 'static' / 'css'
+        dark_mode = (static_css / 'dark-mode.css').read_text(encoding='utf-8')
+        public_theme = (static_css / 'public-theme.css').read_text(encoding='utf-8')
+        layout = (static_css / 'layout-design.css').read_text(encoding='utf-8')
+
+        self.assertIn('--ars-shell-surface', dark_mode)
+        self.assertIn(':not(i):not(.fa):not(.fas)', dark_mode)
+        self.assertIn('.btn [class*="fa-"]', dark_mode)
+        self.assertIn('html[data-color-mode="dark"]', public_theme)
+        self.assertIn('var(--ars-shell-surface', layout)
+        self.assertNotIn('.card {\n    background-color: white !important;', layout)
+
+    def test_typography_preference_uses_data_font_tokens(self):
+        root = Path(app_module.__file__).resolve().parent
+        typography = (root / 'static' / 'css' / 'typography.css').read_text(encoding='utf-8')
+        shell = (root / 'static' / 'css' / 'app-shell.css').read_text(encoding='utf-8')
+        base = (root / 'templates' / 'base.html').read_text(encoding='utf-8')
+
+        self.assertIn('html[data-font="manrope"]', typography)
+        self.assertIn('html[data-font] body.ars-app-body', typography)
+        self.assertIn('var(--font-body', shell)
+        self.assertIn('fonts.googleapis.com/css2', base)
+        self.assertIn('data-font="{{ fuente_nombre|default(\'arsflow\') }}"', base)
+
+    def test_spellcheck_uses_browser_language_on_text_fields(self):
+        root = Path(app_module.__file__).resolve().parent
+        script = (root / 'static' / 'js' / 'spellcheck-ui.js').read_text(encoding='utf-8')
+        base = (root / 'templates' / 'base.html').read_text(encoding='utf-8')
+
+        self.assertIn("setAttribute('spellcheck'", script)
+        self.assertIn("setAttribute('lang'", script)
+        self.assertIn('spellcheck-ui.js', base)
+        self.assertIn("idioma_correccion == 'none'", base)
+
+    def test_theme_context_includes_support_center(self):
+        import core.presentation as presentation
+
+        with self.flask_app.test_request_context('/facturacion'):
+            contexto = presentation.inject_theme()
+
+        self.assertIn('email', contexto['soporte'])
+        self.assertIn('manual_url', contexto['soporte'])
+
+        base = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'base.html'
+        ).read_text(encoding='utf-8')
+        self.assertIn("url_for('centro_ayuda')", base)
+        self.assertIn('Manual de usuario en línea', base)
+        self.assertNotIn("mailto:' ~ centro_ayuda.email", base)
+
+    def test_help_center_opens_manual_or_placeholder(self):
+        import routes.public as public_routes
+
+        usuario = SimpleNamespace(
+            is_authenticated=True,
+            is_active=True,
+            is_anonymous=False,
+            get_id=lambda: '1',
+        )
+        with self.flask_app.test_request_context('/ayuda'):
+            with patch('flask_login.utils._get_user', return_value=usuario):
+                with patch.object(
+                    public_routes,
+                    'obtener_soporte',
+                    return_value={'manual_url': '', 'email': 'soporte@arsflow.com'},
+                ), patch.object(
+                    public_routes,
+                    'render_template',
+                    return_value='Manual de usuario',
+                ) as render:
+                    pagina = public_routes.centro_ayuda()
+                with patch.object(
+                    public_routes,
+                    'obtener_soporte',
+                    return_value={
+                        'manual_url': 'https://manual.arsflow.com',
+                        'email': 'soporte@arsflow.com',
+                    },
+                ):
+                    redireccion = public_routes.centro_ayuda()
+
+        render.assert_called_once_with('ayuda.html')
+        self.assertEqual(pagina, 'Manual de usuario')
+        self.assertEqual(redireccion.status_code, 302)
+        self.assertEqual(redireccion.location, 'https://manual.arsflow.com')
+
+    def test_theme_context_includes_health_center_name(self):
+        import core.presentation as presentation
+
+        usuario = SimpleNamespace(
+            is_authenticated=True,
+            tenant_id=7,
+            empresa_nombre='Fallback',
+        )
+        with (
+            patch.object(presentation, 'current_user', usuario),
+            patch(
+                'services.subscriptions.get_empresa_info',
+                return_value={
+                    'nombre': 'Centro Médico del Este',
+                    'tipo_empresa': 'centro_salud',
+                },
+            ),
+            self.flask_app.test_request_context('/facturacion/dashboard'),
+        ):
+            contexto = presentation.inject_theme()
+
+        self.assertEqual(
+            contexto['empresa']['empresa_nombre'],
+            'Centro Médico del Este',
+        )
+        self.assertEqual(contexto['empresa']['tipo_empresa'], 'centro_salud')
+
+    def test_claims_list_is_invoice_scoped(self):
+        lista = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'facturacion'
+            / 'reclamaciones.html'
+        ).read_text(encoding='utf-8')
+        formulario = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'facturacion'
+            / 'reclamacion_form.html'
+        ).read_text(encoding='utf-8')
+
+        self.assertNotIn('nombre_paciente', lista)
+        self.assertNotIn('>Paciente</th>', lista)
+        self.assertIn('Observación', lista)
+        self.assertIn("url_for('facturacion_reclamacion_detalle'", lista)
+        self.assertIn("url_for('facturacion_reclamacion_editar'", lista)
+        self.assertNotIn('nombre_paciente', formulario)
+        self.assertNotIn('data-paciente', formulario)
+
+    def test_payments_list_has_view_and_edit_actions(self):
+        lista = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'facturacion'
+            / 'pagos.html'
+        ).read_text(encoding='utf-8')
+
+        self.assertNotIn('href="#"', lista)
+        self.assertIn("url_for('facturacion_pago_detalle'", lista)
+        self.assertIn("url_for('facturacion_pago_editar'", lista)
+
+    def test_historico_covers_clinical_and_billing_sections(self):
+        import routes.reports as reports_module
+
+        plantilla = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'facturacion'
+            / 'historico.html'
+        ).read_text(encoding='utf-8')
+        ids = {seccion['id'] for seccion in reports_module.SECCIONES_HISTORICO}
+
+        self.assertTrue(
+            {'facturas', 'consultas', 'emergencias', 'licencias', 'citas'}.issubset(ids)
+        )
+        self.assertIn('name="tipo"', plantilla)
+        self.assertIn('historico-tab', plantilla)
+        self.assertIn('filtros_visibles', plantilla)
+
+        with self.flask_app.test_request_context('/facturacion/historico'):
+            with patch.object(
+                reports_module,
+                'execute_paginated_query',
+                return_value=([], {'total': 0}),
+            ) as consulta:
+                reports_module._consultar_facturas(22, {
+                    'ars_id': 4,
+                    'medico_id': 8,
+                    'ncf': 'B01',
+                    'estado': 'Pendiente',
+                    'fecha_desde': '2026-01-01',
+                    'fecha_hasta': '2026-01-31',
+                    'buscar': '',
+                    'numero': '',
+                    'metodo_pago': '',
+                })
+
+        sql, params = consulta.call_args.args[:2]
+        self.assertIn('f.ars_id=%s', sql)
+        self.assertIn('f.medico_id=%s', sql)
+        self.assertIn('f.ncf LIKE %s', sql)
+        self.assertIn('f.fecha_emision >= %s', sql)
+        self.assertEqual(params[1], 4)
+
+    def test_payment_form_requires_ars_before_invoices(self):
+        formulario = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'facturacion'
+            / 'pago_form.html'
+        ).read_text(encoding='utf-8')
+
+        self.assertIn('ARS que realizó el pago', formulario)
+        self.assertIn('name="ars_id"', formulario)
+        self.assertIn('name="numero"', formulario)
+        self.assertIn('5 facturas más antiguas', formulario)
+        self.assertIn("url_for('facturacion_pagos_nuevo')", formulario)
+
+    def test_available_payment_invoices_stay_empty_without_ars(self):
+        from routes.billing import _facturas_disponibles_pago
+
+        with patch.object(billing_routes, 'execute_query') as query:
+            resultado = _facturas_disponibles_pago(22)
+
+        query.assert_not_called()
+        self.assertEqual(resultado, [])
+
+    def test_available_payment_invoices_limit_oldest_unpaid(self):
+        from routes.billing import FACTURAS_ANTIGUAS_PAGO, _facturas_disponibles_pago
+
+        with patch.object(
+            billing_routes,
+            'execute_query',
+            return_value=[{'id': 1, 'numero_factura': 'FAC-1'}],
+        ) as query:
+            resultado = _facturas_disponibles_pago(22, ars_id=9)
+
+        self.assertEqual(len(resultado), 1)
+        sql, params = query.call_args.args[:2]
+        self.assertIn('f.ars_id = %s', sql)
+        self.assertIn('f.fecha_emision ASC', sql)
+        self.assertEqual(params[-1], FACTURAS_ANTIGUAS_PAGO)
+        self.assertEqual(FACTURAS_ANTIGUAS_PAGO, 5)
+
+    def test_calendar_day_opens_new_appointment(self):
+        from routes.appointments import fecha_prellenada_agenda
+
+        agenda = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'facturacion'
+            / 'citas.html'
+        ).read_text(encoding='utf-8')
+
+        self.assertEqual(fecha_prellenada_agenda('2026-09-20'), '2026-09-20')
+        self.assertEqual(fecha_prellenada_agenda('20/09/2026'), '')
+        self.assertIn('calendar-day-hit', agenda)
+        self.assertIn("url_for('facturacion_citas_nueva'", agenda)
+        self.assertIn('fecha=dia.isoformat()', agenda)
+
+    def test_dashboard_shows_health_center_name(self):
+        dashboard = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'facturacion'
+            / 'dashboard.html'
+        ).read_text(encoding='utf-8')
+        medico = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'facturacion'
+            / 'dashboard_medico.html'
+        ).read_text(encoding='utf-8')
+
+        self.assertIn('dashboard-center', dashboard)
+        self.assertIn('Centro de salud', dashboard)
+        self.assertIn('empresa.empresa_nombre', dashboard)
+        self.assertIn('Centro de salud', medico)
+        self.assertIn('empresa.empresa_nombre', medico)
+
     def test_csrf_rejects_unsafe_request_without_token(self):
         client = self.flask_app.test_client()
         response = client.put(
@@ -650,8 +997,10 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         endpoints = {
             'facturacion_reclamaciones': True,
             'facturacion_reclamaciones_nueva': True,
+            'facturacion_reclamacion_editar': True,
             'facturacion_pagos': True,
             'facturacion_pagos_nuevo': True,
+            'facturacion_pago_editar': True,
             'facturacion_pacientes_exportar_excel': True,
             'facturacion_historico': True,
             'facturacion_ver_xml_ecf': True,
@@ -769,7 +1118,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertIn('p.id=%s', captured['query'])
         self.assertEqual(captured['params'], (22, 91))
 
-    def test_doctor_can_see_patient_360_summary_but_not_foreign_details(self):
+    def test_doctor_can_see_full_patient_360_clinical_details(self):
         queries = []
 
         def fake_query(query, params=None, fetch='one'):
@@ -856,10 +1205,9 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertTrue(context['vista_restringida'])
         self.assertEqual(context['resumen']['consultas_clinicas'], 1)
         self.assertEqual(context['resumen']['recetas'], 1)
-        self.assertFalse(context['consultas'][0]['puede_ver_detalle'])
-        self.assertIsNone(context['consultas'][0]['diagnostico_principal'])
-        self.assertIsNone(context['recetas'][0]['diagnostico'])
-        self.assertIsNone(context['licencias'][0]['diagnostico'])
+        self.assertEqual(context['consultas'][0]['diagnostico_principal'], 'Dato reservado')
+        self.assertEqual(context['recetas'][0]['diagnostico'], 'Dato reservado')
+        self.assertEqual(context['licencias'][0]['diagnostico'], 'Dato reservado')
         self.assertEqual(
             context['actividad_por_medico'][0]['medico_nombre'],
             'Dra. Externa',

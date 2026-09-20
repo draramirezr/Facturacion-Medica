@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Configuración - ARSFlow{% endblock %}
+{% block title %}Configuración - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
@@ -15,11 +15,11 @@
         margin-bottom: 1.2rem;
         border: 1px solid {{ tema.primary }}20;
         border-radius: 17px;
-        background: linear-gradient(135deg, {{ tema.primary }}13, white);
+        background: linear-gradient(135deg, {{ tema.primary }}13, var(--ars-shell-surface, #fff));
     }
     .settings-header h1 { margin: 0 0 .35rem; color: var(--ars-shell-text); font-size: 1.65rem; font-weight: 800; }
     .settings-header p { margin: 0; color: var(--ars-shell-muted); font-size: .86rem; }
-    .settings-card { padding: 1.35rem; margin-bottom: 1.2rem; border: 1px solid var(--ars-shell-border); border-radius: 15px; background: white; }
+    .settings-card { padding: 1.35rem; margin-bottom: 1.2rem; border: 1px solid var(--ars-shell-border); border-radius: 15px; background:var(--ars-shell-surface, #fff); }
     .settings-card-title { margin: 0 0 .35rem; color: var(--ars-shell-text); font-size: 1rem; font-weight: 800; }
     .settings-card-subtitle { margin: 0; color: var(--ars-shell-muted); font-size: .78rem; }
     .profile-summary { display: flex; align-items: center; gap: 1rem; }
@@ -59,7 +59,7 @@
         padding: .8rem;
         border: 1px solid var(--ars-shell-border);
         border-radius: 11px;
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         cursor: pointer;
         transition: border-color .15s ease, background-color .15s ease;
     }
@@ -98,7 +98,7 @@
         padding: .9rem;
         border: 1px solid var(--ars-shell-border);
         border-radius: 11px;
-        background: var(--ars-shell-surface, white);
+        background: var(--ars-shell-surface, #fff);
         cursor: pointer;
         transition: border-color .15s ease, background-color .15s ease;
     }
@@ -147,7 +147,7 @@
         margin-top: .8rem;
         border: 1px solid var(--ars-shell-border);
         border-radius: 11px;
-        background: var(--ars-shell-surface, white);
+        background: var(--ars-shell-surface, #fff);
     }
     .preference-option input { width: 19px; height: 19px; margin-top: 2px; accent-color: var(--primary-color); }
     .preference-option strong, .preference-option small { display: block; }
@@ -323,7 +323,9 @@
                     <option value="none" {% if current_user.idioma_correccion == 'none' %}selected{% endif %}>Desactivado</option>
                 </select>
                 <p class="settings-card-subtitle mt-2">
-                    Las palabras dudosas se subrayan. Haz clic derecho para corregirlas u omitirlas.
+                    Usa el corrector del navegador. Escribe la palabra completa y deja un espacio:
+                    si está mal se subraya. Clic derecho sobre ella para ver sugerencias.
+                    En Windows, el idioma (Español) debe estar instalado en el sistema o en Chrome.
                 </p>
             </div>
 
@@ -346,4 +348,29 @@
         </form>
     </section>
 </div>
+<script nonce="{{ csp_nonce }}">
+document.querySelectorAll('input[name="fuente_ui"]').forEach((input) => {
+    input.addEventListener('change', () => {
+        document.documentElement.dataset.font = input.value;
+    });
+});
+const idioma = document.getElementById('idioma_correccion');
+if (idioma) {
+    idioma.addEventListener('change', () => {
+        const valor = idioma.value;
+        document.body.setAttribute('spellcheck', valor === 'none' ? 'false' : 'true');
+        document.documentElement.lang = valor === 'none' ? 'es' : valor;
+        document.querySelectorAll('input, textarea').forEach((campo) => {
+            const tipo = (campo.getAttribute('type') || 'text').toLowerCase();
+            if (['password', 'email', 'number', 'date', 'time', 'hidden', 'file', 'checkbox', 'radio'].includes(tipo)) {
+                return;
+            }
+            campo.setAttribute('spellcheck', valor === 'none' ? 'false' : 'true');
+            if (valor !== 'none') {
+                campo.setAttribute('lang', valor);
+            }
+        });
+    });
+}
+</script>
 {% endblock %}

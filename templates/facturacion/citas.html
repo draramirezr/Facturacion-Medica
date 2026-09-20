@@ -1,27 +1,32 @@
 {% extends "base.html" %}
-{% from "_patient_search.html" import patient_search %}
 
-{% block title %}Agenda Médica - ARSFlow{% endblock %}
+{% block title %}Agenda Médica - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
 {% set meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'] %}
 <style nonce="{{ csp_nonce }}">
-    .agenda-hero,.agenda-surface { margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
-    .agenda-hero { padding:1.5rem; background:linear-gradient(135deg,{{ tema.primary }}12,white); }
+    .agenda-hero,.agenda-surface { margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:var(--ars-shell-surface, #fff); }
+    .agenda-hero { padding:1.5rem; background:linear-gradient(135deg,{{ tema.primary }}12, var(--ars-shell-surface, #fff)); }
     .agenda-toolbar { padding:1rem; }
     .agenda-view-buttons { display:flex; gap:.35rem; flex-wrap:wrap; }
     .agenda-view-buttons .btn.active { background:var(--primary-color)!important; color:white!important; }
     .calendar-head { display:flex; justify-content:space-between; align-items:center; padding:1rem 1.2rem; border-bottom:1px solid var(--ars-shell-border); }
     .calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(110px,1fr)); min-width:780px; }
-    .calendar-weekday { padding:.65rem; background:#f7f9fc; color:var(--ars-shell-muted); font-size:.7rem; font-weight:800; text-align:center; text-transform:uppercase; }
-    .calendar-day { min-height:125px; padding:.5rem; border-top:1px solid var(--ars-shell-border); border-right:1px solid var(--ars-shell-border); }
+    .calendar-weekday { padding:.65rem; background:var(--ars-shell-bg, #f7f9fc); color:var(--ars-shell-muted); font-size:.7rem; font-weight:800; text-align:center; text-transform:uppercase; }
+    .calendar-day { position:relative; min-height:125px; padding:.5rem; border-top:1px solid var(--ars-shell-border); border-right:1px solid var(--ars-shell-border); transition:background .15s ease; }
     .calendar-day:nth-child(7n) { border-right:0; }
-    .calendar-day.other-month { background:#fafbfd; color:#b1bac7; }
+    .calendar-day.other-month { background:var(--ars-shell-bg, #fafbfd); color:var(--ars-shell-muted, #b1bac7); }
     .calendar-day.today { background:{{ tema.primary }}08; }
+    .calendar-day.can-book { cursor:pointer; }
+    .calendar-day.can-book:hover { background:color-mix(in srgb, var(--primary-color) 12%, var(--ars-shell-surface, #fff)); }
+    .calendar-day-hit { position:absolute; inset:0; z-index:1; }
+    .day-number, .calendar-day-add { pointer-events:none; position:relative; z-index:2; }
     .day-number { display:inline-flex; width:27px; height:27px; align-items:center; justify-content:center; margin-bottom:.35rem; border-radius:50%; font-size:.75rem; font-weight:700; }
     .today .day-number { background:var(--primary-color); color:white; }
-    .calendar-event { display:block; margin-bottom:.3rem; padding:.35rem .4rem; overflow:hidden; border-left:3px solid var(--primary-color); border-radius:6px; background:{{ tema.primary }}10; color:var(--ars-shell-text); font-size:.67rem; text-decoration:none; text-overflow:ellipsis; white-space:nowrap; }
+    .calendar-day-add { display:none; margin:0 0 .4rem .15rem; color:var(--primary-color); font-size:.68rem; font-weight:800; }
+    .calendar-day.can-book:hover .calendar-day-add { display:inline-flex; align-items:center; gap:.25rem; }
+    .calendar-event { position:relative; z-index:2; display:block; margin-bottom:.3rem; padding:.35rem .4rem; overflow:hidden; border-left:3px solid var(--primary-color); border-radius:6px; background:{{ tema.primary }}10; color:var(--ars-shell-text); font-size:.67rem; text-decoration:none; text-overflow:ellipsis; white-space:nowrap; }
     .calendar-event:hover { color:var(--primary-dark); background:{{ tema.primary }}18; text-decoration:none; }
     .agenda-row { display:grid; grid-template-columns:120px 1.3fr 1fr 1fr auto; gap:1rem; align-items:center; padding:1rem; border-bottom:1px solid var(--ars-shell-border); }
     .agenda-row:last-child { border-bottom:0; }
@@ -35,7 +40,12 @@
                 <i class="fas fa-calendar-days me-2"></i>{{ 'Mi Agenda Médica' if agenda_restringida else 'Agenda Médica' }}
             </h1>
             <p class="text-muted mb-0">
-                {{ 'Consulta y administra únicamente tus citas.' if agenda_restringida else 'Programa y consulta citas por fecha, paciente o médico.' }}
+                {% if agenda_restringida %}
+                Consulta y administra únicamente tus citas.
+                {% else %}
+                Programa y consulta citas por fecha, paciente o médico.
+                {% endif %}
+                {% if can('citas.crear') %} Haz clic en un día del calendario para agendar.{% endif %}
             </p>
         </div>
         <a class="btn btn-primary" href="{{ url_for('facturacion_citas_nueva') }}"><i class="fas fa-plus me-2"></i>Nueva cita</a>
@@ -52,13 +62,24 @@
         </div>
         <form method="GET">
             <input type="hidden" name="vista" value="{{ vista }}"><input type="hidden" name="mes" value="{{ mes }}">
-            <div class="row g-2 align-items-end">
-                <div class="col-lg-3"><label class="form-label">Buscar</label><input class="form-control" name="buscar" value="{{ filtros.get('buscar','') }}" placeholder="{{ 'Paciente, teléfono o motivo' if agenda_restringida else 'Paciente, teléfono, médico o motivo' }}"></div>
-                <div class="col-lg-3"><label class="form-label">Paciente</label>{{ patient_search(pacientes, filtros.get('paciente_id', ''), false, 'agenda_paciente') }}</div>
+            <div class="row g-3 align-items-end">
+                <div class="{{ 'col-lg-6' if agenda_restringida else 'col-lg-4' }}">
+                    <label class="form-label" for="agenda_buscar">Buscar</label>
+                    <div class="patient-search" data-patient-directory-search data-endpoint="{{ url_for('api_buscar_pacientes') }}">
+                        <div class="patient-search__control">
+                            <input class="form-control patient-search__input" type="search" id="agenda_buscar" name="buscar"
+                                   value="{{ filtros.get('buscar','') }}" autocomplete="off"
+                                   aria-autocomplete="list" aria-controls="agenda_buscar_resultados"
+                                   placeholder="{{ 'Paciente, cédula, teléfono o motivo' if agenda_restringida else 'Paciente, cédula, teléfono, médico o motivo' }}">
+                            <button class="patient-search__clear" type="button" aria-label="Limpiar búsqueda" {% if not filtros.get('buscar') %}hidden{% endif %}><i class="fas fa-xmark"></i></button>
+                        </div>
+                        <div class="patient-search__results" id="agenda_buscar_resultados" role="listbox" hidden></div>
+                    </div>
+                </div>
                 {% if not agenda_restringida %}
-                <div class="col-lg-2"><label class="form-label">Médico</label><select class="form-select" name="medico_id"><option value="">Todos</option>{% for m in medicos %}<option value="{{ m['id'] }}" {% if filtros.get('medico_id')|string==m['id']|string %}selected{% endif %}>{{ m['nombre'] }}</option>{% endfor %}</select></div>
+                <div class="col-lg-3"><label class="form-label" for="agenda_medico">Médico</label><select class="form-select" id="agenda_medico" name="medico_id"><option value="">Todos</option>{% for m in medicos %}<option value="{{ m['id'] }}" {% if filtros.get('medico_id')|string==m['id']|string %}selected{% endif %}>{{ m['nombre'] }}</option>{% endfor %}</select></div>
                 {% endif %}
-                <div class="col-lg-2"><label class="form-label">Estado</label><select class="form-select" name="estado"><option value="">Todos</option>{% for e in ['Programada','Confirmada','Completada','Cancelada','No asistió','Vencida'] %}<option value="{{ e }}" {% if filtros.get('estado')==e %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>
+                <div class="{{ 'col-lg-4' if agenda_restringida else 'col-lg-3' }}"><label class="form-label" for="agenda_estado">Estado</label><select class="form-select" id="agenda_estado" name="estado"><option value="">Todos</option>{% for e in ['Programada','Confirmada','Completada','Cancelada','No asistió','Vencida'] %}<option value="{{ e }}" {% if filtros.get('estado')==e %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>
                 <div class="col-lg-2"><button class="btn btn-primary w-100" type="submit"><i class="fas fa-filter me-2"></i>Aplicar</button></div>
             </div>
         </form>
@@ -75,8 +96,12 @@
             <div class="calendar-grid">{% for dia in ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'] %}<div class="calendar-weekday">{{ dia }}</div>{% endfor %}</div>
             <div class="calendar-grid">
                 {% for semana in semanas %}{% for dia in semana %}
-                <div class="calendar-day {{ 'other-month' if dia.month != mes_numero }} {{ 'today' if dia == hoy }}">
-                    <a class="day-number text-decoration-none" href="{{ url_for('facturacion_citas_nueva',fecha=dia.isoformat()) }}">{{ dia.day }}</a>
+                <div class="calendar-day {{ 'other-month' if dia.month != mes_numero }} {{ 'today' if dia == hoy }} {{ 'can-book' if can('citas.crear') }}">
+                    {% if can('citas.crear') %}
+                    <a class="calendar-day-hit" href="{% if filtros.get('medico_id') %}{{ url_for('facturacion_citas_nueva', fecha=dia.isoformat(), medico_id=filtros.get('medico_id')) }}{% else %}{{ url_for('facturacion_citas_nueva', fecha=dia.isoformat()) }}{% endif %}" aria-label="Agendar cita el {{ '%02d'|format(dia.day) }}/{{ '%02d'|format(dia.month) }}/{{ dia.year }}"></a>
+                    {% endif %}
+                    <span class="day-number">{{ dia.day }}</span>
+                    {% if can('citas.crear') %}<span class="calendar-day-add"><i class="fas fa-plus"></i> Agendar</span>{% endif %}
                     {% for cita in citas_por_fecha.get(dia.isoformat(),[]) %}
                     <a class="calendar-event" href="{{ url_for('facturacion_cita_editar',cita_id=cita['id']) }}" title="{{ cita['hora']|hora_input }} · {{ cita['paciente_nombre'] }} · {{ cita['medico_nombre'] }}"><strong>{{ cita['hora']|hora_input }}</strong> {{ cita['paciente_nombre'] }}</a>
                     {% endfor %}

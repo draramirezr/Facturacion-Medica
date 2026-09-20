@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_patient_search.html" import patient_search %}
 
-{% block title %}Nueva Receta Médica - ARSFlow{% endblock %}
+{% block title %}Nueva Receta Médica - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
@@ -11,8 +11,8 @@
 {% set medicamentos_guardados = form_data.getlist('medicamento[]') if form_data else [''] %}
 <style nonce="{{ csp_nonce }}">
     .rx-form-shell { max-width:1050px; margin:0 auto; }
-    .rx-form-header,.rx-section { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
-    .rx-form-header { background:linear-gradient(135deg,{{ tema.primary }}12,white); }
+    .rx-form-header,.rx-section { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:var(--ars-shell-surface, #fff); }
+    .rx-form-header { background:linear-gradient(135deg,{{ tema.primary }}12, var(--ars-shell-surface, #fff)); }
     .rx-section h2 { margin-bottom:1rem; padding-bottom:.65rem; border-bottom:1px solid var(--ars-shell-border); color:var(--primary-dark); font-size:1rem; }
     .required::after { content:" *"; color:var(--primary-color); }
     .medicine-row { padding:1rem; margin-bottom:.8rem; border:1px solid {{ tema.primary }}25; border-radius:12px; background:#fbfcfe; }

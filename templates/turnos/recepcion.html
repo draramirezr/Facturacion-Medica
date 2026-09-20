@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% from "_patient_search.html" import patient_search %}
-{% block title %}Gestión de turnos - ARSFlow{% endblock %}
+{% block title %}Gestión de turnos - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 {% block content %}
 <style nonce="{{ csp_nonce }}">
     .queue-shell { max-width: 1250px; margin: 0 auto; }
     .queue-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:1rem; }
-    .queue-card { border:1px solid var(--ars-shell-border); border-radius:14px; padding:1rem; background:var(--ars-shell-surface,white); }
+    .queue-card { border:1px solid var(--ars-shell-border); border-radius:14px; padding:1rem; background:var(--ars-shell-surface, #fff); }
     .queue-form-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.75rem; }
     .queue-form-grid .wide { grid-column:1/-1; }
     .queue-actions { display:flex; gap:.35rem; flex-wrap:wrap; }

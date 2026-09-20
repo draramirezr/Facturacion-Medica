@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{{ product_name or 'ARSFlow | Facturación médica' }}</title>
+  <title>{{ product_name or 'ClinicRD | Facturación médica' }}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,8 +27,8 @@
   <header class="sticky top-0 z-30 bg-[rgba(248,250,252,0.92)] backdrop-blur">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
       <div class="flex items-center gap-2">
-        <div class="h-9 w-9 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold">A</div>
-        <span class="text-lg font-semibold">ARSFlow</span>
+        <img class="brand-logo brand-logo-light h-10 w-auto" src="{{ url_for('static', filename='img/logo.png') }}?v=clinicrd5" alt="ClinicRD Gestión Médica">
+        <img class="brand-logo brand-logo-dark h-10 w-auto" src="{{ url_for('static', filename='img/logo-on-dark.png') }}?v=clinicrd5" alt="ClinicRD Gestión Médica">
       </div>
       <nav class="hidden md:flex items-center gap-6 text-sm font-medium text-[var(--muted)]">
         <a href="#caracteristicas" class="hover:text-[var(--secondary)] transition">Características</a>
@@ -54,7 +54,7 @@
           Centraliza facturación, reclamaciones y pagos en un solo lugar
         </h1>
         <p class="text-base sm:text-lg text-[var(--muted)] max-w-xl">
-          ARSFlow automatiza tu flujo de trabajo médico, desde la carga de pacientes hasta la conciliación de pagos con ARS, ahorrando tiempo y reduciendo errores.
+          ClinicRD automatiza tu flujo de trabajo médico, desde la carga de pacientes hasta la conciliación de pagos con ARS, ahorrando tiempo y reduciendo errores.
         </p>
         <div class="flex flex-wrap gap-3">
           <a href="#contacto" class="px-5 py-3 rounded-lg bg-[var(--primary)] text-white font-semibold shadow-soft hover:-translate-y-0.5 transition transform">Solicitar demo</a>
@@ -70,7 +70,7 @@
         <div class="card shadow-soft p-4">
           <div class="flex items-center justify-between mb-4">
             <div>
-              <p class="text-xs text-[var(--muted)]">ARSFlow</p>
+              <p class="text-xs text-[var(--muted)]">ClinicRD</p>
               <p class="text-lg font-semibold">Resumen general</p>
             </div>
             <div class="text-xs px-3 py-1 rounded-full bg-[var(--primary)]/10 text-[var(--primary)] font-semibold">Live</div>
@@ -109,7 +109,7 @@
             </div>
           </div>
           <div class="mt-4">
-            <img class="w-full rounded-lg border border-[var(--border)]" src="{{ url_for('static', filename='img/landing-dashboard.png') }}" alt="Dashboard ARSFlow">
+            <img class="w-full rounded-lg border border-[var(--border)]" src="{{ url_for('static', filename='img/landing-dashboard.png') }}" alt="Dashboard ClinicRD">
           </div>
         </div>
       </div>
@@ -151,7 +151,7 @@
   <!-- PROCESO / PASOS -->
   <section class="bg-white">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10">
-      <h2 class="text-2xl sm:text-3xl font-bold text-center mb-2">Así de fácil es usar ARSFlow</h2>
+      <h2 class="text-2xl sm:text-3xl font-bold text-center mb-2">Así de fácil es usar ClinicRD</h2>
       <p class="text-[var(--muted)] text-center mb-8">Pasos simples para pasar de consultas pendientes a facturas cobradas.</p>
       <div class="grid md:grid-cols-4 lg:grid-cols-4 gap-4">
         <div class="card p-4 shadow-soft text-center">
@@ -206,7 +206,7 @@
   <section class="bg-[var(--primary)]/10 border-y border-[var(--border)]">
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-12 text-center">
       <h2 class="text-2xl sm:text-3xl font-bold text-[var(--secondary)] mb-2">¿Listo para transformar tu gestión médica?</h2>
-      <p class="text-[var(--muted)] mb-6">Solicita una demo personalizada y agiliza tu facturación con ARSFlow.</p>
+      <p class="text-[var(--muted)] mb-6">Solicita una demo personalizada y agiliza tu facturación con ClinicRD.</p>
       <div class="flex flex-wrap gap-3 justify-center">
         <a href="#contacto" class="inline-flex items-center justify-center px-6 py-3 rounded-lg bg-[var(--primary)] text-white font-semibold shadow-soft hover:-translate-y-0.5 transition transform">Solicitar demo personalizada</a>
         <a href="#contacto" class="inline-flex items-center justify-center px-6 py-3 rounded-lg border border-[var(--border)] text-[var(--secondary)] font-semibold hover:border-[var(--primary)] hover:text-[var(--primary)] transition">Crear cuenta gratis</a>
@@ -219,8 +219,8 @@
     <div class="max-w-6xl mx-auto px-4 sm:px-6 py-10 grid md:grid-cols-4 gap-8">
       <div class="space-y-2">
         <div class="flex items-center gap-2">
-          <div class="h-9 w-9 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center text-[var(--primary)] font-bold">A</div>
-          <span class="text-lg font-semibold">ARSFlow</span>
+          <img class="brand-logo brand-logo-light h-10 w-auto" src="{{ url_for('static', filename='img/logo.png') }}?v=clinicrd5" alt="ClinicRD Gestión Médica">
+          <img class="brand-logo brand-logo-dark h-10 w-auto" src="{{ url_for('static', filename='img/logo-on-dark.png') }}?v=clinicrd5" alt="ClinicRD Gestión Médica">
         </div>
         <p class="text-sm text-[var(--muted)]">Plataforma para facturación médica, reclamos y conciliación.</p>
       </div>
@@ -246,7 +246,7 @@
       </div>
     </div>
     <div class="border-t border-[var(--border)] py-4 text-center text-sm text-[var(--muted)]">
-      © 2026 ARSFlow. Todos los derechos reservados.
+      © 2026 ClinicRD. Todos los derechos reservados.
     </div>
   </footer>
 

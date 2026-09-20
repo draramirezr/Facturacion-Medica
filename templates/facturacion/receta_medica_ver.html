@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Receta {{ receta['codigo'] }} - ARSFlow{% endblock %}
+{% block title %}Receta {{ receta['codigo'] }} - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
 <style nonce="{{ csp_nonce }}">
-    .rx-paper { max-width:900px; margin:1.5rem auto; padding:2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; position:relative; }
+    .rx-paper { max-width:900px; margin:1.5rem auto; padding:2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:var(--ars-shell-surface, #fff); position:relative; }
     .rx-title { margin-bottom:1.4rem; padding-bottom:1rem; border-bottom:2px solid var(--primary-color); text-align:center; }
     .rx-title h1 { color:var(--primary-dark); font-size:1.7rem; }
     .rx-info { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
@@ -40,7 +40,7 @@
     {% if receta['estado']=='Anulada' %}<div class="rx-annulled">ANULADA</div>{% endif %}
     <header class="rx-title">
         <h1>Receta Médica</h1>
-        <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ARSFlow' }}</div>
+        <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ClinicRD' }}</div>
         <strong>{{ receta['codigo'] }}</strong>
     </header>
     <div class="rx-info">

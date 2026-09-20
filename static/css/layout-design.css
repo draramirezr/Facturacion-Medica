@@ -57,7 +57,7 @@ input.form-check-input:hover,
 /* Navbar / Barra superior */
 .navbar,
 .header {
-    background-color: rgba(255, 255, 255, 0.95) !important;
+    background-color: color-mix(in srgb, var(--ars-shell-surface, #fff) 95%, transparent) !important;
     backdrop-filter: blur(15px);
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
@@ -101,7 +101,7 @@ input.form-check-input:hover,
 .btn-outline-primary {
     border: 2px solid var(--primary-color) !important;
     color: var(--primary-color) !important;
-    background: white !important;
+    background: var(--ars-shell-surface, #fff) !important;
     padding: 0.6rem 1.5rem;
     border-radius: 10px;
     font-weight: 600;
@@ -118,7 +118,7 @@ input.form-check-input:hover,
 
 /* Tarjetas de servicio */
 .service-card {
-    background: white;
+    background: var(--ars-shell-surface, #fff);
     border-radius: 15px;
     padding: 2rem;
     text-align: center;
@@ -156,7 +156,7 @@ input.form-check-input:hover,
 
 /* Menús dropdown */
 .dropdown-menu {
-    background-color: rgba(255, 255, 255, 0.98) !important;
+    background-color: color-mix(in srgb, var(--ars-shell-surface, #fff) 98%, transparent) !important;
     backdrop-filter: blur(15px);
     border: 1px solid rgba(0, 0, 0, 0.1) !important;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
@@ -170,26 +170,26 @@ input.form-check-input:hover,
 
 /* Formularios */
 .form-control {
-    background-color: white !important;
+    background-color: var(--ars-shell-surface, #fff) !important;
     border: 2px solid rgba(0, 0, 0, 0.1) !important;
     border-radius: 8px;
 }
 
 .form-control:focus {
-    background-color: white !important;
+    background-color: var(--ars-shell-surface, #fff) !important;
     border-color: var(--primary-color) !important;
     box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.05) !important;
 }
 
 /* Select / Dropdown */
 .form-select {
-    background-color: white !important;
+    background-color: var(--ars-shell-surface, #fff) !important;
     border: 2px solid rgba(0, 0, 0, 0.1) !important;
     border-radius: 8px;
 }
 
 .form-select:focus {
-    background-color: white !important;
+    background-color: var(--ars-shell-surface, #fff) !important;
     border-color: var(--primary-color) !important;
     box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.05) !important;
 }
@@ -197,19 +197,19 @@ input.form-check-input:hover,
 /* Asegurar que las opciones de select no tengan negrita ni íconos */
 .form-select option {
     font-weight: normal !important;
-    background-color: white !important;
-    color: #333 !important;
+    background-color: var(--ars-shell-surface, #fff) !important;
+    color: var(--ars-shell-text, #333) !important;
 }
 
 select option {
     font-weight: normal !important;
-    background-color: white !important;
-    color: #333 !important;
+    background-color: var(--ars-shell-surface, #fff) !important;
+    color: var(--ars-shell-text, #333) !important;
 }
 
 /* Tarjetas generales */
 .card {
-    background-color: white !important;
+    background-color: var(--ars-shell-surface, #fff) !important;
     border: 1px solid rgba(0, 0, 0, 0.05);
     border-radius: 15px;
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
@@ -217,7 +217,7 @@ select option {
 
 /* Modales */
 .modal-content {
-    background-color: white !important;
+    background-color: var(--ars-shell-surface, #fff) !important;
     backdrop-filter: blur(15px);
     border: 1px solid rgba(0, 0, 0, 0.1) !important;
     border-radius: 15px;
@@ -226,7 +226,7 @@ select option {
 
 /* Tablas */
 .table {
-    background-color: white !important;
+    background-color: var(--ars-shell-surface, #fff) !important;
 }
 
 .table thead th {
@@ -235,7 +235,7 @@ select option {
 
 /* Alertas */
 .alert {
-    background-color: white !important;
+    background-color: var(--ars-shell-surface, #fff) !important;
     backdrop-filter: blur(10px);
     border: 2px solid !important;
     border-radius: 15px !important;
@@ -278,7 +278,7 @@ select option {
 
 /* Footer */
 .footer {
-    background-color: rgba(255, 255, 255, 0.9) !important;
+    background-color: color-mix(in srgb, var(--ars-shell-surface, #fff) 90%, transparent) !important;
     backdrop-filter: blur(10px);
     border-top: 1px solid rgba(0, 0, 0, 0.1);
 }

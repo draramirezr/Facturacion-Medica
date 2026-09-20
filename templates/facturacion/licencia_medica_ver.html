@@ -1,11 +1,11 @@
 {% extends "base.html" %}
 
-{% block title %}Licencia {{ licencia['codigo'] }} - ARSFlow{% endblock %}
+{% block title %}Licencia {{ licencia['codigo'] }} - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
 <style nonce="{{ csp_nonce }}">
-    .license-paper { max-width: 980px; margin: 1.5rem auto; background: white; border: 1px solid {{ tema.primary }}25; border-radius: 15px; padding: 2rem; position: relative; }
+    .license-paper { max-width: 980px; margin: 1.5rem auto; background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}25; border-radius: 15px; padding: 2rem; position: relative; }
     .license-title { text-align: center; border-bottom: 2px solid var(--primary-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
     .license-title h1 { color: var(--primary-dark); font-size: 1.7rem; margin-bottom: .2rem; }
     .license-code { font-weight: 800; letter-spacing: .05em; }
@@ -101,7 +101,7 @@
     {% if licencia['estado'] == 'Anulada' %}<div class="annulled">ANULADA</div>{% endif %}
     <header class="license-title">
         <h1>Licencia Médica</h1>
-        <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ARSFlow' }}</div>
+        <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ClinicRD' }}</div>
         <div class="license-code">{{ licencia['codigo'] }}</div>
     </header>
 

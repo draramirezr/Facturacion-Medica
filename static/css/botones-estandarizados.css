@@ -89,8 +89,8 @@
     /* Apariencia */
     border-radius: 12px !important;
     border: 2px solid var(--primary-color, #CEB0B7) !important;
-    background: white !important;
-    color: var(--primary-color, #CEB0B7) !important;
+    background: color-mix(in srgb, var(--primary-color, #CEB0B7) 16%, var(--ars-shell-surface, #fff)) !important;
+    color: var(--primary-dark, var(--primary-color, #CEB0B7)) !important;
     
     /* Transiciones */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -248,7 +248,7 @@
 
 .btn-login,
 .btn-submit,
-button[type="submit"]:not(.btn-sm):not(.btn-xs) {
+button[type="submit"]:not(.btn-sm):not(.btn-xs):not(.btn-accion-icono):not(.btn-accion-eliminar) {
     /* Tamaño estandarizado */
     min-width: 200px !important;
     min-height: 50px !important;
@@ -271,6 +271,42 @@ button[type="submit"]:not(.btn-sm):not(.btn-xs) {
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
+}
+
+.btn-accion-icono,
+a.btn-accion-icono,
+button.btn-accion-icono,
+button.btn-accion-icono[type="button"],
+button.btn-accion-icono[type="submit"] {
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    min-height: 32px !important;
+    max-width: 32px !important;
+    max-height: 32px !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    border-radius: 6px !important;
+    border-width: 1px !important;
+    border-style: solid !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    flex-shrink: 0 !important;
+    font-size: 0.75rem !important;
+    font-weight: 600 !important;
+    line-height: 1 !important;
+    letter-spacing: 0 !important;
+}
+
+.btn-accion-icono i,
+.btn-accion-icono .fa,
+.btn-accion-icono .fas,
+.btn-accion-icono .far {
+    margin: 0 !important;
+    font-size: 0.75rem !important;
+    line-height: 1 !important;
 }
 
 /* ==========================================
@@ -507,7 +543,7 @@ input:active {
     /* Login y submit en móvil */
     .btn-login,
     .btn-submit,
-    button[type="submit"] {
+    button[type="submit"]:not(.btn-accion-icono):not(.btn-accion-eliminar) {
         min-width: 100% !important;
         min-height: 52px !important;
         padding: 16px 24px !important;

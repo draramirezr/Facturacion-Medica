@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Expediente de {{ paciente['nombre'] }} - ARSFlow{% endblock %}
+{% block title %}Expediente de {{ paciente['nombre'] }} - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
 <style nonce="{{ csp_nonce }}">
     .record-badge { background: {{ tema.primary }}18; color: {{ tema.primary_dark }}; }
     .record-version-badge { background: {{ tema.primary }}20; color: {{ tema.primary_dark }}; }
-    .record-header, .record-card { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.4rem; margin-bottom: 1.25rem; }
-    .record-header { background: linear-gradient(135deg, {{ tema.primary }}12, white); }
+    .record-header, .record-card { background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.4rem; margin-bottom: 1.25rem; }
+    .record-header { background: linear-gradient(135deg, {{ tema.primary }}12, var(--ars-shell-surface, #fff)); }
     .patient-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; }
     .patient-item span { display: block; color: var(--ars-shell-muted); font-size: .75rem; }
     .timeline-item { position: relative; margin-left: .7rem; padding: 0 0 1.4rem 1.5rem; border-left: 2px solid {{ tema.primary }}35; }
@@ -38,7 +38,6 @@
             <div class="patient-item"><span>Teléfono</span>{{ paciente['telefono'] or 'N/D' }}</div>
             <div class="patient-item"><span>Correo</span>{{ paciente['email'] or 'N/D' }}</div>
             <div class="patient-item"><span>Dirección</span>{{ paciente['direccion'] or 'N/D' }}</div>
-            <div class="patient-item"><span>Ocupación</span>{{ paciente['ocupacion'] or 'N/D' }}</div>
         </div>
     </div>
 

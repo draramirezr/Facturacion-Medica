@@ -244,7 +244,6 @@ def facturacion_historia_emergencia_ver(historia_id):
     historia = obtener_historia_emergencia(
         historia_id,
         get_current_tenant_id(),
-        medico_id_emergencias_restringido(),
     )
     if not historia:
         flash('Historia de emergencia no encontrada', 'error')
@@ -258,7 +257,6 @@ def facturacion_historia_emergencia_imprimir(historia_id):
     historia = obtener_historia_emergencia(
         historia_id,
         get_current_tenant_id(),
-        medico_id_emergencias_restringido(),
     )
     if not historia:
         flash('Historia de emergencia no encontrada', 'error')

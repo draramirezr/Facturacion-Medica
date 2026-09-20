@@ -1,0 +1,184 @@
+/* Tema claro/oscuro para páginas públicas (inicio, login, registro, recuperación, errores). */
+
+:root {
+    --ars-shell-bg: #f7f9fc;
+    --ars-shell-surface: #ffffff;
+    --ars-shell-surface-alt: #f2f5f8;
+    --ars-shell-surface-raised: #ffffff;
+    --ars-shell-border: #e5edf3;
+    --ars-shell-text: #172033;
+    --ars-shell-muted: #64748b;
+}
+
+html[data-color-mode="dark"] {
+    --ars-shell-bg: #0b1220;
+    --ars-shell-surface: #111a2b;
+    --ars-shell-surface-alt: #0f1828;
+    --ars-shell-surface-raised: #162135;
+    --ars-shell-border: #27354a;
+    --ars-shell-text: #e7edf6;
+    --ars-shell-muted: #9eacbd;
+    --text: #e7edf6;
+    --muted: #9eacbd;
+    --border: #27354a;
+    --surface: #111a2b;
+    --background: #0b1220;
+    --primary-soft: #102a30;
+    color-scheme: dark;
+}
+
+html[data-color-mode="dark"] body {
+    background: var(--ars-shell-bg) !important;
+    background-image: none !important;
+    color: var(--ars-shell-text) !important;
+}
+
+html[data-color-mode="dark"] :is(
+    .site-nav,
+    .section,
+    .section-white,
+    .trust-strip,
+    .cta,
+    footer,
+    main,
+    .login-shell,
+    .form-panel,
+    .register-container,
+    .register-body,
+    .recovery-container,
+    .reset-container,
+    .auth-shell
+) {
+    background-color: var(--ars-shell-bg) !important;
+    background-image: none !important;
+    border-color: var(--ars-shell-border) !important;
+    color: var(--ars-shell-text);
+}
+
+html[data-color-mode="dark"] :is(
+    .site-nav,
+    .section-white,
+    footer,
+    .trust-strip
+) {
+    background-color: #101929 !important;
+}
+
+html[data-color-mode="dark"] :is(
+    .app-preview,
+    .preview-sidebar,
+    .preview-card,
+    .preview-chart,
+    .preview-table,
+    .feature,
+    .step,
+    .result-card,
+    .integration-item,
+    .security-card,
+    .plan-option,
+    .billing-switch,
+    .coming,
+    .login-shell,
+    .form-panel,
+    .register-container,
+    .register-body,
+    .recovery-container,
+    .reset-container,
+    .auth-shell,
+    .error-container,
+    .cta-card
+) {
+    background-color: var(--ars-shell-surface) !important;
+    background-image: none !important;
+    border-color: var(--ars-shell-border) !important;
+    color: var(--ars-shell-text);
+}
+
+html[data-color-mode="dark"] :is(
+    h1, h2, h3, h4, h5, h6, strong, label, .footer-title, .error-message
+) {
+    color: #edf3fa;
+}
+
+html[data-color-mode="dark"] :is(
+    p, small, li, .text-muted, .hero-copy, .error-description,
+    .footer-brand, .footer-bottom, .nav-links, .hero-note,
+    .login-prompt, .hint, .intro
+) {
+    color: var(--ars-shell-muted);
+}
+
+html[data-color-mode="dark"] a:not(.button):not(.btn):not(.btn-home):not(.login-button):not(.whatsapp-float):not(.float-button) {
+    color: var(--ars-shell-muted);
+}
+
+html[data-color-mode="dark"] :is(
+    input, select, textarea, .form-control, .form-select
+):not([type="checkbox"]):not([type="radio"]):not([type="hidden"]) {
+    background-color: var(--ars-shell-surface-alt) !important;
+    border-color: #344258 !important;
+    color: #e8eef7 !important;
+}
+
+html[data-color-mode="dark"] :is(input, textarea)::placeholder {
+    color: #738197 !important;
+}
+
+html[data-color-mode="dark"] :is(.button-secondary, .btn-secondary, .btn-outline-primary) {
+    background: #121d2f !important;
+    border-color: #35455c !important;
+    color: #dbe5ef !important;
+}
+
+html[data-color-mode="dark"] .cta-card,
+html[data-color-mode="dark"] .plan-option.featured {
+    background: linear-gradient(145deg, #102722, #111a2b) !important;
+    border-color: #285349 !important;
+}
+
+html[data-color-mode="dark"] .hero {
+    background: linear-gradient(145deg, #102128, #0b1220 58%, #10231f) !important;
+}
+
+.brand-logo-dark {
+    display: none !important;
+}
+
+html[data-color-mode="dark"] .brand-logo-light {
+    display: none !important;
+}
+
+html[data-color-mode="dark"] .brand-logo-dark {
+    display: block !important;
+}
+
+html[data-color-mode="dark"] a.whatsapp-float,
+html[data-color-mode="dark"] .whatsapp-float {
+    background: #25d366 !important;
+    background-image: none !important;
+    border: 0 !important;
+    color: #fff !important;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+}
+
+html[data-color-mode="dark"] .whatsapp-float:hover,
+html[data-color-mode="dark"] a.whatsapp-float:hover {
+    background: #1ebe5d !important;
+    color: #fff !important;
+}
+
+html[data-color-mode="dark"] .whatsapp-float i,
+html[data-color-mode="dark"] .whatsapp-float .fab,
+html[data-color-mode="dark"] .whatsapp-float [class*="fa-"] {
+    color: #fff !important;
+    background: transparent !important;
+    filter: none !important;
+}
+
+@media print {
+    html[data-color-mode="dark"] body,
+    html[data-color-mode="dark"] * {
+        background: #fff !important;
+        color: #000 !important;
+    }
+}

@@ -481,6 +481,7 @@ def api_facturacion_pacientes_pendientes_get(paciente_id):
         'servicio': servicio,
         'autorizacion': autorizacion,
         'monto_estimado': float(paciente.get('monto_estimado', 0)),
+        'estado': paciente.get('estado', 'pendiente'),
         'ars_id': paciente.get('ars_id'),
         'ars_nombre': paciente.get('ars_nombre', ''),
         'medico_id': paciente.get('medico_id'),

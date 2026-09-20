@@ -1,4 +1,4 @@
-# Sistema de Facturación Médica
+# ClinicRD · Gestión Médica
 
 Sistema completo de gestión de facturación médica con control de usuarios, pacientes, ARS, médicos y generación de facturas con PDFs.
 

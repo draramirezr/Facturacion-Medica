@@ -1,0 +1,85 @@
+{% extends "base.html" %}
+
+{% block title %}Detalle Pago - Facturación{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .fi-pago-detalle-title {
+        color: var(--primary-color); font-weight: 800; font-size: 1.6rem; margin: 0;
+    }
+    .pago-lineas th {
+        background: var(--primary-dark);
+        color: #fff;
+    }
+</style>
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <div>
+            <h1 class="fi-pago-detalle-title">
+                <i class="fas fa-money-check-alt me-2"></i>
+                {{ pago.get('numero_pago') or pago.get('numero_pago_visible') }}
+            </h1>
+            <p class="text-muted mb-0">Detalle del pago aplicado a factura(s)</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if can('facturacion.editar') %}
+            <a href="{{ url_for('facturacion_pago_editar', pago_id=pago['id']) }}" class="btn btn-primary">
+                <i class="fas fa-pencil-alt me-2"></i>Editar
+            </a>
+            {% endif %}
+            <a href="{{ url_for('facturacion_pagos') }}" class="btn btn-volver">
+                <i class="fas fa-arrow-left me-2"></i>Volver
+            </a>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Fecha:</strong> {{ pago['fecha_pago'] }}</p>
+                    <p class="mb-1"><strong>Método:</strong> {{ pago['metodo_pago'] }}</p>
+                    <p class="mb-0"><strong>Referencia:</strong> {{ pago['referencia'] or '—' }}</p>
+                </div>
+                <div class="col-md-6">
+                    <p class="mb-1"><strong>Monto total:</strong> ${{ "{:,.2f}".format(monto_total or 0) }}</p>
+                    <p class="mb-0"><strong>Observaciones:</strong><br>{{ pago['observaciones'] or 'Sin observaciones' }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <h2 class="h6 text-uppercase text-muted mb-3">Facturas aplicadas</h2>
+            {% if lineas %}
+            <div class="table-responsive">
+                <table class="table align-middle mb-0 pago-lineas">
+                    <thead>
+                        <tr>
+                            <th>Factura</th>
+                            <th>ARS</th>
+                            <th class="text-end">Total factura</th>
+                            <th class="text-end">Monto aplicado</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for linea in lineas %}
+                        <tr>
+                            <td><strong>{{ linea['numero_factura'] }}</strong></td>
+                            <td>{{ linea['nombre_ars'] or 'Sin ARS' }}</td>
+                            <td class="text-end">${{ "{:,.2f}".format(linea['total'] or 0) }}</td>
+                            <td class="text-end"><strong>${{ "{:,.2f}".format(linea['monto_aplicado'] or 0) }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted mb-0">Este pago no tiene facturas asociadas.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

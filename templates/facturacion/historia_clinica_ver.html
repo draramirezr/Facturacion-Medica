@@ -6,8 +6,8 @@
 {% block content %}
 <style nonce="{{ csp_nonce }}">
     .hc-view { max-width: 1100px; margin: 0 auto; }
-    .hc-summary, .hc-block { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.25rem; margin-bottom: 1rem; }
-    .hc-summary { background: linear-gradient(135deg, {{ tema.primary }}12, white); }
+    .hc-summary, .hc-block { background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.25rem; margin-bottom: 1rem; }
+    .hc-summary { background: linear-gradient(135deg, {{ tema.primary }}12, var(--ars-shell-surface, #fff)); }
     .hc-block h2 { font-size: 1rem; font-weight: 800; color: var(--primary-dark); border-bottom: 1px solid {{ tema.primary }}25; padding-bottom: .6rem; }
     .detail-grid { display: grid; grid-template-columns: repeat(4,1fr); gap: .8rem 1rem; }
     .detail-grid span, .detail-label { display: block; color: var(--ars-shell-muted); font-size: .72rem; text-transform: uppercase; font-weight: 700; }
@@ -37,7 +37,6 @@
                 <div><span>Documento</span>{{ consulta['cedula'] or 'N/D' }}</div>
                 <div><span>Teléfono</span>{{ consulta['telefono'] or 'N/D' }}</div>
                 <div><span>Correo</span>{{ consulta['email'] or 'N/D' }}</div>
-                <div><span>Ocupación</span>{{ consulta['ocupacion'] or 'N/D' }}</div>
                 <div><span>Versión</span>{{ consulta['version'] }}</div>
                 <div><span>Especialidad</span>{{ consulta['especialidad_consulta'] or consulta['medico_especialidad'] or 'General' }}</div>
                 <div class="detail-wide"><span>Dirección</span>{{ consulta['direccion'] or 'N/D' }}</div>

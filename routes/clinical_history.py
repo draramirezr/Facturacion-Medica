@@ -170,7 +170,6 @@ def obtener_consulta_clinica_formulario():
         'proxima_especialidad': texto('proxima_especialidad', 150),
         'proxima_motivo': texto('proxima_motivo', 2000),
         'indicaciones_seguimiento': texto('indicaciones_seguimiento', 3000),
-        'ocupacion': texto('ocupacion', 150)
     }
     if datos['proxima_cita']:
         try:
@@ -373,12 +372,32 @@ def facturacion_historia_clinica():
         params,
         'p.nombre, p.id',
     )
+    sin_historias_propias = []
+    if search and medico_id_restringido and not pacientes:
+        sin_historias_propias = execute_query(
+            '''
+            SELECT p.id, p.nombre, p.cedula, p.telefono
+            FROM pacientes p
+            WHERE p.tenant_id=%s
+              AND (
+                  p.nombre LIKE %s OR p.cedula LIKE %s OR p.nss LIKE %s
+                  OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
+                      COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),
+                      '+','') LIKE %s
+              )
+            ORDER BY p.nombre, p.id
+            LIMIT 10
+            ''',
+            (tenant_id, patron, patron, patron, phone_pattern),
+            fetch='all',
+        ) or []
     return render_template(
         'facturacion/historia_clinica.html',
         pacientes=pacientes,
         search=search,
         pagination=pagination,
         historias_restringidas=bool(medico_id_restringido),
+        sin_historias_propias=sin_historias_propias,
     )
 
 
@@ -463,22 +482,9 @@ def facturacion_historia_clinica_expediente(paciente_id):
         ORDER BY c.fecha DESC, c.hora DESC, c.id DESC
     ''', (paciente_id, tenant_id), fetch='all') or []
     for consulta in consultas:
-        consulta['puede_ver_detalle'] = (
-            not medico_id_restringido
-            or consulta.get('medico_id') == medico_id_restringido
+        consulta['plan'] = cargar_json_clinico(
+            consulta.get('plan_tratamiento')
         )
-        if consulta['puede_ver_detalle']:
-            consulta['plan'] = cargar_json_clinico(
-                consulta.get('plan_tratamiento')
-            )
-        else:
-            consulta.update({
-                'motivo_consulta': None,
-                'diagnostico_principal': None,
-                'plan_tratamiento': None,
-                'nota_evolucion_inicial': None,
-                'proxima_cita': None,
-            })
     actualizar_licencias_vencidas(tenant_id)
     licencias = execute_query('''
         SELECT l.id, l.medico_id, l.codigo, l.fecha_emision,
@@ -557,40 +563,6 @@ def facturacion_historia_clinica_expediente(paciente_id):
                 'licencias': 0,
             })
             actividad[categoria] += 1
-            registro['puede_ver_detalle'] = (
-                not medico_id_restringido
-                or registro.get('medico_id') == medico_id_restringido
-            )
-    if medico_id_restringido:
-        for licencia in licencias:
-            if not licencia['puede_ver_detalle']:
-                licencia.update({
-                    'codigo': None,
-                    'diagnostico': None,
-                    'fecha_inicio': None,
-                    'fecha_termino': None,
-                    'cantidad_dias': None,
-                })
-        for emergencia in emergencias:
-            if not emergencia['puede_ver_detalle']:
-                emergencia.update({
-                    'motivo_emergencia': None,
-                    'diagnostico_impresion': None,
-                    'estatus_paciente': None,
-                })
-        for registro in consultas_registradas:
-            if not registro['puede_ver_detalle']:
-                registro.update({
-                    'monto_estimado': None,
-                    'servicios_realizados': None,
-                    'estado': None,
-                })
-        for cita in citas:
-            if not cita['puede_ver_detalle']:
-                cita['motivo'] = None
-        for receta in recetas:
-            if not receta['puede_ver_detalle']:
-                receta.update({'codigo': None, 'diagnostico': None})
     resumen = {
         'consultas_clinicas': len(consultas),
         'emergencias': len(emergencias),
@@ -747,10 +719,6 @@ def facturacion_historia_clinica_nueva(paciente_id):
             datos['indicaciones_seguimiento'] or None, current_user.id,
             current_user.id, turno_id
         ))
-        execute_update(
-            'UPDATE pacientes SET ocupacion = %s WHERE id = %s AND tenant_id = %s',
-            (datos['ocupacion'] or None, paciente_id, tenant_id)
-        )
         error_agenda = sincronizar_cita_desde_historia(consulta_id, tenant_id)
         if turno:
             execute_update('''
@@ -816,11 +784,7 @@ def facturacion_historia_clinica_nueva(paciente_id):
 def facturacion_historia_clinica_ver(consulta_id):
     tenant_id = get_current_tenant_id()
     medico_id_restringido = medico_id_historias_restringido()
-    consulta = obtener_consulta_clinica(
-        consulta_id,
-        tenant_id,
-        medico_id_restringido,
-    )
+    consulta = obtener_consulta_clinica(consulta_id, tenant_id)
     if not consulta:
         flash('Consulta clínica no encontrada', 'error')
         return redirect(url_for('facturacion_historia_clinica'))
@@ -944,10 +908,6 @@ def facturacion_historia_clinica_editar(consulta_id):
             datos['indicaciones_seguimiento'] or None, current_user.id,
             consulta_id, tenant_id
         ))
-        execute_update(
-            'UPDATE pacientes SET ocupacion=%s WHERE id=%s AND tenant_id=%s',
-            (datos['ocupacion'] or None, consulta['paciente_id'], tenant_id)
-        )
         consulta_nueva = execute_query(
             'SELECT * FROM consultas_clinicas WHERE id=%s AND tenant_id=%s',
             (consulta_id, tenant_id)

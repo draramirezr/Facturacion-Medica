@@ -282,6 +282,105 @@ class CSPAndEndpointTests(unittest.TestCase):
         self.assertEqual(query.call_args.args[1], (91, 22))
         update.assert_not_called()
 
+    def test_payment_detail_is_tenant_scoped(self):
+        user = SimpleNamespace(
+            id=10,
+            perfil='Administrador',
+            tenant_id=22,
+            is_authenticated=True,
+        )
+        handler = billing_routes.facturacion_pago_detalle
+        while hasattr(handler, '__wrapped__'):
+            handler = handler.__wrapped__
+
+        with self.flask_app.test_request_context('/facturacion/pagos/91'):
+            with (
+                patch_current_user(user),
+                patch.object(
+                    billing_routes,
+                    'execute_query',
+                    return_value=None,
+                ) as query,
+            ):
+                response = handler(91)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(query.call_args.args[1], (91, 22))
+
+    def test_payment_edit_is_tenant_scoped(self):
+        user = SimpleNamespace(
+            id=10,
+            perfil='Administrador',
+            tenant_id=22,
+            is_authenticated=True,
+        )
+        update = Mock()
+        handler = billing_routes.facturacion_pago_editar
+        while hasattr(handler, '__wrapped__'):
+            handler = handler.__wrapped__
+
+        with self.flask_app.test_request_context(
+            '/facturacion/pagos/91/editar',
+            method='POST',
+            data={
+                'fecha_pago': '2026-09-20',
+                'metodo_pago': 'Transferencia',
+                'facturas_ids[]': '7',
+                'montos[]': '100.00',
+            },
+        ):
+            with (
+                patch_current_user(user),
+                patch.object(
+                    billing_routes,
+                    'execute_query',
+                    return_value=None,
+                ) as query,
+                patch.object(billing_routes, 'execute_update', update),
+            ):
+                response = handler(91)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(query.call_args.args[1], (91, 22))
+        update.assert_not_called()
+
+    def test_reclamation_edit_is_tenant_scoped(self):
+        user = SimpleNamespace(
+            id=10,
+            perfil='Administrador',
+            tenant_id=22,
+            is_authenticated=True,
+        )
+        update = Mock()
+        handler = billing_routes.facturacion_reclamacion_editar
+        while hasattr(handler, '__wrapped__'):
+            handler = handler.__wrapped__
+
+        with self.flask_app.test_request_context(
+            '/facturacion/reclamaciones/91/editar',
+            method='POST',
+            data={
+                'factura_id': '7',
+                'monto_reclamado': '150.00',
+                'fecha_reclamacion': '2026-09-20',
+                'observaciones': 'Ajuste',
+            },
+        ):
+            with (
+                patch_current_user(user),
+                patch.object(
+                    billing_routes,
+                    'execute_query',
+                    return_value=None,
+                ) as query,
+                patch.object(billing_routes, 'execute_update', update),
+            ):
+                response = handler(91)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(query.call_args.args[1], (91, 22))
+        update.assert_not_called()
+
     def test_public_registration_requires_ten_digit_phone(self):
         handler = auth_routes.registro
         while hasattr(handler, '__wrapped__'):

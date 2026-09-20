@@ -1,4 +1,4 @@
-/* Unificación visual de pantallas heredadas con el shell ARSFlow. */
+/* Unificación visual de pantallas heredadas con el shell ClinicRD. */
 .ars-app-body,
 .ars-app-body .ars-content {
     background: var(--ars-shell-bg) !important;
@@ -192,10 +192,13 @@
 .ars-app-body .ars-content .btn-outline-secondary,
 .ars-app-body .ars-content .btn-cancelar,
 .ars-app-body .ars-content .btn-volver,
-.ars-app-body .ars-content .btn-limpiar {
+.ars-app-body .ars-content .btn-limpiar,
+.ars-app-body .ars-content .btn-filter-secondary,
+.ars-app-body .ars-content .btn-ver-factura,
+.ars-app-body .ars-content .btn-editar-factura {
     border: 1px solid var(--primary-color) !important;
     border-radius: 10px !important;
-    background: white !important;
+    background: color-mix(in srgb, var(--primary-color) 16%, var(--ars-shell-surface, #fff)) !important;
     color: var(--primary-dark) !important;
 }
 
@@ -203,9 +206,12 @@
 .ars-app-body .ars-content .btn-outline-secondary:hover,
 .ars-app-body .ars-content .btn-cancelar:hover,
 .ars-app-body .ars-content .btn-volver:hover,
-.ars-app-body .ars-content .btn-limpiar:hover {
-    background: color-mix(in srgb, var(--primary-color) 9%, white) !important;
-    color: var(--primary-dark) !important;
+.ars-app-body .ars-content .btn-limpiar:hover,
+.ars-app-body .ars-content .btn-filter-secondary:hover,
+.ars-app-body .ars-content .btn-ver-factura:hover,
+.ars-app-body .ars-content .btn-editar-factura:hover {
+    background: var(--primary-color) !important;
+    color: #fff !important;
 }
 
 .ars-app-body .ars-content .btn:hover,

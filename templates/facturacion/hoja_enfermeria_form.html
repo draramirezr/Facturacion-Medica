@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 {% from "_patient_search.html" import patient_search %}
 
-{% block title %}Nueva Hoja de Enfermería - ARSFlow{% endblock %}
+{% block title %}Nueva Hoja de Enfermería - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
 <style nonce="{{ csp_nonce }}">
     .nursing-form-shell { max-width:1200px; margin:0 auto; }
-    .nursing-header,.nursing-card { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
-    .nursing-header { background:linear-gradient(135deg,{{ tema.primary }}12,white); }
+    .nursing-header,.nursing-card { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:var(--ars-shell-surface, #fff); }
+    .nursing-header { background:linear-gradient(135deg,{{ tema.primary }}12, var(--ars-shell-surface, #fff)); }
     .nursing-card h2 { padding-bottom:.65rem; margin-bottom:1rem; border-bottom:1px solid var(--ars-shell-border); color:var(--primary-dark); font-size:1rem; }
     .required::after { content:" *"; color:var(--primary-color); }
     .supply-table { min-width:880px; table-layout:fixed; }

@@ -1,1 +1,1 @@
-"""Infraestructura compartida de ARSFLOW."""
+"""Infraestructura compartida de ClinicRD."""

@@ -1,6 +1,8 @@
 {% extends "base.html" %}
+{% set es_edicion = pago is defined and pago %}
+{% set lineas_pago = lineas_por_factura if lineas_por_factura is defined else {} %}
 
-{% block title %}Nuevo Pago - Facturación{% endblock %}
+{% block title %}{{ 'Editar' if es_edicion else 'Nuevo' }} Pago - Facturación{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
@@ -12,7 +14,7 @@
     }
 
     .form-card {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border-radius: 20px;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         padding: 2.5rem;
@@ -37,7 +39,7 @@
     }
 
     .btn-guardar {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border: 2px solid var(--primary-color);
         color: var(--primary-color);
         padding: 0.8rem 2rem;
@@ -54,7 +56,7 @@
     }
 
     .btn-cancelar {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border: 2px solid var(--text-muted);
         color: var(--text-muted);
         padding: 0.8rem 2rem;
@@ -113,12 +115,46 @@
         <div class="mb-4">
             <h1 class="fi-pago-form-inline-1">
                 <i class="fas fa-money-check-alt me-2"></i>
-                Nuevo Pago
+                {{ 'Editar pago' if es_edicion else 'Nuevo Pago' }}
             </h1>
-            <p class="text-muted">Seleccione las facturas y asigne el monto pagado a cada una</p>
+            <p class="text-muted">Primero elija la ARS que realizó el pago. Se muestran las 5 facturas más antiguas sin pago.</p>
         </div>
 
         <div class="form-card">
+            <form method="GET" action="{{ url_for('facturacion_pago_editar', pago_id=pago['id']) if es_edicion else url_for('facturacion_pagos_nuevo') }}" class="mb-4">
+                <div class="row g-3">
+                    <div class="col-md-5">
+                        <label for="ars_id" class="form-label">
+                            <i class="fas fa-hospital me-2 text-primary"></i>ARS que realizó el pago <span class="required-asterisk">*</span>
+                        </label>
+                        <select name="ars_id" id="ars_id" class="form-select" data-submit-form-on-change required>
+                            <option value="">Seleccione la ARS...</option>
+                            {% for ars in ars_list %}
+                            <option value="{{ ars.id }}" {% if ars_id and ars_id|int == ars.id %}selected{% endif %}>{{ ars.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label for="numero" class="form-label">
+                            <i class="fas fa-hashtag me-2 text-primary"></i>Número de factura
+                        </label>
+                        <input type="text"
+                               name="numero"
+                               id="numero"
+                               class="form-control"
+                               value="{{ numero_factura or '' }}"
+                               placeholder="Si no está entre las 5, digite el número"
+                               maxlength="40"
+                               {% if not ars_id %}disabled{% endif %}>
+                    </div>
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-guardar w-100" {% if not ars_id %}disabled{% endif %}>
+                            <i class="fas fa-search me-1"></i>Buscar
+                        </button>
+                    </div>
+                </div>
+            </form>
+
             <form method="POST" id="pagoForm">
                 <div class="row mb-4">
                     <div class="col-md-6 mb-3">
@@ -138,11 +174,10 @@
                             <i class="fas fa-credit-card me-2 text-primary"></i>Método de Pago <span class="required-asterisk">*</span>
                         </label>
                         <select class="form-select" id="metodo_pago" name="metodo_pago" required>
-                            <option value="Transferencia">Transferencia</option>
-                            <option value="Efectivo">Efectivo</option>
-                            <option value="Cheque">Cheque</option>
-                            <option value="Tarjeta">Tarjeta</option>
-                            <option value="Otro">Otro</option>
+                            {% set metodo_valor = pago['metodo_pago'] if es_edicion else 'Transferencia' %}
+                            {% for metodo in ['Transferencia', 'Efectivo', 'Cheque', 'Tarjeta', 'Otro'] %}
+                            <option value="{{ metodo }}" {% if metodo_valor == metodo %}selected{% endif %}>{{ metodo }}</option>
+                            {% endfor %}
                         </select>
                     </div>
                 </div>
@@ -150,13 +185,14 @@
                 <div class="row mb-4">
                     <div class="col-md-6 mb-3">
                         <label for="referencia" class="form-label">
-                            <i class="fas fa-hashtag me-2 text-primary"></i>Referencia
+                            <i class="fas fa-receipt me-2 text-primary"></i>Referencia del pago
                         </label>
                         <input type="text"
                                class="form-control"
                                id="referencia"
                                name="referencia"
-                               placeholder="Número de referencia, cheque, etc."
+                               value="{{ pago['referencia'] if es_edicion else '' }}"
+                               placeholder="Número de transferencia, cheque, etc."
                                maxlength="100">
                     </div>
                 </div>
@@ -165,28 +201,44 @@
                     <label class="form-label">
                         <i class="fas fa-file-invoice me-2 text-primary"></i>Facturas a Pagar <span class="required-asterisk">*</span>
                     </label>
+                    {% if not ars_id %}
+                    <p class="text-muted mb-0">Seleccione la ARS para ver las 5 facturas más antiguas sin pago.</p>
+                    {% elif not facturas_list %}
+                    <p class="text-muted mb-0">
+                        No hay facturas pendientes para esta ARS.
+                        {% if numero_factura %}No se encontró el número {{ numero_factura }}.{% endif %}
+                    </p>
+                    {% elif facturas_list %}
+                    <p class="text-muted">
+                        Las 5 facturas más antiguas sin pago de esta ARS.
+                        Si no está la que busca, digite el número arriba.
+                    </p>
+                    {% endif %}
                     <div id="facturas-container">
                         {% for factura in facturas_list %}
+                        {% set factura_key = factura['id']|string %}
+                        {% set monto_aplicado = lineas_pago.get(factura_key) %}
                         {% set monto_disponible = factura['total'] - factura['monto_pagado'] %}
-                        <div class="factura-item">
+                        <div class="factura-item {{ 'selected' if monto_aplicado }}">
                             <div class="form-check mb-2">
                                 <input class="form-check-input factura-checkbox"
                                        type="checkbox"
                                        id="factura_{{ factura['id'] }}"
                                        value="{{ factura['id'] }}"
+                                       {% if monto_aplicado %}checked{% endif %}
                                        data-csp-change="toggleFactura"
                                        data-csp-args='[{{ factura["id"] }}]'>
                                 <label class="form-check-label fi-pago-form-inline-2" for="factura_{{ factura['id'] }}">
-                                    <strong>{{ factura['numero_factura'] }}</strong> - {{ factura['nombre_paciente'] }}
+                                    <strong>{{ factura['numero_factura'] }}</strong>
                                     ({{ factura['nombre_ars'] or 'Sin ARS' }})
                                 </label>
                             </div>
                             <div class="row">
                                 <div class="col-md-6">
                                     <small class="monto-disponible">
-                                        Total: ${{ "{:,.2f}".format(factura['total']) }} |
-                                        Pagado: ${{ "{:,.2f}".format(factura['monto_pagado']) }} |
-                                        Disponible: <strong>${{ "{:,.2f}".format(monto_disponible) }}</strong>
+                                        Total: ${{ "{:,.2f}".format(factura['total'] or 0) }} |
+                                        Pagado: ${{ "{:,.2f}".format(factura['monto_pagado'] or 0) }} |
+                                        Disponible: <strong>${{ "{:,.2f}".format(monto_disponible or 0) }}</strong>
                                     </small>
                                 </div>
                                 <div class="col-md-6">
@@ -199,10 +251,11 @@
                                            step="0.01"
                                            min="0.01"
                                            max="{{ monto_disponible }}"
+                                           value="{{ monto_aplicado if monto_aplicado else '' }}"
                                            placeholder="0.00"
-                                           disabled
+                                           {% if not monto_aplicado %}disabled{% endif %}
                                            data-csp-change="calcularTotal">
-                                    <input type="hidden" name="facturas_ids[]" id="factura_id_{{ factura['id'] }}" value="">
+                                    <input type="hidden" name="facturas_ids[]" id="factura_id_{{ factura['id'] }}" value="{{ factura['id'] if monto_aplicado else '' }}">
                                 </div>
                             </div>
                         </div>
@@ -218,7 +271,7 @@
                               id="observaciones"
                               name="observaciones"
                               rows="3"
-                              placeholder="Observaciones sobre el pago..."></textarea>
+                              placeholder="Observaciones sobre el pago...">{{ pago['observaciones'] if es_edicion and pago['observaciones'] else '' }}</textarea>
                 </div>
 
                 <div class="total-pago mb-4">
@@ -233,7 +286,7 @@
                         <i class="fas fa-times me-2"></i>Cancelar
                     </a>
                     <button type="submit" class="btn btn-guardar">
-                        <i class="fas fa-save me-2"></i>Registrar Pago
+                        <i class="fas fa-save me-2"></i>{{ 'Guardar cambios' if es_edicion else 'Registrar Pago' }}
                     </button>
                 </div>
             </form>
@@ -285,6 +338,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const today = new Date().toISOString().split('T')[0];
         fechaInput.value = today;
     }
+    calcularTotal();
 
     // Validar montos al enviar
     document.getElementById('pagoForm').addEventListener('submit', function(e) {

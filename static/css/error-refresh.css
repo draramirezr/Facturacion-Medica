@@ -1,14 +1,14 @@
 body {
-    background: #f7f9fc !important;
-    color: #172033 !important;
+    background: var(--ars-shell-bg, #f7f9fc) !important;
+    color: var(--ars-shell-text, #172033) !important;
 }
 
 .error-container {
     width: min(520px, 100%);
     padding: 42px 32px;
-    border: 1px solid #e8edf3;
+    border: 1px solid var(--ars-shell-border, #e8edf3);
     border-radius: 18px;
-    background: white;
+    background: var(--ars-shell-surface, #fff);
 }
 
 .error-container .icon {
@@ -49,6 +49,6 @@ body {
 }
 
 .btn-secondary {
-    background: white !important;
+    background: var(--ars-shell-surface, #fff) !important;
     color: #0891b2 !important;
 }

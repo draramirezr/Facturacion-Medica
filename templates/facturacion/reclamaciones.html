@@ -13,7 +13,7 @@
     }
 
     .table-facturacion {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border-radius: 15px;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         overflow: hidden;
@@ -100,7 +100,51 @@
         width: 10%;
     }
     .fi-reclamaciones-inline-11 {
-        width: 7%;
+        width: 14%;
+    }
+    .reclamacion-acciones {
+        display: flex;
+        flex-direction: row;
+        flex-wrap: nowrap;
+        gap: 4px;
+        justify-content: center;
+        align-items: center;
+    }
+    .reclamacion-acciones .btn-accion-ver,
+    .reclamacion-acciones .btn-accion-editar {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 28px !important;
+        height: 28px !important;
+        min-width: 28px !important;
+        min-height: 28px !important;
+        max-width: 28px !important;
+        max-height: 28px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        border-radius: 4px !important;
+        text-decoration: none !important;
+        box-sizing: border-box !important;
+        flex-shrink: 0 !important;
+        position: relative;
+        z-index: 2;
+    }
+    .reclamacion-acciones .btn-accion-ver {
+        color: var(--primary-dark) !important;
+        border: 1px solid color-mix(in srgb, var(--primary-color) 45%, var(--ars-shell-border, #d3d3d3)) !important;
+        background: color-mix(in srgb, var(--primary-color) 16%, var(--ars-shell-surface, #fff)) !important;
+    }
+    .reclamacion-acciones .btn-accion-editar {
+        color: var(--primary-color) !important;
+        border: 1px solid #D3D3D3 !important;
+        background: var(--ars-shell-surface, #fff) !important;
+    }
+    .reclamacion-acciones .btn-accion-ver i,
+    .reclamacion-acciones .btn-accion-editar i {
+        font-size: 0.65rem !important;
+        line-height: 1 !important;
+        margin: 0 !important;
     }
     .fi-reclamaciones-inline-12 {
         background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 1.5rem; margin: 2rem; display: inline-block;
@@ -115,7 +159,7 @@
                     <i class="fas fa-exclamation-triangle me-2"></i>
                     Reclamaciones
                 </h1>
-                <p class="fi-reclamaciones-inline-2">Gestión de reclamaciones de facturas</p>
+                <p class="fi-reclamaciones-inline-2">La reclamación se hace a la factura: número, monto y observación</p>
             </div>
             <div class="d-flex gap-2">
                 <a href="{{ url_for('facturacion_reclamaciones_nueva') }}" class="btn btn-volver fi-reclamaciones-inline-3">
@@ -136,10 +180,10 @@
                 <thead>
                     <tr>
                         <th class="fi-reclamaciones-inline-4">Número Factura</th>
-                        <th class="fi-reclamaciones-inline-5">Paciente</th>
                         <th class="fi-reclamaciones-inline-6">ARS</th>
                         <th class="text-end fi-reclamaciones-inline-7">Total Factura</th>
                         <th class="text-end fi-reclamaciones-inline-8">Monto Reclamado</th>
+                        <th class="fi-reclamaciones-inline-5">Observación</th>
                         <th class="fi-reclamaciones-inline-9">Fecha</th>
                         <th class="text-center fi-reclamaciones-inline-10">Estado</th>
                         <th class="text-center fi-reclamaciones-inline-11">Acciones</th>
@@ -149,10 +193,10 @@
                     {% for reclamacion in reclamaciones_list %}
                     <tr>
                         <td><strong>{{ reclamacion['numero_factura'] }}</strong></td>
-                        <td>{{ reclamacion['nombre_paciente'] }}</td>
                         <td>{{ reclamacion['nombre_ars'] or 'Sin ARS' }}</td>
                         <td class="text-end">${{ "{:,.2f}".format(reclamacion['total_factura']) }}</td>
                         <td class="text-end"><strong>${{ "{:,.2f}".format(reclamacion['monto_reclamado']) }}</strong></td>
+                        <td>{{ reclamacion['observaciones']|truncate(70) if reclamacion['observaciones'] else '—' }}</td>
                         <td>{{ reclamacion['fecha_reclamacion'] }}</td>
                         <td class="text-center">
                             {% if reclamacion['estado'] == 'Pendiente' %}
@@ -164,9 +208,20 @@
                             {% endif %}
                         </td>
                         <td class="text-center">
-                            <a href="#" class="btn btn-sm btn-outline-primary" title="Ver detalles">
-                                <i class="fas fa-eye"></i>
-                            </a>
+                            <div class="reclamacion-acciones">
+                                <a href="{{ url_for('facturacion_reclamacion_detalle', reclamacion_id=reclamacion['id']) }}"
+                                   class="btn-accion-icono btn-accion-ver"
+                                   title="Ver">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if can('facturacion.editar') %}
+                                <a href="{{ url_for('facturacion_reclamacion_editar', reclamacion_id=reclamacion['id']) }}"
+                                   class="btn-accion-icono btn-accion-editar"
+                                   title="Editar">
+                                    <i class="fas fa-pencil-alt"></i>
+                                </a>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}

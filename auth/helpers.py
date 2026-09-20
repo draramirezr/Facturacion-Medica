@@ -5,11 +5,38 @@ from core.database import execute_query
 from rbac_catalog import PERMISOS_ROLES_SISTEMA
 
 
+def usuario_es_administrador(user):
+    """Administrador de empresa: rol RBAC o perfil legacy sin roles asignados."""
+    if not user:
+        return False
+    roles = set(getattr(user, 'rbac_roles', ()) or ())
+    if 'Administrador' in roles:
+        return True
+    return (
+        getattr(user, 'perfil', None) == 'Administrador'
+        and not getattr(user, 'rbac_role_count', 0)
+    )
+
+
+def usuario_es_medico_operativo(user):
+    """Médico de cola: no aplica a quien administra usuarios o la empresa."""
+    if not user or usuario_es_administrador(user):
+        return False
+    if user_has_permission(user, 'usuarios.ver'):
+        return False
+    return bool(
+        getattr(user, 'medico_id', None)
+        and user_has_permission(user, 'turnos.cola_propia')
+    )
+
+
 def user_has_permission(user, codigo):
     """Consultar permisos con compatibilidad para usuarios legacy y de pruebas."""
     checker = getattr(user, 'has_permission', None)
     if callable(checker):
         return checker(codigo)
+    if usuario_es_administrador(user):
+        return True
     if (
         getattr(user, 'tenant_id', 1) is None
         and getattr(user, 'perfil', None) == 'Administrador'

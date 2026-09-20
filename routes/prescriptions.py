@@ -334,11 +334,7 @@ def facturacion_recetas_medicas_nueva():
 @login_required
 @permission_required('recetas.ver')
 def facturacion_receta_medica_ver(receta_id):
-    receta = obtener_receta_medica(
-        receta_id,
-        get_current_tenant_id(),
-        medico_id_recetas_restringido(),
-    )
+    receta = obtener_receta_medica(receta_id, get_current_tenant_id())
     if not receta:
         flash('Receta médica no encontrada', 'error')
         return redirect(url_for('facturacion_recetas_medicas'))
@@ -353,11 +349,7 @@ def facturacion_receta_medica_ver(receta_id):
 @login_required
 @permission_required('recetas.imprimir')
 def facturacion_receta_medica_imprimir(receta_id):
-    receta = obtener_receta_medica(
-        receta_id,
-        get_current_tenant_id(),
-        medico_id_recetas_restringido(),
-    )
+    receta = obtener_receta_medica(receta_id, get_current_tenant_id())
     if not receta:
         flash('Receta médica no encontrada', 'error')
         return redirect(url_for('facturacion_recetas_medicas'))

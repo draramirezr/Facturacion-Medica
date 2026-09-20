@@ -15,7 +15,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Regístrate gratis - ARSFLOW Gestion de Factras Medicas</title>
+    <title>Regístrate gratis - ClinicRD Gestión Médica</title>
     <meta name="robots" content="noindex, nofollow">
     <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -80,7 +80,7 @@
             outline: none;
             transition: border-color 0.2s ease;
             font-family: inherit;
-            background: white;
+            background:var(--ars-shell-surface, #fff);
         }
         .form-group input:focus,
         .form-group select:focus { border-color: #06B6D4; }
@@ -115,11 +115,11 @@
             margin-top: 6px;
         }
     </style>
-    <link href="{{ url_for('static', filename='css/auth-refresh.css') }}?v=2.0" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/auth-refresh.css') }}?v=2.2" rel="stylesheet">
     <style nonce="{{ csp_nonce }}">
         html { color-scheme: light; }
         html[data-color-mode="dark"] { color-scheme: dark; }
-        .register-theme-toggle { position:fixed; z-index:10; top:18px; right:18px; width:42px; height:42px; display:grid; place-items:center; border:1px solid #dce5ed; border-radius:10px; background:white; color:#24324a; cursor:pointer; }
+        .register-theme-toggle { position:fixed; z-index:10; top:18px; right:18px; width:42px; height:42px; display:grid; place-items:center; border:1px solid #dce5ed; border-radius:10px; background:var(--ars-shell-surface, #fff); color:#24324a; cursor:pointer; }
         html[data-color-mode="dark"] body { background:#0b1220 !important; color:#e7edf6; }
         html[data-color-mode="dark"] .register-container,
         html[data-color-mode="dark"] .register-body { background:#111a2b !important; border-color:#29374c !important; box-shadow:none !important; }
@@ -131,6 +131,7 @@
         html[data-color-mode="dark"] .hint { color:#9eacbd; }
         html[data-color-mode="dark"] .register-theme-toggle { background:#111a2b; border-color:#344258; color:#e7edf6; }
     </style>
+    <link href="{{ url_for('static', filename='css/public-theme.css') }}?v=2" rel="stylesheet">
 </head>
 <body>
     <button class="register-theme-toggle" type="button" data-theme-toggle aria-label="Activar modo oscuro" title="Modo oscuro"><i class="fas fa-moon" data-theme-icon></i></button>

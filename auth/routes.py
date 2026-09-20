@@ -5,7 +5,7 @@ import os
 import secrets
 import time
 from datetime import date, datetime, timedelta
-from urllib.parse import urljoin
+from urllib.parse import urljoin, urlparse
 
 from flask import (
     flash, redirect, render_template, request, session, url_for,
@@ -34,9 +34,16 @@ except ImportError:
     SENDGRID_AVAILABLE = False
 
 
+def _redirigir_login():
+    siguiente = request.values.get('volver') or request.values.get('next') or ''
+    if siguiente:
+        return redirect(url_for('login', next=siguiente))
+    return redirect(url_for('login'))
+
+
 def login():
     if current_user.is_authenticated:
-        return redirect(url_for('facturacion_menu'))
+        return redirect(url_retorno_segura())
     if request.method == 'POST':
         verificar_suscripciones_vencidas()
         client_ip = request.remote_addr
@@ -49,14 +56,14 @@ def login():
             ]
             if len(request_counts[key]) >= 5:
                 flash('Demasiados intentos. Espera 5 minutos.', 'error')
-                return redirect(url_for('login'))
+                return _redirigir_login()
             request_counts[key].append(current_time)
 
         email = request.form.get('email', '').strip().lower()
         password = request.form.get('password', '')
         if not email or not password:
             flash('Por favor ingresa email y contraseña', 'error')
-            return redirect(url_for('login'))
+            return _redirigir_login()
         user_data = execute_query(
             """
             SELECT u.*, e.nombre AS empresa_nombre,
@@ -77,7 +84,7 @@ def login():
                     else 'La empresa asociada a este usuario está inactiva'
                 )
                 flash(message, 'error')
-                return redirect(url_for('login'))
+                return _redirigir_login()
             fecha_fin = user_data.get('empresa_fecha_fin')
             if isinstance(fecha_fin, str):
                 fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
@@ -92,7 +99,7 @@ def login():
                     'Contacta al administrador.',
                     'error',
                 )
-                return redirect(url_for('login'))
+                return _redirigir_login()
             if check_password_hash(user_data['password_hash'], password):
                 if user_data['password_temporal']:
                     session['cambio_password_usuario_id'] = user_data['id']
@@ -110,11 +117,11 @@ def login():
                     'WHERE id=%s AND tenant_id <=> %s',
                     (datetime.now(), user.id, user.tenant_id),
                 )
-                return redirect(url_for('facturacion_menu'))
+                return redirect(url_retorno_segura())
             flash('Contraseña incorrecta', 'error')
         else:
             flash('Usuario no encontrado o inactivo', 'error')
-        return redirect(url_for('login'))
+        return _redirigir_login()
     allow_prefill = (
         ENVIRONMENT == 'development'
         and os.getenv('ALLOW_DEV_LOGIN_PREFILL', '').lower() == 'true'
@@ -228,6 +235,17 @@ def registro():
         return render_template('registro.html')
 
 
+RUTAS_RETORNO_PROHIBIDAS = frozenset({
+    '/',
+    '/login',
+    '/logout',
+    '/registro',
+    '/solicitar-recuperacion',
+    '/cambiar-password-obligatorio',
+    '/mi-cuenta/cambiar-password',
+})
+
+
 @login_required
 def logout():
     logout_user()
@@ -235,11 +253,40 @@ def logout():
     return redirect(url_for('index'))
 
 
+def url_retorno_segura(destino_alterno='facturacion_menu'):
+    """Devolver la página previa solo si pertenece a esta aplicación."""
+    candidato = (
+        request.values.get('volver')
+        or request.values.get('next')
+        or request.referrer
+        or ''
+    )
+    partes = urlparse(candidato)
+    if partes.scheme and partes.scheme not in ('http', 'https'):
+        return url_for(destino_alterno)
+    if partes.netloc and partes.netloc != request.host:
+        return url_for(destino_alterno)
+    ruta = partes.path or ''
+    if not ruta.startswith('/') or ruta.startswith('//'):
+        return url_for(destino_alterno)
+    if (
+        ruta in RUTAS_RETORNO_PROHIBIDAS
+        or ruta.startswith('/recuperar-password')
+        or ruta == request.path
+    ):
+        return url_for(destino_alterno)
+    return f'{ruta}?{partes.query}' if partes.query else ruta
+
+
 @login_required
 def cambiar_mi_password():
     """Permitir que el usuario autenticado cambie únicamente su contraseña."""
+    volver_url = url_retorno_segura()
     if request.method == 'GET':
-        return render_template('cambiar_mi_password.html')
+        return render_template(
+            'cambiar_mi_password.html',
+            volver_url=volver_url,
+        )
 
     password_actual = request.form.get('password_actual', '')
     password_nuevo = request.form.get('password_nuevo', '')
@@ -254,17 +301,17 @@ def cambiar_mi_password():
         password_actual,
     ):
         flash('La contraseña actual no es correcta', 'error')
-        return redirect(url_for('cambiar_mi_password'))
+        return redirect(url_for('cambiar_mi_password', volver=volver_url))
     if password_nuevo != password_confirm:
         flash('Las contraseñas nuevas no coinciden', 'error')
-        return redirect(url_for('cambiar_mi_password'))
+        return redirect(url_for('cambiar_mi_password', volver=volver_url))
     if check_password_hash(usuario['password_hash'], password_nuevo):
         flash('La contraseña nueva debe ser diferente a la actual', 'error')
-        return redirect(url_for('cambiar_mi_password'))
+        return redirect(url_for('cambiar_mi_password', volver=volver_url))
     errors = validar_password_segura(password_nuevo)
     if errors:
         flash(f'Contraseña no válida: {", ".join(errors)}', 'error')
-        return redirect(url_for('cambiar_mi_password'))
+        return redirect(url_for('cambiar_mi_password', volver=volver_url))
 
     execute_update(
         'UPDATE usuarios SET password_hash=%s, password_temporal=0, '
@@ -277,7 +324,7 @@ def cambiar_mi_password():
         ),
     )
     flash('Tu contraseña fue actualizada correctamente', 'success')
-    return redirect(url_for('facturacion_menu'))
+    return redirect(volver_url)
 
 
 def cambiar_password_obligatorio():
@@ -376,7 +423,7 @@ def _send_recovery_email(usuario, email, token):
                     'SENDGRID_FROM_EMAIL', 'noreply@facturacion.com',
                 ),
                 to_emails=email,
-                subject='Recuperación de Contraseña - ARSFLOW',
+                subject='Recuperación de Contraseña - ClinicRD',
                 html_content=(
                     f'<p>Hola {usuario["nombre"]},</p>'
                     f'<p><a href="{reset_url}">Recuperar Contraseña</a></p>'

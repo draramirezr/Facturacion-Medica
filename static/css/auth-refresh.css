@@ -1,8 +1,8 @@
 /* Apariencia común para registro y recuperación de acceso. */
 body {
     min-height: 100vh !important;
-    background: #f7f9fc !important;
-    color: #172033 !important;
+    background: var(--ars-shell-bg, #f7f9fc) !important;
+    color: var(--ars-shell-text, #172033) !important;
     font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
 }
 
@@ -17,9 +17,9 @@ body::after {
 .reset-container,
 .cambiar-password-card {
     overflow: hidden !important;
-    border: 1px solid #e8edf3 !important;
+    border: 1px solid var(--ars-shell-border, #e8edf3) !important;
     border-radius: 18px !important;
-    background: white !important;
+    background: var(--ars-shell-surface, #fff) !important;
     box-shadow: none !important;
     backdrop-filter: none !important;
     animation: none !important;
@@ -27,19 +27,19 @@ body::after {
 
 .cambiar-password-container {
     min-height: calc(100vh - 120px) !important;
-    background: #f7f9fc !important;
+    background: var(--ars-shell-bg, #f7f9fc) !important;
 }
 
 .email-display,
 .password-requirements {
-    border: 1px solid #e8edf3 !important;
+    border: 1px solid var(--ars-shell-border, #e8edf3) !important;
     border-radius: 10px !important;
-    background: #f8fbfc !important;
-    color: #526071 !important;
+    background: var(--ars-shell-surface-alt, #f8fbfc) !important;
+    color: var(--ars-shell-muted, #526071) !important;
 }
 
 .password-toggle-btn {
-    color: #718096 !important;
+    color: var(--ars-shell-muted, #718096) !important;
 }
 
 .register-header,
@@ -47,16 +47,16 @@ body::after {
 .reset-header,
 .cambiar-password-header {
     padding: 28px 32px !important;
-    border-bottom: 1px solid #e8edf3 !important;
-    background: linear-gradient(135deg, #ecfeff, #ffffff) !important;
-    color: #172033 !important;
+    border-bottom: 1px solid var(--ars-shell-border, #e8edf3) !important;
+    background: linear-gradient(135deg, var(--primary-soft, #ecfeff), var(--ars-shell-surface, #fff)) !important;
+    color: var(--ars-shell-text, #172033) !important;
 }
 
 .register-header h1,
 .recovery-header h1,
 .reset-header h1,
 .cambiar-password-header h1 {
-    color: #172033 !important;
+    color: var(--ars-shell-text, #172033) !important;
     text-shadow: none !important;
 }
 
@@ -64,7 +64,7 @@ body::after {
 .recovery-header p,
 .reset-header p,
 .cambiar-password-header p {
-    color: #718096 !important;
+    color: var(--ars-shell-muted, #718096) !important;
 }
 
 .recovery-icon,
@@ -94,9 +94,10 @@ body::after {
 .form-group input,
 .form-group select,
 .form-control {
-    border: 1px solid #dce3eb !important;
+    border: 1px solid var(--ars-shell-border, #dce3eb) !important;
     border-radius: 10px !important;
-    background: white !important;
+    background: var(--ars-shell-surface, #fff) !important;
+    color: var(--ars-shell-text, #172033) !important;
     box-shadow: none !important;
     transform: none !important;
 }

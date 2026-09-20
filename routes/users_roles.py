@@ -205,31 +205,47 @@ def admin_roles_eliminar(rol_id):
     flash('Rol eliminado correctamente', 'success')
     return redirect(url_for('admin_roles'))
 
-@login_required
-@permission_required('usuarios.ver')
-def admin_usuarios():
-    """Listar usuarios - Filtra por tenant del usuario actual"""
-    # Obtener usuarios del mismo tenant
-    tenant_id = get_current_tenant_id()
-    usuarios = execute_query('''
-        SELECT u.*, e.nombre as empresa_nombre,
+def listar_usuarios_del_tenant(tenant_id):
+    """Usuarios de una sola empresa; nunca listar sin tenant."""
+    if not tenant_id:
+        return []
+    return execute_query(
+        '''
+        SELECT u.id, u.nombre, u.email, u.perfil, u.activo, u.last_login,
+               u.created_at, e.nombre AS empresa_nombre,
                GROUP_CONCAT(DISTINCT r.nombre ORDER BY r.nombre SEPARATOR ', ')
                    AS roles_nombres
         FROM usuarios u
-        LEFT JOIN empresas e ON u.tenant_id = e.id
+        LEFT JOIN empresas e ON e.id = u.tenant_id
         LEFT JOIN usuario_roles ur
           ON ur.usuario_id=u.id AND ur.tenant_id=u.tenant_id
         LEFT JOIN roles r
           ON r.id=ur.rol_id AND r.tenant_id=ur.tenant_id AND r.activo=1
         WHERE u.tenant_id = %s
         GROUP BY u.id
-        ORDER BY u.created_at DESC
-    ''', (tenant_id,), fetch='all')
-    
-    # Obtener info de licencias
-    empresa = get_empresa_info()
-    
-    return render_template('usuarios/lista.html', usuarios=usuarios, empresa=empresa)
+        ORDER BY u.nombre, u.id
+        ''',
+        (tenant_id,),
+        fetch='all',
+    ) or []
+
+
+@login_required
+@permission_required('usuarios.ver')
+def admin_usuarios():
+    """Listar solo los usuarios de la empresa del administrador."""
+    tenant_id = get_current_tenant_id()
+    if not tenant_id:
+        flash(
+            'Selecciona una empresa antes de administrar sus usuarios.',
+            'error',
+        )
+        return redirect(url_for('facturacion_menu'))
+    return render_template(
+        'usuarios/lista.html',
+        usuarios=listar_usuarios_del_tenant(tenant_id),
+        empresa=get_empresa_info(),
+    )
 
 def obtener_contexto_usuario_form(tenant_id, usuario_id=None):
     roles = execute_query(
@@ -340,8 +356,13 @@ def admin_usuarios_nuevo():
             flash(f'Contraseña no válida: {", ".join(password_errors)}', 'error')
             return redirect(url_for('admin_usuarios_nuevo'))
         
-        # Obtener tenant_id del usuario actual
         tenant_id = get_current_tenant_id()
+        if not tenant_id:
+            flash(
+                'Selecciona una empresa antes de crear usuarios.',
+                'error',
+            )
+            return redirect(url_for('admin_usuarios'))
         rol = obtener_rol_tenant(rol_id, tenant_id)
         if not rol:
             flash('Rol inválido', 'error')
@@ -394,6 +415,12 @@ def admin_usuarios_nuevo():
         return redirect(url_for('admin_usuarios'))
     
     tenant_id = get_current_tenant_id()
+    if not tenant_id:
+        flash(
+            'Selecciona una empresa antes de crear usuarios.',
+            'error',
+        )
+        return redirect(url_for('admin_usuarios'))
     roles, medicos, rol_seleccionado, medico_seleccionado = (
         obtener_contexto_usuario_form(tenant_id)
     )

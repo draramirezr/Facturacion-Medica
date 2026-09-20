@@ -40,6 +40,8 @@ class User(UserMixin):
         """Autorizar por RBAC con fallback para usuarios aún no migrados."""
         if self.tenant_id is None and self.perfil == 'Administrador':
             return True
+        if 'Administrador' in (self.rbac_roles or ()):
+            return True
         if self.rbac_role_count:
             return codigo in self.permissions
         return codigo in PERMISOS_ROLES_SISTEMA.get(self.perfil, frozenset())

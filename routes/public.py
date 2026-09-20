@@ -4,9 +4,10 @@ import logging
 from datetime import datetime
 
 from flask import jsonify, redirect, render_template, request, url_for
-from flask_login import current_user
+from flask_login import current_user, login_required
 
 from core.extensions import csrf
+from core.presentation import obtener_soporte
 from core.security import rate_limit
 
 logger = logging.getLogger(__name__)
@@ -37,6 +38,15 @@ def redirects():
     return redirect(url_for('login'))
 
 
+@login_required
+def centro_ayuda():
+    """Abrir el manual en línea o la pantalla temporal si aún no está publicado."""
+    destino = (obtener_soporte() or {}).get('manual_url') or ''
+    if destino:
+        return redirect(destino)
+    return render_template('ayuda.html')
+
+
 def register_public_routes(app):
     app.add_url_rule(
         '/api/csp-report',
@@ -45,5 +55,6 @@ def register_public_routes(app):
         methods=['POST'],
     )
     app.add_url_rule('/', 'index', index)
+    app.add_url_rule('/ayuda', 'centro_ayuda', centro_ayuda)
     for path in ('/services', '/about', '/contact', '/request-appointment'):
         app.add_url_rule(path, 'redirects', redirects)

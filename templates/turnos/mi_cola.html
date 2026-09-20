@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Mi cola - ARSFlow{% endblock %}
+{% block title %}Mi cola - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 {% block content %}
 <style nonce="{{ csp_nonce }}">
@@ -7,10 +7,10 @@
     .doctor-hero { padding:1.2rem; border-radius:16px; background:linear-gradient(135deg,{{ tema.primary_dark }},{{ tema.primary }}); color:#fff; box-shadow:0 10px 28px rgba(8,145,178,.2); }
     .doctor-hero h1,
     .doctor-hero p { color:#fff !important; text-shadow:0 1px 2px rgba(15,23,42,.18); }
-    .doctor-next-button { min-height:42px; padding:.65rem 1.1rem; border:1px solid rgba(255,255,255,.9) !important; border-radius:10px; background:#fff !important; color:{{ tema.primary_dark }} !important; font-weight:800; box-shadow:0 4px 14px rgba(15,23,42,.16); }
+    .doctor-next-button { min-height:42px; padding:.65rem 1.1rem; border:1px solid rgba(255,255,255,.9) !important; border-radius:10px; background:var(--ars-shell-surface, #fff) !important; color:{{ tema.primary_dark }} !important; font-weight:800; box-shadow:0 4px 14px rgba(15,23,42,.16); }
     .doctor-next-button:hover,
     .doctor-next-button:focus-visible { background:#ecfeff !important; color:#0e7490 !important; transform:translateY(-1px); }
-    .doctor-turn { display:grid; grid-template-columns:90px 1fr auto; align-items:center; gap:1rem; padding:1rem; margin-top:.8rem; border:1px solid var(--ars-shell-border); border-radius:14px; background:var(--ars-shell-surface,white); }
+    .doctor-turn { display:grid; grid-template-columns:90px 1fr auto; align-items:center; gap:1rem; padding:1rem; margin-top:.8rem; border:1px solid var(--ars-shell-border); border-radius:14px; background:var(--ars-shell-surface, #fff); }
     .doctor-number { font-size:1.7rem; font-weight:900; color:var(--primary-color); }
     .doctor-actions { display:flex; flex-wrap:wrap; gap:.4rem; }
     @media(max-width:650px){.doctor-turn{grid-template-columns:70px 1fr}.doctor-actions{grid-column:1/-1}}

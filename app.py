@@ -1,4 +1,4 @@
-"""Fachada WSGI de ARSFlow.
+"""Fachada WSGI de ClinicRD.
 
 La lógica vive en sus paquetes propietarios. Este módulo crea la aplicación,
 registra sus rutas y conserva únicamente las exportaciones de compatibilidad

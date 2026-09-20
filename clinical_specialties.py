@@ -6,7 +6,7 @@ import re
 import unicodedata
 
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 FIELD_PREFIX = "especialidad_"
 
 
@@ -33,11 +33,9 @@ SPECIALTY_SCHEMAS = {
                 "title": "Evaluación integral",
                 "fields": [
                     _field("revision_sistemas", "Revisión por sistemas"),
-                    _field("estado_funcional", "Estado funcional y autonomía"),
                     _field("riesgo_cardiovascular", "Factores de riesgo cardiovascular"),
                     _field("vacunacion", "Estado de vacunación"),
-                    _field("tamizajes", "Tamizajes preventivos realizados o pendientes"),
-                    _field("adherencia", "Adherencia al tratamiento"),
+                    _field("tamizajes", "Tamizajes preventivos pendientes"),
                 ],
             },
         ],
@@ -48,14 +46,10 @@ SPECIALTY_SCHEMAS = {
             {
                 "title": "Crecimiento y desarrollo",
                 "fields": [
-                    _field("edad_gestacional", "Edad gestacional al nacer", "text", max_length=80),
-                    _field("peso_nacer", "Peso al nacer (kg)", "number", min=0.2, max=8, step=0.01),
                     _field("alimentacion", "Alimentación actual"),
                     _field("desarrollo_psicomotor", "Hitos del desarrollo psicomotor"),
                     _field("esquema_vacunacion", "Esquema de vacunación", "select", options=["Completo", "Incompleto", "No documentado"]),
                     _field("percentil_crecimiento", "Percentiles y patrón de crecimiento", "text", max_length=200),
-                    _field("entorno_escolar", "Desempeño y entorno escolar"),
-                    _field("responsable", "Nombre y relación del acompañante", "text", max_length=150),
                 ],
             },
         ],
@@ -81,11 +75,7 @@ SPECIALTY_SCHEMAS = {
                     ),
                     _field("gestaciones", "Gestaciones", "number", min=0, max=30, step=1),
                     _field("partos", "Partos", "number", min=0, max=30, step=1),
-                    _field("cesareas", "Cesáreas", "number", min=0, max=30, step=1),
                     _field("abortos", "Abortos", "number", min=0, max=30, step=1),
-                    _field("anticoncepcion", "Método anticonceptivo"),
-                    _field("citologia", "Última citología y resultado"),
-                    _field("antecedentes_ginecologicos", "Antecedentes ginecológicos relevantes"),
                 ],
             },
         ],
@@ -98,10 +88,7 @@ SPECIALTY_SCHEMAS = {
                 "fields": [
                     _field("dolor_toracico", "Características del dolor torácico"),
                     _field("disnea_clase", "Disnea / clase funcional", "select", options=["Sin disnea", "NYHA I", "NYHA II", "NYHA III", "NYHA IV"]),
-                    _field("palpitaciones", "Palpitaciones o síncope"),
                     _field("edema", "Edema", "select", options=YES_NO),
-                    _field("capacidad_funcional", "Capacidad funcional"),
-                    _field("riesgo_cardiovascular", "Factores de riesgo cardiovascular"),
                     _field("ecg", "Hallazgos de ECG"),
                     _field("fraccion_eyeccion", "Fracción de eyección (%)", "number", min=1, max=100, step=0.1),
                 ],
@@ -119,10 +106,7 @@ SPECIALTY_SCHEMAS = {
                     _field("mecanismo_lesion", "Mecanismo de lesión"),
                     _field("escala_dolor", "Dolor (0–10)", "number", min=0, max=10, step=1),
                     _field("rango_movimiento", "Rango de movimiento"),
-                    _field("estabilidad", "Estabilidad articular"),
                     _field("estado_neurovascular", "Estado neurovascular distal"),
-                    _field("marcha", "Marcha y apoyo"),
-                    _field("imagenes_ortopedicas", "Imágenes revisadas y hallazgos"),
                 ],
             },
         ],
@@ -135,12 +119,9 @@ SPECIALTY_SCHEMAS = {
                 "fields": [
                     _field("tipo_lesion", "Tipo de lesión primaria", "text", required=True, max_length=150),
                     _field("localizacion", "Localización y distribución"),
-                    _field("extension", "Extensión o superficie corporal afectada"),
                     _field("morfologia", "Morfología, color y bordes"),
                     _field("evolucion_lesion", "Evolución de la lesión"),
                     _field("sintomas_cutaneos", "Prurito, dolor u otros síntomas"),
-                    _field("exposiciones", "Exposiciones, productos o contactos"),
-                    _field("dermatoscopia", "Hallazgos de dermatoscopia"),
                 ],
             },
         ],
@@ -158,8 +139,6 @@ SPECIALTY_SCHEMAS = {
                     _field("presion_intraocular_oi", "Presión intraocular OI (mmHg)", "number", min=0, max=80, step=0.1),
                     _field("segmento_anterior", "Segmento anterior"),
                     _field("fondo_ojo", "Fondo de ojo"),
-                    _field("motilidad_pupilas", "Motilidad ocular y pupilas"),
-                    _field("refraccion", "Refracción"),
                 ],
             },
         ],
@@ -173,11 +152,8 @@ SPECIALTY_SCHEMAS = {
                     _field("area_afectada", "Área principal", "select", options=["Oído", "Nariz y senos", "Garganta y laringe", "Cuello", "Múltiple"]),
                     _field("lateralidad", "Lateralidad", "select", options=LATERALITY),
                     _field("otoscopia", "Otoscopia"),
-                    _field("audicion", "Audición, tinnitus o vértigo"),
                     _field("exploracion_nasal", "Exploración nasal y senos paranasales"),
                     _field("orofaringe", "Orofaringe y laringe"),
-                    _field("cuello", "Cuello y adenopatías"),
-                    _field("pruebas_orl", "Audiometría u otras pruebas"),
                 ],
             },
         ],
@@ -195,8 +171,6 @@ SPECIALTY_SCHEMAS = {
                     _field("reflejos", "Reflejos"),
                     _field("coordinacion", "Coordinación y marcha"),
                     _field("glasgow", "Escala de Glasgow", "number", min=3, max=15, step=1),
-                    _field("crisis", "Crisis, pérdida de conciencia o aura"),
-                    _field("cefalea", "Características de cefalea"),
                 ],
             },
         ],
@@ -207,16 +181,50 @@ SPECIALTY_SCHEMAS = {
             {
                 "title": "Examen mental y riesgo",
                 "fields": [
-                    _field("apariencia_conducta", "Apariencia y conducta"),
                     _field("estado_animo", "Estado de ánimo y afecto"),
                     _field("lenguaje_pensamiento", "Lenguaje y curso del pensamiento"),
-                    _field("percepcion", "Percepción"),
                     _field("cognicion", "Cognición, orientación y memoria"),
-                    _field("juicio_insight", "Juicio e introspección"),
                     _field("riesgo_suicida", "Riesgo suicida", "select", required=True, options=["No identificado", "Bajo", "Moderado", "Alto"]),
-                    _field("riesgo_violencia", "Riesgo de violencia", "select", options=["No identificado", "Bajo", "Moderado", "Alto"]),
                     _field("red_apoyo", "Red de apoyo y factores protectores"),
                     _field("consumo_sustancias", "Consumo de sustancias"),
+                ],
+            },
+        ],
+    },
+    "nutricion": {
+        "label": "Nutrición",
+        "sections": [
+            {
+                "title": "Evaluación nutricional",
+                "fields": [
+                    _field(
+                        "objetivo_nutricional",
+                        "Objetivo de la consulta",
+                        "text",
+                        required=True,
+                        max_length=200,
+                    ),
+                    _field(
+                        "recordatorio_24h",
+                        "Alimentación habitual / recordatorio de 24 horas",
+                    ),
+                    _field(
+                        "restricciones_alergias",
+                        "Restricciones o alergias alimentarias",
+                    ),
+                    _field("actividad_fisica", "Actividad física"),
+                    _field(
+                        "peso_meta",
+                        "Peso meta (kg)",
+                        "number",
+                        min=1,
+                        max=500,
+                        step=0.1,
+                    ),
+                    _field(
+                        "plan_alimentario",
+                        "Plan alimentario e indicaciones",
+                    ),
                 ],
             },
         ],
@@ -256,6 +264,8 @@ SPECIALTY_ALIASES = {
     "orl": "otorrinolaringologia",
     "neurologia": "neurologia",
     "psiquiatria": "psiquiatria",
+    "nutricion": "nutricion",
+    "nutriologia": "nutricion",
 }
 
 

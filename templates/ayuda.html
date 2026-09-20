@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Manual de usuario - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .ayuda-shell { max-width: 720px; margin: 0 auto; }
+    .ayuda-card {
+        padding: 2rem;
+        border: 1px solid var(--ars-shell-border);
+        border-radius: 16px;
+        background: var(--ars-shell-surface, #fff);
+    }
+    .ayuda-card h1 {
+        margin: 0 0 0.6rem;
+        color: var(--primary-dark);
+        font-size: 1.6rem;
+        font-weight: 800;
+    }
+</style>
+<div class="container py-5">
+    <div class="ayuda-shell">
+        <section class="ayuda-card">
+            <h1><i class="far fa-circle-question me-2"></i>Manual de usuario</h1>
+            <p class="text-muted mb-0">
+                El manual en línea se publicará aquí. Mientras tanto puedes seguir usando
+                el sistema con normalidad.
+            </p>
+            {% if soporte is defined and soporte.email %}
+            <p class="text-muted mt-3 mb-0">
+                Si necesitas asistencia, escribe a
+                <a href="mailto:{{ soporte.email }}">{{ soporte.email }}</a>.
+            </p>
+            {% endif %}
+        </section>
+    </div>
+</div>
+{% endblock %}

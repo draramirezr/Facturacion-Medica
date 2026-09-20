@@ -63,13 +63,102 @@ def facturacion_menu():
         return redirect(url_for('turnos_mi_cola'))
     return render_template('facturacion/menu.html')
 
+def _fecha_input_reclamacion(valor):
+    if hasattr(valor, 'strftime'):
+        return valor.strftime('%Y-%m-%d')
+    texto = str(valor or '').strip()
+    return texto[:10] if texto else ''
+
+
+def _validar_datos_reclamacion(tenant_id):
+    factura_id = validate_int(request.form.get('factura_id'), min_value=1, default=None)
+    fecha_reclamacion = sanitize_input(request.form.get('fecha_reclamacion', ''), max_length=10)
+    observaciones = sanitize_input(request.form.get('observaciones', ''), max_length=2000)
+    if not factura_id or not fecha_reclamacion:
+        return None, 'Factura, monto y fecha son obligatorios'
+    try:
+        datetime.strptime(fecha_reclamacion, '%Y-%m-%d')
+    except ValueError:
+        return None, 'Fecha de reclamación inválida'
+    factura = execute_query(
+        'SELECT id, total FROM facturas WHERE id = %s AND tenant_id = %s AND estado != %s',
+        (factura_id, tenant_id, 'Anulada'),
+    )
+    if not factura:
+        return None, 'Factura no encontrada'
+    try:
+        monto_reclamado = float(request.form.get('monto_reclamado') or 0)
+    except (TypeError, ValueError):
+        return None, 'Monto inválido'
+    if monto_reclamado <= 0:
+        return None, 'El monto debe ser mayor a cero'
+    return {
+        'factura_id': factura_id,
+        'monto_reclamado': monto_reclamado,
+        'fecha_reclamacion': fecha_reclamacion,
+        'observaciones': observaciones or None,
+    }, None
+
+
+def _contexto_formulario_reclamacion(tenant_id, factura_id=None, fecha_reclamacion=None):
+    ars_id = validate_int(request.args.get('ars_id'), min_value=1, default=None)
+    ncf = sanitize_input(request.args.get('ncf', ''), max_length=20)
+    ars_list = execute_query(
+        'SELECT id, nombre FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre',
+        (tenant_id,),
+        fetch='all',
+    ) or []
+    facturas_sql = '''
+        SELECT f.id, f.numero_factura, f.ncf, f.nombre_ars, f.total,
+               f.fecha_emision, f.estado
+        FROM facturas f
+        WHERE f.tenant_id = %s AND f.estado != 'Anulada'
+    '''
+    facturas_params = [tenant_id]
+    if ars_id:
+        facturas_sql += ' AND f.ars_id = %s'
+        facturas_params.append(ars_id)
+    if ncf:
+        facturas_sql += ' AND f.ncf LIKE %s'
+        facturas_params.append(f'%{ncf}%')
+    facturas_sql += ' ORDER BY f.fecha_emision DESC, f.numero_factura DESC LIMIT 100'
+    facturas_list = execute_query(
+        facturas_sql, tuple(facturas_params), fetch='all'
+    ) or []
+    if factura_id and not any(str(item['id']) == str(factura_id) for item in facturas_list):
+        actual = execute_query(
+            '''
+            SELECT f.id, f.numero_factura, f.ncf, f.nombre_ars, f.total,
+                   f.fecha_emision, f.estado
+            FROM facturas f
+            WHERE f.id = %s AND f.tenant_id = %s
+            ''',
+            (factura_id, tenant_id),
+        )
+        if actual:
+            facturas_list.insert(0, actual)
+    return {
+        'facturas_list': facturas_list,
+        'ars_list': ars_list,
+        'ars_id': ars_id,
+        'ncf': ncf,
+        'fecha_actual': (
+            _fecha_input_reclamacion(fecha_reclamacion)
+            or datetime.now().strftime('%Y-%m-%d')
+        ),
+        'form_data': request.form if request.method == 'POST' else {},
+    }
+
+
 @login_required
 @permission_required('facturacion.ver')
 def facturacion_reclamaciones():
     """Lista de reclamaciones - Filtrado por tenant"""
     tenant_id = get_current_tenant_id()
     query = '''
-        SELECT r.*, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total as total_factura
+        SELECT r.id, r.factura_id, r.monto_reclamado, r.fecha_reclamacion,
+               r.observaciones, r.estado,
+               f.numero_factura, f.ncf, f.nombre_ars, f.total AS total_factura
         FROM reclamaciones r
         JOIN facturas f
           ON r.factura_id = f.id AND f.tenant_id = r.tenant_id
@@ -93,49 +182,29 @@ def facturacion_reclamaciones_nueva():
     tenant_id = get_current_tenant_id()
     
     if request.method == 'POST':
-        factura_id = request.form.get('factura_id')
-        monto_reclamado = request.form.get('monto_reclamado')
-        fecha_reclamacion = request.form.get('fecha_reclamacion')
-        observaciones = request.form.get('observaciones', '').strip()
-        
-        if not all([factura_id, monto_reclamado, fecha_reclamacion]):
-            flash('Factura, monto y fecha son obligatorios', 'error')
-            return redirect(url_for('facturacion_reclamaciones_nueva'))
-        
-        # Verificar que la factura existe y pertenece al tenant
-        factura = execute_query('SELECT id, total FROM facturas WHERE id = %s AND tenant_id = %s', (factura_id, tenant_id))
-        if not factura:
-            flash('Factura no encontrada', 'error')
-            return redirect(url_for('facturacion_reclamaciones_nueva'))
-        
-        try:
-            monto_reclamado = float(monto_reclamado)
-            if monto_reclamado <= 0:
-                flash('El monto debe ser mayor a cero', 'error')
-                return redirect(url_for('facturacion_reclamaciones_nueva'))
-        except ValueError:
-            flash('Monto inválido', 'error')
-            return redirect(url_for('facturacion_reclamaciones_nueva'))
-        
+        datos, error = _validar_datos_reclamacion(tenant_id)
+        if error:
+            flash(error, 'error')
+            return render_template(
+                'facturacion/reclamacion_form.html',
+                reclamacion=None,
+                **_contexto_formulario_reclamacion(tenant_id),
+            )
         execute_update('''
             INSERT INTO reclamaciones (factura_id, monto_reclamado, fecha_reclamacion, observaciones, tenant_id, created_by, estado)
             VALUES (%s, %s, %s, %s, %s, %s, 'Pendiente')
-        ''', (factura_id, monto_reclamado, fecha_reclamacion, observaciones or None, tenant_id, current_user.id))
-        
+        ''', (
+            datos['factura_id'], datos['monto_reclamado'],
+            datos['fecha_reclamacion'], datos['observaciones'],
+            tenant_id, current_user.id,
+        ))
         flash('Reclamación creada exitosamente', 'success')
         return redirect(url_for('facturacion_reclamaciones'))
-    
-    # Obtener facturas disponibles para reclamar
-    facturas_list = execute_query('''
-        SELECT f.id, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total, f.fecha_emision, f.estado
-        FROM facturas f
-        WHERE f.tenant_id = %s AND f.estado != 'Anulada'
-        ORDER BY f.fecha_emision DESC, f.numero_factura DESC
-        LIMIT 100
-    ''', (tenant_id,), fetch='all') or []
-    
-    fecha_actual = datetime.now().strftime('%Y-%m-%d')
-    return render_template('facturacion/reclamacion_form.html', facturas_list=facturas_list, fecha_actual=fecha_actual)
+    return render_template(
+        'facturacion/reclamacion_form.html',
+        reclamacion=None,
+        **_contexto_formulario_reclamacion(tenant_id),
+    )
 
 @login_required
 @permission_required('facturacion.ver')
@@ -156,6 +225,59 @@ def facturacion_reclamacion_detalle(reclamacion_id):
     return render_template(
         'facturacion/reclamacion_detalle.html',
         reclamacion=reclamacion,
+    )
+
+
+@login_required
+@permission_required('facturacion.editar')
+def facturacion_reclamacion_editar(reclamacion_id):
+    """Editar una reclamación de la empresa activa."""
+    tenant_id = get_current_tenant_id()
+    reclamacion = execute_query(
+        'SELECT * FROM reclamaciones WHERE id = %s AND tenant_id = %s',
+        (reclamacion_id, tenant_id),
+    )
+    if not reclamacion:
+        flash('Reclamación no encontrada', 'error')
+        return redirect(url_for('facturacion_reclamaciones'))
+    if request.method == 'POST':
+        datos, error = _validar_datos_reclamacion(tenant_id)
+        if error:
+            flash(error, 'error')
+            return render_template(
+                'facturacion/reclamacion_form.html',
+                reclamacion=reclamacion,
+                **_contexto_formulario_reclamacion(
+                    tenant_id,
+                    reclamacion.get('factura_id'),
+                    reclamacion.get('fecha_reclamacion'),
+                ),
+            )
+        execute_update('''
+            UPDATE reclamaciones
+            SET factura_id = %s,
+                monto_reclamado = %s,
+                fecha_reclamacion = %s,
+                observaciones = %s
+            WHERE id = %s AND tenant_id = %s
+        ''', (
+            datos['factura_id'], datos['monto_reclamado'],
+            datos['fecha_reclamacion'], datos['observaciones'],
+            reclamacion_id, tenant_id,
+        ))
+        flash('Reclamación actualizada', 'success')
+        return redirect(url_for(
+            'facturacion_reclamacion_detalle',
+            reclamacion_id=reclamacion_id,
+        ))
+    return render_template(
+        'facturacion/reclamacion_form.html',
+        reclamacion=reclamacion,
+        **_contexto_formulario_reclamacion(
+            tenant_id,
+            reclamacion.get('factura_id'),
+            reclamacion.get('fecha_reclamacion'),
+        ),
     )
 
 @login_required
@@ -208,6 +330,255 @@ def facturacion_reclamacion_cambiar_estado(reclamacion_id):
         'facturacion_reclamacion_detalle',
         reclamacion_id=reclamacion_id,
     ))
+
+def _fecha_input_pago(valor):
+    if hasattr(valor, 'strftime'):
+        return valor.strftime('%Y-%m-%d')
+    texto = str(valor or '').strip()
+    return texto[:10] if texto else ''
+
+
+def _lineas_de_pago(tenant_id, pago):
+    lineas = execute_query('''
+        SELECT pf.factura_id, pf.monto_aplicado,
+               f.numero_factura, f.total, f.nombre_ars
+        FROM pago_facturas pf
+        JOIN facturas f
+          ON f.id = pf.factura_id AND f.tenant_id = pf.tenant_id
+        WHERE pf.pago_id = %s AND pf.tenant_id = %s
+        ORDER BY f.numero_factura
+    ''', (pago['id'], tenant_id), fetch='all') or []
+    if lineas:
+        return lineas
+    factura_id = pago.get('factura_id')
+    if not factura_id:
+        return []
+    factura = execute_query(
+        '''
+        SELECT id, numero_factura, total, nombre_ars
+        FROM facturas
+        WHERE id = %s AND tenant_id = %s
+        ''',
+        (factura_id, tenant_id),
+    )
+    if not factura:
+        return []
+    return [{
+        'factura_id': factura['id'],
+        'monto_aplicado': pago.get('monto_total') or pago.get('monto') or 0,
+        'numero_factura': factura['numero_factura'],
+        'total': factura['total'],
+        'nombre_ars': factura.get('nombre_ars'),
+    }]
+
+
+FACTURAS_ANTIGUAS_PAGO = 5
+
+
+def _ars_del_pago(tenant_id, pago_id):
+    if not pago_id:
+        return None
+    fila = execute_query(
+        '''
+        SELECT f.ars_id
+        FROM pago_facturas pf
+        JOIN facturas f
+          ON f.id = pf.factura_id AND f.tenant_id = pf.tenant_id
+        WHERE pf.pago_id = %s AND pf.tenant_id = %s AND f.ars_id IS NOT NULL
+        LIMIT 1
+        ''',
+        (pago_id, tenant_id),
+    )
+    return fila.get('ars_id') if fila else None
+
+
+def _consultar_facturas_pago(tenant_id, pago_id, extra_where='', extra_params=(), orden='', limite=20):
+    pago_id = pago_id or 0
+    saldo = '''
+        COALESCE(
+            SUM(CASE WHEN pf.pago_id <> %s THEN pf.monto_aplicado ELSE 0 END),
+            0
+        )
+    '''
+    return execute_query(
+        f'''
+        SELECT f.id, f.numero_factura, f.nombre_ars, f.ars_id, f.total,
+               f.fecha_emision, f.estado, {saldo} AS monto_pagado
+        FROM facturas f
+        LEFT JOIN pago_facturas pf
+          ON f.id = pf.factura_id AND pf.tenant_id = f.tenant_id
+        WHERE f.tenant_id = %s AND f.estado != 'Anulada'
+          {extra_where}
+        GROUP BY f.id
+        HAVING (f.total - {saldo}) > 0
+            OR EXISTS (
+                SELECT 1 FROM pago_facturas actual
+                WHERE actual.factura_id = f.id
+                  AND actual.pago_id = %s
+                  AND actual.tenant_id = f.tenant_id
+            )
+        ORDER BY {orden}
+        LIMIT %s
+        ''',
+        (pago_id, tenant_id, *extra_params, pago_id, pago_id, limite),
+        fetch='all',
+    ) or []
+
+
+def _agregar_facturas_unicas(destino, filas):
+    vistos = {int(item['id']) for item in destino}
+    for fila in filas or []:
+        factura_id = int(fila['id'])
+        if factura_id not in vistos:
+            destino.append(fila)
+            vistos.add(factura_id)
+    return destino
+
+
+def _facturas_disponibles_pago(tenant_id, pago_id=None, ars_id=None, numero_factura=''):
+    pago_id = pago_id or 0
+    numero = sanitize_input(numero_factura or '', max_length=40).strip()
+    facturas = []
+    if pago_id:
+        _agregar_facturas_unicas(
+            facturas,
+            _consultar_facturas_pago(
+                tenant_id,
+                pago_id,
+                extra_where='''
+                  AND EXISTS (
+                      SELECT 1 FROM pago_facturas actual
+                      WHERE actual.factura_id = f.id
+                        AND actual.pago_id = %s
+                        AND actual.tenant_id = f.tenant_id
+                  )
+                ''',
+                extra_params=(pago_id,),
+                orden='f.fecha_emision ASC, f.id ASC',
+                limite=50,
+            ),
+        )
+    if numero:
+        extra = 'AND (f.numero_factura LIKE %s OR IFNULL(f.ncf, \'\') LIKE %s)'
+        params = [f'%{numero}%', f'%{numero}%']
+        if ars_id:
+            extra += ' AND f.ars_id = %s'
+            params.append(ars_id)
+        _agregar_facturas_unicas(
+            facturas,
+            _consultar_facturas_pago(
+                tenant_id,
+                pago_id,
+                extra_where=extra,
+                extra_params=tuple(params),
+                orden='f.fecha_emision ASC, f.id ASC',
+                limite=10,
+            ),
+        )
+    if ars_id:
+        _agregar_facturas_unicas(
+            facturas,
+            _consultar_facturas_pago(
+                tenant_id,
+                pago_id,
+                extra_where='AND f.ars_id = %s',
+                extra_params=(ars_id,),
+                orden='f.fecha_emision ASC, f.id ASC',
+                limite=FACTURAS_ANTIGUAS_PAGO,
+            ),
+        )
+    return facturas
+
+
+def _contexto_formulario_pago(tenant_id, pago=None):
+    pago_id = pago['id'] if pago else None
+    ars_id = validate_int(request.args.get('ars_id'), min_value=1, default=None)
+    numero = sanitize_input(request.args.get('numero', ''), max_length=40)
+    if not ars_id and pago_id:
+        ars_id = _ars_del_pago(tenant_id, pago_id)
+    ars_list = execute_query(
+        '''
+        SELECT id, nombre FROM ars
+        WHERE activo = 1 AND tenant_id = %s
+        ORDER BY nombre
+        ''',
+        (tenant_id,),
+        fetch='all',
+    ) or []
+    facturas_list = _facturas_disponibles_pago(
+        tenant_id,
+        pago_id=pago_id,
+        ars_id=ars_id,
+        numero_factura=numero,
+    )
+    lineas = {}
+    if pago:
+        for linea in _lineas_de_pago(tenant_id, pago):
+            lineas[str(linea['factura_id'])] = linea['monto_aplicado']
+    return {
+        'pago': pago,
+        'ars_list': ars_list,
+        'ars_id': ars_id,
+        'numero_factura': numero,
+        'facturas_list': facturas_list,
+        'lineas_por_factura': lineas,
+        'fecha_actual': (
+            _fecha_input_pago(pago.get('fecha_pago')) if pago
+            else datetime.now().strftime('%Y-%m-%d')
+        ),
+    }
+
+
+def _validar_lineas_pago(facturas_ids, montos):
+    facturas_data = []
+    facturas_vistas = set()
+    for indice, factura_id in enumerate(facturas_ids):
+        if indice >= len(montos) or not montos[indice]:
+            continue
+        try:
+            factura_id_int = int(factura_id)
+            monto = Decimal(str(montos[indice])).quantize(Decimal('0.01'))
+        except (InvalidOperation, TypeError, ValueError):
+            return None, 'Uno de los montos no es válido'
+        if factura_id_int > 0 and monto > 0 and factura_id_int not in facturas_vistas:
+            facturas_vistas.add(factura_id_int)
+            facturas_data.append((factura_id_int, monto))
+    if not facturas_data:
+        return None, 'Debe seleccionar al menos una factura con monto mayor a cero'
+    return facturas_data, None
+
+
+def _recalcular_estado_facturas(tenant_id, factura_ids):
+    for factura_id in set(factura_ids):
+        factura = execute_query(
+            '''
+            SELECT total, estado FROM facturas
+            WHERE id = %s AND tenant_id = %s
+            ''',
+            (factura_id, tenant_id),
+        )
+        if not factura or factura.get('estado') == 'Anulada':
+            continue
+        pagado = execute_query(
+            '''
+            SELECT COALESCE(SUM(monto_aplicado), 0) AS pagado
+            FROM pago_facturas
+            WHERE factura_id = %s AND tenant_id = %s
+            ''',
+            (factura_id, tenant_id),
+        ) or {}
+        total = Decimal(str(factura['total'] or 0))
+        aplicado = Decimal(str(pagado.get('pagado') or 0))
+        estado = 'Pagada' if aplicado >= total and total > 0 else 'Pendiente'
+        execute_update(
+            '''
+            UPDATE facturas
+            SET estado = %s
+            WHERE id = %s AND tenant_id = %s AND estado != 'Anulada'
+            ''',
+            (estado, factura_id, tenant_id),
+        )
+
 
 @login_required
 @permission_required('facturacion.ver')
@@ -262,32 +633,10 @@ def facturacion_pagos_nuevo():
         if not all([fecha_pago, metodo_pago]):
             flash('Fecha y método de pago son obligatorios', 'error')
             return redirect(url_for('facturacion_pagos_nuevo'))
-        
-        if not facturas_ids or not montos:
-            flash('Debe seleccionar al menos una factura', 'error')
-            return redirect(url_for('facturacion_pagos_nuevo'))
-        
-        # Validar identificadores y montos antes de bloquear las facturas.
-        facturas_data = []
-        facturas_vistas = set()
-        for i, factura_id in enumerate(facturas_ids):
-            if i < len(montos) and montos[i]:
-                try:
-                    factura_id_int = int(factura_id)
-                    monto = Decimal(str(montos[i])).quantize(Decimal('0.01'))
-                    if (
-                        factura_id_int > 0
-                        and monto > 0
-                        and factura_id_int not in facturas_vistas
-                    ):
-                        facturas_vistas.add(factura_id_int)
-                        facturas_data.append((factura_id_int, monto))
-                except (InvalidOperation, TypeError, ValueError):
-                    flash('Uno de los montos no es válido', 'error')
-                    return redirect(url_for('facturacion_pagos_nuevo'))
 
-        if not facturas_data:
-            flash('El monto total debe ser mayor a cero', 'error')
+        facturas_data, error_lineas = _validar_lineas_pago(facturas_ids, montos)
+        if error_lineas:
+            flash(error_lineas, 'error')
             return redirect(url_for('facturacion_pagos_nuevo'))
 
         # Generar número de pago
@@ -384,48 +733,163 @@ def facturacion_pagos_nuevo():
         flash('Pago registrado exitosamente', 'success')
         return redirect(url_for('facturacion_pagos'))
     
-    # Obtener facturas disponibles para pagar
-    facturas_list = execute_query('''
-        SELECT f.id, f.numero_factura, f.nombre_paciente, f.nombre_ars, f.total, f.fecha_emision, f.estado,
-               COALESCE(SUM(pf.monto_aplicado), 0) as monto_pagado
-        FROM facturas f
-        LEFT JOIN pago_facturas pf
-          ON f.id = pf.factura_id AND pf.tenant_id = f.tenant_id
-        WHERE f.tenant_id = %s AND f.estado != 'Anulada'
-        GROUP BY f.id
-        HAVING (f.total - COALESCE(SUM(pf.monto_aplicado), 0)) > 0
-        ORDER BY f.fecha_emision DESC, f.numero_factura DESC
-        LIMIT 100
-    ''', (tenant_id,), fetch='all') or []
-    
-    fecha_actual = datetime.now().strftime('%Y-%m-%d')
-    return render_template('facturacion/pago_form.html', facturas_list=facturas_list, fecha_actual=fecha_actual)
+    return render_template(
+        'facturacion/pago_form.html',
+        **_contexto_formulario_pago(tenant_id),
+    )
+
+
+@login_required
+@permission_required('facturacion.ver')
+def facturacion_pago_detalle(pago_id):
+    """Mostrar un pago de la empresa activa."""
+    tenant_id = get_current_tenant_id()
+    pago = execute_query(
+        '''
+        SELECT p.*,
+               CONCAT('PAGO-', LPAD(p.id, 6, '0')) AS numero_pago_visible
+        FROM pagos p
+        WHERE p.id = %s AND p.tenant_id = %s
+        ''',
+        (pago_id, tenant_id),
+    )
+    if not pago:
+        flash('Pago no encontrado', 'error')
+        return redirect(url_for('facturacion_pagos'))
+    lineas = _lineas_de_pago(tenant_id, pago)
+    monto_total = sum(
+        Decimal(str(linea.get('monto_aplicado') or 0)) for linea in lineas
+    ) or Decimal(str(pago.get('monto_total') or pago.get('monto') or 0))
+    return render_template(
+        'facturacion/pago_detalle.html',
+        pago=pago,
+        lineas=lineas,
+        monto_total=monto_total,
+    )
+
+
+@login_required
+@permission_required('facturacion.editar')
+def facturacion_pago_editar(pago_id):
+    """Editar un pago de la empresa activa."""
+    tenant_id = get_current_tenant_id()
+    pago = execute_query(
+        'SELECT * FROM pagos WHERE id = %s AND tenant_id = %s',
+        (pago_id, tenant_id),
+    )
+    if not pago:
+        flash('Pago no encontrado', 'error')
+        return redirect(url_for('facturacion_pagos'))
+
+    if request.method == 'POST':
+        fecha_pago = request.form.get('fecha_pago')
+        metodo_pago = request.form.get('metodo_pago')
+        referencia = sanitize_input(request.form.get('referencia', ''), max_length=100)
+        observaciones = sanitize_input(request.form.get('observaciones', ''), max_length=2000)
+        facturas_ids = request.form.getlist('facturas_ids[]')
+        montos = request.form.getlist('montos[]')
+        if not all([fecha_pago, metodo_pago]):
+            flash('Fecha y método de pago son obligatorios', 'error')
+            return redirect(url_for('facturacion_pago_editar', pago_id=pago_id))
+        facturas_data, error_lineas = _validar_lineas_pago(facturas_ids, montos)
+        if error_lineas:
+            flash(error_lineas, 'error')
+            return redirect(url_for('facturacion_pago_editar', pago_id=pago_id))
+        try:
+            with database_transaction():
+                lineas_anteriores = _lineas_de_pago(tenant_id, pago)
+                ids_anteriores = [
+                    int(linea['factura_id']) for linea in lineas_anteriores
+                ]
+                execute_update(
+                    '''
+                    DELETE FROM pago_facturas
+                    WHERE pago_id = %s AND tenant_id = %s
+                    ''',
+                    (pago_id, tenant_id),
+                )
+                ids = [factura_id for factura_id, _monto in facturas_data]
+                placeholders = ','.join(['%s'] * len(ids))
+                facturas_bloqueadas = execute_query(f'''
+                    SELECT id, total
+                    FROM facturas
+                    WHERE tenant_id = %s AND id IN ({placeholders})
+                      AND estado != 'Anulada'
+                    FOR UPDATE
+                ''', (tenant_id, *ids), fetch='all') or []
+                facturas_por_id = {
+                    int(factura['id']): factura for factura in facturas_bloqueadas
+                }
+                if len(facturas_por_id) != len(ids):
+                    raise ValueError(
+                        'Una factura no existe, fue anulada o pertenece a otra empresa'
+                    )
+                pagos_previos = execute_query(f'''
+                    SELECT pf.factura_id,
+                           COALESCE(SUM(pf.monto_aplicado), 0) AS pagado
+                    FROM pago_facturas pf
+                    JOIN facturas f
+                      ON f.id = pf.factura_id
+                     AND f.tenant_id = pf.tenant_id
+                    WHERE pf.tenant_id = %s
+                      AND pf.factura_id IN ({placeholders})
+                      AND pf.pago_id <> %s
+                    GROUP BY pf.factura_id
+                ''', (tenant_id, *ids, pago_id), fetch='all') or []
+                pagado_por_factura = {
+                    int(item['factura_id']): Decimal(str(item['pagado'] or 0))
+                    for item in pagos_previos
+                }
+                monto_total = Decimal('0.00')
+                for factura_id, monto in facturas_data:
+                    total_factura = Decimal(str(facturas_por_id[factura_id]['total']))
+                    pagado = pagado_por_factura.get(factura_id, Decimal('0.00'))
+                    if monto > total_factura - pagado:
+                        raise ValueError(
+                            f'El pago supera el saldo de la factura {factura_id}'
+                        )
+                    monto_total += monto
+                execute_update('''
+                    UPDATE pagos
+                    SET monto_total = %s,
+                        fecha_pago = %s,
+                        metodo_pago = %s,
+                        referencia = %s,
+                        observaciones = %s
+                    WHERE id = %s AND tenant_id = %s
+                ''', (
+                    monto_total, fecha_pago, metodo_pago,
+                    referencia or None, observaciones or None,
+                    pago_id, tenant_id,
+                ))
+                for factura_id, monto in facturas_data:
+                    execute_update('''
+                        INSERT INTO pago_facturas
+                        (pago_id, factura_id, monto_aplicado, tenant_id)
+                        VALUES (%s, %s, %s, %s)
+                    ''', (pago_id, factura_id, monto, tenant_id))
+                _recalcular_estado_facturas(tenant_id, ids_anteriores + ids)
+        except ValueError as error:
+            flash(str(error), 'error')
+            return redirect(url_for('facturacion_pago_editar', pago_id=pago_id))
+        except Exception:
+            logger.error('Error al actualizar pago', exc_info=True)
+            flash('No se pudo actualizar el pago. No se aplicó ningún cambio.', 'error')
+            return redirect(url_for('facturacion_pago_editar', pago_id=pago_id))
+        flash('Pago actualizado', 'success')
+        return redirect(url_for('facturacion_pago_detalle', pago_id=pago_id))
+
+    return render_template(
+        'facturacion/pago_form.html',
+        **_contexto_formulario_pago(tenant_id, pago),
+    )
 
 @login_required
 @permission_required('facturacion.ver')
 def facturacion_historico():
-    """Histórico de facturas - Filtrado por tenant"""
-    tenant_id = get_current_tenant_id()
-    query = '''
-        SELECT f.*, f.fecha_emision as fecha_factura
-        FROM facturas f
-        WHERE f.tenant_id = %s
-    '''
-    facturas, pagination = execute_paginated_query(
-        query,
-        (tenant_id,),
-        'f.id DESC',
-        default_per_page=50,
-    )
-    return render_template(
-        'facturacion/historico.html',
-        facturas=facturas,
-        page=pagination['page'],
-        per_page=pagination['per_page'],
-        total_pages=pagination['total_pages'],
-        total_facturas=pagination['total'],
-        pagination=pagination,
-    )
+    """Histórico de facturación y actividad clínica."""
+    from routes.reports import renderizar_historico
+    return renderizar_historico()
 
 @login_required
 @permission_required('facturacion.ver')
@@ -3914,9 +4378,12 @@ def register_billing_routes(app):
     app.add_url_rule('/facturacion/reclamaciones', endpoint='facturacion_reclamaciones', view_func=facturacion_reclamaciones)
     app.add_url_rule('/facturacion/reclamaciones/nueva', endpoint='facturacion_reclamaciones_nueva', view_func=facturacion_reclamaciones_nueva, methods=['GET', 'POST'])
     app.add_url_rule('/facturacion/reclamaciones/<int:reclamacion_id>', endpoint='facturacion_reclamacion_detalle', view_func=facturacion_reclamacion_detalle)
+    app.add_url_rule('/facturacion/reclamaciones/<int:reclamacion_id>/editar', endpoint='facturacion_reclamacion_editar', view_func=facturacion_reclamacion_editar, methods=['GET', 'POST'])
     app.add_url_rule('/facturacion/reclamaciones/<int:reclamacion_id>/estado', endpoint='facturacion_reclamacion_cambiar_estado', view_func=facturacion_reclamacion_cambiar_estado, methods=['POST'])
     app.add_url_rule('/facturacion/pagos', endpoint='facturacion_pagos', view_func=facturacion_pagos)
     app.add_url_rule('/facturacion/pagos/nuevo', endpoint='facturacion_pagos_nuevo', view_func=facturacion_pagos_nuevo, methods=['GET', 'POST'])
+    app.add_url_rule('/facturacion/pagos/<int:pago_id>', endpoint='facturacion_pago_detalle', view_func=facturacion_pago_detalle)
+    app.add_url_rule('/facturacion/pagos/<int:pago_id>/editar', endpoint='facturacion_pago_editar', view_func=facturacion_pago_editar, methods=['GET', 'POST'])
     app.add_url_rule('/facturacion/historico', endpoint='facturacion_historico', view_func=facturacion_historico)
     app.add_url_rule('/facturacion/facturas/<int:factura_id>/ver', endpoint='facturacion_ver_factura', view_func=facturacion_ver_factura)
     app.add_url_rule('/facturacion/facturas/<int:factura_id>/ecf/xml', endpoint='facturacion_ver_xml_ecf', view_func=facturacion_ver_xml_ecf)

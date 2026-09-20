@@ -10,7 +10,7 @@
         max-width: 800px;
         margin: 50px auto;
         padding: 40px;
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border-radius: 15px;
         box-shadow: 0 4px 20px rgba(0,0,0,0.1);
     }
@@ -180,7 +180,7 @@
     .btn-secondary {
         flex: 1;
         justify-content: center;
-        background: white !important;
+        background:var(--ars-shell-surface, #fff) !important;
         border: 2px solid {{ tema.primary }} !important;
         color: {{ tema.primary_dark }} !important;
     }
@@ -227,7 +227,7 @@
         color: {{ tema.primary_dark }};
         margin: 10px 0;
         padding: 10px;
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border-radius: 5px;
         border: 2px dashed {{ tema.primary }};
     }

@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Pacientes Pendientes - Facturación{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -13,7 +13,7 @@
     }
     
     .tabla-pendientes {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border-radius: 15px;
         box-shadow: 0 4px 20px rgba(6, 182, 212, 0.15);
         overflow: hidden;
@@ -90,30 +90,23 @@
         font-size: 0.75rem;
     }
     
-    .btn-accion-editar,
-    .btn-accion-eliminar {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        padding: 0 !important;
-        border-radius: 4px !important;
-        text-decoration: none !important;
-        margin: 0 !important;
-        transition: all 0.2s ease !important;
-        width: 28px !important;
-        height: 28px !important;
-        min-width: 28px !important;
-        min-height: 28px !important;
-        max-width: 28px !important;
-        max-height: 28px !important;
-        box-sizing: border-box !important;
-        flex-shrink: 0 !important;
+    .btn-accion-ver {
+        color: var(--primary-dark) !important;
+        border-color: color-mix(in srgb, var(--primary-color) 45%, var(--ars-shell-border, #d3d3d3)) !important;
+        background: color-mix(in srgb, var(--primary-color) 16%, var(--ars-shell-surface, #fff)) !important;
     }
-    
+
+    .btn-accion-ver:hover {
+        background: var(--primary-color) !important;
+        border-color: var(--primary-color) !important;
+        color: #fff !important;
+        transform: translateY(-1px) !important;
+    }
+
     .btn-accion-editar {
         color: var(--primary-color) !important;
-        border: 1px solid #D3D3D3 !important;
-        background: white !important;
+        border-color: #D3D3D3 !important;
+        background: var(--ars-shell-surface, #fff) !important;
     }
     
     .btn-accion-editar:hover {
@@ -122,81 +115,20 @@
         transform: translateY(-1px) !important;
     }
     
-    .btn-accion-editar i {
-        font-size: 0.65rem !important;
-        line-height: 1 !important;
-    }
-    
     .btn-accion-eliminar {
         color: white !important;
-        border: none !important;
+        border-color: var(--primary-color) !important;
         background: var(--primary-color) !important;
-        min-width: 28px !important;
-        max-width: 28px !important;
-        width: 28px !important;
-        height: 28px !important;
-        min-height: 28px !important;
-        max-height: 28px !important;
-        padding: 0 !important;
-        margin: 0 !important;
     }
     
     .btn-accion-eliminar:hover {
         background: var(--primary-dark) !important;
+        border-color: var(--primary-dark) !important;
         transform: translateY(-1px) !important;
     }
     
     .btn-accion-eliminar i {
-        font-size: 0.65rem !important;
-        line-height: 1 !important;
         color: white !important;
-    }
-    
-    form .btn-accion-eliminar,
-    .btn-accion-eliminar[type="submit"],
-    button.btn-accion-eliminar {
-        width: 28px !important;
-        height: 28px !important;
-        min-width: 28px !important;
-        min-height: 28px !important;
-        max-width: 28px !important;
-        max-height: 28px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        border: none !important;
-        background: var(--primary-color) !important;
-        color: white !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        cursor: pointer !important;
-        border-radius: 4px !important;
-        font-size: inherit !important;
-        box-sizing: border-box !important;
-    }
-    
-    form .btn-accion-eliminar:hover,
-    .btn-accion-eliminar[type="submit"]:hover,
-    button.btn-accion-eliminar:hover {
-        background: var(--primary-dark) !important;
-        color: white !important;
-        transform: translateY(-1px) !important;
-    }
-    
-    form .btn-accion-eliminar i,
-    .btn-accion-eliminar[type="submit"] i,
-    button.btn-accion-eliminar i {
-        color: white !important;
-        font-size: 0.65rem !important;
-        line-height: 1 !important;
-    }
-    
-    .btn-accion-eliminar form {
-        display: inline-block !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        width: 28px !important;
-        height: 28px !important;
     }
     
     .btn-action {
@@ -212,7 +144,7 @@
     /* Esto garantiza que todos los botones tengan el mismo tamaño */
     
     .btn-generar {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border: 2px solid {{ tema.primary_dark }};
         color: {{ tema.primary_dark }};
         padding: 0.7rem 1.5rem;
@@ -229,7 +161,7 @@
     }
     
     .btn-pdf {
-        background: white;
+        background:var(--ars-shell-surface, #fff);
         border: 2px solid {{ tema.primary }};
         color: {{ tema.primary }};
         padding: 0.7rem 1.5rem;
@@ -247,7 +179,7 @@
 
     /* Utilidades locales migradas desde atributos style para CSP. */
     .csp-u-001 { color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem; }
-    .csp-u-002 { background: white; border-radius: 15px; box-shadow: 0 4px 20px rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.2); }
+    .csp-u-002 { background:var(--ars-shell-surface, #fff); border-radius: 15px; box-shadow: 0 4px 20px rgba(6, 182, 212, 0.15); border: 1px solid rgba(6, 182, 212, 0.2); }
     .csp-u-003 { color: var(--primary-color); font-weight: 700; margin-bottom: 1rem; }
     .csp-u-004 { font-weight: 600; color: #666; }
     .csp-u-005 { color: var(--primary-color); }
@@ -264,18 +196,38 @@
     .csp-u-016 { width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
     .csp-u-017 { width: 13%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important; }
     .csp-u-018 { gap: 4px; flex-wrap: nowrap; }
-    .csp-u-019 { display: inline-block; margin: 0; padding: 0; width: 28px; height: 28px; }
-    .csp-u-020 { width: 28px !important; height: 28px !important; min-width: 28px !important; min-height: 28px !important; max-width: 28px !important; max-height: 28px !important; padding: 0 !important; margin: 0 !important; border: none !important; background: var(--primary-color) !important; color: white !important; display: flex !important; align-items: center !important; justify-content: center !important; cursor: pointer !important; border-radius: 4px !important; box-sizing: border-box !important; }
-    .csp-u-021 { font-size: 0.65rem !important; color: white !important; line-height: 1 !important; }
+    .csp-u-019 { display: inline-flex; margin: 0; padding: 0; width: 32px; height: 32px; }
+    .csp-u-020 { background: var(--primary-color) !important; color: white !important; cursor: pointer !important; }
+    .csp-u-021 { color: white !important; }
     .csp-u-022 { padding: 3rem; }
     .csp-u-023 { font-size: 3rem; color: #ccc; margin-bottom: 1rem; }
     .csp-u-024 { color: #999; margin: 0; }
     .csp-u-025 { color: #999; font-size: 0.9rem; }
-    .csp-u-026 { background: white; border-bottom: 1px solid #dee2e6; }
+    .csp-u-026 { background:var(--ars-shell-surface, #fff); border-bottom: 1px solid #dee2e6; }
     .csp-u-027 { color: black; font-weight: 600; }
     .csp-u-028 { color: black; }
     .csp-u-029 { color: black; opacity: 1; }
     .csp-u-030 { background-color: #e9ecef; }
+    .pendiente-detalle {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.85rem 1.2rem;
+    }
+    .pendiente-detalle dt {
+        margin: 0 0 0.2rem;
+        color: var(--ars-shell-muted, #666);
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+    }
+    .pendiente-detalle dd {
+        margin: 0;
+        color: var(--ars-shell-text, #172033);
+        font-weight: 600;
+    }
+    .pendiente-detalle__full { grid-column: 1 / -1; }
+    @media (max-width: 700px) { .pendiente-detalle { grid-template-columns: 1fr; } }
 </style>
 
 <div class="container py-5">
@@ -368,7 +320,6 @@
                     <th class="csp-u-013">NSS</th>
                     <th class="csp-u-014">Nombre</th>
                     <th class="csp-u-015">Fecha de Consulta</th>
-                    <th class="text-center csp-u-016">Monto</th>
                     <th class="csp-u-017">Médico</th>
                     <th class="csp-u-015">ARS</th>
                     <th class="text-center csp-u-016">Estado</th>
@@ -377,13 +328,11 @@
             </thead>
             <tbody>
                 {% for paciente in pendientes %}
-                {% set monto_paciente = paciente.get('monto') or paciente.get('monto_estimado', 0) %}
                 <tr>
                     <td><strong>{{ paciente['id'] }}</strong></td>
                     <td>{{ paciente['nss'] }}</td>
                     <td>{{ paciente['nombre_paciente'] }}</td>
                     <td>{{ paciente['fecha_servicio'] }}</td>
-                    <td class="text-center"><strong> {{ monto_paciente|formato_moneda }}</strong></td>
                     <td><small>{{ paciente['medico_nombre'] }}</small></td>
                     <td><small>{{ paciente.get('nombre_ars') or paciente.get('ars_nombre', 'N/A') }}</small></td>
                     <td class="text-center">
@@ -398,9 +347,16 @@
                         {% endif %}
                     </td>
                     <td class="text-center">
-                        <div class="d-flex flex-column justify-content-center align-items-center csp-u-018">
+                        <div class="d-flex flex-row justify-content-center align-items-center csp-u-018">
+                            <button type="button"
+                                    class="btn-accion-icono btn-accion-ver"
+                                    title="Ver"
+                                    data-csp-click="abrirModalVer"
+                                    data-csp-args='[{{ paciente["id"] }}]'>
+                                <i class="fas fa-eye"></i>
+                            </button>
                             <button type="button" 
-                                    class="btn-accion-editar" 
+                                    class="btn-accion-icono btn-accion-editar" 
                                     title="Modificar"
                                     data-csp-click="abrirModalEditar"
                                     data-csp-args='[{{ paciente["id"] }}]'>
@@ -408,7 +364,7 @@
                             </button>
                             <form method="POST" action="{{ url_for('facturacion_pacientes_pendientes_eliminar', paciente_id=paciente['id']) }}"
                                   data-confirm-submit="¿Está seguro de eliminar este registro?" class="csp-u-019">
-                                <button type="submit" class="btn-accion-eliminar csp-u-020" title="Eliminar">
+                                <button type="submit" class="btn-accion-icono btn-accion-eliminar csp-u-020" title="Eliminar">
                                     <i class="fas fa-trash csp-u-021"></i>
                                 </button>
                             </form>
@@ -417,7 +373,7 @@
                 </tr>
                 {% else %}
                 <tr>
-                    <td colspan="10" class="text-center csp-u-022">
+                    <td colspan="8" class="text-center csp-u-022">
                         <i class="fas fa-inbox csp-u-023"></i>
                         <p class="csp-u-024">No hay pacientes pendientes</p>
                         <p class="csp-u-025">Click en "Agregar Pacientes" para empezar</p>
@@ -429,6 +385,38 @@
         </div>
     </div>
     {% include "_pagination.html" %}
+</div>
+
+<!-- Modal para Ver Paciente Pendiente -->
+<div class="modal fade" id="modalVerPaciente" tabindex="-1" aria-labelledby="modalVerPacienteLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header csp-u-026">
+                <h5 class="modal-title csp-u-027" id="modalVerPacienteLabel">
+                    <i class="fas fa-eye me-2 csp-u-028"></i>Detalle del registro
+                </h5>
+                <button type="button" class="btn-close csp-u-029" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <dl class="pendiente-detalle">
+                    <div><dt>ID</dt><dd id="ver_id">—</dd></div>
+                    <div><dt>Estado</dt><dd id="ver_estado">—</dd></div>
+                    <div><dt>NSS</dt><dd id="ver_nss">—</dd></div>
+                    <div><dt>Paciente</dt><dd id="ver_nombre">—</dd></div>
+                    <div><dt>Fecha de consulta</dt><dd id="ver_fecha">—</dd></div>
+                    <div><dt>Monto</dt><dd id="ver_monto">—</dd></div>
+                    <div class="pendiente-detalle__full"><dt>Servicio</dt><dd id="ver_servicio">—</dd></div>
+                    <div><dt>Autorización</dt><dd id="ver_autorizacion">—</dd></div>
+                    <div><dt>Médico</dt><dd id="ver_medico">—</dd></div>
+                    <div><dt>ARS</dt><dd id="ver_ars">—</dd></div>
+                    <div class="pendiente-detalle__full"><dt>Observaciones</dt><dd id="ver_observaciones">—</dd></div>
+                </dl>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <!-- Modal para Editar Paciente Pendiente -->
@@ -523,21 +511,63 @@
 
 <script nonce="{{ csp_nonce }}">
 let modalEditar = null;
+let modalVer = null;
 
 document.addEventListener('DOMContentLoaded', function() {
-    // Inicializar modal de Bootstrap
     modalEditar = new bootstrap.Modal(document.getElementById('modalEditarPaciente'));
+    modalVer = new bootstrap.Modal(document.getElementById('modalVerPaciente'));
 });
+
+function textoOVacio(valor) {
+    const texto = (valor ?? '').toString().trim();
+    return texto || '—';
+}
+
+function formatearMonto(valor) {
+    const monto = Number(valor || 0);
+    return new Intl.NumberFormat('es-DO', {
+        style: 'currency',
+        currency: 'DOP',
+        minimumFractionDigits: 2
+    }).format(monto);
+}
+
+async function cargarPacientePendiente(pacienteId) {
+    const response = await fetch(`/api/facturacion/pacientes-pendientes/${pacienteId}`);
+    if (!response.ok) {
+        throw new Error('Error al cargar los datos');
+    }
+    return response.json();
+}
+
+async function abrirModalVer(pacienteId) {
+    try {
+        const data = await cargarPacientePendiente(pacienteId);
+        document.getElementById('ver_id').textContent = textoOVacio(data.id);
+        document.getElementById('ver_estado').textContent = textoOVacio(data.estado).toUpperCase();
+        document.getElementById('ver_nss').textContent = textoOVacio(data.nss);
+        document.getElementById('ver_nombre').textContent = textoOVacio(data.nombre_paciente);
+        document.getElementById('ver_fecha').textContent = textoOVacio(data.fecha_servicio);
+        document.getElementById('ver_monto').textContent = formatearMonto(data.monto_estimado);
+        document.getElementById('ver_servicio').textContent = textoOVacio(data.servicio);
+        document.getElementById('ver_autorizacion').textContent = textoOVacio(data.autorizacion);
+        document.getElementById('ver_medico').textContent = data.medico_nombre
+            ? `${data.medico_id} - ${data.medico_nombre}`
+            : textoOVacio(data.medico_id);
+        document.getElementById('ver_ars').textContent = data.ars_nombre
+            ? `${data.ars_id} - ${data.ars_nombre}`
+            : textoOVacio(data.ars_id);
+        document.getElementById('ver_observaciones').textContent = textoOVacio(data.observaciones);
+        modalVer.show();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Error al cargar los datos del paciente');
+    }
+}
 
 async function abrirModalEditar(pacienteId) {
     try {
-        // Cargar datos del paciente
-        const response = await fetch(`/api/facturacion/pacientes-pendientes/${pacienteId}`);
-        if (!response.ok) {
-            throw new Error('Error al cargar los datos');
-        }
-        
-        const data = await response.json();
+        const data = await cargarPacientePendiente(pacienteId);
         
         // Llenar el formulario
         document.getElementById('edit_paciente_id').value = data.id;

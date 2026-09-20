@@ -1,8 +1,10 @@
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 import app as app_module
 import routes.turnos_screens as turnos_routes
+from auth.helpers import usuario_es_administrador, usuario_es_medico_operativo
 from rbac_catalog import PERMISOS_ROLES_SISTEMA, TODOS_LOS_PERMISOS
 from turnos import EstadoTurno, transicion_permitida, validar_transicion
 
@@ -33,6 +35,32 @@ class RbacCatalogTests(unittest.TestCase):
             'Administrador',
         )
         self.assertTrue(user.has_permission('roles.editar'))
+
+    def test_admin_linked_to_doctor_is_not_operative_doctor(self):
+        admin = app_module.User(
+            9,
+            'Admin',
+            'admin@facturacion.com',
+            'Administrador',
+            permissions=TODOS_LOS_PERMISOS,
+            rbac_roles=('Administrador',),
+            rbac_role_count=1,
+            medico_id=44,
+        )
+        self.assertTrue(usuario_es_administrador(admin))
+        self.assertFalse(usuario_es_medico_operativo(admin))
+        self.assertTrue(admin.has_permission('usuarios.ver'))
+
+        plantilla = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'base.html'
+        ).read_text(encoding='utf-8')
+        self.assertNotIn(
+            "current_user.medico_id and can('turnos.cola_propia')",
+            plantilla,
+        )
+        self.assertIn('can(\'usuarios.ver\') or es_administrador', plantilla)
 
 
 class QueueDomainTests(unittest.TestCase):

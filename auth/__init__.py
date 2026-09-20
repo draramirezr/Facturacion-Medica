@@ -1,4 +1,4 @@
-"""Autenticación y autorización de ARSFLOW."""
+"""Autenticación y autorización de ClinicRD."""
 
 from auth.decorators import permission_required, roles_required
 from auth.helpers import load_user, user_has_permission

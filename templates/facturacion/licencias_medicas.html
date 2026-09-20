@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 
-{% block title %}Licencias Médicas - ARSFlow{% endblock %}
+{% block title %}Licencias Médicas - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
 <style nonce="{{ csp_nonce }}">
     .lm-hero { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 2rem; margin-bottom: 1.25rem; }
-    .lm-filters, .lm-table { background: white; border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.2rem; margin-bottom: 1.25rem; }
+    .lm-filters, .lm-table { background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.2rem; margin-bottom: 1.25rem; }
     .lm-table { padding: 0; overflow: hidden; }
     .lm-table th { background: var(--primary-dark) !important; color: white !important; padding: .9rem; border: 0; }
     .lm-table td { padding: .85rem; vertical-align: middle; }

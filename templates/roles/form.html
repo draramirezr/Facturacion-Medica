@@ -1,13 +1,13 @@
 {% extends "base.html" %}
-{% block title %}{{ 'Editar' if rol else 'Nuevo' }} rol - ARSFlow{% endblock %}
+{% block title %}{{ 'Editar' if rol else 'Nuevo' }} rol - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 {% block content %}
 <style nonce="{{ csp_nonce }}">
     .role-form-shell { max-width: 950px; margin: 0 auto; }
-    .permission-group { padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--ars-shell-border); border-radius: 12px; background: var(--ars-shell-surface,white); }
+    .permission-group { padding: 1rem; margin-bottom: 1rem; border: 1px solid var(--ars-shell-border); border-radius: 12px; background: var(--ars-shell-surface, #fff); }
     .permission-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: .65rem; margin-top: .8rem; }
     .permission-item { display: flex; align-items: flex-start; gap: .55rem; padding: .55rem; border-radius: 8px; }
-    .permission-item:hover { background: color-mix(in srgb,var(--primary-color) 8%,white); }
+    .permission-item:hover { background: color-mix(in srgb,var(--primary-color) 8%, var(--ars-shell-surface, #fff)); }
     .permission-item input { margin-top: .2rem; accent-color: var(--primary-color); }
     .permission-item strong, .permission-item small { display: block; }
     .permission-item small { color: var(--ars-shell-muted); }

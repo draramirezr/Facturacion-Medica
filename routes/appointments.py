@@ -15,6 +15,15 @@ from core.presentation import hora_input
 from routes.support import sanitize_input, validate_int
 
 
+def fecha_prellenada_agenda(valor=None):
+    """Aceptar solo una fecha ISO válida para prellenar el formulario."""
+    candidato = (valor if valor is not None else request.args.get('fecha') or '').strip()
+    try:
+        return datetime.strptime(candidato, '%Y-%m-%d').date().isoformat()
+    except ValueError:
+        return ''
+
+
 def medico_id_agenda_restringida():
     """Obtener el médico obligatorio para usuarios con el rol Médico."""
     roles_rbac = set(getattr(current_user, 'rbac_roles', ()))
@@ -221,14 +230,16 @@ def facturacion_citas():
         phone_pattern = f'%{phone_digits}%' if phone_digits else patron
         query += """
             AND (
-                p.nombre LIKE %s
+                p.nombre LIKE %s OR p.cedula LIKE %s OR p.nss LIKE %s
                 OR REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(
                     COALESCE(p.telefono,''),'-',''),' ',''),'(',''),')',''),'+','')
                     LIKE %s
                 OR m.nombre LIKE %s OR c.motivo LIKE %s
             )
         """
-        params.extend([patron, phone_pattern, patron, patron])
+        params.extend([
+            patron, patron, patron, phone_pattern, patron, patron
+        ])
     query += ' ORDER BY c.fecha ASC, c.hora ASC'
     citas = execute_query(query, tuple(params), fetch='all') or []
     citas_por_fecha = defaultdict(list)
@@ -314,7 +325,7 @@ def facturacion_citas_nueva():
     return render_template(
         'facturacion/cita_form.html', cita=None,
         consulta_origen=consulta_origen, form_data={},
-        fecha_actual=request.args.get('fecha', ''),
+        fecha_actual=fecha_prellenada_agenda(),
         paciente_preseleccionado=request.args.get('paciente_id', ''),
         medico_preseleccionado=(
             medico_id_restringido or request.args.get('medico_id', '')
@@ -329,18 +340,20 @@ def facturacion_cita_editar(cita_id):
     tenant_id = get_current_tenant_id()
     medico_id_restringido = medico_id_agenda_restringida()
     cita = execute_query(
-        'SELECT * FROM citas_medicas WHERE id=%s AND tenant_id=%s '
-        'AND (%s IS NULL OR medico_id=%s)',
-        (
-            cita_id, tenant_id,
-            medico_id_restringido, medico_id_restringido,
-        )
+        'SELECT * FROM citas_medicas WHERE id=%s AND tenant_id=%s',
+        (cita_id, tenant_id)
     )
     if not cita:
         flash('Cita no encontrada', 'error')
         return redirect(url_for('facturacion_citas'))
     contexto = contexto_formulario_cita(tenant_id, medico_id_restringido)
     if request.method == 'POST':
+        if (
+            medico_id_restringido
+            and cita.get('medico_id') != medico_id_restringido
+        ):
+            flash('Solo puedes modificar las citas de tu agenda', 'error')
+            return redirect(url_for('facturacion_cita_editar', cita_id=cita_id))
         datos, error = validar_formulario_cita(tenant_id, cita_id)
         if error:
             flash(error, 'error')

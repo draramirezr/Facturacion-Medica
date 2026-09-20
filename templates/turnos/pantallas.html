@@ -1,11 +1,11 @@
 {% extends "base.html" %}
-{% block title %}Pantallas de turnos - ARSFlow{% endblock %}
+{% block title %}Pantallas de turnos - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 {% block content %}
 <style nonce="{{ csp_nonce }}">
     .screens-shell { max-width:1000px; margin:0 auto; }
     .screens-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:1rem; }
-    .screen-card { padding:1rem; border:1px solid var(--ars-shell-border); border-radius:14px; background:var(--ars-shell-surface,white); }
+    .screen-card { padding:1rem; border:1px solid var(--ars-shell-border); border-radius:14px; background:var(--ars-shell-surface, #fff); }
     .created-url { padding:1rem; border:2px solid var(--primary-color); border-radius:12px; background:#ecfeff; overflow-wrap:anywhere; }
     .screen-saved-link { margin:.75rem 0; padding:.7rem; border-radius:9px; background:color-mix(in srgb,var(--primary-color) 8%,transparent); overflow-wrap:anywhere; }
     .screen-saved-link small, .screen-saved-link a { display:block; }

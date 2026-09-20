@@ -31,6 +31,8 @@ class UnifiedAuthorizationTests(unittest.TestCase):
             'facturacion_historico': 'facturacion.ver',
             'facturacion_generar_final': 'facturacion.crear',
             'facturacion_editar_factura': 'facturacion.editar',
+            'facturacion_reclamacion_editar': 'facturacion.editar',
+            'facturacion_pago_editar': 'facturacion.editar',
             'facturacion_descargar_pdf': 'facturacion.imprimir',
         }
 

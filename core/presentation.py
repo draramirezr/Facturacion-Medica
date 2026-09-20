@@ -1,15 +1,28 @@
 """Filtros y contexto visual compartidos por las plantillas."""
 
+import os
 from datetime import timedelta
+from urllib.parse import urlparse
 
 from flask_login import current_user
 
-from auth.helpers import user_has_permission
+from auth.helpers import (
+    user_has_permission,
+    usuario_es_administrador,
+    usuario_es_medico_operativo,
+)
+
+SOPORTE_EMAIL_PREDETERMINADO = 'soporte@clinicrd.com'
+
+PRODUCTO = {
+    'nombre': 'ClinicRD',
+    'eslogan': 'Gestión Médica',
+}
 
 
 FUENTES_UI = {
     'arsflow': {
-        'nombre': 'ARSFlow',
+        'nombre': 'ClinicRD',
         'descripcion': 'Montserrat + Be Vietnam Pro',
         'muestra': 'Claridad clínica y moderna',
     },
@@ -109,6 +122,17 @@ def hora_input(valor):
     return str(valor)
 
 
+def obtener_soporte():
+    """Datos del centro de ayuda; el manual se publica fuera de la app."""
+    manual_url = os.getenv('MANUAL_URL', '').strip()
+    if urlparse(manual_url).scheme.lower() not in ('http', 'https'):
+        manual_url = ''
+    email = (
+        os.getenv('SOPORTE_EMAIL', '').strip() or SOPORTE_EMAIL_PREDETERMINADO
+    )
+    return {'manual_url': manual_url, 'email': email}
+
+
 def inject_theme():
     tema_actual = (
         (getattr(current_user, 'tema_color', None) or 'cyan')
@@ -124,9 +148,19 @@ def inject_theme():
         fuente_actual = 'arsflow'
     empresa = {}
     if current_user.is_authenticated and hasattr(current_user, 'tenant_id'):
+        from services.subscriptions import get_empresa_info
+        try:
+            empresa_db = get_empresa_info(current_user.tenant_id) or {}
+        except Exception:
+            empresa_db = {}
         empresa = {
             'tenant_id': current_user.tenant_id,
-            'empresa_nombre': current_user.empresa_nombre or 'Sin empresa',
+            'empresa_nombre': (
+                empresa_db.get('nombre')
+                or current_user.empresa_nombre
+                or 'Sin empresa'
+            ),
+            'tipo_empresa': empresa_db.get('tipo_empresa') or '',
         }
     return {
         'tema': TEMAS[tema_actual],
@@ -136,14 +170,31 @@ def inject_theme():
         'fuente': FUENTES_UI[fuente_actual],
         'fuentes_disponibles': FUENTES_UI,
         'empresa': empresa,
+        'soporte': obtener_soporte(),
         'can': lambda codigo: (
             current_user.is_authenticated
             and user_has_permission(current_user, codigo)
         ),
+        'es_administrador': (
+            current_user.is_authenticated
+            and usuario_es_administrador(current_user)
+        ),
+        'es_medico_operativo': (
+            current_user.is_authenticated
+            and usuario_es_medico_operativo(current_user)
+        ),
+        'producto': PRODUCTO,
+        'product_name': PRODUCTO['nombre'],
     }
+
+
+def inject_soporte():
+    return {'soporte': obtener_soporte()}
 
 
 def init_presentation(app):
     app.add_template_filter(formato_moneda, 'formato_moneda')
     app.add_template_filter(hora_input, 'hora_input')
     app.context_processor(inject_theme)
+    app.context_processor(inject_soporte)
+    app.jinja_env.globals['soporte'] = obtener_soporte()

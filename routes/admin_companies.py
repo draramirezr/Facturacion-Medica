@@ -8,11 +8,19 @@ from flask_login import current_user, login_required
 
 from core.config import REQUIRED_TENANT_TABLES
 from core.database import execute_query, execute_update
+from auth.helpers import usuario_es_administrador
 from core.tenant import get_current_tenant_id
 from routes.support import sanitize_input, validate_digits, validate_email, validate_int
 from services.subscriptions import verificar_suscripciones_vencidas
 
 logger = logging.getLogger(__name__)
+
+
+def _es_super_administrador():
+    return (
+        usuario_es_administrador(current_user)
+        and get_current_tenant_id() is None
+    )
 
 
 @login_required
@@ -243,7 +251,7 @@ def admin_empresas_editar(empresa_id):
 
 @login_required
 def verificar_multitenant():
-    if current_user.perfil != 'Administrador':
+    if not _es_super_administrador():
         return jsonify({'error': 'No tienes permisos'}), 403
     result = {
         'titulo': 'VERIFICACIÓN SISTEMA MULTI-TENANT',
@@ -365,7 +373,7 @@ def verificar_multitenant():
 
 @login_required
 def verificar_multitenant_visual():
-    if current_user.perfil != 'Administrador':
+    if not _es_super_administrador():
         flash('No tienes permisos', 'error')
         return redirect(url_for('facturacion_menu'))
     return render_template('admin/empresas/verificar.html')

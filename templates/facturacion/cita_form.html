@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% from "_patient_search.html" import patient_search %}
 
-{% block title %}{{ 'Editar' if cita else 'Nueva' }} Cita - ARSFlow{% endblock %}
+{% block title %}{{ 'Editar' if cita else 'Nueva' }} Cita - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
@@ -11,8 +11,8 @@
 {% set hora_valor = form_data.get('hora', consulta_origen['proxima_hora'] if consulta_origen and consulta_origen['proxima_hora'] else '09:00') %}
 <style nonce="{{ csp_nonce }}">
     .appointment-shell { max-width:950px; margin:0 auto; }
-    .appointment-header,.appointment-card { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:white; }
-    .appointment-header { background:linear-gradient(135deg,{{ tema.primary }}12,white); }
+    .appointment-header,.appointment-card { padding:1.35rem; margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:var(--ars-shell-surface, #fff); }
+    .appointment-header { background:linear-gradient(135deg,{{ tema.primary }}12, var(--ars-shell-surface, #fff)); }
     .appointment-card h2 { margin-bottom:1rem; padding-bottom:.65rem; border-bottom:1px solid var(--ars-shell-border); color:var(--primary-dark); font-size:1rem; }
     .required::after { content:" *"; color:var(--primary-color); }
     .origin-note { padding:.8rem; border:1px solid {{ tema.primary }}25; border-radius:10px; background:{{ tema.primary }}09; color:var(--ars-shell-muted); font-size:.78rem; }

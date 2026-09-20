@@ -1,9 +1,11 @@
-/* ARSFlow authenticated application shell */
+/* ClinicRD authenticated application shell */
 :root {
     --ars-shell-sidebar-width: 248px;
     --ars-shell-topbar-height: 68px;
     --ars-shell-bg: #f7f9fc;
     --ars-shell-surface: #ffffff;
+    --ars-shell-surface-alt: #f2f5f8;
+    --ars-shell-surface-raised: #ffffff;
     --ars-shell-border: #e8edf3;
     --ars-shell-text: #172033;
     --ars-shell-muted: #718096;
@@ -14,7 +16,7 @@ body.ars-app-body {
     overflow-x: hidden;
     background: var(--ars-shell-bg) !important;
     color: var(--ars-shell-text);
-    font-family: "Inter", "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: var(--font-body, "Inter", "Be Vietnam Pro", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif);
 }
 
 .ars-app-shell {
@@ -37,26 +39,37 @@ body.ars-app-body {
     display: flex;
     min-height: var(--ars-shell-topbar-height);
     align-items: center;
-    padding: 8px 18px;
+    padding: 10px 16px;
     border-bottom: 1px solid var(--ars-shell-border);
     text-decoration: none;
 }
 
 .ars-brand-crop {
-    position: relative;
-    display: block;
-    width: 178px;
-    height: 50px;
-    overflow: hidden;
+    display: flex;
+    align-items: center;
+    width: 100%;
+    height: 48px;
 }
 
 .ars-brand-crop img {
-    position: absolute;
-    top: -107px;
-    left: -57px;
-    width: 286px;
-    max-width: none;
-    height: 286px;
+    display: block;
+    width: auto;
+    max-width: 100%;
+    height: 48px;
+    object-fit: contain;
+    object-position: left center;
+}
+
+.ars-brand-crop .brand-logo-dark {
+    display: none;
+}
+
+html[data-color-mode="dark"] .ars-brand-crop .brand-logo-light {
+    display: none;
+}
+
+html[data-color-mode="dark"] .ars-brand-crop .brand-logo-dark {
+    display: block;
 }
 
 .ars-sidebar-scroll {

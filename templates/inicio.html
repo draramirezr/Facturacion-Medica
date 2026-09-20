@@ -14,8 +14,8 @@
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="ARSFlow integra gestión médica, expedientes clínicos, citas, recetas, licencias y facturación tradicional y electrónica e-CF en una sola plataforma.">
-    <title>ARSFlow | Gestión médica y facturación conectadas</title>
+    <meta name="description" content="ClinicRD integra gestión médica, expedientes clínicos, citas, recetas, licencias y facturación tradicional y electrónica e-CF en una sola plataforma.">
+    <title>ClinicRD | Gestión médica y facturación conectadas</title>
     <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -23,7 +23,7 @@
     <style nonce="{{ csp_nonce }}">
         html { color-scheme: light; }
         html[data-color-mode="dark"] { color-scheme: dark; }
-        :root { --primary:#119c8f; --primary-dark:#087d73; --primary-soft:#ecfbf8; --navy:#172554; --text:#172033; --muted:#64748b; --border:#e5edf3; --surface:#fff; --background:#f8fafb; }
+        :root { --primary:#119c8f; --primary-dark:#087d73; --primary-soft:#ecfbf8; --navy:#172554; --text:#172033; --muted:#64748b; --border:#e5edf3; --surface:#fff; --background:var(--ars-shell-bg, #f8fafb); }
         * { box-sizing:border-box; }
         html { scroll-behavior:smooth; }
         body { margin:0; background:var(--background); color:var(--text); font-family:"Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; }
@@ -31,8 +31,8 @@
         .container { width:min(1160px,calc(100% - 40px)); margin:0 auto; }
         .site-nav { position:sticky; z-index:30; top:0; border-bottom:1px solid rgba(229,237,243,.9); background:rgba(255,255,255,.96); }
         .nav-inner { min-height:74px; display:flex; align-items:center; justify-content:space-between; gap:24px; }
-        .brand { width:190px; height:52px; overflow:hidden; position:relative; flex:0 0 auto; }
-        .brand img { position:absolute; width:292px; max-width:none; top:-108px; left:-52px; }
+        .brand { display:flex; align-items:center; width:210px; height:52px; flex:0 0 auto; }
+        .brand img { display:block; width:auto; max-width:100%; height:52px; object-fit:contain; object-position:left center; }
         .nav-links { display:flex; align-items:center; gap:28px; color:#526071; font-size:.84rem; font-weight:600; }
         .nav-links a { text-decoration:none; }
         .nav-links a:hover { color:var(--primary-dark); }
@@ -41,7 +41,7 @@
         .button { min-height:44px; padding:0 20px; display:inline-flex; align-items:center; justify-content:center; gap:9px; border:1px solid transparent; border-radius:10px; font-size:.84rem; font-weight:700; text-decoration:none; }
         .button-primary { background:var(--primary); color:#fff; }
         .button-primary:hover { background:var(--primary-dark); color:#fff; }
-        .button-secondary { border-color:#cbd8e3; background:#fff; color:#334155; }
+        .button-secondary { border-color:#cbd8e3; background:var(--ars-shell-surface, #fff); color:#334155; }
         .button-secondary:hover { border-color:var(--primary); color:var(--primary-dark); }
         .hero { position:relative; overflow:hidden; padding:72px 0 64px; background:linear-gradient(145deg,#f2fdfb 0%,#f8fafb 58%,#eaf9f6 100%); }
         .hero::after { content:""; position:absolute; width:430px; height:430px; right:-190px; top:-180px; border:70px solid rgba(17,156,143,.06); border-radius:50%; }
@@ -54,35 +54,35 @@
         .hero-note { display:flex; flex-wrap:wrap; gap:16px; margin-top:26px; color:#607084; font-size:.76rem; font-weight:600; }
         .hero-note span { display:flex; align-items:center; gap:7px; }
         .hero-note i { color:var(--primary-dark); }
-        .app-preview { padding:16px; border:1px solid #dce7ee; border-radius:22px; background:#fff; }
+        .app-preview { padding:16px; border:1px solid #dce7ee; border-radius:22px; background:var(--ars-shell-surface, #fff); }
         .preview-bar { display:flex; align-items:center; gap:6px; padding:3px 2px 14px; }
         .preview-dot { width:8px; height:8px; border-radius:50%; background:#d7e0e8; }
         .preview-layout { min-height:410px; display:grid; grid-template-columns:118px 1fr; overflow:hidden; border:1px solid var(--border); border-radius:14px; }
-        .preview-sidebar { padding:18px 12px; border-right:1px solid var(--border); background:#fff; }
+        .preview-sidebar { padding:18px 12px; border-right:1px solid var(--border); background:var(--ars-shell-surface, #fff); }
         .preview-logo { width:31px; height:31px; display:grid; place-items:center; margin-bottom:22px; border-radius:8px; background:var(--primary); color:white; }
         .preview-menu { display:grid; gap:5px; }
         .preview-link { display:flex; align-items:center; gap:6px; padding:7px 6px; border-radius:6px; color:#6b7a8c; font-size:.52rem; font-weight:600; }
         .preview-link i { width:11px; color:#91a1b1; text-align:center; }
         .preview-link.active { background:var(--primary-soft); color:var(--primary-dark); }
         .preview-link.active i { color:var(--primary-dark); }
-        .preview-content { padding:25px 22px; background:#f8fafc; }
+        .preview-content { padding:25px 22px; background:var(--ars-shell-bg, #f8fafc); }
         .preview-content-head { display:flex; align-items:start; justify-content:space-between; gap:10px; margin-bottom:20px; }
         .preview-content-head strong { display:block; color:#263553; font-size:.73rem; }
         .preview-content-head span { color:#91a1b1; font-size:.49rem; }
         .demo-badge { padding:4px 6px; border:1px solid #bde6df; border-radius:5px; background:#effbf9; color:var(--primary-dark)!important; font-weight:700; }
         .preview-cards { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
-        .preview-card { min-height:92px; padding:12px; border:1px solid var(--border); border-radius:10px; background:white; }
+        .preview-card { min-height:92px; padding:12px; border:1px solid var(--border); border-radius:10px; background:var(--ars-shell-surface, #fff); }
         .preview-card i { color:var(--primary-dark); }
         .preview-card-label { display:block; margin:8px 0 5px; color:#8492a3; font-size:.48rem; }
         .preview-card strong { display:block; color:#223253; font-size:.7rem; }
         .preview-card small { display:block; margin-top:4px; color:#159b70; font-size:.42rem; }
         .preview-line { width:72%; height:6px; border-radius:3px; background:#d5dfe8; }
-        .preview-table { margin-top:14px; padding:16px; border:1px solid var(--border); border-radius:11px; background:white; }
+        .preview-table { margin-top:14px; padding:16px; border:1px solid var(--border); border-radius:11px; background:var(--ars-shell-surface, #fff); }
         .preview-lower { display:grid; grid-template-columns:.9fr 1.1fr; gap:10px; }
-        .preview-chart { margin-top:14px; padding:16px; border:1px solid var(--border); border-radius:11px; background:white; }
+        .preview-chart { margin-top:14px; padding:16px; border:1px solid var(--border); border-radius:11px; background:var(--ars-shell-surface, #fff); }
         .preview-panel-title { color:#31405c; font-size:.55rem; font-weight:700; }
         .preview-donut { width:82px; height:82px; margin:14px auto 10px; border-radius:50%; background:conic-gradient(var(--primary) 0 34%,#334b78 34% 57%,#79d7ce 57% 78%,#d7ece9 78%); position:relative; }
-        .preview-donut::after { content:""; position:absolute; inset:22px; border-radius:50%; background:white; }
+        .preview-donut::after { content:""; position:absolute; inset:22px; border-radius:50%; background:var(--ars-shell-surface, #fff); }
         .preview-legend { display:grid; grid-template-columns:1fr 1fr; gap:4px; color:#8390a0; font-size:.4rem; }
         .preview-legend span::before { content:""; display:inline-block; width:5px; height:5px; margin-right:4px; border-radius:50%; background:var(--primary); }
         .preview-row { display:grid; grid-template-columns:10px 1fr auto; gap:7px; align-items:start; padding:9px 0; border-bottom:1px solid #edf1f5; }
@@ -91,23 +91,23 @@
         .preview-row strong { display:block; color:#4c5b6f; font-size:.46rem; font-weight:600; }
         .preview-row span { color:#9aa6b4; font-size:.39rem; }
         .preview-row time { color:#8794a4; font-size:.37rem; white-space:nowrap; }
-        .trust-strip { border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:white; }
+        .trust-strip { border-top:1px solid var(--border); border-bottom:1px solid var(--border); background:var(--ars-shell-surface, #fff); }
         .trust-inner { min-height:92px; display:flex; align-items:center; justify-content:center; gap:42px; flex-wrap:wrap; color:#506074; font-size:.79rem; font-weight:700; }
         .trust-inner span { display:flex; align-items:center; gap:9px; }
         .trust-inner i { color:var(--primary-dark); font-size:1rem; }
         .section { padding:70px 0; }
-        .section-white { background:white; }
+        .section-white { background:var(--ars-shell-surface, #fff); }
         .section-head { max-width:680px; margin:0 auto 46px; text-align:center; }
         .section-label { color:var(--primary-dark); font-size:.72rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
         .section h2 { margin:10px 0 14px; color:#16213b; font-size:clamp(2rem,3.5vw,3rem); letter-spacing:-.04em; }
         .section-head p { margin:0; color:var(--muted); line-height:1.7; }
         .features { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
-        .feature { padding:24px 18px; border:1px solid var(--border); border-radius:15px; background:white; text-align:center; }
+        .feature { padding:24px 18px; border:1px solid var(--border); border-radius:15px; background:var(--ars-shell-surface, #fff); text-align:center; }
         .feature-icon { width:46px; height:46px; display:grid; place-items:center; margin:0 auto 18px; border:1px solid rgba(17,156,143,.22); border-radius:11px; background:var(--primary-soft); color:var(--primary-dark); }
         .feature h3 { margin:0 0 9px; color:#23304c; font-size:1rem; }
         .feature p { margin:0; color:var(--muted); font-size:.84rem; line-height:1.65; }
         .workflow { display:grid; grid-template-columns:repeat(4,1fr); gap:18px; counter-reset:steps; }
-        .step { position:relative; padding:26px 22px; border-top:2px solid var(--primary); background:white; }
+        .step { position:relative; padding:26px 22px; border-top:2px solid var(--primary); background:var(--ars-shell-surface, #fff); }
         .step::before { counter-increment:steps; content:"0" counter(steps); display:block; margin-bottom:24px; color:var(--primary-dark); font-size:.73rem; font-weight:800; letter-spacing:.08em; }
         .step h3 { margin:0 0 8px; font-size:.95rem; }
         .step p { margin:0; color:var(--muted); font-size:.8rem; line-height:1.6; }
@@ -118,7 +118,7 @@
         .result-card span { color:var(--muted); font-size:.78rem; line-height:1.55; }
         .integrations { display:grid; grid-template-columns:1fr 1.15fr; align-items:center; gap:60px; }
         .integration-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
-        .integration-item { padding:22px; border:1px solid var(--border); border-radius:13px; background:white; }
+        .integration-item { padding:22px; border:1px solid var(--border); border-radius:13px; background:var(--ars-shell-surface, #fff); }
         .integration-item i { width:38px; height:38px; display:grid; place-items:center; margin-bottom:15px; border-radius:9px; background:var(--primary-soft); color:var(--primary-dark); }
         .integration-item strong { display:block; margin-bottom:5px; font-size:.88rem; }
         .integration-item span { color:var(--muted); font-size:.76rem; line-height:1.5; }
@@ -133,7 +133,7 @@
         .check-list strong { display:block; margin-bottom:5px; color:#26334e; font-size:.9rem; }
         .check-list span { color:var(--muted); font-size:.8rem; line-height:1.55; }
         .security-cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
-        .security-card { padding:25px; border:1px solid var(--border); border-radius:15px; background:white; }
+        .security-card { padding:25px; border:1px solid var(--border); border-radius:15px; background:var(--ars-shell-surface, #fff); }
         .security-card i { width:42px; height:42px; display:grid; place-items:center; margin-bottom:20px; border:1px solid rgba(17,156,143,.2); border-radius:11px; background:var(--primary-soft); color:var(--primary-dark); }
         .security-card h3 { margin:0 0 8px; color:#24314d; font-size:.92rem; }
         .security-card p { margin:0; color:var(--muted); font-size:.78rem; line-height:1.6; }
@@ -142,12 +142,12 @@
         .plans-intro { max-width:720px; margin:0 auto 34px; text-align:center; }
         .plans-intro h2 { margin:10px 0 12px; }
         .plans-intro p { margin:0; color:var(--muted); line-height:1.7; }
-        .billing-switch { width:max-content; max-width:100%; display:flex; gap:5px; margin:24px auto 0; padding:5px; border:1px solid var(--border); border-radius:10px; background:white; }
+        .billing-switch { width:max-content; max-width:100%; display:flex; gap:5px; margin:24px auto 0; padding:5px; border:1px solid var(--border); border-radius:10px; background:var(--ars-shell-surface, #fff); }
         .billing-option { min-height:35px; padding:0 13px; border:0; border-radius:7px; background:transparent; color:#64748b; font:700 .73rem "Inter",sans-serif; cursor:pointer; }
         .billing-option.active { background:var(--primary); color:white; }
         .billing-option small { margin-left:5px; font-size:.62rem; }
         .plan-options { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-        .plan-option { padding:28px; border:1px solid var(--border); border-radius:16px; background:white; }
+        .plan-option { padding:28px; border:1px solid var(--border); border-radius:16px; background:var(--ars-shell-surface, #fff); }
         .plan-option.featured { border-color:#80cfc5; background:linear-gradient(180deg,#f1fcfa,#fff 38%); }
         .plan-option-icon { width:46px; height:46px; display:grid; place-items:center; margin-bottom:20px; border-radius:11px; background:var(--primary-soft); color:var(--primary-dark); }
         .plan-option h3 { margin:0 0 8px; color:#21304c; font-size:1.05rem; }
@@ -162,13 +162,13 @@
         .plan-limits i { width:17px; color:var(--primary-dark); text-align:center; }
         .reference-note { max-width:790px; margin:24px auto 0; padding:12px 15px; border:1px solid #cbe8e3; border-radius:9px; background:#f3fbfa; color:#607083; font-size:.72rem; line-height:1.5; text-align:center; }
         .plans-action { margin-top:26px; text-align:center; }
-        .coming { display:inline-flex; align-items:center; gap:8px; margin-bottom:14px; padding:7px 10px; border:1px solid rgba(17,156,143,.25); border-radius:8px; background:white; color:var(--primary-dark); font-size:.72rem; font-weight:800; }
-        .cta { padding:30px 0 76px; background:white; }
+        .coming { display:inline-flex; align-items:center; gap:8px; margin-bottom:14px; padding:7px 10px; border:1px solid rgba(17,156,143,.25); border-radius:8px; background:var(--ars-shell-surface, #fff); color:var(--primary-dark); font-size:.72rem; font-weight:800; }
+        .cta { padding:30px 0 76px; background:var(--ars-shell-surface, #fff); }
         .cta-card { padding:46px 52px; display:grid; grid-template-columns:1fr auto; align-items:center; gap:34px; border:1px solid #bce9ee; border-radius:20px; background:linear-gradient(130deg,#ecfeff 0%,#f8ffff 62%,#dff9f7 100%); }
         .cta h2 { margin:0 0 12px; color:#172554; }
         .cta p { max-width:650px; margin:0; color:var(--muted); line-height:1.7; }
         .cta-actions { display:grid; gap:9px; min-width:210px; }
-        footer { padding:48px 0 24px; border-top:1px solid var(--border); background:white; color:#7c8a9b; font-size:.75rem; }
+        footer { padding:48px 0 24px; border-top:1px solid var(--border); background:var(--ars-shell-surface, #fff); color:#7c8a9b; font-size:.75rem; }
         .footer-grid { display:grid; grid-template-columns:1.7fr repeat(3,1fr); gap:48px; padding-bottom:34px; }
         .footer-brand p { max-width:300px; margin:14px 0 0; line-height:1.65; }
         .footer-title { display:block; margin-bottom:14px; color:#334155; font-size:.76rem; }
@@ -176,19 +176,23 @@
         .footer-links a { text-decoration:none; }
         .footer-links a:hover { color:var(--primary-dark); }
         .footer-bottom { display:flex; justify-content:space-between; gap:20px; flex-wrap:wrap; padding-top:20px; border-top:1px solid var(--border); }
-        .whatsapp-float { position:fixed; z-index:40; right:24px; bottom:24px; width:56px; height:56px; display:grid; place-items:center; border:1px solid #159447; border-radius:50%; background:#25d366; color:white; font-size:1.65rem; text-decoration:none; }
-        .whatsapp-float:hover { background:#1fb958; color:white; }
-        html[data-color-mode="dark"] { --text:#e7edf6; --muted:#9eacbd; --border:#27354a; --surface:#111a2b; --background:#0b1220; color-scheme:dark; }
+        .whatsapp-float { position:fixed; z-index:40; right:24px; bottom:24px; width:56px; height:56px; display:grid; place-items:center; border:0; border-radius:50%; background:#25d366; color:#fff; font-size:1.65rem; text-decoration:none; box-shadow:0 10px 24px rgba(0,0,0,.22); }
+        .whatsapp-float:hover { background:#1ebe5d; color:#fff; }
+        .whatsapp-float i { color:#fff; }
+        html[data-color-mode="dark"] { --text:#e7edf6; --muted:#9eacbd; --border:#27354a; --surface:#111a2b; --background:#0b1220; --primary-soft:#102a30; color-scheme:dark; }
         html[data-color-mode="dark"] body,
-        html[data-color-mode="dark"] .section { background:#0b1220; color:var(--text); }
+        html[data-color-mode="dark"] main,
+        html[data-color-mode="dark"] .section,
+        html[data-color-mode="dark"] .cta { background:#0b1220 !important; color:var(--text); }
         html[data-color-mode="dark"] .site-nav,
         html[data-color-mode="dark"] .section-white,
         html[data-color-mode="dark"] footer,
-        html[data-color-mode="dark"] .trust-strip { background:#101929; border-color:var(--border); }
-        html[data-color-mode="dark"] .hero { background:linear-gradient(145deg,#102128,#0b1220 58%,#10231f); }
-        html[data-color-mode="dark"] :is(.hero h1,.section h2,.feature h3,.step h3,.result-card strong,.integration-item strong,.security-card h3,.plan-option h3,.plan-price strong,.cta h2,.footer-title) { color:#edf3fa; }
-        html[data-color-mode="dark"] :is(.app-preview,.preview-sidebar,.preview-card,.preview-chart,.preview-table,.feature,.step,.result-card,.integration-item,.security-card,.plan-option,.billing-switch) { background:#111a2b; border-color:var(--border); }
-        html[data-color-mode="dark"] .preview-content { background:#0d1625; }
+        html[data-color-mode="dark"] .trust-strip { background:#101929 !important; border-color:var(--border) !important; }
+        html[data-color-mode="dark"] .hero { background:linear-gradient(145deg,#102128,#0b1220 58%,#10231f) !important; }
+        html[data-color-mode="dark"] :is(.hero h1,.section h2,.feature h3,.step h3,.result-card strong,.integration-item strong,.security-card h3,.plan-option h3,.plan-price strong,.cta h2,.footer-title,.check-list strong) { color:#edf3fa; }
+        html[data-color-mode="dark"] :is(.nav-links,.hero-note,.plan-limits li,.footer-links a,.footer-brand,.footer-bottom) { color:#9eacbd; }
+        html[data-color-mode="dark"] :is(.app-preview,.preview-sidebar,.preview-card,.preview-chart,.preview-table,.feature,.step,.result-card,.integration-item,.security-card,.plan-option,.billing-switch,.coming) { background:#111a2b !important; border-color:var(--border); }
+        html[data-color-mode="dark"] .preview-content { background:#0d1625 !important; }
         html[data-color-mode="dark"] .preview-layout,
         html[data-color-mode="dark"] .preview-sidebar,
         html[data-color-mode="dark"] .preview-row,
@@ -199,23 +203,21 @@
         html[data-color-mode="dark"] .preview-panel-title { color:#dce7f2; }
         html[data-color-mode="dark"] .plans-card,
         html[data-color-mode="dark"] .plan-option.featured,
-        html[data-color-mode="dark"] .cta-card { background:linear-gradient(145deg,#102722,#111a2b); border-color:#285349; }
-        html[data-color-mode="dark"] .button-secondary { background:#121d2f; border-color:#35455c; color:#dbe5ef; }
+        html[data-color-mode="dark"] .cta-card { background:linear-gradient(145deg,#102722,#111a2b) !important; border-color:#285349; }
+        html[data-color-mode="dark"] .button-secondary { background:#121d2f !important; border-color:#35455c; color:#dbe5ef; }
         html[data-color-mode="dark"] .reference-note,
-        html[data-color-mode="dark"] .security-note { background:#10241f; border-color:#285349; color:#a9b7c7; }
-        html[data-color-mode="dark"] .brand { background:#fff; border-radius:8px; }
-        html[data-color-mode="dark"] .footer-links a,
-        html[data-color-mode="dark"] .footer-brand,
-        html[data-color-mode="dark"] .footer-bottom { color:#9eacbd; }
+        html[data-color-mode="dark"] .security-note { background:#10241f !important; border-color:#285349; color:#a9b7c7; }
+        html[data-color-mode="dark"] .brand { background:transparent; }
         @media(max-width:1100px){.features{grid-template-columns:repeat(3,1fr)}.security-cards{grid-template-columns:repeat(2,1fr)}}
         @media(max-width:960px){ .nav-links{display:none}.hero{padding-top:64px}.hero-grid,.security-grid,.integrations{grid-template-columns:1fr}.app-preview{max-width:620px}.features{grid-template-columns:repeat(2,1fr)}.workflow{grid-template-columns:repeat(2,1fr)}.results{grid-template-columns:repeat(2,1fr)}.footer-grid{grid-template-columns:1.4fr repeat(2,1fr)} }
-        @media(max-width:620px){ .container{width:min(100% - 28px,1160px)}.brand{width:145px}.brand img{width:238px;top:-87px;left:-46px}.nav-inner{min-height:66px}.button{padding:0 15px}.nav-actions .button-secondary{display:none}.nav-actions .theme-button{display:inline-flex;padding:0}.hero{padding:52px 0}.hero-grid{gap:42px}.hero h1{font-size:2.55rem}.preview-layout{grid-template-columns:72px 1fr;min-height:350px}.preview-cards{grid-template-columns:1fr}.preview-card:nth-child(n+2){display:none}.features,.workflow,.results,.integration-grid,.security-cards,.plan-options,.footer-grid{grid-template-columns:1fr}.section{padding:66px 0}.cta-card{padding:30px 24px;grid-template-columns:1fr}.trust-inner{gap:18px;padding:20px 0}.nav-login span{display:none}.cta-actions{min-width:0}.whatsapp-float{right:16px;bottom:16px;width:52px;height:52px} }
+        @media(max-width:620px){ .container{width:min(100% - 28px,1160px)}.brand{width:160px;height:44px}.brand img{height:44px}.nav-inner{min-height:66px}.button{padding:0 15px}.nav-actions .button-secondary{display:none}.nav-actions .theme-button{display:inline-flex;padding:0}.hero{padding:52px 0}.hero-grid{gap:42px}.hero h1{font-size:2.55rem}.preview-layout{grid-template-columns:72px 1fr;min-height:350px}.preview-cards{grid-template-columns:1fr}.preview-card:nth-child(n+2){display:none}.features,.workflow,.results,.integration-grid,.security-cards,.plan-options,.footer-grid{grid-template-columns:1fr}.section{padding:66px 0}.cta-card{padding:30px 24px;grid-template-columns:1fr}.trust-inner{gap:18px;padding:20px 0}.nav-login span{display:none}.cta-actions{min-width:0}.whatsapp-float{right:16px;bottom:16px;width:52px;height:52px} }
     </style>
+    <link href="{{ url_for('static', filename='css/public-theme.css') }}?v=2" rel="stylesheet">
 </head>
 <body>
     <nav class="site-nav" aria-label="Navegación principal">
         <div class="container nav-inner">
-            <a class="brand" href="{{ url_for('index') }}" aria-label="ARSFlow inicio"><img src="{{ url_for('static', filename='img/logo.png') }}" alt="ARSFlow"></a>
+            <a class="brand" href="{{ url_for('index') }}" aria-label="ClinicRD inicio"><img class="brand-logo brand-logo-light" src="{{ url_for('static', filename='img/logo.png') }}?v=clinicrd5" alt="ClinicRD"><img class="brand-logo brand-logo-dark" src="{{ url_for('static', filename='img/logo-on-dark.png') }}?v=clinicrd5" alt="ClinicRD"></a>
             <div class="nav-links"><a href="#inicio">Inicio</a><a href="#beneficios">Características</a><a href="#integraciones">Integraciones</a><a href="#planes">Precios</a><a href="#contacto">Contacto</a></div>
             <div class="nav-actions">
                 <button class="button button-secondary theme-button" type="button" data-theme-toggle aria-label="Activar modo oscuro" title="Modo oscuro"><i class="fas fa-moon" data-theme-icon></i></button>
@@ -231,14 +233,14 @@
                 <div>
                     <span class="eyebrow"><i class="fas fa-shield-heart"></i> Plataforma médica integral</span>
                     <h1>Centraliza tu gestión médica y facturación <span>en un solo lugar.</span></h1>
-                    <p class="hero-copy">ARSFlow conecta recepción, turnos, historias clínicas adaptadas por especialidad, citas, mensajería interna y facturación para que todo el consultorio trabaje coordinado.</p>
+                    <p class="hero-copy">ClinicRD conecta recepción, turnos, historias clínicas adaptadas por especialidad, citas, mensajería interna y facturación para que todo el consultorio trabaje coordinado.</p>
                     <div class="hero-actions">
                         <a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Crear cuenta gratis' }} <i class="fas fa-arrow-right"></i></a>
                         {% if not current_user.is_authenticated %}<a class="button button-secondary" href="{{ url_for('login') }}"><i class="fas fa-arrow-right-to-bracket"></i> Iniciar sesión</a>{% endif %}
                     </div>
                     <div class="hero-note"><span><i class="fas fa-check-circle"></i> Interfaz sencilla</span><span><i class="fas fa-check-circle"></i> Información conectada</span><span><i class="fas fa-check-circle"></i> Acceso seguro</span></div>
                 </div>
-                <div class="app-preview" aria-label="Vista previa de ARSFlow">
+                <div class="app-preview" aria-label="Vista previa de ClinicRD">
                     <div class="preview-bar"><span class="preview-dot"></span><span class="preview-dot"></span><span class="preview-dot"></span></div>
                     <div class="preview-layout">
                         <aside class="preview-sidebar">
@@ -286,7 +288,7 @@
                     <article class="feature"><div class="feature-icon"><i class="fas fa-notes-medical"></i></div><h3>Historia por especialidad</h3><p>Formularios clínicos dinámicos para diez especialidades y una plantilla general.</p></article>
                     <article class="feature"><div class="feature-icon"><i class="fas fa-ticket"></i></div><h3>Turnos y colas</h3><p>Recepción, cola propia del médico, tickets y pantalla pública para pacientes.</p></article>
                     <article class="feature"><div class="feature-icon"><i class="fas fa-user-shield"></i></div><h3>Roles configurables</h3><p>Define permisos por ventana y asigna a cada usuario solo las funciones necesarias.</p></article>
-                    <article class="feature"><div class="feature-icon"><i class="fas fa-comments"></i></div><h3>Mensajería interna</h3><p>Comunicación privada entre los usuarios del mismo consultorio sin salir de ARSFlow.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-comments"></i></div><h3>Mensajería interna</h3><p>Comunicación privada entre los usuarios del mismo consultorio sin salir de ClinicRD.</p></article>
                     <article class="feature"><div class="feature-icon"><i class="fas fa-calendar-check"></i></div><h3>Agenda conectada</h3><p>Las citas programadas pasan a recepción y continúan hacia la consulta clínica.</p></article>
                     <article class="feature"><div class="feature-icon"><i class="fas fa-file-invoice-dollar"></i></div><h3>Facturación médica</h3><p>Facturas, ARS, reclamaciones, pagos y seguimiento financiero organizado.</p></article>
                     <article class="feature"><div class="feature-icon"><i class="fas fa-chart-column"></i></div><h3>Control visible</h3><p>Dashboard, notificaciones y buscador global para decidir con claridad.</p></article>
@@ -371,20 +373,18 @@
                 <div class="plans-action"><a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Comenzar gratis' }} <i class="fas fa-arrow-right"></i></a></div>
             </div>
         </section>
-
-        <section class="cta"><div class="container"><div class="cta-card"><div><h2>¿Listo para organizar todo tu consultorio?</h2><p>Conecta recepción, turnos, médicos, historia clínica, comunicación interna y facturación en una sola herramienta.</p></div><div class="cta-actions"><a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Crear cuenta gratis' }} <i class="fas fa-arrow-right"></i></a>{% if not current_user.is_authenticated %}<a class="button button-secondary" href="{{ url_for('login') }}">Ya tengo una cuenta</a>{% endif %}</div></div></div></section>
     </main>
 
-    <a class="whatsapp-float" href="https://wa.me/18098446360?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20ARSFlow" target="_blank" rel="noopener noreferrer" aria-label="Contactar ARSFlow por WhatsApp" title="Escríbenos por WhatsApp"><i class="fab fa-whatsapp"></i></a>
+    <a class="whatsapp-float" href="https://wa.me/18098446360?text=Hola%2C%20quiero%20informaci%C3%B3n%20sobre%20ClinicRD" target="_blank" rel="noopener noreferrer" aria-label="Contactar ClinicRD por WhatsApp" title="Escríbenos por WhatsApp"><i class="fab fa-whatsapp"></i></a>
 
     <footer id="contacto"><div class="container">
         <div class="footer-grid">
-            <div class="footer-brand"><strong>ARSFlow</strong><p>Plataforma para centralizar la gestión clínica, administrativa y financiera de profesionales y centros médicos.</p></div>
+            <div class="footer-brand"><strong>ClinicRD</strong><p>Plataforma para centralizar la gestión clínica, administrativa y financiera de profesionales y centros médicos.</p></div>
             <div><strong class="footer-title">Producto</strong><div class="footer-links"><a href="#beneficios">Características</a><a href="#integraciones">Integraciones</a><a href="#planes">Planes</a></div></div>
             <div><strong class="footer-title">Recursos</strong><div class="footer-links"><a href="{{ url_for('login') }}">Centro de acceso</a><a href="{{ url_for('registro') }}">Crear cuenta</a><a href="#seguridad">Seguridad</a></div></div>
             <div><strong class="footer-title">Plataforma</strong><div class="footer-links"><a href="#modulos">Cómo funciona</a><a href="#contacto">Contacto</a><a href="{{ url_for('login') }}">Soporte</a></div></div>
         </div>
-        <div class="footer-bottom"><span>© {{ current_year }} ARSFlow. Todos los derechos reservados.</span><span>Gestión médica y facturación conectadas.</span></div>
+        <div class="footer-bottom"><span>© {{ current_year }} ClinicRD. Todos los derechos reservados.</span><span>Gestión médica y facturación conectadas.</span></div>
     </div></footer>
     <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=1"></script>
     <script nonce="{{ csp_nonce }}">
