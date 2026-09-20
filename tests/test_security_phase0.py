@@ -620,6 +620,62 @@ class PhaseZeroSecurityTests(unittest.TestCase):
                 self.assertIsNotNone(match)
                 self.assertRegex(match.group(1), r'\btenant_id\s+INT\b')
 
+    def test_schema_script_covers_every_required_tenant_table(self):
+        from core.schema_bootstrap import extraer_sentencias_esquema
+
+        schema = (
+            Path(app_module.__file__).resolve().parent
+            / 'database_schema.sql'
+        ).read_text(encoding='utf-8')
+        sentencias = extraer_sentencias_esquema(schema)
+        self.assertFalse(
+            any(
+                sentencia.upper().startswith('CREATE DATABASE')
+                or sentencia.upper().startswith('USE ')
+                for sentencia in sentencias
+            )
+        )
+        creadas = set()
+        for sentencia in sentencias:
+            match = re.search(
+                r'CREATE TABLE IF NOT EXISTS\s+([a-z_]+)',
+                sentencia,
+                re.IGNORECASE,
+            )
+            if match:
+                creadas.add(match.group(1))
+        self.assertTrue(
+            set(app_module.REQUIRED_TENANT_TABLES).issubset(creadas)
+        )
+        for table in app_module.REQUIRED_TENANT_TABLES:
+            with self.subTest(table=table):
+                match = re.search(
+                    rf'CREATE TABLE IF NOT EXISTS {table}\s*\((.*?)\)'
+                    r'\s*ENGINE=',
+                    schema,
+                    re.DOTALL,
+                )
+                self.assertIsNotNone(match)
+                self.assertRegex(match.group(1), r'\btenant_id\s+INT\b')
+
+    def test_production_startup_bootstraps_schema_before_validation(self):
+        import core.config as config_module
+
+        with (
+            patch(
+                'core.schema_bootstrap.bootstrap_required_schema'
+            ) as bootstrap,
+            patch.object(config_module, 'validate_required_tenant_schema'),
+            patch.object(
+                config_module,
+                'url_publica_base',
+                return_value='https://www.clinicrd.com',
+            ),
+            patch.dict('os.environ', {'RAILWAY_ENVIRONMENT': ''}, clear=False),
+        ):
+            config_module.validate_production_startup()
+        bootstrap.assert_called_once()
+
     def test_login_template_contains_no_fixed_credentials(self):
         template = (
             Path(app_module.__file__).resolve().parent
@@ -810,7 +866,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         ):
             datos = config.construir_database_config()
         self.assertEqual(datos['host'], 'mysql.railway.internal')
-        self.assertEqual(datos['database'], 'railway')
+        self.assertEqual(datos['database'], 'facturacion_medica')
 
     def test_mysql_config_prefers_railway_public_url(self):
         import core.config as config
@@ -819,6 +875,8 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             'os.environ',
             {
                 'RAILWAY_ENVIRONMENT': 'production',
+                'MYSQL_DATABASE': '',
+                'MYSQLDATABASE': '',
                 'MYSQL_URL': 'mysql://user:pass@mysql.railway.internal:3306/railway',
                 'MYSQL_PUBLIC_URL': 'mysql://user:pass@maglev.proxy.rlwy.net:12345/railway',
             },
@@ -827,6 +885,43 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             datos = config.construir_database_config()
         self.assertEqual(datos['host'], 'maglev.proxy.rlwy.net')
         self.assertEqual(datos['port'], 12345)
+        self.assertEqual(datos['database'], 'railway')
+
+    def test_mysql_database_overrides_railway_url_schema(self):
+        import core.config as config
+
+        with patch.dict(
+            'os.environ',
+            {
+                'RAILWAY_ENVIRONMENT': 'production',
+                'MYSQL_DATABASE': 'facturacion_medica',
+                'MYSQLDATABASE': 'railway',
+                'MYSQL_URL': 'mysql://user:pass@mysql.railway.internal:3306/railway',
+                'MYSQL_PUBLIC_URL': 'mysql://user:pass@maglev.proxy.rlwy.net:12345/railway',
+            },
+            clear=False,
+        ):
+            datos = config.construir_database_config()
+        self.assertEqual(datos['host'], 'maglev.proxy.rlwy.net')
+        self.assertEqual(datos['database'], 'facturacion_medica')
+
+    def test_mysqldatabase_overrides_url_schema(self):
+        import core.config as config
+
+        with patch.dict(
+            'os.environ',
+            {
+                'RAILWAY_ENVIRONMENT': 'production',
+                'MYSQL_DATABASE': '',
+                'MYSQLDATABASE': 'facturacion_medica',
+                'MYSQL_URL': 'mysql://user:pass@ballast.proxy.rlwy.net:10669/drashirley',
+                'MYSQL_PUBLIC_URL': '',
+            },
+            clear=False,
+        ):
+            datos = config.construir_database_config()
+        self.assertEqual(datos['host'], 'ballast.proxy.rlwy.net')
+        self.assertEqual(datos['database'], 'facturacion_medica')
 
     def test_mysql_url_accepts_query_and_encoded_password(self):
         import core.config as config

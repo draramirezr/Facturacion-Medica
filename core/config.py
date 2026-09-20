@@ -48,6 +48,22 @@ def _es_host_interno_railway(host):
     return str(host or '').endswith('.railway.internal')
 
 
+def _nombre_base_datos(url_config=None, en_railway=False):
+    """El nombre explícito gana sobre el path de MYSQL_URL."""
+    explicita = _primer_env('MYSQL_DATABASE', 'MYSQLDATABASE')
+    if explicita:
+        return explicita
+    if url_config and url_config.get('database'):
+        return url_config['database']
+    return 'railway' if en_railway else 'facturacion_medica'
+
+
+def _con_base_datos(config, en_railway=False):
+    ajustada = dict(config)
+    ajustada['database'] = _nombre_base_datos(config, en_railway=en_railway)
+    return ajustada
+
+
 def construir_database_config():
     """Resolver MySQL para local y Railway (MYSQLHOST / MYSQL_URL)."""
     url_privada = parse_mysql_url(
@@ -61,26 +77,24 @@ def construir_database_config():
     if en_railway and url_publica and (
         not url_privada or _es_host_interno_railway(url_privada.get('host'))
     ):
-        return url_publica
+        return _con_base_datos(url_publica, en_railway=True)
     if url_privada:
-        return url_privada
+        return _con_base_datos(url_privada, en_railway=en_railway)
     if url_publica:
-        return url_publica
+        return _con_base_datos(url_publica, en_railway=en_railway)
 
     host = _primer_env('MYSQL_HOST', 'MYSQLHOST', default='localhost')
     if host in {'localhost', '127.0.0.1'} and host_railway:
         host = host_railway
     if en_railway and url_publica and _es_host_interno_railway(host):
-        return url_publica
+        return _con_base_datos(url_publica, en_railway=True)
 
     if en_railway:
         return {
             'host': host,
             'user': _primer_env('MYSQLUSER', 'MYSQL_USER', default='root'),
             'password': _primer_env('MYSQLPASSWORD', 'MYSQL_PASSWORD'),
-            'database': _primer_env(
-                'MYSQLDATABASE', 'MYSQL_DATABASE', default='railway',
-            ),
+            'database': _nombre_base_datos(en_railway=True),
             'port': int(_primer_env('MYSQLPORT', 'MYSQL_PORT', default='3306')),
             'charset': 'utf8mb4',
         }
@@ -89,9 +103,7 @@ def construir_database_config():
         'host': host,
         'user': _primer_env('MYSQL_USER', 'MYSQLUSER', default='root'),
         'password': _primer_env('MYSQL_PASSWORD', 'MYSQLPASSWORD'),
-        'database': _primer_env(
-            'MYSQL_DATABASE', 'MYSQLDATABASE', default='facturacion_medica',
-        ),
+        'database': _nombre_base_datos(),
         'port': int(_primer_env('MYSQL_PORT', 'MYSQLPORT', default='3306')),
         'charset': 'utf8mb4',
     }
@@ -202,4 +214,7 @@ def validate_production_startup():
             'MySQL apunta a localhost. En Railway vincula el servicio MySQL '
             'y no definas MYSQL_HOST=localhost. Usa MYSQL_URL o MYSQLHOST.'
         )
+    from core.schema_bootstrap import bootstrap_required_schema
+
+    bootstrap_required_schema()
     validate_required_tenant_schema()
