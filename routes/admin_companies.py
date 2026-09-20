@@ -11,6 +11,7 @@ from core.database import execute_query, execute_update
 from auth.helpers import usuario_es_dueno_software
 from core.tenant import get_current_tenant_id
 from routes.support import sanitize_input, validate_digits, validate_email, validate_int
+from services.catalogos_ars import sembrar_ars_tenant
 from services.subscriptions import (
     inactivar_demos_vencidos,
     verificar_suscripciones_vencidas,
@@ -196,7 +197,7 @@ def admin_empresas_nueva():
     if execute_query('SELECT id FROM empresas WHERE nombre=%s', (values['nombre'],)):
         flash('Ya existe una empresa con ese nombre', 'error')
         return redirect(url_for('admin_empresas_nueva'))
-    execute_update(
+    empresa_id = execute_update(
         """
         INSERT INTO empresas (
             nombre, razon_social, rnc, telefono, email, direccion,
@@ -212,6 +213,7 @@ def admin_empresas_nueva():
             values['tipo_empresa'], current_user.id,
         ),
     )
+    sembrar_ars_tenant(empresa_id)
     flash(f'Empresa "{values["nombre"]}" creada exitosamente', 'success')
     return redirect(url_for('admin_empresas'))
 

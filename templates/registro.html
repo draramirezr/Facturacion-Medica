@@ -39,7 +39,7 @@
             border-radius: 24px;
             box-shadow: 0 20px 60px rgba(206, 176, 183, 0.3);
             overflow: hidden;
-            max-width: 520px;
+            max-width: 760px;
             width: 100%;
             border: 1px solid rgba(255, 255, 255, 0.8);
         }
@@ -184,7 +184,8 @@
                     <label for="telefono">Número telefónico</label>
                     <input type="tel" id="telefono" name="telefono" required
                            inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10"
-                           autocomplete="tel" placeholder="8095551234"
+                           data-digits-only="10" autocomplete="tel" placeholder="8095551234"
+                           title="Solo 10 números"
                            value="{{ request.form.telefono if request.form else '' }}">
                     <p class="hint">Ingresa 10 números, sin espacios ni guiones</p>
                 </div>
@@ -213,5 +214,21 @@
     </div>
     <script src="{{ url_for('static', filename='js/csrf.js') }}?v=1"></script>
     <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=1"></script>
+    <script nonce="{{ csp_nonce }}">
+        document.querySelectorAll('[data-digits-only]').forEach((input) => {
+            const maxLength = Number.parseInt(input.dataset.digitsOnly, 10);
+            const soloNumeros = () => {
+                const digits = input.value.replace(/\D/g, '');
+                input.value = Number.isFinite(maxLength)
+                    ? digits.slice(0, maxLength)
+                    : digits;
+            };
+            input.addEventListener('input', soloNumeros);
+            input.addEventListener('paste', () => {
+                requestAnimationFrame(soloNumeros);
+            });
+            soloNumeros();
+        });
+    </script>
 </body>
 </html>

@@ -130,8 +130,7 @@ html[data-color-mode="dark"] :is(.button-secondary, .btn-secondary, .btn-outline
     color: #dbe5ef !important;
 }
 
-html[data-color-mode="dark"] .cta-card,
-html[data-color-mode="dark"] .plan-option.featured {
+html[data-color-mode="dark"] .cta-card {
     background: linear-gradient(145deg, #102722, #111a2b) !important;
     border-color: #285349 !important;
 }

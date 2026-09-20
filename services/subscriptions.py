@@ -35,6 +35,9 @@ def get_empresa_info(tenant_id=None):
     tenant_id = get_current_tenant_id() if tenant_id is None else tenant_id
     if not tenant_id:
         return None
+    from services.catalogos_ars import sembrar_ars_tenant
+
+    sembrar_ars_tenant(tenant_id)
     return execute_query('SELECT * FROM empresas WHERE id=%s', (tenant_id,))
 
 

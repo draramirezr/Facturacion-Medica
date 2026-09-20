@@ -9,6 +9,7 @@ from io import BytesIO
 
 from core.database import execute_query, execute_update, database_transaction
 from core.presentation import PRODUCTO, SOPORTE_EMAIL_PREDETERMINADO
+from services.catalogos_ars import sembrar_ars_tenant
 
 logger = logging.getLogger(__name__)
 
@@ -253,6 +254,7 @@ def activar_demo_solicitud(solicitud_id):
             )
             if not empresa_id:
                 raise RuntimeError('No se pudo crear la empresa demo')
+            sembrar_ars_tenant(empresa_id)
             if not usuario:
                 clave = _clave_temporal_demo()
                 from werkzeug.security import generate_password_hash

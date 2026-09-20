@@ -14,6 +14,7 @@ from routes.support import (
     ESPECIALIDADES_MEDICAS, get_especialidad_form, sanitize_input,
     validate_digits, validate_email,
 )
+from services.catalogos_ars import sembrar_ars_tenant
 from services.subscriptions import get_empresa_info
 
 NCF_TIPOS_TRADICIONALES = {
@@ -36,6 +37,7 @@ def facturacion_ars():
     """Lista de ARS - Filtrado por tenant"""
     
     tenant_id = get_current_tenant_id()
+    sembrar_ars_tenant(tenant_id)
     ars_list = execute_query(
         'SELECT * FROM ars WHERE tenant_id = %s ORDER BY nombre', 
         (tenant_id,), fetch='all'

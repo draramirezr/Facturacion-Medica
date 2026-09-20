@@ -15,12 +15,13 @@ from auth.helpers import destino_inicio_sesion
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from auth.models import User
-from core.config import ENVIRONMENT, IS_PRODUCTION
+from core.config import ENVIRONMENT, IS_PRODUCTION, url_publica_base
 from core.database import database_transaction, execute_query, execute_update
 from core.security import rate_limit, rate_limit_lock, request_counts
 from routes.support import (
     sanitize_input, validar_password_segura, validate_digits, validate_email,
 )
+from services.catalogos_ars import sembrar_ars_tenant
 from services.platform import asegurar_tablas_plataforma
 from services.subscriptions import (
     check_license_available, verificar_suscripciones_vencidas,
@@ -217,6 +218,7 @@ def registro():
     fecha_inicio = date.today()
     fecha_fin = fecha_inicio + timedelta(days=7)
     asegurar_tablas_plataforma()
+    _asegurar_columnas_activacion()
     try:
         with database_transaction():
             empresa_id = execute_update(
@@ -238,13 +240,14 @@ def registro():
                 """
                 INSERT INTO usuarios (
                     tenant_id, nombre, email, password_hash, perfil,
-                    activo, password_temporal
-                ) VALUES (%s,%s,%s,%s,'Administrador',1,0)
+                    activo, password_temporal, email_verificado
+                ) VALUES (%s,%s,%s,%s,'Administrador',1,0,1)
                 """,
                 (empresa_id, nombre, email, generate_password_hash(password)),
             )
             if not user_id:
                 raise RuntimeError('No se pudo crear el usuario administrador')
+            sembrar_ars_tenant(empresa_id)
         flash('Demo de 7 días activado. Ya puedes iniciar sesión.', 'success')
         return redirect(url_for('login'))
     except Exception as error:
@@ -519,9 +522,131 @@ def recuperar_password(token):
     return redirect(url_for('login'))
 
 
+def _asegurar_columnas_activacion():
+    if execute_query("SHOW COLUMNS FROM usuarios LIKE 'email_verificado'"):
+        return
+    execute_update(
+        'ALTER TABLE usuarios '
+        'ADD COLUMN email_verificado TINYINT(1) NOT NULL DEFAULT 1'
+    )
+    execute_update(
+        'ALTER TABLE usuarios ADD COLUMN activacion_token VARCHAR(255) NULL'
+    )
+    execute_update(
+        'ALTER TABLE usuarios '
+        'ADD COLUMN activacion_token_expiracion DATETIME NULL'
+    )
+
+
+def _url_absoluta(endpoint, **valores):
+    base = url_publica_base().strip()
+    if base:
+        return urljoin(
+            base.rstrip('/') + '/',
+            url_for(endpoint, **valores).lstrip('/'),
+        )
+    if not IS_PRODUCTION:
+        return url_for(endpoint, _external=True, **valores)
+    raise RuntimeError('APP_BASE_URL no está configurada')
+
+
+def _enviar_correo_activacion(usuario, email):
+    token = usuario.get('activacion_token')
+    if not token:
+        token = secrets.token_urlsafe(32)
+        execute_update(
+            '''
+            UPDATE usuarios
+            SET activacion_token=%s, activacion_token_expiracion=%s
+            WHERE email=%s
+            ''',
+            (token, datetime.now() + timedelta(hours=48), email),
+        )
+    if not SENDGRID_AVAILABLE:
+        if (
+            ENVIRONMENT == 'development'
+            and os.getenv('ALLOW_INSECURE_DEV_RESET_TOKEN', '').lower() == 'true'
+        ):
+            try:
+                enlace = _url_absoluta('activar_cuenta', token=token)
+            except Exception:
+                enlace = token
+            flash(f'Enlace de activación (solo desarrollo): {enlace}', 'info')
+            return True
+        logger.error('Registro sin proveedor de correo para activar la cuenta.')
+        return False
+    try:
+        enlace = _url_absoluta('activar_cuenta', token=token)
+        mensaje = Mail(
+            from_email=os.getenv(
+                'SENDGRID_FROM_EMAIL',
+                os.getenv('EMAIL_FROM', 'noreply@clinicrd.com'),
+            ),
+            to_emails=email,
+            subject='Activa tu cuenta de ClinicRD',
+            html_content=(
+                f'<p>Hola {usuario.get("nombre") or ""},</p>'
+                '<p>Para entrar la primera vez, abre este enlace:</p>'
+                f'<p><a href="{enlace}">Activar mi cuenta</a></p>'
+                '<p>El enlace vence en 48 horas. Sin abrirlo no podrás iniciar sesión.</p>'
+            ),
+        )
+        SendGridAPIClient(os.getenv('SENDGRID_API_KEY')).send(mensaje)
+        return True
+    except Exception as error:
+        logger.error('Error enviando correo de activación: %s', error)
+        return False
+
+
+@rate_limit(max_requests=10, window=300)
+def activar_cuenta(token):
+    if current_user.is_authenticated:
+        return redirect(url_for(destino_inicio_sesion(current_user)))
+    usuario = execute_query(
+        '''
+        SELECT u.*, e.nombre AS empresa_nombre
+        FROM usuarios u
+        LEFT JOIN empresas e ON u.tenant_id = e.id
+        WHERE u.activacion_token=%s
+          AND u.activacion_token_expiracion > %s
+        ''',
+        (token, datetime.now()),
+    )
+    if not usuario:
+        flash(
+            'El enlace no es válido o ya venció. '
+            'Revisa tu correo o solicita ayuda a soporte.',
+            'error',
+        )
+        return redirect(url_for('login'))
+    execute_update(
+        '''
+        UPDATE usuarios
+        SET email_verificado=1,
+            activacion_token=NULL,
+            activacion_token_expiracion=NULL,
+            last_login=%s
+        WHERE id=%s
+        ''',
+        (datetime.now(), usuario['id']),
+    )
+    user = _build_user({**usuario, 'email_verificado': 1})
+    session.permanent = True
+    session['tenant_id'] = user.tenant_id
+    session['empresa_nombre'] = user.empresa_nombre
+    login_user(user, remember=True)
+    flash('Cuenta activada. Bienvenido a ClinicRD.', 'success')
+    return redirect(url_for(destino_inicio_sesion(user)))
+
+
 def register_auth_routes(app):
     app.add_url_rule('/login', 'login', login, methods=['GET', 'POST'])
     app.add_url_rule('/registro', 'registro', registro, methods=['GET', 'POST'])
+    app.add_url_rule(
+        '/activar-cuenta/<token>',
+        'activar_cuenta',
+        activar_cuenta,
+    )
     app.add_url_rule('/logout', 'logout', logout)
     app.add_url_rule(
         '/mi-cuenta/cambiar-password',

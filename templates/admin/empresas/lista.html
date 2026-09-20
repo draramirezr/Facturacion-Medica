@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Gestión de Empresas - Sistema Multi-Tenant{% endblock %}
+{% block title %}Gestión de Empresas - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
@@ -193,16 +193,39 @@
         margin-bottom: 0.5rem;
     }
 
+    .empresas-page { max-width: 1400px; }
     .col-razon { width: 28%; }
-    .col-licencias { width: 13%; }
-    .col-usuarios { width: 9%; }
-    .col-suscripcion { width: 16%; }
-    .col-plan { width: 10%; }
-    .col-estado { width: 9%; }
+    .col-licencias { width: 12%; }
+    .col-usuarios { width: 8%; }
+    .col-meta { width: 37%; }
     .col-acciones { width: 15%; }
     .licencias-count { font-size: 0.85rem; font-weight: 600; }
-    .subscription-badge-small { font-size: 0.75rem; }
     .empty-icon { font-size: 3rem; color: var(--text-muted); opacity: 0.5; }
+    .empresa-meta {
+        display: flex;
+        flex-wrap: nowrap;
+        align-items: center;
+        gap: 0.45rem;
+    }
+    .empresa-meta .meta-chip {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 32px;
+        padding: 0 0.75rem;
+        border-radius: 999px;
+        font-size: 0.78rem;
+        font-weight: 600;
+        white-space: nowrap;
+        line-height: 1;
+        background: {{ tema.primary }}20;
+        color: {{ tema.primary_dark }};
+        border: 1px solid {{ tema.primary }}40;
+    }
+    .meta-chip-estado { min-width: 6.8rem; }
+    .meta-chip-plan { min-width: 7.4rem; }
+    .meta-chip-vence { min-width: 9.6rem; }
+    .meta-chip-tipo { min-width: 4.6rem; }
 
     {% for empresa in empresas %}
     .licencias-fill-{{ empresa['id'] }} {
@@ -211,7 +234,7 @@
     {% endfor %}
 </style>
 
-<div class="container py-5">
+<div class="container-fluid empresas-page py-5 px-4">
     <!-- Hero -->
     <div class="empresas-hero">
         <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -248,9 +271,7 @@
                         <th class="col-razon">Razón Social</th>
                         <th class="col-licencias">Licencias</th>
                         <th class="col-usuarios">Usuarios</th>
-                        <th class="col-suscripcion">Suscripción</th>
-                        <th class="col-plan">Plan</th>
-                        <th class="col-estado">Estado</th>
+                        <th class="col-meta">Plan y estado</th>
                         <th class="text-center col-acciones">Acciones</th>
                     </tr>
                 </thead>
@@ -272,29 +293,22 @@
                             <strong>{{ empresa['total_usuarios'] }}</strong>
                         </td>
                         <td>
-                            {% if empresa.get('fecha_fin') %}
-                                <span class="badge subscription-badge subscription-badge-small">
-                                    <i class="fas fa-{{ empresa['estado_icono'] }}"></i> {{ empresa['estado_texto'] }}
-                                </span><br>
-                                <small class="text-muted">Vence: {{ empresa['fecha_fin'] }}</small>
-                            {% else %}
-                                <span class="badge subscription-badge subscription-badge-small">
-                                    <i class="fas fa-calendar"></i> Sin fecha
+                            <div class="empresa-meta">
+                                <span class="meta-chip meta-chip-estado">
+                                    <i class="fas fa-{{ empresa['estado_icono'] }} me-1"></i>{{ empresa['estado_texto'] }}
                                 </span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="badge-plan badge-{{ empresa['plan'] }}">
-                                {{ empresa['plan']|title }}
-                            </span>
-                            {% if empresa.get('es_demo') %}
-                            <br><small class="text-muted">Demo</small>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <span class="badge-estado badge-{{ empresa['estado'] }}">
-                                {{ empresa['estado']|title }}
-                            </span>
+                                <span class="meta-chip meta-chip-plan">{{ empresa['plan']|title }}</span>
+                                <span class="meta-chip meta-chip-vence">
+                                    {% if empresa.get('fecha_fin') %}
+                                    Vence {{ empresa['fecha_fin'] }}
+                                    {% else %}
+                                    Sin fecha
+                                    {% endif %}
+                                </span>
+                                <span class="meta-chip meta-chip-tipo">
+                                    {{ 'Demo' if empresa.get('es_demo') else empresa['estado']|title }}
+                                </span>
+                            </div>
                         </td>
                         <td class="text-center col-acciones">
                             <div class="acciones-fila">

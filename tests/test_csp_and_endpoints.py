@@ -445,6 +445,8 @@ class CSPAndEndpointTests(unittest.TestCase):
                     'database_transaction',
                     return_value=nullcontext(),
                 ),
+                patch.object(auth_routes, 'sembrar_ars_tenant'),
+                patch.object(auth_routes, '_asegurar_columnas_activacion'),
             ):
                 response = handler()
 
@@ -452,6 +454,87 @@ class CSPAndEndpointTests(unittest.TestCase):
         company_insert, company_params = updates.call_args_list[0].args
         self.assertIn('telefono', company_insert)
         self.assertIn('8095551234', company_params)
+
+    def test_login_allows_unverified_registration_until_email_is_ready(self):
+        handler = auth_routes.login
+        while hasattr(handler, '__wrapped__'):
+            handler = handler.__wrapped__
+        user_data = {
+            'id': 12,
+            'nombre': 'Nuevo',
+            'email': 'nuevo@example.com',
+            'perfil': 'Administrador',
+            'password_hash': 'hash',
+            'activo': 1,
+            'email_verificado': 0,
+            'password_temporal': 0,
+            'tenant_id': 4,
+            'empresa_nombre': 'Consultorio',
+            'empresa_estado': 'activo',
+            'empresa_fecha_fin': None,
+            'empresa_es_demo': 1,
+        }
+        built = SimpleNamespace(id=12, tenant_id=4, empresa_nombre='Consultorio')
+        with self.flask_app.test_request_context(
+            '/login',
+            method='POST',
+            data={'email': 'nuevo@example.com', 'password': 'Segura123!'},
+        ):
+            with (
+                patch.object(auth_routes, 'verificar_suscripciones_vencidas'),
+                patch.object(auth_routes, 'execute_query', return_value=user_data),
+                patch.object(
+                    auth_routes, 'check_password_hash', return_value=True,
+                ),
+                patch.object(auth_routes, 'execute_update'),
+                patch.object(auth_routes, '_build_user', return_value=built),
+                patch.object(auth_routes, 'login_user') as login_user,
+                patch.object(
+                    auth_routes, 'destino_inicio_sesion',
+                    return_value='facturacion_menu',
+                ),
+                patch.object(
+                    auth_routes, 'url_retorno_segura',
+                    return_value='/facturacion',
+                ),
+            ):
+                response = handler()
+        self.assertEqual(response.status_code, 302)
+        login_user.assert_called_once()
+
+    def test_activation_link_logs_in_first_time(self):
+        handler = auth_routes.activar_cuenta
+        while hasattr(handler, '__wrapped__'):
+            handler = handler.__wrapped__
+        user_data = {
+            'id': 12,
+            'nombre': 'Nuevo',
+            'email': 'nuevo@example.com',
+            'perfil': 'Administrador',
+            'tenant_id': 4,
+            'empresa_nombre': 'Consultorio',
+        }
+        with self.flask_app.test_request_context('/activar-cuenta/token-ok'):
+            with (
+                patch.object(
+                    auth_routes,
+                    'current_user',
+                    SimpleNamespace(is_authenticated=False),
+                ),
+                patch.object(auth_routes, 'execute_query', return_value=user_data),
+                patch.object(auth_routes, 'execute_update'),
+                patch.object(auth_routes, 'login_user') as login_user,
+                patch.object(auth_routes, '_build_user', return_value=SimpleNamespace(
+                    id=12, tenant_id=4, empresa_nombre='Consultorio',
+                )),
+                patch.object(
+                    auth_routes, 'destino_inicio_sesion',
+                    return_value='facturacion_menu',
+                ),
+            ):
+                response = handler('token-ok')
+        self.assertEqual(response.status_code, 302)
+        login_user.assert_called_once()
 
 
 if __name__ == '__main__':

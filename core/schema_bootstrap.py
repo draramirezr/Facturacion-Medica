@@ -88,6 +88,30 @@ def _sembrar_permisos(cursor, database):
         )
 
 
+def _asegurar_columnas_activacion(cursor, database):
+    columnas = {
+        'email_verificado': 'TINYINT(1) NOT NULL DEFAULT 1',
+        'activacion_token': 'VARCHAR(255) NULL',
+        'activacion_token_expiracion': 'DATETIME NULL',
+    }
+    for nombre, definicion in columnas.items():
+        cursor.execute(
+            '''
+            SELECT 1
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'usuarios'
+              AND COLUMN_NAME = %s
+            ''',
+            (database, nombre),
+        )
+        if cursor.fetchone():
+            continue
+        cursor.execute(
+            f'ALTER TABLE usuarios ADD COLUMN `{nombre}` {definicion}'
+        )
+
+
 def bootstrap_required_schema(connection_factory=None):
     """Crear tablas faltantes en la base actual y sembrar permisos."""
     factory = connection_factory or pymysql.connect
@@ -112,6 +136,7 @@ def bootstrap_required_schema(connection_factory=None):
                     cursor.execute(sentencia)
                 aplicadas = True
             _sembrar_permisos(cursor, database)
+            _asegurar_columnas_activacion(cursor, database)
         connection.commit()
     except Exception:
         try:
