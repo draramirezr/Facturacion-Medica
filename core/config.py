@@ -44,22 +44,34 @@ def _primer_env(*nombres, default=''):
     return default
 
 
+def _es_host_interno_railway(host):
+    return str(host or '').endswith('.railway.internal')
+
+
 def construir_database_config():
     """Resolver MySQL para local y Railway (MYSQLHOST / MYSQL_URL)."""
-    for clave in ('MYSQL_URL', 'DATABASE_URL'):
-        url = os.getenv(clave, '').strip()
-        if not url:
-            continue
-        parsed = parse_mysql_url(url)
-        if parsed:
-            return parsed
-        raise RuntimeError(f'{clave} inválida')
-
+    url_privada = parse_mysql_url(
+        _primer_env('MYSQL_URL', 'DATABASE_URL')
+    )
+    url_publica = parse_mysql_url(os.getenv('MYSQL_PUBLIC_URL', '').strip())
     host_railway = os.getenv('MYSQLHOST', '').strip()
     en_railway = bool(os.getenv('RAILWAY_ENVIRONMENT') or host_railway)
+
+    # La red privada de Railway a veces no resuelve mysql.railway.internal.
+    if en_railway and url_publica and (
+        not url_privada or _es_host_interno_railway(url_privada.get('host'))
+    ):
+        return url_publica
+    if url_privada:
+        return url_privada
+    if url_publica:
+        return url_publica
+
     host = _primer_env('MYSQL_HOST', 'MYSQLHOST', default='localhost')
     if host in {'localhost', '127.0.0.1'} and host_railway:
         host = host_railway
+    if en_railway and url_publica and _es_host_interno_railway(host):
+        return url_publica
 
     if en_railway:
         return {

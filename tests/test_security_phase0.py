@@ -812,6 +812,22 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertEqual(datos['host'], 'mysql.railway.internal')
         self.assertEqual(datos['database'], 'railway')
 
+    def test_mysql_config_prefers_railway_public_url(self):
+        import core.config as config
+
+        with patch.dict(
+            'os.environ',
+            {
+                'RAILWAY_ENVIRONMENT': 'production',
+                'MYSQL_URL': 'mysql://user:pass@mysql.railway.internal:3306/railway',
+                'MYSQL_PUBLIC_URL': 'mysql://user:pass@maglev.proxy.rlwy.net:12345/railway',
+            },
+            clear=False,
+        ):
+            datos = config.construir_database_config()
+        self.assertEqual(datos['host'], 'maglev.proxy.rlwy.net')
+        self.assertEqual(datos['port'], 12345)
+
     def test_mysql_url_accepts_query_and_encoded_password(self):
         import core.config as config
 
