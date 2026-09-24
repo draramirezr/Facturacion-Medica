@@ -15,6 +15,16 @@ from core.presentation import hora_input
 from routes.support import sanitize_input, validate_int
 
 
+ESTADOS_REAGENDABLES = frozenset({
+    'Programada', 'Confirmada', 'No asistió', 'Vencida', 'Cancelada',
+})
+
+
+def cita_se_puede_reagendar(cita):
+    """Permitir cambiar fecha y hora salvo que la cita ya se haya completado."""
+    return bool(cita) and cita.get('estado') in ESTADOS_REAGENDABLES
+
+
 def fecha_prellenada_agenda(valor=None):
     """Aceptar solo una fecha ISO válida para prellenar el formulario."""
     candidato = (valor if valor is not None else request.args.get('fecha') or '').strip()
@@ -94,6 +104,8 @@ def validar_formulario_cita(tenant_id, cita_id=None):
     motivo = sanitize_input(request.form.get('motivo', ''), 2000)
     notas = sanitize_input(request.form.get('notas', ''), 3000)
     estado = request.form.get('estado', 'Programada').strip()
+    if request.form.get('accion') == 'reagendar':
+        estado = 'Programada'
     estados_validos = [
         'Programada', 'Confirmada', 'Completada',
         'Cancelada', 'No asistió', 'Vencida'
@@ -359,28 +371,62 @@ def facturacion_cita_editar(cita_id):
             flash(error, 'error')
             return render_template(
                 'facturacion/cita_form.html', cita=cita,
-                consulta_origen=None, form_data=request.form, **contexto
+                consulta_origen=None, form_data=request.form,
+                puede_reagendar=cita_se_puede_reagendar(cita),
+                modo_reagendar=request.form.get('accion') == 'reagendar',
+                **contexto
             )
+        notas = datos['notas'] or ''
+        if request.form.get('accion') == 'reagendar':
+            if not cita_se_puede_reagendar(cita):
+                flash('Esta cita no se puede reagendar', 'error')
+                return redirect(url_for('facturacion_cita_editar', cita_id=cita_id))
+            datos['estado'] = 'Programada'
+            previa = (
+                f"{cita.get('fecha')} {hora_input(cita.get('hora'))}".strip()
+            )
+            motivo_reagendar = sanitize_input(
+                request.form.get('motivo_reagendar', ''), 1000
+            )
+            linea = f'Reagendada (antes {previa})'
+            if motivo_reagendar:
+                linea += f': {motivo_reagendar}'
+            notas = f'{notas}\n{linea}'.strip() if notas else linea
         execute_update('''
             UPDATE citas_medicas SET
                 paciente_id=%s, medico_id=%s, fecha=%s, hora=%s,
                 duracion_minutos=%s, especialidad=%s, motivo=%s,
-                notas=%s, estado=%s, updated_by=%s
+                notas=%s, estado=%s, updated_by=%s,
+                cancelada_por=%s, fecha_cancelacion=%s, motivo_cancelacion=%s
             WHERE id=%s AND tenant_id=%s
         ''', (
             datos['paciente_id'], datos['medico_id'], datos['fecha'],
             datos['hora'], datos['duracion'], datos['especialidad'],
-            datos['motivo'], datos['notas'], datos['estado'],
-            current_user.id, cita_id, tenant_id
+            datos['motivo'], notas or None, datos['estado'],
+            current_user.id,
+            None if request.form.get('accion') == 'reagendar' else cita.get('cancelada_por'),
+            None if request.form.get('accion') == 'reagendar' else cita.get('fecha_cancelacion'),
+            None if request.form.get('accion') == 'reagendar' else cita.get('motivo_cancelacion'),
+            cita_id, tenant_id
         ))
-        flash('Cita actualizada correctamente', 'success')
+        if request.form.get('accion') == 'reagendar':
+            flash(
+                f"Cita reagendada para el {datos['fecha'].strftime('%d/%m/%Y')} "
+                f"a las {datos['hora'].strftime('%H:%M')}",
+                'success',
+            )
+        else:
+            flash('Cita actualizada correctamente', 'success')
         return redirect(url_for(
             'facturacion_citas', vista='mes',
             mes=datos['fecha'].strftime('%Y-%m')
         ))
     return render_template(
         'facturacion/cita_form.html', cita=cita,
-        consulta_origen=None, form_data=cita, **contexto
+        consulta_origen=None, form_data=cita,
+        puede_reagendar=cita_se_puede_reagendar(cita),
+        modo_reagendar=request.args.get('reagendar') == '1',
+        **contexto
     )
 
 

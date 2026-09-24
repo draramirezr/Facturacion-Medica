@@ -1,6 +1,11 @@
 """Administraci?n de roles, usuarios y perfil."""
 
-from flask import current_app, flash, redirect, render_template, request, url_for
+import json
+
+from flask import (
+    Response, current_app, flash, redirect, render_template, request,
+    send_file, stream_with_context, url_for,
+)
 from flask_login import current_user, login_required, logout_user
 from werkzeug.security import generate_password_hash
 
@@ -15,6 +20,9 @@ from routes.support import (
 )
 from services.ecf_operations import obtener_configuracion_ecf_tenant
 from services.subscriptions import check_license_available, get_empresa_info
+from services.tenant_backup import (
+    generar_backup_eventos, generar_backup_excel, nombre_archivo_backup,
+)
 
 def obtener_rol_tenant(rol_id, tenant_id):
     return execute_query(
@@ -711,6 +719,40 @@ def perfil_configuracion():
         ecf_certificado=ecf_certificado,
     )
 
+
+@login_required
+@permission_required('configuracion.backup')
+def perfil_descargar_backup():
+    """Descargar un Excel con los datos de la empresa, una hoja por módulo."""
+    tenant_id = get_current_tenant_id()
+    if not tenant_id:
+        flash('No hay una empresa asociada a tu usuario.', 'error')
+        return redirect(url_for('perfil_configuracion'))
+    if request.args.get('progreso') == '1':
+        def stream():
+            for evento in generar_backup_eventos(tenant_id):
+                contenido = evento.pop('contenido', None)
+                yield (json.dumps(evento, ensure_ascii=False) + '\n').encode('utf-8')
+                if contenido is not None:
+                    yield b'\x1e'
+                    yield contenido
+        return Response(
+            stream_with_context(stream()),
+            mimetype='application/octet-stream',
+            headers={
+                'Cache-Control': 'no-store',
+                'X-Accel-Buffering': 'no',
+            },
+        )
+    archivo = generar_backup_excel(tenant_id)
+    return send_file(
+        archivo,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        as_attachment=True,
+        download_name=nombre_archivo_backup(tenant_id),
+    )
+
+
 def register_user_role_routes(app):
     app.add_url_rule('/admin/roles', endpoint='admin_roles', view_func=admin_roles)
     app.add_url_rule('/admin/roles/nuevo', endpoint='admin_roles_nuevo', view_func=admin_roles_nuevo, methods=['GET', 'POST'])
@@ -722,3 +764,8 @@ def register_user_role_routes(app):
     app.add_url_rule('/admin/usuarios/<int:usuario_id>/editar', endpoint='admin_usuarios_editar', view_func=admin_usuarios_editar, methods=['GET', 'POST'])
     app.add_url_rule('/admin/usuarios/<int:usuario_id>/eliminar', endpoint='admin_usuarios_eliminar', view_func=admin_usuarios_eliminar, methods=['POST'])
     app.add_url_rule('/perfil/configuracion', endpoint='perfil_configuracion', view_func=perfil_configuracion, methods=['GET', 'POST'])
+    app.add_url_rule(
+        '/perfil/configuracion/backup',
+        endpoint='perfil_descargar_backup',
+        view_func=perfil_descargar_backup,
+    )

@@ -13,7 +13,8 @@ from core.database import execute_query, execute_update, transactional_methods
 from core.tenant import get_current_tenant_id
 from routes.patients import paciente_adulto_sin_cedula
 from routes.support import (
-    calcular_edad_clinica, execute_paginated_query, sanitize_input, validate_int,
+    calcular_edad_clinica, execute_paginated_query, id_consulta_retorno,
+    sanitize_input, url_historia_clinica, validate_int,
 )
 
 
@@ -303,6 +304,9 @@ def facturacion_licencias_medicas_nueva():
         datos, error = validar_datos_licencia(tenant_id)
         if error:
             flash(error, 'error')
+            volver = id_consulta_retorno()
+            if volver:
+                return redirect(url_historia_clinica(volver, 'licencias'))
             return render_template(
                 'facturacion/licencia_medica_form.html',
                 licencia=None, form_data=request.form, **contexto
@@ -319,6 +323,9 @@ def facturacion_licencias_medicas_nueva():
         )
         if duplicada:
             flash('Ya existe una licencia igual; se evitó crear un duplicado', 'error')
+            volver = id_consulta_retorno()
+            if volver:
+                return redirect(url_historia_clinica(volver, 'licencias'))
             return render_template(
                 'facturacion/licencia_medica_form.html',
                 licencia=None, form_data=request.form, **contexto
@@ -341,6 +348,9 @@ def facturacion_licencias_medicas_nueva():
                 "Marque la confirmación para continuar.",
                 'warning'
             )
+            volver = id_consulta_retorno()
+            if volver:
+                return redirect(url_historia_clinica(volver, 'licencias'))
             return render_template(
                 'facturacion/licencia_medica_form.html',
                 licencia=None, form_data=request.form,
@@ -390,13 +400,22 @@ def facturacion_licencias_medicas_nueva():
             )
         )
         flash('Licencia médica registrada exitosamente', 'success')
+        volver = id_consulta_retorno()
+        if volver:
+            return redirect(url_historia_clinica(volver, 'licencias'))
         return redirect(url_for(
             'facturacion_licencia_medica_ver', licencia_id=licencia_id
         ))
 
+    consulta_preseleccionada = validate_int(
+        request.args.get('consulta_id'), min_value=1, default=None
+    )
+    form_data = {}
+    if consulta_preseleccionada:
+        form_data['consulta_id'] = consulta_preseleccionada
     return render_template(
         'facturacion/licencia_medica_form.html', licencia=None,
-        form_data={}, fecha_actual=datetime.now().strftime('%Y-%m-%d'),
+        form_data=form_data, fecha_actual=datetime.now().strftime('%Y-%m-%d'),
         **contexto
     )
 

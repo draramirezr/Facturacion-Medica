@@ -118,7 +118,7 @@
             <div><strong>{{ cita['paciente_nombre'] }}</strong><br><small class="text-muted">{{ cita['telefono'] or 'Sin teléfono' }}</small></div>
             <div class="agenda-doctor"><small class="text-muted d-block">Médico</small>{{ cita['medico_nombre'] }}</div>
             <div class="agenda-reason"><small class="text-muted d-block">Motivo</small>{{ cita['motivo']|truncate(60) }}</div>
-            <div class="text-end"><span class="agenda-status">{{ cita['estado'] }}</span><br><a class="btn btn-sm btn-outline-primary mt-2" href="{{ url_for('facturacion_cita_editar',cita_id=cita['id']) }}">Abrir</a></div>
+            <div class="text-end"><span class="agenda-status">{{ cita['estado'] }}</span><br><a class="btn btn-sm btn-outline-primary mt-2" href="{{ url_for('facturacion_cita_editar',cita_id=cita['id']) }}">Abrir</a>{% if can('citas.editar') and cita['estado'] != 'Completada' %}<a class="btn btn-sm btn-outline-secondary mt-2 ms-1" href="{{ url_for('facturacion_cita_editar',cita_id=cita['id'],reagendar=1) }}">Reagendar</a>{% endif %}</div>
         </div>
         {% else %}<div class="text-center text-muted py-5"><i class="far fa-calendar-xmark fa-3x mb-3"></i><p>No hay citas que coincidan.</p></div>{% endfor %}
     </section>

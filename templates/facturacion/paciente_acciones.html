@@ -55,7 +55,7 @@
             <a class="next-step-card next-step-wide" href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=paciente['id']) }}">
                 <i class="fas fa-address-card"></i>
                 <strong>Ver vista 360 del paciente</strong>
-                <small>Datos básicos, historias clínicas, emergencias, consultas, licencias y facturación.</small>
+                <small>Datos básicos, historias, citas, recetas y licencias{% if can('facturacion.ver') and not es_medico_operativo %}, y facturación{% endif %}.</small>
             </a>
             {% endif %}
             {% if can('historia_clinica.crear') %}

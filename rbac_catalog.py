@@ -95,6 +95,11 @@ PERMISOS_POR_GRUPO = {
     "configuracion": (
         ("configuracion.ver", "Ver configuración", "Consultar la configuración de la empresa."),
         ("configuracion.editar", "Editar configuración", "Actualizar la configuración de la empresa."),
+        (
+            "configuracion.backup",
+            "Descargar backup",
+            "Descargar una copia Excel de los datos de la empresa.",
+        ),
     ),
 }
 

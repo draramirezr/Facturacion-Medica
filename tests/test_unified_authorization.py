@@ -34,6 +34,8 @@ class UnifiedAuthorizationTests(unittest.TestCase):
             'facturacion_reclamacion_editar': 'facturacion.editar',
             'facturacion_pago_editar': 'facturacion.editar',
             'facturacion_descargar_pdf': 'facturacion.imprimir',
+            'perfil_descargar_backup': 'configuracion.backup',
+            'facturacion_historia_vincular_documento': 'historia_clinica.ver',
         }
 
         for endpoint, permission in expected.items():

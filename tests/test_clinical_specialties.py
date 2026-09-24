@@ -246,6 +246,136 @@ class ClinicalSpecialtyIntegrationTests(unittest.TestCase):
         ):
             self.assertIn(column, migration)
 
+    def test_vital_signs_warn_when_outside_usual_range(self):
+        self.assertEqual(
+            clinical_history.alertas_signos_vitales({
+                'presion_arterial': '120/80',
+                'frecuencia_cardiaca': 72,
+                'temperatura': 36.8,
+                'saturacion_oxigeno': 98,
+            }),
+            [],
+        )
+        alertas = clinical_history.alertas_signos_vitales({
+            'presion_arterial': '190/120',
+            'frecuencia_cardiaca': 42,
+            'temperatura': 39.5,
+        })
+        self.assertTrue(any('Presión arterial' in item for item in alertas))
+        self.assertTrue(any('Frecuencia cardíaca' in item for item in alertas))
+        self.assertTrue(any('Temperatura' in item for item in alertas))
+
+
+class HistoriaDocumentoLinkTests(unittest.TestCase):
+    def setUp(self):
+        self.flask_app = app_module.app
+        self.flask_app.config.update(TESTING=True)
+
+    @staticmethod
+    def _unwrapped(handler):
+        while hasattr(handler, "__wrapped__"):
+            handler = handler.__wrapped__
+        return handler
+
+    def test_view_template_has_receta_and_licencia_tabs(self):
+        template = (
+            Path(app_module.__file__).resolve().parent
+            / "templates"
+            / "facturacion"
+            / "historia_clinica_ver.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn('id="tab-recetas"', template)
+        self.assertIn('id="tab-licencias"', template)
+        self.assertIn("volver_consulta_id", template)
+        self.assertIn("Relacionar receta existente", template)
+
+    def test_links_existing_recipe_of_same_patient(self):
+        handler = self._unwrapped(
+            clinical_history.facturacion_historia_vincular_documento
+        )
+        updates = []
+        user = SimpleNamespace(id=4, tenant_id=5, is_authenticated=True)
+
+        def execute_update(query, params=()):
+            updates.append((query, params))
+
+        with self.flask_app.test_request_context(
+            "/facturacion/historia-clinica/consulta/8/vincular",
+            method="POST",
+            data={"tipo": "receta", "accion": "vincular", "documento_id": "12"},
+        ), patch.object(
+            clinical_history, "current_user", user
+        ), patch.object(
+            clinical_history, "get_current_tenant_id", return_value=5
+        ), patch.object(
+            clinical_history, "medico_id_historias_restringido", return_value=None
+        ), patch.object(
+            clinical_history,
+            "obtener_consulta_clinica",
+            return_value={"id": 8, "paciente_id": 3},
+        ), patch.object(
+            clinical_history, "user_has_permission", return_value=True
+        ), patch.object(
+            clinical_history,
+            "execute_query",
+            return_value={
+                "id": 12,
+                "paciente_id": 3,
+                "consulta_id": None,
+                "estado": "Emitida",
+            },
+        ), patch.object(
+            clinical_history, "execute_update", side_effect=execute_update
+        ), patch.object(
+            clinical_history, "flash"
+        ):
+            response = handler(8)
+
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("#recetas", response.location)
+        self.assertEqual(updates[0][1], (8, 12, 5))
+
+    def test_does_not_link_document_of_another_patient(self):
+        handler = self._unwrapped(
+            clinical_history.facturacion_historia_vincular_documento
+        )
+        user = SimpleNamespace(id=4, tenant_id=5, is_authenticated=True)
+        with self.flask_app.test_request_context(
+            "/facturacion/historia-clinica/consulta/8/vincular",
+            method="POST",
+            data={"tipo": "licencia", "accion": "vincular", "documento_id": "9"},
+        ), patch.object(
+            clinical_history, "current_user", user
+        ), patch.object(
+            clinical_history, "get_current_tenant_id", return_value=5
+        ), patch.object(
+            clinical_history, "medico_id_historias_restringido", return_value=None
+        ), patch.object(
+            clinical_history,
+            "obtener_consulta_clinica",
+            return_value={"id": 8, "paciente_id": 3},
+        ), patch.object(
+            clinical_history, "user_has_permission", return_value=True
+        ), patch.object(
+            clinical_history,
+            "execute_query",
+            return_value={
+                "id": 9,
+                "paciente_id": 99,
+                "consulta_id": None,
+                "estado": "Emitida",
+            },
+        ), patch.object(
+            clinical_history, "execute_update"
+        ) as execute_update, patch.object(
+            clinical_history, "flash"
+        ):
+            response = handler(8)
+
+        self.assertEqual(response.status_code, 302)
+        execute_update.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()
+

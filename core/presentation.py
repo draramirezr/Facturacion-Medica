@@ -161,9 +161,9 @@ def datos_seo():
         'ClinicRD | Software médico y facturación e-CF en República Dominicana'
     )
     descripcion = (
-        'Software para consultorios y centros de salud en República Dominicana: '
-        'pacientes, historias clínicas, citas, turnos, ARS y facturación '
-        'electrónica e-CF.'
+        'Software para consultorios y centros médicos en República Dominicana: '
+        'pacientes, historia clínica, recetas, licencias, agenda con reagendar, '
+        'turnos, ARS, backup y facturación electrónica e-CF.'
     )
     imagen = f'{base}/static/img/logo.png'
     return {
@@ -173,7 +173,7 @@ def datos_seo():
         'descripcion': descripcion,
         'keywords': (
             'software médico República Dominicana, facturación electrónica e-CF, '
-            'software para consultorios, historia clínica, ARS, ClinicRD'
+            'software para consultorios y centros médicos, historia clínica, agenda, ARS, ClinicRD'
         ),
         'imagen': imagen,
         'locale': 'es_DO',

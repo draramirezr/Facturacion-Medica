@@ -65,7 +65,7 @@
     <header class="report-360-header">
         <div>
             <h1><i class="fas fa-address-card me-2 report-360-title-icon"></i>Vista 360 de pacientes</h1>
-            <p>Consulta datos básicos, historias, emergencias, citas, recetas, licencias, consultas y facturas.</p>
+            <p>{% if can('facturacion.ver') and not es_medico_operativo %}Consulta datos básicos, historias, emergencias, citas, recetas, licencias, consultas y facturas.{% else %}Consulta el expediente clínico: historias, emergencias, citas, recetas y licencias. Sin facturación, pagos ni reclamaciones.{% endif %}</p>
         </div>
         <a href="{{ url_for('facturacion_menu') }}" class="btn btn-outline-primary">
             <i class="fas fa-arrow-left me-2"></i>Volver al inicio

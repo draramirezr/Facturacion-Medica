@@ -841,6 +841,9 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertIn('Generar factura', ayuda)
         self.assertIn('e-CF', ayuda)
         self.assertIn('Reclamaciones', ayuda)
+        self.assertIn('Reagendar', ayuda)
+        self.assertIn('signos vitales', ayuda)
+        self.assertIn('backup en Excel', ayuda)
         self.assertNotIn('El manual en línea se publicará aquí', ayuda)
         self.assertNotIn('plataforma_alertas', ayuda)
         self.assertNotIn('Dar de alta', ayuda)
@@ -1113,6 +1116,30 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertIn('calendar-day-hit', agenda)
         self.assertIn("url_for('facturacion_citas_nueva'", agenda)
         self.assertIn('fecha=dia.isoformat()', agenda)
+
+    def test_appointment_can_be_rescheduled(self):
+        from routes.appointments import cita_se_puede_reagendar
+
+        form = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'facturacion'
+            / 'cita_form.html'
+        ).read_text(encoding='utf-8')
+        agenda = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'facturacion'
+            / 'citas.html'
+        ).read_text(encoding='utf-8')
+
+        self.assertTrue(cita_se_puede_reagendar({'estado': 'Programada'}))
+        self.assertTrue(cita_se_puede_reagendar({'estado': 'Cancelada'}))
+        self.assertTrue(cita_se_puede_reagendar({'estado': 'Vencida'}))
+        self.assertFalse(cita_se_puede_reagendar({'estado': 'Completada'}))
+        self.assertIn('name="accion" value="reagendar"', form)
+        self.assertIn('id="reagendar"', form)
+        self.assertIn('reagendar=1', agenda)
 
     def test_dashboard_shows_health_center_name(self):
         dashboard = (
@@ -1409,6 +1436,11 @@ class PhaseZeroSecurityTests(unittest.TestCase):
                 )
 
         self.assertTrue(context['vista_restringida'])
+        self.assertFalse(context['ver_facturacion'])
+        self.assertEqual(context['consultas_registradas'], [])
+        self.assertEqual(context['facturas'], [])
+        self.assertFalse(any('FROM facturas' in query for query in queries))
+        self.assertFalse(any('FROM pacientes_pendientes' in query for query in queries))
         self.assertEqual(context['resumen']['consultas_clinicas'], 1)
         self.assertEqual(context['resumen']['recetas'], 1)
         self.assertEqual(context['consultas'][0]['diagnostico_principal'], 'Dato reservado')

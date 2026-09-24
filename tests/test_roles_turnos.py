@@ -69,7 +69,17 @@ class RbacCatalogTests(unittest.TestCase):
         )
         self.assertTrue(usuario_es_medico_operativo(medico))
         self.assertTrue(medico.has_permission('historia_clinica.ver'))
+        self.assertFalse(medico.has_permission('facturacion.ver'))
         self.assertFalse(medico.has_permission('reportes.ver'))
+
+        plantilla_360 = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'facturacion'
+            / 'paciente_360.html'
+        ).read_text(encoding='utf-8')
+        self.assertIn('ver_facturacion', plantilla_360)
+        self.assertIn('data-bs-target="#invoices"', plantilla_360)
 
         plantilla = (
             Path(app_module.__file__).resolve().parent
@@ -89,6 +99,32 @@ class RbacCatalogTests(unittest.TestCase):
         self.assertGreaterEqual(
             plantilla.count("url_for('facturacion_reporte_pacientes_360')"),
             2,
+        )
+
+    def test_doctor_queue_shows_todays_appointments(self):
+        from routes.turnos_screens import resumen_citas_medico_hoy
+
+        plantilla = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'turnos'
+            / 'mi_cola.html'
+        ).read_text(encoding='utf-8')
+        self.assertIn('Citas de hoy', plantilla)
+        self.assertIn('en_cola', plantilla)
+        self.assertIn('Confirmada', plantilla)
+        self.assertEqual(
+            resumen_citas_medico_hoy([
+                {'estado': 'Programada', 'en_cola': False},
+                {'estado': 'Confirmada', 'en_cola': False},
+                {'estado': 'Confirmada', 'en_cola': True},
+            ]),
+            {
+                'agendadas': 1,
+                'confirmadas': 1,
+                'en_cola': 1,
+                'total': 3,
+            },
         )
 
 

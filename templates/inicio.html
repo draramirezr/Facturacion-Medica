@@ -270,8 +270,8 @@
             <div class="container hero-grid">
                 <div>
                     <span class="eyebrow"><i class="fas fa-shield-heart"></i> Plataforma médica integral</span>
-                    <h1>Software de gestión médica y facturación e-CF <span>para consultorios en República Dominicana.</span></h1>
-                    <p class="hero-copy">ClinicRD conecta recepción, turnos, historias clínicas por especialidad, citas, mensajería interna y facturación electrónica e-CF para que el consultorio o centro de salud trabaje coordinado.</p>
+                    <h1>Software de gestión médica y facturación e-CF <span>para consultorios y centros médicos.</span></h1>
+                    <p class="hero-copy">ClinicRD conecta recepción, turnos, historia clínica (con signos vitales, recetas y licencias), agenda que se puede reagendar, respaldo en Excel y facturación electrónica e-CF para que el consultorio o centro de salud trabaje coordinado.</p>
                     <div class="hero-actions">
                         <a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Probar 7 días gratis' }} <i class="fas fa-arrow-right"></i></a>
                         {% if not current_user.is_authenticated %}<a class="button button-secondary" href="{{ url_for('login') }}"><i class="fas fa-arrow-right-to-bracket"></i> Iniciar sesión</a>{% endif %}
@@ -305,7 +305,7 @@
                                 <div class="preview-table">
                                     <div class="preview-panel-title">Actividad reciente</div>
                                     <div class="preview-row"><i class="fas fa-bullhorn"></i><div><strong>Turno 012 llamado</strong><span>Cardiología · Dra. Rodríguez</span></div><time>10:30</time></div>
-                                    <div class="preview-row"><i class="fas fa-file-medical"></i><div><strong>Historia clínica registrada</strong><span>Consulta completada</span></div><time>09:45</time></div>
+                                    <div class="preview-row"><i class="fas fa-calendar-day"></i><div><strong>Cita reagendada</strong><span>Agenda · mismo paciente</span></div><time>09:45</time></div>
                                     <div class="preview-row"><i class="fas fa-file-invoice-dollar"></i><div><strong>Factura emitida</strong><span>ARS Humano · B02</span></div><time>09:12</time></div>
                                     <div class="preview-row"><i class="fas fa-comment-medical"></i><div><strong>Mensaje interno recibido</strong><span>Equipo de recepción</span></div><time>08:40</time></div>
                                 </div>
@@ -316,20 +316,20 @@
             </div>
         </section>
 
-        <div class="trust-strip"><div class="container trust-inner"><span><i class="fas fa-ticket"></i> Turnos por médico</span><span><i class="fas fa-notes-medical"></i> Historia por especialidad</span><span><i class="fas fa-user-shield"></i> Roles configurables</span><span><i class="fas fa-comments"></i> Mensajería interna</span></div></div>
+        <div class="trust-strip"><div class="container trust-inner"><span><i class="fas fa-calendar-day"></i> Citas reagendables</span><span><i class="fas fa-notes-medical"></i> Historia, recetas y licencias</span><span><i class="fas fa-file-excel"></i> Backup en Excel</span><span><i class="fas fa-comments"></i> Mensajería interna</span></div></div>
 
         <section class="section section-white" id="beneficios">
             <div class="container">
                 <header class="section-head"><span class="section-label">Todo conectado</span><h2>Todo lo que necesitas en una sola plataforma</h2><p>Herramientas diseñadas para simplificar la gestión médica y financiera de tu institución.</p></header>
                 <div class="features">
-                    <article class="feature"><div class="feature-icon"><i class="fas fa-hospital-user"></i></div><h3>Paciente 360°</h3><p>Datos, aseguradora, consultas, documentos y seguimiento en un solo expediente.</p></article>
-                    <article class="feature"><div class="feature-icon"><i class="fas fa-notes-medical"></i></div><h3>Historia por especialidad</h3><p>Formularios clínicos dinámicos para diez especialidades y una plantilla general.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-hospital-user"></i></div><h3>Paciente 360°</h3><p>Datos, aseguradora, consultas, citas (con reagendar), recetas, licencias y seguimiento en un solo expediente.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-notes-medical"></i></div><h3>Historia por especialidad</h3><p>Signos vitales en la consulta, plantillas por especialidad, y pestañas de recetas y licencias vinculadas.</p></article>
                     <article class="feature"><div class="feature-icon"><i class="fas fa-ticket"></i></div><h3>Turnos y colas</h3><p>Recepción, cola propia del médico, tickets y pantalla pública para pacientes.</p></article>
                     <article class="feature"><div class="feature-icon"><i class="fas fa-user-shield"></i></div><h3>Roles configurables</h3><p>Define permisos por ventana y asigna a cada usuario solo las funciones necesarias.</p></article>
                     <article class="feature"><div class="feature-icon"><i class="fas fa-comments"></i></div><h3>Mensajería interna</h3><p>Comunicación privada entre los usuarios del mismo consultorio sin salir de ClinicRD.</p></article>
-                    <article class="feature"><div class="feature-icon"><i class="fas fa-calendar-check"></i></div><h3>Agenda conectada</h3><p>Las citas programadas pasan a recepción y continúan hacia la consulta clínica.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-calendar-check"></i></div><h3>Agenda conectada</h3><p>Programa, confirma y reagenda la misma cita sin duplicar al paciente. Lo completado no se reagenda.</p></article>
                     <article class="feature"><div class="feature-icon"><i class="fas fa-file-invoice-dollar"></i></div><h3>Facturación médica</h3><p>Facturación electrónica e-CF, ARS, reclamaciones, pagos y seguimiento financiero organizado.</p></article>
-                    <article class="feature"><div class="feature-icon"><i class="fas fa-chart-column"></i></div><h3>Control visible</h3><p>Dashboard, notificaciones y buscador global para decidir con claridad.</p></article>
+                    <article class="feature"><div class="feature-icon"><i class="fas fa-file-excel"></i></div><h3>Respaldo del consultorio</h3><p>El administrador descarga un Excel por módulo, con barra de progreso, desde Configuración.</p></article>
                 </div>
             </div>
         </section>
@@ -339,9 +339,9 @@
                 <header class="section-head"><span class="section-label">Para profesionales y clínicas</span><h2>Más control para tu práctica médica</h2><p>Trabaja con claridad tanto si ejerces de forma independiente como si gestionas una clínica o centro médico.</p></header>
                 <div class="results">
                     <article class="result-card"><i class="fas fa-person-circle-check"></i><strong>Recepción organizada</strong><span>Registra la llegada, asigna el turno y dirige al paciente a la cola correcta.</span></article>
-                    <article class="result-card"><i class="fas fa-user-doctor"></i><strong>Atención conectada</strong><span>El médico llama al siguiente paciente e inicia la historia desde su propia cola.</span></article>
-                    <article class="result-card"><i class="fas fa-comments"></i><strong>Equipo coordinado</strong><span>Mensajes y notificaciones mantienen informados a recepción, médicos y administración.</span></article>
-                    <article class="result-card"><i class="fas fa-lock"></i><strong>Acceso controlado</strong><span>Cada rol ve solamente las ventanas y acciones autorizadas para su trabajo.</span></article>
+                    <article class="result-card"><i class="fas fa-user-doctor"></i><strong>Atención conectada</strong><span>El médico anota signos vitales, diagnóstico y, si hace falta, receta o licencia desde la misma consulta.</span></article>
+                    <article class="result-card"><i class="fas fa-calendar-day"></i><strong>Agenda flexible</strong><span>Si el paciente no pudo venir, reagendas fecha y hora; la cita vuelve a quedar programada.</span></article>
+                    <article class="result-card"><i class="fas fa-lock"></i><strong>Acceso y respaldo</strong><span>Cada rol ve lo suyo. El administrador puede bajar un Excel de pacientes, historias, facturas y más.</span></article>
                 </div>
             </div>
         </section>
@@ -352,8 +352,8 @@
                 <div class="integration-grid">
                     <article class="integration-item"><i class="fas fa-ticket"></i><strong>Recepción y turnos</strong><span>Alta rápida, cita programada, ticket de 58/80 mm y cola independiente por médico.</span></article>
                     <article class="integration-item"><i class="fas fa-display"></i><strong>Pantalla de espera</strong><span>Muestra el turno actual y el siguiente sin revelar información del paciente.</span></article>
-                    <article class="integration-item"><i class="fas fa-heart-pulse"></i><strong>Historia especializada</strong><span>La consulta se abre con el paciente, médico y especialidad ya seleccionados.</span></article>
-                    <article class="integration-item"><i class="fas fa-calendar-check"></i><strong>Agenda médica</strong><span>Registra la llegada de una cita sin duplicar al paciente ni sus datos.</span></article>
+                    <article class="integration-item"><i class="fas fa-heart-pulse"></i><strong>Historia especializada</strong><span>Signos vitales en Consulta; recetas y licencias se ven y se pueden vincular al expediente.</span></article>
+                    <article class="integration-item"><i class="fas fa-calendar-check"></i><strong>Agenda médica</strong><span>Agendar, confirmar y reagendar la misma cita, sin crear un paciente duplicado.</span></article>
                     <article class="integration-item"><i class="fas fa-comments"></i><strong>Mensajería del equipo</strong><span>Conversaciones internas con indicador de mensajes pendientes.</span></article>
                     <article class="integration-item"><i class="fas fa-file-invoice-dollar"></i><strong>Facturación y ARS</strong><span>Consultas, facturas, reclamaciones y pagos dentro del mismo entorno.</span></article>
                 </div>
@@ -366,7 +366,7 @@
                 <div class="security-cards">
                     <article class="security-card"><i class="fas fa-user-lock"></i><h3>Roles y permisos</h3><p>Cada persona entra con sus credenciales y recibe permisos según sus responsabilidades.</p></article>
                     <article class="security-card"><i class="fas fa-building-shield"></i><h3>Entornos separados</h3><p>La información de cada profesional o centro permanece dentro de su espacio.</p></article>
-                    <article class="security-card"><i class="fas fa-clock-rotate-left"></i><h3>Historial conservado</h3><p>Consultas, evoluciones y documentos mantienen su continuidad en el tiempo.</p></article>
+                    <article class="security-card"><i class="fas fa-clock-rotate-left"></i><h3>Historial y backup</h3><p>Consultas y documentos se conservan. El administrador puede descargar un Excel por módulo.</p></article>
                     <article class="security-card"><i class="fas fa-file-circle-check"></i><h3>Documentos trazables</h3><p>Licencias y recetas anuladas permanecen registradas sin desaparecer del historial.</p></article>
                 </div>
                 <div class="security-note"><i class="fas fa-shield-halved"></i>La seguridad también depende de una configuración adecuada, usuarios responsables y respaldos periódicos.</div>
@@ -394,8 +394,8 @@
                             <li><i class="fas fa-user-doctor"></i>1 médico</li>
                             <li><i class="fas fa-hospital-user"></i>Pacientes ilimitados</li>
                             <li><i class="fas fa-notes-medical"></i>Historia clínica especializada</li>
-                            <li><i class="fas fa-calendar-check"></i>Agenda y citas</li>
-                            <li><i class="fas fa-prescription"></i>Recetas y certificados</li>
+                            <li><i class="fas fa-calendar-check"></i>Agenda, citas y reagendar</li>
+                            <li><i class="fas fa-prescription"></i>Recetas y licencias</li>
                             <li><i class="fas fa-file-invoice"></i>Facturación electrónica</li>
                             <li><i class="fas fa-circle-notch"></i>Vista 360</li>
                             <li><i class="fas fa-chart-line"></i>Dashboard</li>
@@ -412,6 +412,7 @@
                             <li><i class="fas fa-users"></i>Hasta 3 usuarios</li>
                             <li><i class="fas fa-layer-group"></i>Todo lo anterior</li>
                             <li><i class="fas fa-ticket"></i>Turnos y sala de espera</li>
+                            <li><i class="fas fa-file-excel"></i>Backup Excel (administrador)</li>
                             <li><i class="fas fa-user-shield"></i>Roles y permisos</li>
                             <li><i class="fas fa-user-plus"></i>Acepta usuarios adicionales</li>
                             <li><i class="fas fa-gift"></i>7 días gratis</li>

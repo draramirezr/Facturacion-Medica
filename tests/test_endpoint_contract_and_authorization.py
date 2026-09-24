@@ -76,13 +76,14 @@ REPRESENTATIVE_ACCESS = {
         'Administrador', 'Nivel 2', 'Registro de Facturas',
         'Oficial de servicios',
     }),
+    'configuracion.backup': frozenset({'Administrador'}),
 }
 
 # Contrato normalizado de las rutas de aplicación (se excluye la ruta
 # ``static`` que Flask agrega). El hash incluye endpoint, URL y métodos.
-ENDPOINT_CONTRACT_COUNT = 170
+ENDPOINT_CONTRACT_COUNT = 172
 ENDPOINT_CONTRACT_SHA256 = (
-    '2ac23bbc10ac0a52c5aa7d4743bb4b171e02f3759109c6b2a0a8aa3548733481'
+    'ee238bcbf9b5015853b78378d16b160da70424878f78deb468e30f6ad1e63710'
 )
 
 # Subconjunto legible que hace accionables las pérdidas en las áreas críticas.
@@ -132,6 +133,11 @@ IMPORTANT_ENDPOINTS = {
         '/facturacion/historia-clinica/paciente/<int:paciente_id>/nueva',
         ('GET', 'POST'),
     ),
+    (
+        'facturacion_historia_vincular_documento',
+        '/facturacion/historia-clinica/consulta/<int:consulta_id>/vincular',
+        ('POST',),
+    ),
     ('facturacion_citas', '/facturacion/citas', ('GET',)),
     (
         'facturacion_citas_nueva',
@@ -144,6 +150,11 @@ IMPORTANT_ENDPOINTS = {
         'perfil_configuracion',
         '/perfil/configuracion',
         ('GET', 'POST'),
+    ),
+    (
+        'perfil_descargar_backup',
+        '/perfil/configuracion/backup',
+        ('GET',),
     ),
     (
         'cambiar_mi_password',

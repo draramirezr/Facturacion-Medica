@@ -80,14 +80,50 @@
             row.querySelector('.remove-medicine').disabled = rows.children.length === 1;
         });
     }
+    function medicineKey(value) {
+        return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+    }
+    function duplicateMedicineInput(current) {
+        const key = medicineKey(current.value);
+        if (!key) return false;
+        return [...rows.querySelectorAll('input[name="medicamento[]"]')].some(
+            input => input !== current && medicineKey(input.value) === key
+        );
+    }
+    function warnDuplicateMedicine(input) {
+        if (!duplicateMedicineInput(input)) return false;
+        alert('Este medicamento ya está en la receta. No se puede agregar dos veces.');
+        input.value = '';
+        input.focus();
+        return true;
+    }
     document.getElementById('addMedicine').addEventListener('click', () => {
         const copy = rows.firstElementChild.cloneNode(true);
         copy.querySelectorAll('input').forEach(input => input.value = '');
         rows.appendChild(copy); renumber();
+        copy.querySelector('input[name="medicamento[]"]')?.focus();
     });
     rows.addEventListener('click', event => {
         const button = event.target.closest('.remove-medicine');
         if (button && rows.children.length > 1) { button.closest('.medicine-row').remove(); renumber(); }
+    });
+    rows.addEventListener('change', event => {
+        const input = event.target.closest('input[name="medicamento[]"]');
+        if (input) warnDuplicateMedicine(input);
+    });
+    document.getElementById('rxForm').addEventListener('submit', event => {
+        const seen = new Set();
+        for (const input of rows.querySelectorAll('input[name="medicamento[]"]')) {
+            const key = medicineKey(input.value);
+            if (!key) continue;
+            if (seen.has(key)) {
+                event.preventDefault();
+                alert('Este medicamento ya está en la receta. No se puede agregar dos veces.');
+                input.focus();
+                return;
+            }
+            seen.add(key);
+        }
     });
     const patient = document.getElementById('paciente_id');
     function filterConsultations() {

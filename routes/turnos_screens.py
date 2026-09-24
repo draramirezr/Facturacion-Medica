@@ -130,6 +130,52 @@ def listar_turnos(fecha, medico_id=None):
         ORDER BY m.nombre, t.posicion, t.id
     ''', params, fetch='all') or []
 
+
+ESTADOS_TURNO_EN_COLA = frozenset({
+    'EnEspera', 'Llamado', 'EnConsulta', 'NoPresente',
+})
+
+
+def listar_citas_medico_hoy(fecha, medico_id):
+    """Citas de hoy del médico: agendadas, confirmadas y si ya están en cola."""
+    tenant_id = get_current_tenant_id()
+    citas = execute_query('''
+        SELECT c.id, c.hora, c.motivo, c.estado,
+               p.nombre AS paciente_nombre, p.telefono,
+               t.id AS turno_id, t.numero AS turno_numero,
+               t.estado AS turno_estado
+        FROM citas_medicas c
+        JOIN pacientes p
+          ON p.id=c.paciente_id AND p.tenant_id=c.tenant_id
+        LEFT JOIN turnos_atencion t
+          ON t.cita_id=c.id AND t.tenant_id=c.tenant_id
+        WHERE c.tenant_id=%s AND c.fecha=%s AND c.medico_id=%s
+          AND c.estado IN ('Programada', 'Confirmada')
+        ORDER BY c.hora, c.id
+    ''', (tenant_id, fecha, medico_id), fetch='all') or []
+    for cita in citas:
+        turno_estado = cita.get('turno_estado')
+        cita['en_cola'] = turno_estado in ESTADOS_TURNO_EN_COLA
+        cita['atendida'] = bool(turno_estado) and not cita['en_cola']
+    return citas
+
+
+def resumen_citas_medico_hoy(citas):
+    agendadas = confirmadas = en_cola = 0
+    for cita in citas:
+        if cita.get('en_cola'):
+            en_cola += 1
+        elif cita.get('estado') == 'Confirmada':
+            confirmadas += 1
+        else:
+            agendadas += 1
+    return {
+        'agendadas': agendadas,
+        'confirmadas': confirmadas,
+        'en_cola': en_cola,
+        'total': len(citas),
+    }
+
 @login_required
 @permission_required('turnos.ver')
 def turnos_recepcion():
@@ -178,7 +224,7 @@ def turnos_recepcion():
         LEFT JOIN turnos_atencion t
           ON t.cita_id=c.id AND t.tenant_id=c.tenant_id
         WHERE c.tenant_id=%s AND c.fecha=%s
-          AND c.estado='Programada' AND t.id IS NULL
+          AND c.estado IN ('Programada', 'Confirmada') AND t.id IS NULL
         ORDER BY c.hora LIMIT 100
     ''', (tenant_id, fecha), fetch='all') or []
     return render_template(
@@ -208,7 +254,7 @@ def turnos_nuevo():
         cita = execute_query('''
             SELECT * FROM citas_medicas
             WHERE id=%s AND tenant_id=%s AND fecha=%s
-              AND estado='Programada'
+              AND estado IN ('Programada', 'Confirmada')
             FOR UPDATE
         ''', (cita_id, tenant_id, fecha))
         if not cita:
@@ -466,11 +512,14 @@ def turnos_mi_cola():
         flash('El médico vinculado ya no está disponible', 'error')
         return redirect(url_for('facturacion_menu'))
     fecha = datetime.now().strftime('%Y-%m-%d')
+    citas_hoy = listar_citas_medico_hoy(fecha, current_user.medico_id)
     return render_template(
         'turnos/mi_cola.html',
         medico=medico,
         fecha=fecha,
         turnos=listar_turnos(fecha, current_user.medico_id),
+        citas_hoy=citas_hoy,
+        resumen_citas=resumen_citas_medico_hoy(citas_hoy),
     )
 
 @login_required

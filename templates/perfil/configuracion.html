@@ -189,7 +189,39 @@
     }
     .certificate-status.is-valid { border-color: #19875466; background: #1987540d; }
     .certificate-status.is-pending { border-color: #d99a0066; background: #d99a000d; }
-    .settings-title-icon { color: var(--primary-color); }
+    .backup-progress {
+        display: none;
+        margin-top: 1rem;
+        padding: 1rem 1.05rem;
+        border: 1px solid var(--ars-shell-border);
+        border-radius: 12px;
+        background: var(--ars-shell-surface, #fff);
+    }
+    .backup-progress.is-on { display: block; }
+    .backup-progress-top {
+        display: flex;
+        justify-content: space-between;
+        gap: .8rem;
+        margin-bottom: .55rem;
+        color: var(--ars-shell-text);
+        font-size: .8rem;
+        font-weight: 700;
+    }
+    .backup-progress-label { color: var(--ars-shell-muted); font-weight: 600; }
+    .backup-progress-track {
+        height: 10px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: {{ tema.primary }}18;
+    }
+    .backup-progress-bar {
+        width: 0%;
+        height: 100%;
+        border-radius: 999px;
+        background: linear-gradient(90deg, {{ tema.primary }}, {{ tema.primary_dark }});
+        transition: width .25s ease;
+    }
+    .backup-progress.is-error .backup-progress-bar { background: #b91c1c; }
     {% for key, item in temas_disponibles.items() %}
     .theme-swatch--{{ key }} {
         background: linear-gradient(135deg, {{ item.gradient_start }}, {{ item.gradient_end }});
@@ -273,6 +305,33 @@
             y su archivo <strong>password.txt</strong>.
         </p>
         {% endif %}
+    </section>
+    {% endif %}
+
+    {% if can('configuracion.backup') %}
+    <section class="settings-card">
+        <h2 class="settings-card-title">Copia de seguridad</h2>
+        <p class="settings-card-subtitle">
+            Descarga un libro de Excel con los datos de tu consultorio o centro médico,
+            una hoja por módulo. Úsalo para guardar tu información si dejas de usar ClinicRD.
+            El archivo no incluye contraseñas ni tokens de acceso.
+        </p>
+        <div class="theme-actions" style="border-top:0; margin-top:.85rem; padding-top:0; justify-content:flex-start;">
+            <a class="btn btn-primary" id="backupDownloadBtn"
+               href="{{ url_for('perfil_descargar_backup') }}"
+               data-progress-url="{{ url_for('perfil_descargar_backup', progreso=1) }}">
+                <i class="fas fa-file-excel me-2"></i>Descargar backup Excel
+            </a>
+        </div>
+        <div class="backup-progress" id="backupProgress">
+            <div class="backup-progress-top">
+                <span class="backup-progress-label" id="backupProgressLabel">Preparando copia…</span>
+                <span id="backupProgressPct">0%</span>
+            </div>
+            <div class="backup-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="backupProgressTrack">
+                <div class="backup-progress-bar" id="backupProgressBar"></div>
+            </div>
+        </div>
     </section>
     {% endif %}
 
@@ -370,6 +429,98 @@ if (idioma) {
                 campo.setAttribute('lang', valor);
             }
         });
+    });
+}
+const backupBtn = document.getElementById('backupDownloadBtn');
+if (backupBtn) {
+    const panel = document.getElementById('backupProgress');
+    const bar = document.getElementById('backupProgressBar');
+    const label = document.getElementById('backupProgressLabel');
+    const pct = document.getElementById('backupProgressPct');
+    const track = document.getElementById('backupProgressTrack');
+    const SEPARATOR = 0x1e;
+    function paint(percent, text, error) {
+        const value = Math.max(0, Math.min(100, percent));
+        bar.style.width = value + '%';
+        pct.textContent = value + '%';
+        label.textContent = text;
+        track.setAttribute('aria-valuenow', String(value));
+        panel.classList.toggle('is-error', Boolean(error));
+    }
+    backupBtn.addEventListener('click', async (event) => {
+        event.preventDefault();
+        if (backupBtn.dataset.busy === '1') return;
+        if (!confirm('Se descargará un Excel con los datos de esta empresa. ¿Continuar?')) return;
+        backupBtn.dataset.busy = '1';
+        panel.classList.add('is-on');
+        paint(2, 'Iniciando copia de seguridad…');
+        try {
+            const response = await fetch(backupBtn.dataset.progressUrl, {
+                headers: { 'Accept': 'application/octet-stream' },
+                credentials: 'same-origin',
+            });
+            if (!response.ok || !response.body) {
+                throw new Error('No se pudo generar el backup');
+            }
+            const reader = response.body.getReader();
+            let jsonText = '';
+            let inFile = false;
+            const fileParts = [];
+            let filename = 'ClinicRD_backup.xlsx';
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                if (inFile) {
+                    fileParts.push(value);
+                    continue;
+                }
+                let separatorAt = -1;
+                for (let i = 0; i < value.length; i += 1) {
+                    if (value[i] === SEPARATOR) {
+                        separatorAt = i;
+                        break;
+                    }
+                }
+                if (separatorAt === -1) {
+                    jsonText += new TextDecoder().decode(value);
+                } else {
+                    jsonText += new TextDecoder().decode(value.slice(0, separatorAt));
+                    inFile = true;
+                    if (separatorAt + 1 < value.length) {
+                        fileParts.push(value.slice(separatorAt + 1));
+                    }
+                }
+                const lines = jsonText.split('\n');
+                jsonText = lines.pop() || '';
+                lines.forEach((line) => {
+                    if (!line.trim()) return;
+                    try {
+                        const evento = JSON.parse(line);
+                        if (evento.nombre) filename = evento.nombre;
+                        paint(evento.pct || 0, evento.label || 'Exportando…');
+                    } catch (ignore) { /* línea incompleta */ }
+                });
+            }
+            if (!fileParts.length) throw new Error('El archivo quedó vacío');
+            paint(100, 'Guardando en tu equipo…');
+            const blob = new Blob(fileParts, {
+                type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            paint(100, 'Copia descargada');
+            setTimeout(() => panel.classList.remove('is-on'), 1600);
+        } catch (error) {
+            paint(100, error.message || 'No se pudo descargar el backup', true);
+        } finally {
+            backupBtn.dataset.busy = '0';
+        }
     });
 }
 </script>

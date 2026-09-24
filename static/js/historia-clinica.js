@@ -117,6 +117,74 @@
         height?.addEventListener('input', calculateBmi);
         calculateBmi();
 
+        const form = document.getElementById('clinicalForm');
+        const confirmField = document.getElementById('confirmar_signos_fuera_rango');
+        const numberValue = (id) => {
+            const raw = document.getElementById(id)?.value.trim();
+            if (!raw) return null;
+            const number = Number.parseFloat(raw);
+            return Number.isFinite(number) ? number : null;
+        };
+        const vitalAlerts = () => {
+            const alerts = [];
+            const pressure = (document.getElementById('presion_arterial')?.value || '').trim();
+            if (pressure) {
+                const match = pressure.match(/^(\d{2,3})\s*[/\-]\s*(\d{2,3})$/);
+                if (!match) {
+                    alerts.push('Presión arterial: use el formato 120/80');
+                } else {
+                    const systolic = Number(match[1]);
+                    const diastolic = Number(match[2]);
+                    if (systolic < 85 || systolic > 160 || diastolic < 50 || diastolic > 100) {
+                        alerts.push(`Presión arterial ${systolic}/${diastolic} mmHg (habitual 90-140 / 60-90)`);
+                    } else if (systolic <= diastolic) {
+                        alerts.push(`Presión arterial ${systolic}/${diastolic}: la sistólica debe ser mayor`);
+                    }
+                }
+            }
+            const checks = [
+                ['frecuencia_cardiaca', 'Frecuencia cardíaca', 50, 120, 'lpm'],
+                ['frecuencia_respiratoria', 'Frecuencia respiratoria', 10, 24, 'rpm'],
+                ['temperatura', 'Temperatura', 35.5, 38, '°C'],
+                ['saturacion_oxigeno', 'Saturación de oxígeno', 92, 100, '%'],
+                ['peso', 'Peso', 2.5, 200, 'kg'],
+                ['talla', 'Talla', 0.5, 2.1, 'm'],
+                ['imc', 'IMC', 16, 35, ''],
+            ];
+            checks.forEach(([id, name, min, max, unit]) => {
+                const value = numberValue(id);
+                const input = document.getElementById(id);
+                input?.classList.remove('vital-warn');
+                if (value === null) return;
+                if (value < min || value > max) {
+                    alerts.push(`${name} ${value} (habitual ${min}-${max}${unit ? ` ${unit}` : ''})`);
+                    input?.classList.add('vital-warn');
+                }
+            });
+            const pa = document.getElementById('presion_arterial');
+            pa?.classList.toggle('vital-warn', alerts.some((item) => item.startsWith('Presión')));
+            return alerts;
+        };
+        ['presion_arterial', 'frecuencia_cardiaca', 'frecuencia_respiratoria', 'temperatura', 'saturacion_oxigeno', 'peso', 'talla'].forEach((id) => {
+            document.getElementById(id)?.addEventListener('change', vitalAlerts);
+        });
+        form?.addEventListener('submit', (event) => {
+            if (confirmField) confirmField.value = '';
+            calculateBmi();
+            const alerts = vitalAlerts();
+            if (!alerts.length) return;
+            const sure = window.confirm(
+                'Estos valores están fuera del rango habitual:\n\n'
+                + alerts.join('\n')
+                + '\n\n¿Está seguro de guardarlos?'
+            );
+            if (!sure) {
+                event.preventDefault();
+                return;
+            }
+            if (confirmField) confirmField.value = '1';
+        });
+
         const doctor = document.getElementById('medico_id');
         const container = document.getElementById('specialtyFields');
         const title = document.getElementById('specialtyTitle');

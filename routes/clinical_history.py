@@ -17,7 +17,7 @@ from routes.licenses import actualizar_licencias_vencidas
 from routes.patients import paciente_adulto_sin_cedula
 from routes.support import (
     calcular_edad_clinica, execute_paginated_query, sanitize_input,
-    validate_int,
+    url_historia_clinica, validate_int,
 )
 from routes.turnos_screens import obtener_turno_tenant, registrar_evento_turno
 from turnos import EstadoTurno
@@ -38,11 +38,82 @@ def medico_id_historias_restringido():
     return medico_id if medico_id and es_medico and not es_administrador else None
 
 
+def es_usuario_medico_clinico():
+    """Rol o perfil Médico que no administra la empresa."""
+    if not getattr(current_user, 'is_authenticated', False):
+        return False
+    roles_rbac = set(getattr(current_user, 'rbac_roles', ()) or ())
+    es_administrador = (
+        'Administrador' in roles_rbac
+        or (
+            getattr(current_user, 'perfil', None) == 'Administrador'
+            and not getattr(current_user, 'rbac_role_count', 0)
+        )
+    )
+    if es_administrador:
+        return False
+    return (
+        'Médico' in roles_rbac
+        or getattr(current_user, 'perfil', None) == 'Médico'
+    )
+
+
+def puede_ver_facturacion_paciente():
+    """El médico ve el 360 clínico, no facturas, pagos ni reclamaciones."""
+    if medico_id_historias_restringido() or es_usuario_medico_clinico():
+        return False
+    return user_has_permission(current_user, 'facturacion.ver')
+
+
 def cargar_json_clinico(valor):
     try:
         return json.loads(valor or '{}')
     except (TypeError, ValueError):
         return {}
+
+
+def parsear_presion_arterial(texto):
+    """Devolver (sistólica, diastólica) o None si está vacía."""
+    valor = str(texto or '').strip()
+    if not valor:
+        return None
+    match = re.match(r'^(\d{2,3})\s*[/\-]\s*(\d{2,3})$', valor)
+    if not match:
+        return 'invalido'
+    sistolica, diastolica = int(match.group(1)), int(match.group(2))
+    return sistolica, diastolica
+
+
+def alertas_signos_vitales(signos):
+    """Avisos cuando un signo vital sale del rango habitual (no impide guardar)."""
+    alertas = []
+    presion = parsear_presion_arterial((signos or {}).get('presion_arterial'))
+    if presion == 'invalido':
+        alertas.append('Presión arterial: use el formato 120/80')
+    elif presion:
+        sistolica, diastolica = presion
+        if sistolica < 85 or sistolica > 160 or diastolica < 50 or diastolica > 100:
+            alertas.append(f'Presión arterial {sistolica}/{diastolica} mmHg (habitual 90-140 / 60-90)')
+        elif sistolica <= diastolica:
+            alertas.append(f'Presión arterial {sistolica}/{diastolica}: la sistólica debe ser mayor')
+    def _fuera(nombre, valor, minimo, maximo, unidad=''):
+        if valor in (None, ''):
+            return
+        try:
+            numero = float(valor)
+        except (TypeError, ValueError):
+            return
+        if numero < minimo or numero > maximo:
+            etiqueta = f'{minimo:g}-{maximo:g}{(" " + unidad) if unidad else ""}'
+            alertas.append(f'{nombre} {numero:g} (habitual {etiqueta})')
+    _fuera('Frecuencia cardíaca', signos.get('frecuencia_cardiaca'), 50, 120, 'lpm')
+    _fuera('Frecuencia respiratoria', signos.get('frecuencia_respiratoria'), 10, 24, 'rpm')
+    _fuera('Temperatura', signos.get('temperatura'), 35.5, 38.0, '°C')
+    _fuera('Saturación de oxígeno', signos.get('saturacion_oxigeno'), 92, 100, '%')
+    _fuera('Peso', signos.get('peso'), 2.5, 200, 'kg')
+    _fuera('Talla', signos.get('talla'), 0.50, 2.10, 'm')
+    _fuera('IMC', signos.get('imc'), 16, 35)
+    return alertas
 
 
 def obtener_consulta_clinica_formulario():
@@ -87,9 +158,9 @@ def obtener_consulta_clinica_formulario():
         numero = validate_int(valor, min_value=minimo, max_value=maximo, default=None)
         return numero if numero is not None else 'invalido'
 
-    peso = numero_decimal('peso', 0.1, 500)
+    peso = numero_decimal('peso', 0.5, 400)
     talla = numero_decimal('talla', 0.3, 2.5)
-    temperatura = numero_decimal('temperatura', 25, 45)
+    temperatura = numero_decimal('temperatura', 30, 45)
     saturacion = numero_decimal('saturacion_oxigeno', 0, 100)
     frecuencia_cardiaca = numero_entero('frecuencia_cardiaca', 1, 300)
     frecuencia_respiratoria = numero_entero('frecuencia_respiratoria', 1, 100)
@@ -184,6 +255,15 @@ def obtener_consulta_clinica_formulario():
             datetime.strptime(datos['proxima_hora'], '%H:%M')
         except ValueError:
             return None, 'La hora de próxima cita no es válida'
+    if parsear_presion_arterial(datos['signos_vitales']['presion_arterial']) == 'invalido':
+        return None, 'La presión arterial debe escribirse como 120/80'
+    alertas = alertas_signos_vitales(datos['signos_vitales'])
+    if alertas and request.form.get('confirmar_signos_fuera_rango') != '1':
+        return None, (
+            'Hay signos vitales fuera del rango habitual: '
+            + '; '.join(alertas)
+            + '. Confirme si está seguro de esos valores.'
+        )
     return datos, None
 
 
@@ -454,7 +534,6 @@ def facturacion_reporte_pacientes_360():
 @permission_required('historia_clinica.ver')
 def facturacion_historia_clinica_expediente(paciente_id):
     tenant_id = get_current_tenant_id()
-    medico_id_restringido = medico_id_historias_restringido()
     paciente = execute_query('''
         SELECT p.*, a.nombre AS ars_nombre
         FROM pacientes p
@@ -504,18 +583,20 @@ def facturacion_historia_clinica_expediente(paciente_id):
         WHERE paciente_id=%s AND tenant_id=%s
         ORDER BY fecha DESC, hora_servicio DESC, id DESC
     ''', (paciente_id, tenant_id), fetch='all') or []
-    consultas_registradas = execute_query('''
-        SELECT pp.id, pp.fecha_servicio, pp.monto_estimado, pp.estado,
-               pp.servicios_realizados, pp.medico_id,
-               COALESCE(m.nombre, 'Sin médico asignado') AS medico_nombre
-        FROM pacientes_pendientes pp
-        LEFT JOIN medicos m
-          ON m.id=pp.medico_id AND m.tenant_id=pp.tenant_id
-        WHERE pp.paciente_id=%s AND pp.tenant_id=%s
-        ORDER BY pp.fecha_servicio DESC, pp.id DESC
-    ''', (paciente_id, tenant_id), fetch='all') or []
+    ver_facturacion = puede_ver_facturacion_paciente()
+    consultas_registradas = []
     facturas = []
-    if not medico_id_restringido:
+    if ver_facturacion:
+        consultas_registradas = execute_query('''
+            SELECT pp.id, pp.fecha_servicio, pp.monto_estimado, pp.estado,
+                   pp.servicios_realizados, pp.medico_id,
+                   COALESCE(m.nombre, 'Sin médico asignado') AS medico_nombre
+            FROM pacientes_pendientes pp
+            LEFT JOIN medicos m
+              ON m.id=pp.medico_id AND m.tenant_id=pp.tenant_id
+            WHERE pp.paciente_id=%s AND pp.tenant_id=%s
+            ORDER BY pp.fecha_servicio DESC, pp.id DESC
+        ''', (paciente_id, tenant_id), fetch='all') or []
         facturas = execute_query('''
             SELECT id, numero_factura, ncf, fecha_emision, total, estado
             FROM facturas
@@ -591,7 +672,8 @@ def facturacion_historia_clinica_expediente(paciente_id):
             actividad_por_medico.values(),
             key=lambda item: item['medico_nombre'],
         ),
-        vista_restringida=bool(medico_id_restringido),
+        ver_facturacion=ver_facturacion,
+        vista_restringida=not ver_facturacion,
     )
 
 
@@ -829,14 +911,111 @@ def facturacion_historia_clinica_ver(consulta_id):
         WHERE r.consulta_id=%s AND r.tenant_id=%s
         GROUP BY r.id ORDER BY r.fecha DESC, r.id DESC
     ''', (consulta_id, tenant_id), fetch='all') or []
+    recetas_disponibles = execute_query('''
+        SELECT r.id, r.codigo, r.fecha, r.estado
+        FROM recetas_medicas r
+        WHERE r.tenant_id=%s AND r.paciente_id=%s
+          AND r.estado<>'Anulada' AND r.consulta_id IS NULL
+        ORDER BY r.fecha DESC, r.id DESC
+        LIMIT 50
+    ''', (tenant_id, consulta['paciente_id']), fetch='all') or []
+    licencias = execute_query('''
+        SELECT l.id, l.codigo, l.fecha_emision, l.fecha_inicio, l.fecha_termino,
+               l.estado, l.diagnostico, t.nombre AS tipo_nombre
+        FROM licencias_medicas l
+        LEFT JOIN tipos_licencia_medica t
+          ON t.id=l.tipo_licencia_id AND t.tenant_id=l.tenant_id
+        WHERE l.consulta_id=%s AND l.tenant_id=%s
+        ORDER BY l.fecha_emision DESC, l.id DESC
+    ''', (consulta_id, tenant_id), fetch='all') or []
+    licencias_disponibles = execute_query('''
+        SELECT l.id, l.codigo, l.fecha_emision, l.estado, l.diagnostico
+        FROM licencias_medicas l
+        WHERE l.tenant_id=%s AND l.paciente_id=%s
+          AND l.estado<>'Anulada' AND l.consulta_id IS NULL
+        ORDER BY l.fecha_emision DESC, l.id DESC
+        LIMIT 50
+    ''', (tenant_id, consulta['paciente_id']), fetch='all') or []
+    tipos_licencia = execute_query(
+        'SELECT id, nombre FROM tipos_licencia_medica '
+        'WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
+        (tenant_id,), fetch='all'
+    ) or []
     return render_template(
         'facturacion/historia_clinica_ver.html',
         consulta=consulta, evoluciones=evoluciones,
         auditoria=auditoria, medicos=medicos, cita_agenda=cita_agenda,
-        recetas=recetas,
+        recetas=recetas, recetas_disponibles=recetas_disponibles,
+        licencias=licencias, licencias_disponibles=licencias_disponibles,
+        tipos_licencia=tipos_licencia,
         fecha_actual=datetime.now().strftime('%Y-%m-%d'),
         hora_actual=datetime.now().strftime('%H:%M')
     )
+
+
+@login_required
+@transactional_methods('POST')
+@permission_required('historia_clinica.ver')
+def facturacion_historia_vincular_documento(consulta_id):
+    """Relacionar o quitar una receta o licencia de esta consulta, de forma opcional."""
+    tenant_id = get_current_tenant_id()
+    medico_id_restringido = medico_id_historias_restringido()
+    consulta = obtener_consulta_clinica(
+        consulta_id, tenant_id, medico_id_restringido
+    )
+    if not consulta:
+        flash('Consulta clínica no encontrada', 'error')
+        return redirect(url_for('facturacion_historia_clinica'))
+    tipo = (request.form.get('tipo') or '').strip()
+    accion = (request.form.get('accion') or 'vincular').strip()
+    documento_id = validate_int(
+        request.form.get('documento_id'), min_value=1, default=None
+    )
+    pestana = 'recetas' if tipo == 'receta' else 'licencias'
+    if tipo not in {'receta', 'licencia'} or not documento_id:
+        flash('Seleccione un documento para relacionar', 'error')
+        return redirect(url_historia_clinica(consulta_id, pestana))
+    permiso = 'recetas.crear' if tipo == 'receta' else 'licencias.crear'
+    if not user_has_permission(current_user, permiso):
+        flash('No tiene permiso para relacionar este documento', 'error')
+        return redirect(url_historia_clinica(consulta_id, pestana))
+    if tipo == 'receta':
+        fila = execute_query(
+            'SELECT id, paciente_id, consulta_id, estado FROM recetas_medicas '
+            'WHERE id=%s AND tenant_id=%s',
+            (documento_id, tenant_id),
+        )
+        tabla = 'recetas_medicas'
+        etiqueta = 'Receta'
+    else:
+        fila = execute_query(
+            'SELECT id, paciente_id, consulta_id, estado FROM licencias_medicas '
+            'WHERE id=%s AND tenant_id=%s',
+            (documento_id, tenant_id),
+        )
+        tabla = 'licencias_medicas'
+        etiqueta = 'Licencia'
+    if not fila or fila['paciente_id'] != consulta['paciente_id']:
+        flash(f'La {etiqueta.lower()} no pertenece a este paciente', 'error')
+        return redirect(url_historia_clinica(consulta_id, pestana))
+    if fila.get('estado') == 'Anulada':
+        flash(f'No se puede relacionar una {etiqueta.lower()} anulada', 'error')
+        return redirect(url_historia_clinica(consulta_id, pestana))
+    if accion == 'desvincular':
+        execute_update(
+            f'UPDATE {tabla} SET consulta_id=NULL '
+            'WHERE id=%s AND tenant_id=%s AND consulta_id=%s',
+            (documento_id, tenant_id, consulta_id),
+        )
+        flash(f'{etiqueta} desvinculada de esta consulta', 'success')
+    else:
+        execute_update(
+            f'UPDATE {tabla} SET consulta_id=%s '
+            'WHERE id=%s AND tenant_id=%s',
+            (consulta_id, documento_id, tenant_id),
+        )
+        flash(f'{etiqueta} relacionada con esta consulta', 'success')
+    return redirect(url_historia_clinica(consulta_id, pestana))
 
 
 @login_required
@@ -1013,5 +1192,11 @@ def register_clinical_history_routes(app):
     app.add_url_rule('/api/facturacion/historia-clinica/plantilla-especialidad/<int:medico_id>', endpoint='api_historia_clinica_plantilla_especialidad', view_func=api_historia_clinica_plantilla_especialidad)
     app.add_url_rule('/facturacion/historia-clinica/paciente/<int:paciente_id>/nueva', endpoint='facturacion_historia_clinica_nueva', view_func=facturacion_historia_clinica_nueva, methods=['GET', 'POST'])
     app.add_url_rule('/facturacion/historia-clinica/consulta/<int:consulta_id>', endpoint='facturacion_historia_clinica_ver', view_func=facturacion_historia_clinica_ver)
+    app.add_url_rule(
+        '/facturacion/historia-clinica/consulta/<int:consulta_id>/vincular',
+        endpoint='facturacion_historia_vincular_documento',
+        view_func=facturacion_historia_vincular_documento,
+        methods=['POST'],
+    )
     app.add_url_rule('/facturacion/historia-clinica/consulta/<int:consulta_id>/editar', endpoint='facturacion_historia_clinica_editar', view_func=facturacion_historia_clinica_editar, methods=['GET', 'POST'])
     app.add_url_rule('/facturacion/historia-clinica/consulta/<int:consulta_id>/evolucion', endpoint='facturacion_historia_clinica_evolucion', view_func=facturacion_historia_clinica_evolucion, methods=['POST'])

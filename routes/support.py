@@ -93,3 +93,19 @@ def execute_paginated_query(base_query, params, order_by, default_per_page=25):
         return url_for(request.endpoint, **query_args)
     return rows, {'page': page, 'per_page': per_page, 'total': total, 'total_pages': total_pages, 'first_item': offset + 1 if total else 0, 'last_item': min(offset + per_page, total), 'previous_url': page_url(page - 1) if page > 1 else None, 'next_url': page_url(page + 1) if page < total_pages else None}
 
+
+def id_consulta_retorno():
+    """Consulta a la que hay que volver tras emitir receta o licencia."""
+    return validate_int(
+        request.form.get('volver_consulta_id') or request.args.get('volver_consulta_id'),
+        min_value=1,
+        default=None,
+    )
+
+
+def url_historia_clinica(consulta_id, pestana=None):
+    url = url_for('facturacion_historia_clinica_ver', consulta_id=consulta_id)
+    if pestana:
+        return f'{url}#{pestana}'
+    return url
+

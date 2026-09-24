@@ -23,6 +23,7 @@
     .hc-checks input { width: 18px; height: 18px; accent-color: var(--primary-color); }
     .hc-specialty-intro { border-left: 4px solid var(--primary-color); background: var(--ars-shell-bg); border-radius: 8px; padding: .85rem 1rem; }
     .hc-specialty-empty { color: var(--ars-shell-muted); padding: 1rem 0; }
+    .vital-warn { border-color: #d99a00 !important; background: #d99a000d; }
 </style>
 
 <div class="container py-4">
@@ -45,7 +46,7 @@
                 <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-consulta" type="button">Consulta</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-especialidad" type="button">Especialidad</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-antecedentes" type="button">Antecedentes</button></li>
-                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-examen" type="button">Signos y examen</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-examen" type="button">Examen físico</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-diagnostico" type="button">Diagnóstico</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-plan" type="button">Plan</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-seguimiento" type="button">Seguimiento</button></li>
@@ -79,6 +80,19 @@
                         <div class="col-md-6 mb-3"><label class="form-label">Evolución</label><textarea class="form-control" name="evolucion" rows="2">{{ ea.get('evolucion','') }}</textarea></div>
                         <div class="col-md-4 mb-3"><label class="form-label">Intensidad</label><input class="form-control" name="intensidad" value="{{ ea.get('intensidad','') }}" placeholder="Ej: 7/10"></div>
                         <div class="col-md-8 mb-3"><label class="form-label">Síntomas asociados</label><textarea class="form-control" name="sintomas_asociados" rows="2">{{ ea.get('sintomas_asociados','') }}</textarea></div>
+                    </div>
+                    <h2 class="hc-section-title">Signos vitales</h2>
+                    <p class="text-muted small mb-3">Si un valor sale del rango habitual, el sistema le pedirá confirmarlo antes de guardar.</p>
+                    <input type="hidden" name="confirmar_signos_fuera_rango" id="confirmar_signos_fuera_rango" value="">
+                    <div class="row" id="signosVitales">
+                        <div class="col-md-3 mb-3"><label class="form-label">Presión arterial</label><input class="form-control" name="presion_arterial" id="presion_arterial" value="{{ sv.get('presion_arterial','') }}" placeholder="120/80"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Frecuencia cardíaca</label><input type="number" class="form-control" name="frecuencia_cardiaca" id="frecuencia_cardiaca" min="1" max="300" value="{{ sv.get('frecuencia_cardiaca') or '' }}" placeholder="lpm"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Frecuencia respiratoria</label><input type="number" class="form-control" name="frecuencia_respiratoria" id="frecuencia_respiratoria" min="1" max="80" value="{{ sv.get('frecuencia_respiratoria') or '' }}" placeholder="rpm"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Temperatura °C</label><input type="number" step="0.1" class="form-control" name="temperatura" id="temperatura" min="30" max="45" value="{{ sv.get('temperatura') or '' }}"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Saturación de oxígeno %</label><input type="number" step="0.1" class="form-control" name="saturacion_oxigeno" id="saturacion_oxigeno" min="50" max="100" value="{{ sv.get('saturacion_oxigeno') or '' }}"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Peso (kg)</label><input type="number" step="0.01" class="form-control" id="peso" name="peso" min="0.5" max="400" value="{{ sv.get('peso') or '' }}"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Talla (m)</label><input type="number" step="0.01" class="form-control" id="talla" name="talla" min="0.3" max="2.5" value="{{ sv.get('talla') or '' }}"></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">IMC</label><input class="form-control" id="imc" value="{{ sv.get('imc') or '' }}" readonly></div>
                     </div>
                 </div>
 
@@ -159,20 +173,9 @@
                 </div>
 
                 <div class="tab-pane fade" id="tab-examen">
-                    <h2 class="hc-section-title">Signos vitales</h2>
-                    <div class="row">
-                        <div class="col-md-3 mb-3"><label class="form-label">Presión arterial</label><input class="form-control" name="presion_arterial" value="{{ sv.get('presion_arterial','') }}" placeholder="120/80"></div>
-                        <div class="col-md-3 mb-3"><label class="form-label">Frecuencia cardíaca</label><input type="number" class="form-control" name="frecuencia_cardiaca" min="1" max="300" value="{{ sv.get('frecuencia_cardiaca') or '' }}"></div>
-                        <div class="col-md-3 mb-3"><label class="form-label">Frecuencia respiratoria</label><input type="number" class="form-control" name="frecuencia_respiratoria" min="1" max="100" value="{{ sv.get('frecuencia_respiratoria') or '' }}"></div>
-                        <div class="col-md-3 mb-3"><label class="form-label">Temperatura °C</label><input type="number" step="0.1" class="form-control" name="temperatura" min="25" max="45" value="{{ sv.get('temperatura') or '' }}"></div>
-                        <div class="col-md-3 mb-3"><label class="form-label">Saturación de oxígeno %</label><input type="number" step="0.1" class="form-control" name="saturacion_oxigeno" min="0" max="100" value="{{ sv.get('saturacion_oxigeno') or '' }}"></div>
-                        <div class="col-md-3 mb-3"><label class="form-label">Peso (kg)</label><input type="number" step="0.01" class="form-control" id="peso" name="peso" min="0.1" max="500" value="{{ sv.get('peso') or '' }}"></div>
-                        <div class="col-md-3 mb-3"><label class="form-label">Talla (m)</label><input type="number" step="0.01" class="form-control" id="talla" name="talla" min="0.3" max="2.5" value="{{ sv.get('talla') or '' }}"></div>
-                        <div class="col-md-3 mb-3"><label class="form-label">IMC</label><input class="form-control" id="imc" value="{{ sv.get('imc') or '' }}" readonly></div>
-                    </div>
                     <h2 class="hc-section-title">Examen físico</h2>
                     <div class="row">
-                        {% for campo, etiqueta in [('estado_general','Estado general'),('cardiovascular','Cardiovascular'),('respiratorio','Respiratorio'),('abdomen','Abdomen'),('neurologico','Neurológico'),('otros','Otros hallazgos')] %}
+                        {% for campo, etiqueta in [('estado_general','Estado general'),('cabeza_cuello','Cabeza y cuello'),('cardiovascular','Cardiovascular'),('respiratorio','Respiratorio'),('abdomen','Abdomen'),('extremidades','Extremidades'),('neurologico','Neurológico'),('otros','Otros hallazgos')] %}
                         <div class="col-md-6 mb-3"><label class="form-label">{{ etiqueta }}</label><textarea class="form-control" name="{{ 'otros_hallazgos' if campo == 'otros' else campo }}" rows="2">{{ ef.get(campo,'') }}</textarea></div>
                         {% endfor %}
                     </div>
@@ -186,7 +189,6 @@
 
                 <div class="tab-pane fade" id="tab-plan">
                     <div class="row">
-                        <div class="col-12 mb-3"><label class="form-label">Medicamentos e indicaciones</label><textarea class="form-control" name="plan_medicamentos" rows="3">{{ plan.get('medicamentos','') }}</textarea></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Estudios de laboratorio</label><textarea class="form-control" name="estudios_laboratorio" rows="2">{{ plan.get('laboratorios','') }}</textarea></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Estudios de imágenes</label><textarea class="form-control" name="estudios_imagenes" rows="2">{{ plan.get('imagenes','') }}</textarea></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Procedimientos</label><textarea class="form-control" name="procedimientos" rows="2">{{ plan.get('procedimientos','') }}</textarea></div>
@@ -214,5 +216,5 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/historia-clinica.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='js/historia-clinica.js') }}?v=2"></script>
 {% endblock %}

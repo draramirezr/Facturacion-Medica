@@ -84,7 +84,7 @@
                     <div class="row mt-3">
                         <div class="col-md-6 mb-2"><small class="text-muted d-block">Motivo</small>{{ consulta['motivo_consulta'] }}</div>
                         <div class="col-md-6 mb-2"><small class="text-muted d-block">Diagnóstico</small>{{ consulta['diagnostico_principal'] }}</div>
-                        <div class="col-md-6"><small class="text-muted d-block">Tratamiento</small>{{ consulta['plan'].get('medicamentos') or consulta['plan'].get('recomendaciones') or 'N/D' }}</div>
+                        <div class="col-md-6"><small class="text-muted d-block">Tratamiento</small>{{ consulta['plan'].get('recomendaciones') or consulta['plan'].get('procedimientos') or 'N/D' }}</div>
                         <div class="col-md-6"><small class="text-muted d-block">Evolución</small>{{ consulta['nota_evolucion_inicial'] or 'Sin nota inicial' }}{% if consulta['total_evoluciones'] %} · {{ consulta['total_evoluciones'] }} nota(s) adicional(es){% endif %}</div>
                     </div>
                 </div>

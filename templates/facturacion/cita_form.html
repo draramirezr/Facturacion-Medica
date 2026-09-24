@@ -58,6 +58,28 @@
             </section>
             <div class="d-flex justify-content-end gap-2"><a class="btn btn-outline-secondary" href="{{ url_for('facturacion_citas') }}">Descartar</a><button class="btn btn-primary" type="submit"><i class="fas fa-save me-2"></i>{{ 'Guardar cambios' if cita else 'Programar cita' }}</button></div>
         </form>
+        {% if cita and puede_reagendar|default(false) %}
+        <section class="appointment-card mt-4" id="reagendar">
+            <h2>Reagendar cita</h2>
+            <p class="text-muted small mb-3">Cambia la fecha y hora. La cita vuelve a quedar programada{% if cita['estado'] == 'Cancelada' %} y se limpia la cancelación{% endif %}.</p>
+            <form method="POST">
+                <input type="hidden" name="accion" value="reagendar">
+                <input type="hidden" name="paciente_id" value="{{ cita['paciente_id'] }}">
+                <input type="hidden" name="medico_id" value="{{ cita['medico_id'] }}">
+                <input type="hidden" name="especialidad" value="{{ cita['especialidad'] or '' }}">
+                <input type="hidden" name="duracion_minutos" value="{{ cita['duracion_minutos'] or 30 }}">
+                <input type="hidden" name="motivo" value="{{ cita['motivo'] or '' }}">
+                <input type="hidden" name="notas" value="{{ cita['notas'] or '' }}">
+                <input type="hidden" name="estado" value="Programada">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-4"><label class="form-label required">Nueva fecha</label><input class="form-control" type="date" name="fecha" value="{{ fecha_valor }}" required></div>
+                    <div class="col-md-4"><label class="form-label required">Nueva hora</label><input class="form-control" type="time" name="hora" value="{{ hora_valor|hora_input }}" required></div>
+                    <div class="col-md-4"><label class="form-label">Motivo del cambio</label><input class="form-control" name="motivo_reagendar" maxlength="1000" placeholder="Opcional"></div>
+                </div>
+                <div class="d-flex justify-content-end mt-3"><button class="btn btn-outline-primary" type="submit"><i class="fas fa-calendar-day me-2"></i>Reagendar</button></div>
+            </form>
+        </section>
+        {% endif %}
         {% if cita and cita['estado'] not in ['Cancelada','Completada','Vencida'] %}
         <section class="appointment-card mt-4">
             <h2>Cancelar cita</h2>
@@ -82,6 +104,9 @@
         specialty.value = selectedSpecialty();
     });
     if (!specialty.value && doctor.value) specialty.value = selectedSpecialty();
+    {% if modo_reagendar|default(false) %}
+    document.getElementById('reagendar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    {% endif %}
 })();
 </script>
 {% endblock %}

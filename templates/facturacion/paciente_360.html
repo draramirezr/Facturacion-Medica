@@ -4,6 +4,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
+{% set ver_facturacion = ver_facturacion|default(false) %}
 <style nonce="{{ csp_nonce }}">
     .pending-invoice-icon { color: var(--primary-color); }
     .patient-360-header, .patient-360-card { background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}25; border-radius: 16px; padding: 1.35rem; margin-bottom: 1.2rem; }
@@ -66,16 +67,16 @@
         <div class="summary-item"><i class="fas fa-calendar-days"></i><strong>{{ resumen['citas'] }}</strong><span>Citas médicas</span></div>
         <div class="summary-item"><i class="fas fa-prescription"></i><strong>{{ resumen['recetas'] }}</strong><span>Recetas</span></div>
         <div class="summary-item"><i class="fas fa-truck-medical"></i><strong>{{ resumen['emergencias'] }}</strong><span>Emergencias</span></div>
-        <div class="summary-item"><i class="fas fa-stethoscope"></i><strong>{{ resumen['consultas_registradas'] }}</strong><span>Consultas registradas</span></div>
+        {% if ver_facturacion %}<div class="summary-item"><i class="fas fa-stethoscope"></i><strong>{{ resumen['consultas_registradas'] }}</strong><span>Consultas registradas</span></div>{% endif %}
         <div class="summary-item"><i class="fas fa-file-medical"></i><strong>{{ resumen['licencias'] }}</strong><span>Licencias médicas</span></div>
-        {% if not vista_restringida %}<div class="summary-item"><i class="fas fa-file-invoice-dollar"></i><strong>{{ resumen['facturas'] }}</strong><span>Facturas</span></div>{% endif %}
+        {% if ver_facturacion %}<div class="summary-item"><i class="fas fa-file-invoice-dollar"></i><strong>{{ resumen['facturas'] }}</strong><span>Facturas</span></div>{% endif %}
     </div>
 
     {% if actividad_por_medico %}
     <section class="patient-360-card">
         <h2 class="h5 mb-3">Actividad por médico</h2>
         <div class="doctor-summary doctor-summary--head">
-            <span>Profesional</span><span>Historias</span><span>Citas</span><span>Recetas</span><span>Emergencias</span><span>Consultas</span><span>Licencias</span>
+            <span>Profesional</span><span>Historias</span><span>Citas</span><span>Recetas</span><span>Emergencias</span>{% if ver_facturacion %}<span>Consultas</span>{% endif %}<span>Licencias</span>
         </div>
         {% for actividad in actividad_por_medico %}
         <div class="doctor-summary">
@@ -84,14 +85,14 @@
             <span>{{ actividad['citas'] }} citas</span>
             <span>{{ actividad['recetas'] }} recetas</span>
             <span>{{ actividad['emergencias'] }} emergencias</span>
-            <span>{{ actividad['consultas_registradas'] }} consultas</span>
+            {% if ver_facturacion %}<span>{{ actividad['consultas_registradas'] }} consultas</span>{% endif %}
             <span>{{ actividad['licencias'] }} licencias</span>
         </div>
         {% endfor %}
     </section>
     {% endif %}
 
-    {% if resumen['pendientes_facturar'] and not vista_restringida %}
+    {% if resumen['pendientes_facturar'] and ver_facturacion %}
     <div class="patient-360-card d-flex justify-content-between align-items-center flex-wrap gap-2">
         <div><strong><i class="fas fa-circle-exclamation me-2 pending-invoice-icon"></i>{{ resumen['pendientes_facturar'] }} consulta(s) pendiente(s) de facturar</strong></div>
         <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_pacientes_pendientes', estado='pendiente') }}">Revisar pendientes</a>
@@ -103,9 +104,9 @@
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#appointments" type="button">Citas</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#prescriptions" type="button">Recetas</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#emergency" type="button">Emergencias</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#registered" type="button">Consultas registradas</button></li>
+        {% if ver_facturacion %}<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#registered" type="button">Consultas registradas</button></li>{% endif %}
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#licenses" type="button">Licencias</button></li>
-        {% if not vista_restringida %}<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#invoices" type="button">Facturación</button></li>{% endif %}
+        {% if ver_facturacion %}<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#invoices" type="button">Facturación</button></li>{% endif %}
     </ul>
 
     <div class="tab-content">
@@ -127,7 +128,10 @@
             {% for cita in citas %}
             <div class="record-row d-flex justify-content-between flex-wrap gap-2">
                 <div><strong>{{ cita['fecha'] }} · {{ cita['hora']|hora_input }}</strong><span class="record-meta">{{ cita['medico_nombre'] }} · {{ cita['especialidad'] or 'Sin especialidad' }} · {{ cita['motivo'] }}</span><span class="record-status mt-2">{{ cita['estado'] }}</span></div>
-                <a class="btn btn-sm btn-outline-primary align-self-start" href="{{ url_for('facturacion_cita_editar', cita_id=cita['id']) }}">Ver cita</a>
+                <div class="d-flex gap-1 align-self-start">
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_cita_editar', cita_id=cita['id']) }}">Ver cita</a>
+                {% if can('citas.editar') and cita['estado'] != 'Completada' %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('facturacion_cita_editar', cita_id=cita['id'], reagendar=1) }}">Reagendar</a>{% endif %}
+                </div>
             </div>
             {% else %}<div class="empty-record">No hay citas registradas para este paciente.</div>{% endfor %}
         </section>
@@ -152,6 +156,7 @@
             {% else %}<div class="empty-record">No hay historias de emergencia registradas.</div>{% endfor %}
         </section>
 
+        {% if ver_facturacion %}
         <section class="tab-pane fade patient-360-card" id="registered">
             <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Consultas registradas</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_facturas_nueva', paciente_id=paciente['id']) }}">Registrar consulta</a></div>
             {% for registro in consultas_registradas %}
@@ -160,6 +165,7 @@
             </div>
             {% else %}<div class="empty-record">No hay consultas registradas para facturación.</div>{% endfor %}
         </section>
+        {% endif %}
 
         <section class="tab-pane fade patient-360-card" id="licenses">
             <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Licencias médicas</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_licencias_medicas_nueva', paciente_id=paciente['id']) }}">Nueva licencia</a></div>
@@ -171,7 +177,7 @@
             {% else %}<div class="empty-record">No hay licencias médicas registradas.</div>{% endfor %}
         </section>
 
-        {% if not vista_restringida %}<section class="tab-pane fade patient-360-card" id="invoices">
+        {% if ver_facturacion %}<section class="tab-pane fade patient-360-card" id="invoices">
             <h2 class="h5 mb-2">Facturación del paciente</h2>
             {% for factura in facturas %}
             <div class="record-row d-flex justify-content-between flex-wrap gap-2">

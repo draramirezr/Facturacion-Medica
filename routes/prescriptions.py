@@ -11,8 +11,14 @@ from auth import permission_required
 from core.database import execute_query, execute_update, transactional_methods
 from core.tenant import get_current_tenant_id
 from routes.support import (
-    calcular_edad_clinica, execute_paginated_query, sanitize_input, validate_int,
+    calcular_edad_clinica, execute_paginated_query, id_consulta_retorno,
+    sanitize_input, url_historia_clinica, validate_int,
 )
+
+
+def clave_nombre_medicamento(nombre):
+    """Normalizar el nombre para comparar duplicados sin mayúsculas ni espacios extra."""
+    return ' '.join(str(nombre or '').split()).casefold()
 
 
 def medico_id_recetas_restringido():
@@ -243,10 +249,21 @@ def facturacion_recetas_medicas_nueva():
             cantidades = request.form.getlist('cantidad[]')
             indicaciones = request.form.getlist('indicaciones[]')
             medicamentos = []
+            nombres_usados = set()
             for indice, nombre in enumerate(nombres):
                 nombre = sanitize_input(nombre, 250)
                 if not nombre:
                     continue
+                clave = clave_nombre_medicamento(nombre)
+                if clave in nombres_usados:
+                    medicamentos = []
+                    flash(
+                        'Este medicamento ya está en la receta. '
+                        'No se puede agregar dos veces.',
+                        'error'
+                    )
+                    break
+                nombres_usados.add(clave)
                 dosis_item = sanitize_input(
                     dosis[indice] if indice < len(dosis) else '', 150
                 )
@@ -316,10 +333,16 @@ def facturacion_recetas_medicas_nueva():
                         item['indicaciones'] or None, orden
                     ))
                 flash('Receta médica emitida correctamente', 'success')
+                volver = id_consulta_retorno()
+                if volver:
+                    return redirect(url_historia_clinica(volver, 'recetas'))
                 return redirect(url_for(
                     'facturacion_receta_medica_ver', receta_id=receta_id
                 ))
         form_data = request.form
+        volver = id_consulta_retorno()
+        if volver:
+            return redirect(url_historia_clinica(volver, 'recetas'))
     else:
         form_data = {}
     return render_template(

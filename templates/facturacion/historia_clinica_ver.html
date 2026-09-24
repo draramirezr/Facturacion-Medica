@@ -13,6 +13,11 @@
     .detail-grid span, .detail-label { display: block; color: var(--ars-shell-muted); font-size: .72rem; text-transform: uppercase; font-weight: 700; }
     .detail-wide { grid-column: span 2; }
     .evolution { border-left: 3px solid var(--primary-color); padding: .9rem 1rem; background: #f9fbfd; margin-bottom: .8rem; border-radius: 0 10px 10px 0; }
+    .hc-tabs { border-bottom: 0; gap: .35rem; }
+    .hc-tabs .nav-link { color: var(--ars-shell-muted); border: 1px solid var(--ars-shell-border, {{ tema.primary }}20); background: var(--ars-shell-bg, #f8fafc); font-weight: 700; }
+    .hc-tabs .nav-link.active { color: var(--primary-dark); border-color: {{ tema.primary }}35; border-bottom-color: var(--ars-shell-surface, #fff); background: var(--ars-shell-surface, #fff); }
+    .hc-tab-card { background: var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}20; border-top-left-radius: 0; border-radius: 15px; padding: 1.25rem; margin-bottom: 1rem; }
+    .medicine-row { padding: .9rem; margin-bottom: .7rem; border: 1px solid {{ tema.primary }}25; border-radius: 12px; background: #fbfcfe; }
     @media (max-width: 767px) { .detail-grid { grid-template-columns: 1fr 1fr; } }
 </style>
 
@@ -26,7 +31,8 @@
                     <p class="text-muted mb-0">Consulta del {{ consulta['fecha'] }} a las {{ consulta['hora'] }} · {{ consulta['medico_nombre'] }}</p>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
-                    <a class="btn btn-primary" href="{{ url_for('facturacion_recetas_medicas_nueva', consulta_id=consulta['id']) }}"><i class="fas fa-prescription me-2"></i>Crear receta</a>
+                    <button class="btn btn-primary" type="button" data-hc-tab="recetas"><i class="fas fa-prescription me-2"></i>Receta</button>
+                    <button class="btn btn-outline-primary" type="button" data-hc-tab="licencias"><i class="fas fa-file-medical me-2"></i>Licencia</button>
                     <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_editar', consulta_id=consulta['id']) }}"><i class="fas fa-pen me-2"></i>Editar con trazabilidad</a>
                 </div>
             </div>
@@ -43,7 +49,15 @@
             </div>
         </div>
 
-        <div class="hc-block">
+        <ul class="nav nav-tabs hc-tabs" role="tablist">
+            <li class="nav-item"><button class="nav-link active" id="tab-btn-consulta" data-bs-toggle="tab" data-bs-target="#tab-consulta" type="button">Consulta</button></li>
+            <li class="nav-item"><button class="nav-link" id="tab-btn-recetas" data-bs-toggle="tab" data-bs-target="#tab-recetas" type="button">Recetas {% if recetas %}<span class="badge text-bg-secondary">{{ recetas|length }}</span>{% endif %}</button></li>
+            <li class="nav-item"><button class="nav-link" id="tab-btn-licencias" data-bs-toggle="tab" data-bs-target="#tab-licencias" type="button">Licencias {% if licencias %}<span class="badge text-bg-secondary">{{ licencias|length }}</span>{% endif %}</button></li>
+        </ul>
+
+        <div class="tab-content hc-tab-card">
+            <div class="tab-pane fade show active" id="tab-consulta">
+        <div class="hc-block border-0 p-0 mb-4">
             <h2>Motivo y enfermedad actual</h2>
             <p><span class="detail-label">Motivo de consulta</span>{{ consulta['motivo_consulta'] }}</p>
             <div class="detail-grid">
@@ -53,7 +67,7 @@
             </div>
         </div>
 
-        <div class="hc-block">
+        <div class="hc-block border-0 px-0">
             <h2>Antecedentes</h2>
             <div class="detail-grid">
                 {% for campo, etiqueta in [('enfermedades_previas','Enfermedades previas'),('cirugias','Cirugías'),('hospitalizaciones','Hospitalizaciones'),('alergias','Alergias'),('medicamentos_actuales','Medicamentos actuales'),('habitos','Hábitos'),('otros','Otros')] %}
@@ -71,7 +85,7 @@
             </div>
         </div>
 
-        <div class="hc-block">
+        <div class="hc-block border-0 px-0">
             <h2>Signos vitales y examen físico</h2>
             <div class="detail-grid mb-3">
                 {% for campo, etiqueta in [('presion_arterial','Presión arterial'),('frecuencia_cardiaca','Frecuencia cardíaca'),('frecuencia_respiratoria','Frecuencia respiratoria'),('temperatura','Temperatura'),('saturacion_oxigeno','Saturación O₂'),('peso','Peso kg'),('talla','Talla m'),('imc','IMC')] %}
@@ -85,7 +99,7 @@
             </div>
         </div>
 
-        <div class="hc-block">
+        <div class="hc-block border-0 px-0">
             <h2>{{ consulta.esquema_especialidad['label'] }} · Evaluación específica</h2>
             {% for section in consulta.esquema_especialidad['sections'] %}
             <h3 class="h6 mt-3">{{ section['title'] }}</h3>
@@ -102,7 +116,7 @@
             <small class="text-muted">Plantilla clínica versión {{ consulta.get('plantilla_version') or 1 }}</small>
         </div>
 
-        <div class="hc-block">
+        <div class="hc-block border-0 px-0">
             <h2>Diagnóstico</h2>
             <div class="detail-grid">
                 <div class="detail-wide"><span>Principal</span>{{ consulta['diagnostico_principal'] }}</div>
@@ -113,29 +127,16 @@
             </div>
         </div>
 
-        <div class="hc-block">
+        <div class="hc-block border-0 px-0">
             <h2>Plan y tratamiento</h2>
             <div class="detail-grid">
-                {% for campo, etiqueta in [('medicamentos','Medicamentos'),('dosis','Dosis'),('frecuencia','Frecuencia'),('duracion','Duración'),('laboratorios','Laboratorios'),('imagenes','Imágenes'),('procedimientos','Procedimientos'),('recomendaciones','Recomendaciones')] %}
+                {% for campo, etiqueta in [('laboratorios','Laboratorios'),('imagenes','Imágenes'),('procedimientos','Procedimientos'),('recomendaciones','Recomendaciones')] %}
                 <div class="detail-wide"><span>{{ etiqueta }}</span>{{ consulta.plan_tratamiento.get(campo) or 'N/D' }}</div>
                 {% endfor %}
             </div>
         </div>
 
-        <div class="hc-block">
-            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
-                <h2 class="mb-0">Recetas médicas</h2>
-                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_recetas_medicas_nueva', consulta_id=consulta['id']) }}">Nueva receta</a>
-            </div>
-            {% for receta in recetas %}
-            <div class="d-flex justify-content-between align-items-center gap-2 py-2 border-bottom">
-                <div><strong>{{ receta['codigo'] }}</strong><small class="d-block text-muted">{{ receta['fecha'] }} · {{ receta['medicamentos'] }} medicamento(s) · {{ receta['estado'] }}</small></div>
-                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_receta_medica_ver',receta_id=receta['id']) }}">Ver</a>
-            </div>
-            {% else %}<p class="text-muted mb-0">No hay recetas emitidas desde esta consulta.</p>{% endfor %}
-        </div>
-
-        <div class="hc-block">
+        <div class="hc-block border-0 px-0">
             <h2>Evolución</h2>
             {% if consulta['nota_evolucion_inicial'] %}
             <div class="evolution"><strong>{{ consulta['fecha'] }} · {{ consulta['medico_nombre'] }}</strong><p class="mb-0 mt-2">{{ consulta['nota_evolucion_inicial'] }}</p></div>
@@ -163,11 +164,14 @@
             </form>
         </div>
 
-        <div class="hc-block">
+        <div class="hc-block border-0 px-0 mb-0">
             <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
                 <h2 class="mb-0">Próxima cita y trazabilidad</h2>
                 {% if cita_agenda %}
                 <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_cita_editar',cita_id=cita_agenda['id']) }}"><i class="fas fa-calendar-check me-2"></i>Ver en agenda</a>
+                {% if can('citas.editar') and cita_agenda['estado'] != 'Completada' %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('facturacion_cita_editar',cita_id=cita_agenda['id'],reagendar=1) }}"><i class="fas fa-calendar-day me-2"></i>Reagendar</a>
+                {% endif %}
                 {% else %}
                 <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_citas_nueva',consulta_id=consulta['id']) }}"><i class="fas fa-calendar-plus me-2"></i>Programar en agenda</a>
                 {% endif %}
@@ -181,6 +185,194 @@
                 <div class="detail-wide"><span>Historial de cambios</span>{{ auditoria|length }} modificación(es) registrada(s){% for cambio in auditoria %}<br><small>Versión {{ cambio['version_anterior'] }} · {{ cambio['created_at'] }} · {{ cambio['usuario_nombre'] or 'Usuario' }}</small>{% endfor %}</div>
             </div>
         </div>
+            </div>
+
+            <div class="tab-pane fade" id="tab-recetas">
+                <h2 class="hc-block border-0 p-0 mb-3" style="border:0;">Recetas de esta consulta</h2>
+                <p class="text-muted">La relación es opcional. Puede emitir una receta aquí o vincular una ya existente del mismo paciente.</p>
+                {% for receta in recetas %}
+                <div class="d-flex justify-content-between align-items-center gap-2 py-2 border-bottom">
+                    <div><strong>{{ receta['codigo'] }}</strong><small class="d-block text-muted">{{ receta['fecha'] }} · {{ receta['medicamentos'] }} medicamento(s) · {{ receta['estado'] }}</small></div>
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_receta_medica_ver',receta_id=receta['id']) }}">Ver</a>
+                        {% if can('recetas.crear') %}
+                        <form method="POST" action="{{ url_for('facturacion_historia_vincular_documento', consulta_id=consulta['id']) }}">
+                            <input type="hidden" name="tipo" value="receta">
+                            <input type="hidden" name="accion" value="desvincular">
+                            <input type="hidden" name="documento_id" value="{{ receta['id'] }}">
+                            <button class="btn btn-sm btn-outline-secondary" type="submit">Quitar relación</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}<p class="text-muted">No hay recetas relacionadas con esta consulta.</p>{% endfor %}
+
+                {% if can('recetas.crear') and recetas_disponibles %}
+                <form method="POST" action="{{ url_for('facturacion_historia_vincular_documento', consulta_id=consulta['id']) }}" class="row g-2 align-items-end mt-4">
+                    <input type="hidden" name="tipo" value="receta">
+                    <input type="hidden" name="accion" value="vincular">
+                    <div class="col-md-8">
+                        <label class="form-label">Relacionar receta existente (opcional)</label>
+                        <select class="form-select" name="documento_id" required>
+                            <option value="">Seleccione una receta sin consulta</option>
+                            {% for receta in recetas_disponibles %}
+                            <option value="{{ receta['id'] }}">{{ receta['codigo'] }} · {{ receta['fecha'] }} · {{ receta['estado'] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4"><button class="btn btn-outline-primary w-100" type="submit">Vincular a esta consulta</button></div>
+                </form>
+                {% endif %}
+
+                {% if can('recetas.crear') %}
+                <form method="POST" action="{{ url_for('facturacion_recetas_medicas_nueva') }}" class="mt-4" id="hcRxForm">
+                    <h3 class="h6">Emitir receta en esta consulta</h3>
+                    <input type="hidden" name="paciente_id" value="{{ consulta['paciente_id'] }}">
+                    <input type="hidden" name="medico_id" value="{{ consulta['medico_id'] }}">
+                    <input type="hidden" name="consulta_id" value="{{ consulta['id'] }}">
+                    <input type="hidden" name="volver_consulta_id" value="{{ consulta['id'] }}">
+                    <input type="hidden" name="fecha" value="{{ fecha_actual }}">
+                    <input type="hidden" name="diagnostico" value="{{ consulta['diagnostico_principal'] or '' }}">
+                    <input type="hidden" name="codigo_cie10" value="{{ consulta['codigo_cie10'] or '' }}">
+                    <div id="hcMedicineRows">
+                        <div class="medicine-row">
+                            <div class="d-flex justify-content-between mb-2"><strong>Medicamento</strong><button class="btn btn-sm btn-outline-secondary hc-remove-medicine" type="button">Quitar</button></div>
+                            <div class="row g-2">
+                                <div class="col-lg-5"><input class="form-control" name="medicamento[]" maxlength="250" placeholder="Nombre" required></div>
+                                <div class="col-lg-3"><input class="form-control" name="presentacion[]" maxlength="150" placeholder="Presentación"></div>
+                                <div class="col-lg-2"><input class="form-control" name="dosis[]" maxlength="150" placeholder="Dosis" required></div>
+                                <div class="col-lg-2"><input class="form-control" name="via[]" maxlength="100" placeholder="Vía"></div>
+                                <div class="col-lg-4"><input class="form-control" name="frecuencia[]" maxlength="150" placeholder="Frecuencia" required></div>
+                                <div class="col-lg-4"><input class="form-control" name="duracion[]" maxlength="150" placeholder="Duración" required></div>
+                                <div class="col-lg-4"><input class="form-control" name="cantidad[]" maxlength="100" placeholder="Cantidad"></div>
+                                <div class="col-12"><input class="form-control" name="indicaciones[]" maxlength="2000" placeholder="Indicaciones"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-2 mt-2">
+                        <button class="btn btn-outline-primary" id="hcAddMedicine" type="button">Agregar medicamento</button>
+                        <button class="btn btn-primary" type="submit">Emitir receta</button>
+                    </div>
+                </form>
+                {% endif %}
+            </div>
+
+            <div class="tab-pane fade" id="tab-licencias">
+                <h2 class="hc-block border-0 p-0 mb-3" style="border:0;">Licencias de esta consulta</h2>
+                <p class="text-muted">La relación es opcional. Puede registrar una licencia aquí o vincular una ya existente del mismo paciente.</p>
+                {% for licencia in licencias %}
+                <div class="d-flex justify-content-between align-items-center gap-2 py-2 border-bottom">
+                    <div>
+                        <strong>{{ licencia['codigo'] }}</strong>
+                        <small class="d-block text-muted">{{ licencia['tipo_nombre'] or 'Licencia' }} · {{ licencia['fecha_inicio'] }} a {{ licencia['fecha_termino'] }} · {{ licencia['estado'] }}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_licencia_medica_ver', licencia_id=licencia['id']) }}">Ver</a>
+                        {% if can('licencias.crear') %}
+                        <form method="POST" action="{{ url_for('facturacion_historia_vincular_documento', consulta_id=consulta['id']) }}">
+                            <input type="hidden" name="tipo" value="licencia">
+                            <input type="hidden" name="accion" value="desvincular">
+                            <input type="hidden" name="documento_id" value="{{ licencia['id'] }}">
+                            <button class="btn btn-sm btn-outline-secondary" type="submit">Quitar relación</button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}<p class="text-muted">No hay licencias relacionadas con esta consulta.</p>{% endfor %}
+
+                {% if can('licencias.crear') and licencias_disponibles %}
+                <form method="POST" action="{{ url_for('facturacion_historia_vincular_documento', consulta_id=consulta['id']) }}" class="row g-2 align-items-end mt-4">
+                    <input type="hidden" name="tipo" value="licencia">
+                    <input type="hidden" name="accion" value="vincular">
+                    <div class="col-md-8">
+                        <label class="form-label">Relacionar licencia existente (opcional)</label>
+                        <select class="form-select" name="documento_id" required>
+                            <option value="">Seleccione una licencia sin consulta</option>
+                            {% for licencia in licencias_disponibles %}
+                            <option value="{{ licencia['id'] }}">{{ licencia['codigo'] }} · {{ licencia['fecha_emision'] }} · {{ licencia['diagnostico']|truncate(40) }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4"><button class="btn btn-outline-primary w-100" type="submit">Vincular a esta consulta</button></div>
+                </form>
+                {% endif %}
+
+                {% if can('licencias.crear') %}
+                <form method="POST" action="{{ url_for('facturacion_licencias_medicas_nueva') }}" class="mt-4" id="hcLicenseForm">
+                    <h3 class="h6">Registrar licencia en esta consulta</h3>
+                    <input type="hidden" name="paciente_id" value="{{ consulta['paciente_id'] }}">
+                    <input type="hidden" name="medico_id" value="{{ consulta['medico_id'] }}">
+                    <input type="hidden" name="consulta_id" value="{{ consulta['id'] }}">
+                    <input type="hidden" name="volver_consulta_id" value="{{ consulta['id'] }}">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo *</label>
+                            <select class="form-select" name="tipo_licencia_id" required>
+                                <option value="">Seleccione</option>
+                                {% for tipo in tipos_licencia %}
+                                <option value="{{ tipo['id'] }}">{{ tipo['nombre'] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-8"><label class="form-label">Diagnóstico *</label><input class="form-control" name="diagnostico" maxlength="5000" required value="{{ consulta['diagnostico_principal'] or '' }}"></div>
+                        <div class="col-12"><label class="form-label">Motivo / condición *</label><textarea class="form-control" name="motivo_condicion" rows="2" required>{{ consulta['motivo_consulta'] or '' }}</textarea></div>
+                        <div class="col-md-3"><label class="form-label">Emisión *</label><input type="date" class="form-control" name="fecha_emision" required value="{{ fecha_actual }}"></div>
+                        <div class="col-md-3"><label class="form-label">Inicio *</label><input type="date" class="form-control" id="hcFechaInicio" name="fecha_inicio" required></div>
+                        <div class="col-md-3"><label class="form-label">Término *</label><input type="date" class="form-control" id="hcFechaTermino" name="fecha_termino" required></div>
+                        <div class="col-md-3"><label class="form-label">Estado *</label><select class="form-select" name="estado" required><option value="Borrador">Borrador</option><option value="Emitida">Emitida</option></select></div>
+                        <div class="col-12"><label class="form-label">Observaciones</label><textarea class="form-control" name="observaciones" rows="2"></textarea></div>
+                        <div class="col-12"><label class="form-check"><input class="form-check-input" type="checkbox" name="confirmar_solapamiento" value="1"> <span class="form-check-label">Continuar aunque exista otra licencia en el mismo período</span></label></div>
+                    </div>
+                    <button class="btn btn-primary mt-3" type="submit">Registrar licencia</button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
     </div>
 </div>
+<script nonce="{{ csp_nonce }}">
+(() => {
+    function showTab(name) {
+        const button = document.getElementById('tab-btn-' + name);
+        if (button && window.bootstrap) {
+            bootstrap.Tab.getOrCreateInstance(button).show();
+        }
+    }
+    document.querySelectorAll('[data-hc-tab]').forEach((button) => {
+        button.addEventListener('click', () => showTab(button.dataset.hcTab));
+    });
+    const hash = (location.hash || '').replace('#', '');
+    if (hash === 'recetas' || hash === 'licencias') showTab(hash);
+
+    const rows = document.getElementById('hcMedicineRows');
+    if (rows) {
+        function medicineKey(value) {
+            return String(value || '').trim().replace(/\s+/g, ' ').toLowerCase();
+        }
+        document.getElementById('hcAddMedicine').addEventListener('click', () => {
+            const copy = rows.firstElementChild.cloneNode(true);
+            copy.querySelectorAll('input').forEach((input) => { input.value = ''; });
+            rows.appendChild(copy);
+        });
+        rows.addEventListener('click', (event) => {
+            const button = event.target.closest('.hc-remove-medicine');
+            if (button && rows.children.length > 1) button.closest('.medicine-row').remove();
+        });
+        document.getElementById('hcRxForm').addEventListener('submit', (event) => {
+            const seen = new Set();
+            for (const input of rows.querySelectorAll('input[name="medicamento[]"]')) {
+                const key = medicineKey(input.value);
+                if (!key) continue;
+                if (seen.has(key)) {
+                    event.preventDefault();
+                    alert('Este medicamento ya está en la receta. No se puede agregar dos veces.');
+                    input.focus();
+                    return;
+                }
+                seen.add(key);
+            }
+        });
+    }
+})();
+</script>
 {% endblock %}
