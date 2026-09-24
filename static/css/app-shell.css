@@ -1254,3 +1254,39 @@ html[data-color-mode="dark"] .ars-brand-crop .brand-logo-dark {
         margin-left: 0 !important;
     }
 }
+
+@media (max-width: 767px) {
+    body.ars-doctor-app .btn,
+    body.ars-doctor-app .doctor-next-button {
+        min-height: 48px;
+        font-size: 1rem;
+        padding: 0.7rem 1rem;
+    }
+    body.ars-doctor-app .form-control,
+    body.ars-doctor-app .form-select {
+        min-height: 48px;
+        font-size: 16px;
+    }
+    body.ars-doctor-app .hc-tabs {
+        display: flex;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 0.35rem;
+    }
+    body.ars-doctor-app .hc-tabs .nav-link {
+        white-space: nowrap;
+        min-height: 44px;
+        padding: 0.65rem 0.9rem;
+    }
+    body.ars-doctor-app .hc-form-card .btn-primary,
+    body.ars-doctor-app #rxForm .btn-primary,
+    body.ars-doctor-app .doctor-actions .btn {
+        width: 100%;
+    }
+    body.ars-doctor-app .agenda-row,
+    body.ars-doctor-app .doctor-turn {
+        grid-template-columns: 1fr !important;
+        gap: 0.45rem;
+    }
+}

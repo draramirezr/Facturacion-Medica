@@ -430,50 +430,50 @@ def solicitar_recuperacion():
 
 
 def _send_recovery_email(usuario, email, token):
-    if SENDGRID_AVAILABLE:
-        try:
-            base_url = os.getenv('APP_BASE_URL', '').strip()
-            if base_url:
-                reset_url = urljoin(
-                    base_url.rstrip('/') + '/',
-                    url_for('recuperar_password', token=token).lstrip('/'),
-                )
-            elif not IS_PRODUCTION:
-                reset_url = url_for(
-                    'recuperar_password', token=token, _external=True,
-                )
-            else:
-                raise RuntimeError('APP_BASE_URL no está configurada')
-            message = Mail(
-                from_email=os.getenv(
-                    'SENDGRID_FROM_EMAIL', 'noreply@facturacion.com',
-                ),
-                to_emails=email,
-                subject='Recuperación de Contraseña - ClinicRD',
-                html_content=(
-                    f'<p>Hola {usuario["nombre"]},</p>'
-                    f'<p><a href="{reset_url}">Recuperar Contraseña</a></p>'
-                    '<p>Este enlace expirará en 1 hora.</p>'
-                ),
+    from services.tenant_mail import enviar_correo_consultorio
+
+    try:
+        base_url = os.getenv('APP_BASE_URL', '').strip()
+        if base_url:
+            reset_url = urljoin(
+                base_url.rstrip('/') + '/',
+                url_for('recuperar_password', token=token).lstrip('/'),
             )
-            SendGridAPIClient(os.getenv('SENDGRID_API_KEY')).send(message)
+        elif not IS_PRODUCTION:
+            reset_url = url_for(
+                'recuperar_password', token=token, _external=True,
+            )
+        else:
+            raise RuntimeError('APP_BASE_URL no está configurada')
+        html = (
+            f'<p>Hola {usuario["nombre"]},</p>'
+            f'<p><a href="{reset_url}">Recuperar Contraseña</a></p>'
+            '<p>Este enlace expirará en 1 hora.</p>'
+        )
+        ok, detalle = enviar_correo_consultorio(
+            usuario.get('tenant_id'),
+            email,
+            'Recuperación de Contraseña - ClinicRD',
+            html,
+        )
+        if ok:
             flash(
                 'Se ha enviado un email con instrucciones para recuperar '
                 'tu contraseña',
                 'success',
             )
-        except Exception as error:
-            logger.error('Error enviando email: %s', error)
-            flash('Error al enviar el email. Contacta al administrador.', 'error')
-    elif (
-        ENVIRONMENT == 'development'
-        and os.getenv('ALLOW_INSECURE_DEV_RESET_TOKEN', '').lower() == 'true'
-    ):
-        flash(f'Token de recuperación (solo desarrollo): {token}', 'info')
-        flash('Usa este enlace para recuperar tu contraseña', 'info')
-    else:
-        logger.error('Recuperación solicitada sin proveedor de correo.')
-        flash('No fue posible enviar el correo. Contacta al administrador.', 'error')
+            return
+        logger.error('Recuperación de clave: %s', detalle)
+        if (
+            ENVIRONMENT == 'development'
+            and os.getenv('ALLOW_INSECURE_DEV_RESET_TOKEN', '').lower() == 'true'
+        ):
+            flash(f'Token de recuperación (solo desarrollo): {token}', 'info')
+            return
+        flash('Error al enviar el email. Contacta al administrador.', 'error')
+    except Exception as error:
+        logger.error('Error enviando email: %s', error)
+        flash('Error al enviar el email. Contacta al administrador.', 'error')
 
 
 def recuperar_password(token):

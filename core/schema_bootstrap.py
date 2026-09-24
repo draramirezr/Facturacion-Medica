@@ -112,6 +112,58 @@ def _asegurar_columnas_activacion(cursor, database):
         )
 
 
+def _asegurar_columnas_smtp_empresa(cursor, database):
+    columnas = {
+        'smtp_host': 'VARCHAR(255) NULL',
+        'smtp_port': 'INT NULL',
+        'smtp_usuario': 'VARCHAR(255) NULL',
+        'smtp_password_cifrado': 'TEXT NULL',
+        'smtp_remitente': 'VARCHAR(255) NULL',
+        'smtp_nombre_remitente': 'VARCHAR(150) NULL',
+        'smtp_usar_tls': 'TINYINT(1) NOT NULL DEFAULT 1',
+    }
+    for nombre, definicion in columnas.items():
+        cursor.execute(
+            '''
+            SELECT 1
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'empresas'
+              AND COLUMN_NAME = %s
+            ''',
+            (database, nombre),
+        )
+        if cursor.fetchone():
+            continue
+        cursor.execute(
+            f'ALTER TABLE empresas ADD COLUMN `{nombre}` {definicion}'
+        )
+
+
+def _asegurar_columnas_confirmacion_cita(cursor, database):
+    columnas = {
+        'confirmacion_token_hash': 'VARCHAR(64) NULL',
+        'confirmacion_token_expiracion': 'DATETIME NULL',
+        'recordatorio_enviado': 'TINYINT(1) NOT NULL DEFAULT 0',
+    }
+    for nombre, definicion in columnas.items():
+        cursor.execute(
+            '''
+            SELECT 1
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'citas_medicas'
+              AND COLUMN_NAME = %s
+            ''',
+            (database, nombre),
+        )
+        if cursor.fetchone():
+            continue
+        cursor.execute(
+            f'ALTER TABLE citas_medicas ADD COLUMN `{nombre}` {definicion}'
+        )
+
+
 def bootstrap_required_schema(connection_factory=None):
     """Crear tablas faltantes en la base actual y sembrar permisos."""
     factory = connection_factory or pymysql.connect
@@ -137,6 +189,8 @@ def bootstrap_required_schema(connection_factory=None):
                 aplicadas = True
             _sembrar_permisos(cursor, database)
             _asegurar_columnas_activacion(cursor, database)
+            _asegurar_columnas_smtp_empresa(cursor, database)
+            _asegurar_columnas_confirmacion_cita(cursor, database)
         connection.commit()
     except Exception:
         try:

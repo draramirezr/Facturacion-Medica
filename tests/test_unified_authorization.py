@@ -21,6 +21,8 @@ class UnifiedAuthorizationTests(unittest.TestCase):
             'facturacion_citas_nueva': 'citas.crear',
             'facturacion_cita_editar': 'citas.editar',
             'facturacion_cita_estado': 'citas.editar',
+            'turnos_mi_cola': 'turnos.cola_propia',
+            'turnos_mi_cola_estado': 'turnos.cola_propia',
             'facturacion_recetas_medicas': 'recetas.ver',
             'facturacion_recetas_medicas_nueva': 'recetas.crear',
             'facturacion_receta_medica_anular': 'recetas.anular',

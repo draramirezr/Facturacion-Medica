@@ -96,9 +96,9 @@ class RbacCatalogTests(unittest.TestCase):
             "or can('historia_clinica.ver')",
             plantilla,
         )
-        self.assertGreaterEqual(
+        self.assertEqual(
             plantilla.count("url_for('facturacion_reporte_pacientes_360')"),
-            2,
+            1,
         )
 
     def test_doctor_queue_shows_todays_appointments(self):
@@ -111,6 +111,7 @@ class RbacCatalogTests(unittest.TestCase):
             / 'mi_cola.html'
         ).read_text(encoding='utf-8')
         self.assertIn('Citas de hoy', plantilla)
+        self.assertIn('cola-medico.js', plantilla)
         self.assertIn('en_cola', plantilla)
         self.assertIn('Confirmada', plantilla)
         self.assertEqual(

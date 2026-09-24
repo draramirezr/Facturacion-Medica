@@ -33,6 +33,13 @@ CREATE TABLE IF NOT EXISTS empresas (
     creado_por INT NULL,
     es_demo TINYINT(1) NOT NULL DEFAULT 0,
     ancho_ticket_turnos VARCHAR(2) NOT NULL DEFAULT '80',
+    smtp_host VARCHAR(255) NULL,
+    smtp_port INT NULL,
+    smtp_usuario VARCHAR(255) NULL,
+    smtp_password_cifrado TEXT NULL,
+    smtp_remitente VARCHAR(255) NULL,
+    smtp_nombre_remitente VARCHAR(150) NULL,
+    smtp_usar_tls TINYINT(1) NOT NULL DEFAULT 1,
     fecha_creacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_empresas_rnc (rnc)
@@ -708,13 +715,17 @@ CREATE TABLE IF NOT EXISTS citas_medicas (
     cancelada_por INT NULL,
     fecha_cancelacion DATETIME NULL,
     motivo_cancelacion TEXT NULL,
+    confirmacion_token_hash VARCHAR(64) NULL,
+    confirmacion_token_expiracion DATETIME NULL,
+    recordatorio_enviado TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     UNIQUE KEY uq_cita_consulta_origen (tenant_id, consulta_origen_id),
     INDEX idx_cita_fecha (tenant_id, fecha, hora),
     INDEX idx_cita_paciente (tenant_id, paciente_id, fecha),
     INDEX idx_cita_medico (tenant_id, medico_id, fecha, hora),
-    INDEX idx_cita_estado (tenant_id, estado)
+    INDEX idx_cita_estado (tenant_id, estado),
+    INDEX idx_cita_confirmacion_token (confirmacion_token_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS recetas_medicas (

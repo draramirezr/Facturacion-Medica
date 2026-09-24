@@ -1140,6 +1140,14 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertIn('name="accion" value="reagendar"', form)
         self.assertIn('id="reagendar"', form)
         self.assertIn('reagendar=1', agenda)
+        self.assertIn('value="reenviar_aviso"', form)
+        landing = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'cita_paciente.html'
+        ).read_text(encoding='utf-8')
+        self.assertIn('name="decision" value="confirmar"', landing)
+        self.assertIn('name="decision" value="cancelar"', landing)
 
     def test_dashboard_shows_health_center_name(self):
         dashboard = (

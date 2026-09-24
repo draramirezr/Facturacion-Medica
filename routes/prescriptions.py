@@ -10,10 +10,7 @@ from flask_login import current_user, login_required
 from auth import permission_required
 from core.database import execute_query, execute_update, transactional_methods
 from core.tenant import get_current_tenant_id
-from routes.support import (
-    calcular_edad_clinica, execute_paginated_query, id_consulta_retorno,
-    sanitize_input, url_historia_clinica, validate_int,
-)
+from services.tenant_mail import notificar_paciente
 
 
 def clave_nombre_medicamento(nombre):
@@ -333,6 +330,14 @@ def facturacion_recetas_medicas_nueva():
                         item['indicaciones'] or None, orden
                     ))
                 flash('Receta médica emitida correctamente', 'success')
+                ok, _detalle = notificar_paciente(
+                    tenant_id,
+                    paciente_id,
+                    'Su receta médica',
+                    '<p>Se emitió una receta médica a su nombre. Consulte al consultorio si necesita el detalle.</p>',
+                )
+                if ok:
+                    flash('Se envió un aviso al correo del paciente.', 'info')
                 volver = id_consulta_retorno()
                 if volver:
                     return redirect(url_historia_clinica(volver, 'recetas'))

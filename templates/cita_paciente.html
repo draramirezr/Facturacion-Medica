@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Su cita - ClinicRD</title>
+    <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
+    <style nonce="{{ csp_nonce }}">
+        body { margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center; padding:20px; background:#f0fdfa; font-family:Inter,Segoe UI,sans-serif; color:#172033; }
+        .card { width:min(440px,100%); padding:1.6rem; border-radius:18px; background:#fff; box-shadow:0 12px 40px rgba(15,23,42,.12); }
+        h1 { margin:0 0 .4rem; font-size:1.35rem; }
+        p { color:#526071; line-height:1.5; }
+        .meta { margin:1rem 0; padding:1rem; border-radius:12px; background:#ecfeff; }
+        .meta strong { display:block; color:#0e7490; }
+        .actions { display:flex; flex-direction:column; gap:.6rem; margin-top:1.1rem; }
+        button, .ghost { min-height:48px; border-radius:12px; font-weight:700; font-size:1rem; }
+        button { border:0; background:#0e7490; color:#fff; }
+        .ghost { border:1px solid #cbd5e1; background:#fff; color:#334155; }
+    </style>
+</head>
+<body>
+    <main class="card">
+        {% if resultado == 'invalido' %}
+        <h1>Este enlace ya no sirve</h1>
+        <p>Pida al consultorio que le reenvíe el aviso de la cita.</p>
+        {% elif resultado == 'cerrada' %}
+        <h1>Esta cita ya no se puede cambiar</h1>
+        <p>Si necesita otra fecha, llame al consultorio.</p>
+        {% elif resultado == 'confirmada' %}
+        <h1>Cita confirmada</h1>
+        <p>Lo esperamos el {{ cita['fecha'] }} a las {{ cita['hora']|hora_input }} con {{ cita['medico_nombre'] }}.</p>
+        {% elif resultado == 'cancelada' %}
+        <h1>Cita cancelada</h1>
+        <p>El consultorio verá que no podrá asistir. Si desea otra fecha, llámeles.</p>
+        {% else %}
+        <h1>¿Asistirá a su cita?</h1>
+        <p>{{ cita['empresa_nombre'] }}</p>
+        <div class="meta">
+            <strong>{{ cita['fecha'] }} · {{ cita['hora']|hora_input }}</strong>
+            {{ cita['medico_nombre'] }}
+        </div>
+        <form method="POST" class="actions">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" name="decision" value="confirmar">Sí, confirmo que voy</button>
+            <button class="ghost" type="submit" name="decision" value="cancelar">No podré asistir</button>
+        </form>
+        {% endif %}
+    </main>
+</body>
+</html>

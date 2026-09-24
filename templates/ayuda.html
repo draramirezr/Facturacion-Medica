@@ -142,7 +142,7 @@
                 <ol>
                     <li>Recepción entra a {{ enlace('turnos.ver', 'turnos_recepcion', 'Gestión de turnos') }} y toma el turno del paciente.</li>
                     <li>El médico ve su lista en <strong>Mi cola</strong>: llama, atiende y cierra.</li>
-                    <li>En la misma pantalla ve las <strong>citas de hoy</strong>: quiénes agendaron, quiénes confirmaron y quiénes ya están en cola.</li>
+                    <li>En la misma pantalla ve las <strong>citas de hoy</strong> y la cola se actualiza sola cuando llega un paciente.</li>
                     <li>La sala puede mostrar una pantalla pública con el número, sin datos del paciente.</li>
                 </ol>
                 <p class="manual-tip mb-0">Un médico no administra la cola de todo el centro: solo la suya.</p>
@@ -153,10 +153,9 @@
                 <ol>
                     <li>En {{ enlace('citas.ver', 'facturacion_citas', 'Agenda médica') }} elige el día en el calendario.</li>
                     <li>Al hacer clic en un día puedes agendar la cita: paciente, médico, hora y motivo.</li>
-                    <li>Para moverla, abre la cita o pulsa <strong>Reagendar</strong> (lista, 360 del paciente o historia clínica).</li>
-                    <li>Indica la nueva fecha y hora. El motivo del cambio es opcional. La cita queda otra vez <strong>Programada</strong>.</li>
-                    <li>Si estaba cancelada, al reagendar se limpia la cancelación. Si ya está <strong>Completada</strong>, no se reagenda.</li>
-                    <li>También puedes confirmar o marcar que no asistió.</li>
+                    <li>Para moverla, abre la cita o pulsa <strong>Reagendar</strong>.</li>
+                    <li>Al programar o reagendar, si el paciente tiene correo se le envía un enlace para <strong>confirmar o cancelar</strong>. El día anterior se reenvía un recordatorio al abrir la agenda o Mi cola.</li>
+                    <li>En Mi cola verá Agendada, Confirmada o En cola, sin preguntar por teléfono.</li>
                 </ol>
                 <p class="manual-tip mb-0">Reagendar no crea otro paciente ni otra cita: cambia el horario de la misma cita y deja una nota del horario anterior.</p>
             </article>
@@ -227,7 +226,7 @@
                         <strong>Mi empresa</strong>
                         {% endif %}: datos del consultorio y vigencia de la suscripción.
                     </li>
-                    <li>{{ enlace('configuracion.ver', 'perfil_configuracion', 'Configuración') }}: color, letra, chat, corrector de texto y, si eres administrador, <strong>backup en Excel</strong> (una hoja por módulo, con barra de progreso). No incluye turnos, citas, auditoría ni mensajería.</li>
+                    <li>{{ enlace('configuracion.ver', 'perfil_configuracion', 'Configuración') }}: color, letra, chat, corrector, <strong>correo SMTP del consultorio</strong> (avisos de citas, recetas, facturas y clave) y, si eres administrador, <strong>backup en Excel</strong>.</li>
                     <li>En tu nombre, arriba a la derecha, está <strong>Cambiar mi contraseña</strong>.</li>
                 </ol>
             </article>

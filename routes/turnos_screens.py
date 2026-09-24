@@ -512,6 +512,8 @@ def turnos_mi_cola():
         flash('El médico vinculado ya no está disponible', 'error')
         return redirect(url_for('facturacion_menu'))
     fecha = datetime.now().strftime('%Y-%m-%d')
+    from routes.appointments import enviar_recordatorios_citas
+    enviar_recordatorios_citas(get_current_tenant_id())
     citas_hoy = listar_citas_medico_hoy(fecha, current_user.medico_id)
     return render_template(
         'turnos/mi_cola.html',
@@ -520,7 +522,36 @@ def turnos_mi_cola():
         turnos=listar_turnos(fecha, current_user.medico_id),
         citas_hoy=citas_hoy,
         resumen_citas=resumen_citas_medico_hoy(citas_hoy),
+        estado_url=url_for('turnos_mi_cola_estado'),
     )
+
+
+@login_required
+@permission_required('turnos.cola_propia')
+def turnos_mi_cola_estado():
+    """Firma de la cola y citas de hoy para refrescar la pantalla del médico."""
+    if not current_user.medico_id:
+        return jsonify({'error': 'Médico no vinculado'}), 400
+    fecha = datetime.now().strftime('%Y-%m-%d')
+    turnos = [
+        turno for turno in listar_turnos(fecha, current_user.medico_id)
+        if turno.get('estado') in ESTADOS_TURNO_EN_COLA
+    ]
+    citas_hoy = listar_citas_medico_hoy(fecha, current_user.medico_id)
+    cola_ids = [int(turno['id']) for turno in turnos]
+    firma = '|'.join(
+        [f"{turno['id']}:{turno['estado']}" for turno in turnos]
+        + [
+            f"c{cita['id']}:{cita['estado']}:{int(bool(cita.get('en_cola')))}"
+            for cita in citas_hoy
+        ]
+    )
+    return jsonify({
+        'firma': firma,
+        'cola_ids': cola_ids,
+        'en_espera': sum(1 for turno in turnos if turno.get('estado') == 'EnEspera'),
+        'resumen_citas': resumen_citas_medico_hoy(citas_hoy),
+    })
 
 @login_required
 @permission_required('turnos.imprimir')
@@ -775,6 +806,7 @@ def register_turnos_routes(app):
     app.add_url_rule('/turnos/<int:turno_id>/accion', endpoint='turnos_accion', view_func=turnos_accion, methods=['POST'])
     app.add_url_rule('/turnos/siguiente', endpoint='turnos_siguiente', view_func=turnos_siguiente, methods=['POST'])
     app.add_url_rule('/turnos/mi-cola', endpoint='turnos_mi_cola', view_func=turnos_mi_cola)
+    app.add_url_rule('/turnos/mi-cola/estado', endpoint='turnos_mi_cola_estado', view_func=turnos_mi_cola_estado)
     app.add_url_rule('/turnos/<int:turno_id>/ticket', endpoint='turnos_ticket', view_func=turnos_ticket)
     app.add_url_rule('/turnos/pantallas', endpoint='turnos_pantallas', view_func=turnos_pantallas, methods=['GET', 'POST'])
     app.add_url_rule('/turnos/configuracion-ticket', endpoint='turnos_configuracion_ticket', view_func=turnos_configuracion_ticket, methods=['POST'])

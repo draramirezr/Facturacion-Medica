@@ -16,13 +16,11 @@ from core.tenant import get_current_tenant_id
 from ecf import ECFCertificateResolutionError, TenantCertificateProvider
 from rbac_catalog import PERMISOS_POR_GRUPO, TODOS_LOS_PERMISOS
 from routes.support import (
-    sanitize_input, validar_password_segura, validate_email,
+    sanitize_input, validar_password_segura, validate_email, validate_int,
 )
 from services.ecf_operations import obtener_configuracion_ecf_tenant
 from services.subscriptions import check_license_available, get_empresa_info
-from services.tenant_backup import (
-    generar_backup_eventos, generar_backup_excel, nombre_archivo_backup,
-)
+from services.tenant_mail import resumen_correo_empresa
 
 def obtener_rol_tenant(rol_id, tenant_id):
     return execute_query(
@@ -627,6 +625,55 @@ def perfil_configuracion():
     ]
     
     if request.method == 'POST':
+        if request.form.get('accion') == 'correo_smtp':
+            if not user_has_permission(current_user, 'configuracion.editar'):
+                flash('No tienes permiso para configurar el correo', 'error')
+                return redirect(url_for('perfil_configuracion'))
+            tenant_id = get_current_tenant_id()
+            if not tenant_id:
+                flash('No hay una empresa asociada a tu usuario.', 'error')
+                return redirect(url_for('perfil_configuracion'))
+            from services.tenant_mail import (
+                enviar_correo_consultorio, guardar_correo_empresa,
+            )
+            puerto = validate_int(
+                request.form.get('smtp_port'), min_value=1,
+                max_value=65535, default=587,
+            )
+            remitente = sanitize_input(request.form.get('smtp_remitente', ''), 255)
+            if remitente and not validate_email(remitente):
+                flash('El correo remitente no es válido', 'error')
+                return redirect(url_for('perfil_configuracion'))
+            guardar_correo_empresa(
+                tenant_id,
+                {
+                    'smtp_host': sanitize_input(request.form.get('smtp_host', ''), 255),
+                    'smtp_port': puerto,
+                    'smtp_usuario': sanitize_input(request.form.get('smtp_usuario', ''), 255),
+                    'smtp_remitente': remitente,
+                    'smtp_nombre_remitente': sanitize_input(
+                        request.form.get('smtp_nombre_remitente', ''), 150
+                    ),
+                    'smtp_usar_tls': request.form.get('smtp_usar_tls') == '1',
+                },
+                password_nueva=request.form.get('smtp_password') or None,
+            )
+            if request.form.get('enviar_prueba') == '1' and current_user.email:
+                ok, detalle = enviar_correo_consultorio(
+                    tenant_id,
+                    current_user.email,
+                    'Prueba de correo ClinicRD',
+                    '<p>Si lees esto, el correo del consultorio ya envía mensajes.</p>',
+                    fallback_plataforma=False,
+                )
+                flash(
+                    'Correo de prueba enviado a tu usuario.' if ok else detalle,
+                    'success' if ok else 'error',
+                )
+            else:
+                flash('Correo del consultorio guardado', 'success')
+            return redirect(url_for('perfil_configuracion'))
+
         tema_color = request.form.get(
             'tema_color', current_user.tema_color or 'cyan'
         )
@@ -714,9 +761,17 @@ def perfil_configuracion():
             except ECFCertificateResolutionError as error:
                 ecf_certificado['mensaje'] = str(error)
 
+    correo_smtp = {'configurado': False}
+    if user_has_permission(current_user, 'configuracion.editar'):
+        try:
+            correo_smtp = resumen_correo_empresa(get_empresa_info())
+        except Exception:
+            correo_smtp = resumen_correo_empresa(None)
+
     return render_template(
         'perfil/configuracion.html',
         ecf_certificado=ecf_certificado,
+        correo_smtp=correo_smtp,
     )
 
 

@@ -41,7 +41,7 @@
             <span class="text-muted ms-2">{{ paciente['cedula'] or 'Sin documento' }}</span>
         </div>
 
-        <form method="POST" id="clinicalForm">
+        <form method="POST" id="clinicalForm" data-clinic-draft="historia-{{ paciente['paciente_id'] if consulta else paciente['id'] }}">
             <ul class="nav nav-tabs hc-tabs" role="tablist">
                 <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-consulta" type="button">Consulta</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-especialidad" type="button">Especialidad</button></li>
@@ -217,4 +217,6 @@
 </div>
 
 <script src="{{ url_for('static', filename='js/historia-clinica.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/formulario-borrador.js') }}?v=1" nonce="{{ csp_nonce }}"></script>
+{% endblock %}
 {% endblock %}

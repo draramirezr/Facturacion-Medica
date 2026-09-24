@@ -2087,8 +2087,7 @@ def facturacion_enviar_email(factura_id):
         flash('Factura no encontrada', 'error')
         return redirect(url_for('facturacion_historico'))
     
-    # Si SendGrid está disponible, enviar email
-    if SENDGRID_AVAILABLE and REPORTLAB_AVAILABLE:
+    if REPORTLAB_AVAILABLE:
         try:
             # Generar PDF usando la función auxiliar
             buffer = generar_pdf_factura_vista_previa(factura_id, tenant_id)
@@ -2098,50 +2097,33 @@ def facturacion_enviar_email(factura_id):
                 return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
             
             pdf_data = buffer.getvalue()
-            
-            # Enviar email con SendGrid
-            sendgrid_api_key = os.getenv('SENDGRID_API_KEY')
-            sendgrid_from_email = os.getenv('SENDGRID_FROM_EMAIL', 'noreply@facturacion.com')
-            
-            if not sendgrid_api_key:
-                flash('Configuración de email no disponible. Contacte al administrador.', 'error')
-                return redirect(url_for('facturacion_ver_factura', factura_id=factura_id))
-            
-            message = Mail(
-                from_email=sendgrid_from_email,
-                to_emails=destinatario,
-                subject=f"Factura #{factura.get('numero_factura', factura_id)} - {factura.get('nombre_ars', 'N/A')}",
-                html_content=f"""
-                <html>
-                <body>
-                    <h2>Factura #{factura.get('numero_factura', factura_id)}</h2>
-                    <p><strong>Fecha:</strong> {factura.get('fecha_emision', '')}</p>
-                    <p><strong>NCF:</strong> {factura.get('ncf', '')}</p>
-                    <p><strong>Cliente:</strong> {factura.get('nombre_ars', 'N/A')}</p>
-                    <p><strong>Total:</strong> RD$ {factura.get('total', 0):,.2f}</p>
-                    <p>Se adjunta el PDF de la factura.</p>
-                </body>
-                </html>
-                """
+            from services.tenant_mail import enviar_correo_consultorio
+            asunto = (
+                f"Factura #{factura.get('numero_factura', factura_id)} - "
+                f"{factura.get('nombre_ars', 'N/A')}"
             )
-            
-            # Adjuntar PDF
-            encoded_pdf = base64.b64encode(pdf_data).decode()
-            attachment = {
-                'content': encoded_pdf,
-                'filename': f"factura_{factura_id}_{factura.get('numero_factura', '')}.pdf",
-                'type': 'application/pdf',
-                'disposition': 'attachment'
-            }
-            message.attachment = attachment
-            
-            sg = SendGridAPIClient(sendgrid_api_key)
-            response = sg.send(message)
-            
-            if response.status_code in [200, 202]:
-                flash(f'Factura enviada exitosamente a {destinatario}', 'success')
-            else:
-                flash(f'Error al enviar email. Código: {response.status_code}', 'error')
+            html = f"""
+                <p>Factura #{factura.get('numero_factura', factura_id)}</p>
+                <p><strong>Fecha:</strong> {factura.get('fecha_emision', '')}</p>
+                <p><strong>NCF:</strong> {factura.get('ncf', '')}</p>
+                <p><strong>Total:</strong> RD$ {factura.get('total', 0):,.2f}</p>
+                <p>Se adjunta el PDF de la factura.</p>
+            """
+            ok, detalle = enviar_correo_consultorio(
+                tenant_id,
+                destinatario,
+                asunto,
+                html,
+                adjuntos=[(
+                    f"factura_{factura_id}_{factura.get('numero_factura', '')}.pdf",
+                    pdf_data,
+                    'application/pdf',
+                )],
+            )
+            flash(
+                f'Factura enviada exitosamente a {destinatario}' if ok else detalle,
+                'success' if ok else 'error',
+            )
             
         except Exception as e:
             import traceback
