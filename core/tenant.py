@@ -21,6 +21,7 @@ ALLOWED_TABLES = {
     'pacientes_pendientes', 'pago_facturas', 'pagos',
     'receta_medicamentos', 'recetas_medicas', 'reclamaciones', 'roles',
     'rol_permisos', 'secuencias_turnos', 'servicios', 'pantallas_turnos',
+    'enlaces_cita_qr',
     'tipos_licencia_medica', 'turnos_atencion', 'turnos_eventos',
     'usuario_medico', 'usuario_roles', 'usuarios',
 }

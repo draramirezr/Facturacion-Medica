@@ -49,6 +49,9 @@
             </p>
         </div>
         <a class="btn btn-primary" href="{{ url_for('facturacion_citas_nueva') }}"><i class="fas fa-plus me-2"></i>Nueva cita</a>
+        {% if can('citas.crear') %}
+        <a class="btn btn-outline-primary" href="{{ url_for('facturacion_citas_qr') }}">QR para agendar</a>
+        {% endif %}
     </header>
 
     <section class="agenda-surface agenda-toolbar">

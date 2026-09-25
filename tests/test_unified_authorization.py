@@ -19,6 +19,8 @@ class UnifiedAuthorizationTests(unittest.TestCase):
             'facturacion_historia_clinica_editar': 'historia_clinica.editar',
             'facturacion_citas': 'citas.ver',
             'facturacion_citas_nueva': 'citas.crear',
+            'facturacion_citas_qr': 'citas.crear',
+            'facturacion_citas_qr_imagen': 'citas.crear',
             'facturacion_cita_editar': 'citas.editar',
             'facturacion_cita_estado': 'citas.editar',
             'turnos_mi_cola': 'turnos.cola_propia',

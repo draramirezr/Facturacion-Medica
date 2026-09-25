@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}QR de citas - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .qr-print { max-width: 720px; margin: 0 auto; }
+    .qr-card { padding: 1rem; border: 1px solid var(--ars-shell-border); border-radius: 14px; background: #fff; }
+    .qr-poster { text-align: center; padding: 1.2rem; }
+    .qr-poster img { width: 220px; height: 220px; }
+    @media print {
+        .no-print { display: none !important; }
+        .qr-poster { border: 0; }
+    }
+</style>
+<div class="container py-4 qr-print">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 no-print">
+        <div>
+            <h1 class="h3 mb-1">Códigos QR para agendar</h1>
+            <p class="text-muted mb-0">El paciente escanea, ve médicos y horarios libres, y la cita entra a la agenda de {{ empresa_nombre }}.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="{{ url_for('facturacion_citas') }}">Volver a la agenda</a>
+    </div>
+    {% if url_creada %}
+    <div class="alert alert-success no-print">Enlace público: <a href="{{ url_creada }}" target="_blank" rel="noopener">{{ url_creada }}</a></div>
+    {% endif %}
+    <section class="qr-card mb-4 no-print">
+        <h2 class="h5">Nuevo cartel</h2>
+        <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <label class="form-label" for="nombre">Nombre del cartel</label>
+            <input class="form-control mb-2" id="nombre" name="nombre" maxlength="150" required placeholder="Recepción · {{ empresa_nombre }}">
+            {% if not agenda_restringida %}
+            <label class="form-label" for="medico_id">Agenda</label>
+            <select class="form-select mb-2" id="medico_id" name="medico_id">
+                <option value="">Todo el centro (el paciente elige médico)</option>
+                {% for medico in medicos %}
+                <option value="{{ medico['id'] }}">{{ medico['nombre'] }}{% if medico['especialidad'] %} · {{ medico['especialidad'] }}{% endif %}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <label class="form-label" for="hora_inicio">Desde</label>
+                    <input class="form-control" type="time" id="hora_inicio" name="hora_inicio" value="08:00">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="hora_fin">Hasta</label>
+                    <input class="form-control" type="time" id="hora_fin" name="hora_fin" value="18:00">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label" for="duracion_minutos">Minutos por cita</label>
+                    <input class="form-control" type="number" id="duracion_minutos" name="duracion_minutos" value="30" min="15" max="120">
+                </div>
+            </div>
+            <p class="form-label mt-3 mb-1">Días</p>
+            <div class="d-flex flex-wrap gap-2 mb-3">
+                {% for valor, etiqueta in [('1','Lun'),('2','Mar'),('3','Mié'),('4','Jue'),('5','Vie'),('6','Sáb'),('7','Dom')] %}
+                <label class="form-check">
+                    <input class="form-check-input" type="checkbox" name="dias" value="{{ valor }}" {% if valor != '7' %}checked{% endif %}>
+                    {{ etiqueta }}
+                </label>
+                {% endfor %}
+            </div>
+            <button class="btn btn-primary" type="submit">Generar QR</button>
+        </form>
+    </section>
+    {% for enlace in enlaces %}
+    <article class="qr-card mb-3 qr-poster">
+        <h2 class="h4">{{ empresa_nombre }}</h2>
+        <p class="mb-1">{{ enlace['nombre'] }}</p>
+        <p class="text-muted">{% if enlace['medico_nombre'] %}Dr(a). {{ enlace['medico_nombre'] }}{% else %}Elija médico y horario{% endif %}</p>
+        <img src="{{ url_for('facturacion_citas_qr_imagen', enlace_id=enlace['id']) }}" alt="Código QR para agendar">
+        <p class="mt-2 mb-0">Escanee para agendar su cita</p>
+        <div class="screen-actions justify-content-center mt-3 no-print">
+            <button class="btn btn-outline-primary" type="button" onclick="window.print()">Imprimir</button>
+            <form method="POST" class="d-inline">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" name="enlace_id" value="{{ enlace['id'] }}">
+                <button class="btn btn-outline-secondary" type="submit" name="accion" value="regenerar">Regenerar</button>
+                <button class="btn btn-outline-danger" type="submit" name="accion" value="desactivar">Desactivar</button>
+            </form>
+        </div>
+    </article>
+    {% endfor %}
+</div>
+{% endblock %}

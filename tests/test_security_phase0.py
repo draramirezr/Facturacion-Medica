@@ -378,6 +378,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             'secuencias_turnos',
             'servicios',
             'pantallas_turnos',
+            'enlaces_cita_qr',
             'tipos_licencia_medica',
             'turnos_atencion',
             'turnos_eventos',
@@ -1140,6 +1141,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertIn('name="accion" value="reagendar"', form)
         self.assertIn('id="reagendar"', form)
         self.assertIn('reagendar=1', agenda)
+        self.assertIn("url_for('facturacion_citas_qr')", agenda)
         self.assertIn('value="reenviar_aviso"', form)
         landing = (
             Path(app_module.__file__).resolve().parent

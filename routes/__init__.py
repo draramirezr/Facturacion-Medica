@@ -1,6 +1,7 @@
 """Registro de rutas extra?das de la aplicaci?n monol?tica."""
 
 from routes.appointments import register_appointment_routes
+from routes.cita_qr import register_cita_qr_routes
 from routes.billing import register_billing_routes
 from routes.catalogs import register_catalog_routes
 from routes.clinical_history import register_clinical_history_routes
@@ -19,6 +20,7 @@ def register_operation_routes(app):
     register_catalog_routes(app)
     register_patient_routes(app)
     register_appointment_routes(app)
+    register_cita_qr_routes(app)
     register_license_routes(app)
     register_prescription_routes(app)
     register_emergency_routes(app)

@@ -55,6 +55,95 @@ def hashear_token_cita(token):
     return hashlib.sha256((token or '').encode('utf-8')).hexdigest()
 
 
+def hora_como_time(valor):
+    if valor is None:
+        return None
+    if hasattr(valor, 'hour') and not hasattr(valor, 'year'):
+        return valor
+    texto = str(valor).strip()
+    if len(texto) >= 8 and texto[2] == ':':
+        texto = texto[:8]
+    elif len(texto) >= 5:
+        texto = texto[:5]
+    for formato in ('%H:%M:%S', '%H:%M'):
+        try:
+            return datetime.strptime(texto, formato).time()
+        except ValueError:
+            continue
+    return None
+
+
+def calcular_huecos(fecha, duracion, hora_inicio, hora_fin, ocupados, ahora=None):
+    """Huecos de un día restando citas ya tomadas (sin tocar la base)."""
+    inicio = hora_como_time(hora_inicio)
+    fin = hora_como_time(hora_fin)
+    if not fecha or not inicio or not fin or not duracion:
+        return []
+    paso = timedelta(minutes=int(duracion))
+    cursor = datetime.combine(fecha, inicio)
+    limite = datetime.combine(fecha, fin)
+    umbral = ahora if ahora is not None else datetime.now()
+    bloques = []
+    for item in ocupados or []:
+        hora = hora_como_time(item.get('hora') if isinstance(item, dict) else item[0])
+        minutos = int(
+            (item.get('duracion_minutos') if isinstance(item, dict) else item[1]) or duracion
+        )
+        if not hora:
+            continue
+        arranque = datetime.combine(fecha, hora)
+        bloques.append((arranque, arranque + timedelta(minutes=minutos)))
+    huecos = []
+    while cursor + paso <= limite:
+        if cursor >= umbral:
+            choca = any(
+                cursor < fin_ocupado and cursor + paso > inicio_ocupado
+                for inicio_ocupado, fin_ocupado in bloques
+            )
+            if not choca:
+                huecos.append(cursor.strftime('%H:%M'))
+        cursor += paso
+    return huecos
+
+
+def ocupaciones_medico_dia(tenant_id, medico_id, fecha):
+    return execute_query(
+        '''
+        SELECT hora, duracion_minutos
+        FROM citas_medicas
+        WHERE tenant_id=%s AND medico_id=%s AND fecha=%s
+          AND estado NOT IN ('Cancelada', 'Vencida', 'No asistió')
+        ''',
+        (tenant_id, medico_id, fecha),
+        fetch='all',
+    ) or []
+
+
+def conflicto_horario_cita(
+    tenant_id, medico_id, paciente_id, fecha, hora, duracion, cita_id=None,
+):
+    parametros = [
+        tenant_id, medico_id, paciente_id, fecha, hora, duracion, hora,
+    ]
+    conflicto_sql = '''
+        SELECT c.id, c.hora, c.medico_id, c.paciente_id,
+               c.duracion_minutos, p.nombre AS paciente_nombre
+        FROM citas_medicas c
+        JOIN pacientes p
+          ON p.id=c.paciente_id AND p.tenant_id=c.tenant_id
+        WHERE c.tenant_id=%s AND (c.medico_id=%s OR c.paciente_id=%s)
+          AND c.fecha=%s
+          AND c.estado NOT IN ('Cancelada', 'Vencida', 'No asistió')
+          AND c.hora<ADDTIME(%s, SEC_TO_TIME(%s * 60))
+          AND ADDTIME(c.hora, SEC_TO_TIME(c.duracion_minutos * 60))>%s
+    '''
+    if cita_id:
+        conflicto_sql += ' AND c.id<>%s'
+        parametros.append(cita_id)
+    conflicto_sql += ' LIMIT 1'
+    return execute_query(conflicto_sql, tuple(parametros))
+
+
 def _datetime_cita(valor):
     if valor is None:
         return None
@@ -138,9 +227,12 @@ def _avisar_cita_paciente(tenant_id, cita_id, paciente_id, fecha, hora, tipo):
     )
     if tipo == 'recordatorio':
         return ok
-    if ok:
+    if ok and getattr(current_user, 'is_authenticated', False):
         flash('Se envió un aviso al correo del paciente para confirmar o cancelar.', 'info')
-    elif 'no tiene correo' in (detalle or '').lower():
+    elif (
+        getattr(current_user, 'is_authenticated', False)
+        and 'no tiene correo' in (detalle or '').lower()
+    ):
         flash('El paciente no tiene correo: la confirmación queda a mano en la cita.', 'info')
     return ok
 
@@ -312,29 +404,12 @@ def validar_formulario_cita(tenant_id, cita_id=None):
         inicio = datetime.combine(fecha_obj, hora_obj)
         if inicio < datetime.now():
             return None, 'No puede programar una cita en una fecha u hora pasada'
-    parametros = [
-        tenant_id, medico_id, paciente_id, fecha_obj, hora_obj, duracion,
-        hora_obj
-    ]
-    conflicto_sql = '''
-        SELECT c.id, c.hora, c.medico_id, c.paciente_id,
-               c.duracion_minutos, p.nombre AS paciente_nombre
-        FROM citas_medicas c
-        JOIN pacientes p
-          ON p.id=c.paciente_id AND p.tenant_id=c.tenant_id
-        WHERE c.tenant_id=%s AND (c.medico_id=%s OR c.paciente_id=%s)
-          AND c.fecha=%s
-          AND c.estado NOT IN ('Cancelada', 'Vencida', 'No asistió')
-          AND c.hora<ADDTIME(%s, SEC_TO_TIME(%s * 60))
-          AND ADDTIME(c.hora, SEC_TO_TIME(c.duracion_minutos * 60))>%s
-    '''
-    if cita_id:
-        conflicto_sql += ' AND c.id<>%s'
-        parametros.append(cita_id)
-    conflicto_sql += ' LIMIT 1'
     conflicto = None
     if estado in ['Programada', 'Confirmada']:
-        conflicto = execute_query(conflicto_sql, tuple(parametros))
+        conflicto = conflicto_horario_cita(
+            tenant_id, medico_id, paciente_id, fecha_obj, hora_obj,
+            duracion, cita_id,
+        )
     if conflicto:
         recurso = 'El médico' if conflicto['medico_id'] == medico_id else 'El paciente'
         return None, (

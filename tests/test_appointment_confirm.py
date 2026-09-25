@@ -1,7 +1,9 @@
 import hashlib
 import unittest
 
-from routes.appointments import _datetime_cita, hashear_token_cita
+from datetime import date, datetime, time
+
+from routes.appointments import _datetime_cita, calcular_huecos, hashear_token_cita
 
 
 class AppointmentConfirmationTests(unittest.TestCase):
@@ -16,3 +18,14 @@ class AppointmentConfirmationTests(unittest.TestCase):
         parsed = _datetime_cita('2026-09-25 09:30:00')
         self.assertEqual(parsed.year, 2026)
         self.assertEqual(parsed.minute, 30)
+
+    def test_slots_skip_occupied_and_past_hours(self):
+        huecos = calcular_huecos(
+            date(2026, 9, 25),
+            30,
+            time(8, 0),
+            time(10, 0),
+            [{'hora': time(8, 30), 'duracion_minutos': 30}],
+            ahora=datetime(2026, 9, 25, 8, 10),
+        )
+        self.assertEqual(huecos, ['09:00', '09:30'])

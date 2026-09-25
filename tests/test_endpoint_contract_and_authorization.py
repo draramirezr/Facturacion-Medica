@@ -81,9 +81,9 @@ REPRESENTATIVE_ACCESS = {
 
 # Contrato normalizado de las rutas de aplicación (se excluye la ruta
 # ``static`` que Flask agrega). El hash incluye endpoint, URL y métodos.
-ENDPOINT_CONTRACT_COUNT = 174
+ENDPOINT_CONTRACT_COUNT = 179
 ENDPOINT_CONTRACT_SHA256 = (
-    '55c03475acc45a450e8a5d92009eab88e515e710792880f503d400ff269571f0'
+    '226d347d4c9d5eb6c88fb286af05dd631777fe06fb85fc83bf9d732ff054acbc'
 )
 
 # Subconjunto legible que hace accionables las pérdidas en las áreas críticas.
@@ -125,6 +125,15 @@ IMPORTANT_ENDPOINTS = {
     ('turnos_mi_cola', '/turnos/mi-cola', ('GET',)),
     ('turnos_mi_cola_estado', '/turnos/mi-cola/estado', ('GET',)),
     ('cita_paciente_gestionar', '/cita/<token>', ('GET', 'POST')),
+    ('facturacion_citas_qr', '/facturacion/citas/qr', ('GET', 'POST')),
+    (
+        'facturacion_citas_qr_imagen',
+        '/facturacion/citas/qr/<int:enlace_id>/imagen',
+        ('GET',),
+    ),
+    ('cita_agendar_publica', '/agendar/<token>', ('GET', 'POST')),
+    ('cita_agendar_horarios', '/agendar/<token>/horarios', ('GET',)),
+    ('cita_agendar_paciente', '/agendar/<token>/paciente', ('GET',)),
     (
         'facturacion_historia_clinica',
         '/facturacion/historia-clinica',

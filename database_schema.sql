@@ -728,6 +728,26 @@ CREATE TABLE IF NOT EXISTS citas_medicas (
     INDEX idx_cita_confirmacion_token (confirmacion_token_hash)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+CREATE TABLE IF NOT EXISTS enlaces_cita_qr (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    token_hash CHAR(64) NOT NULL,
+    token_cifrado TEXT NULL,
+    nombre VARCHAR(150) NOT NULL,
+    medico_id INT NULL,
+    hora_inicio TIME NOT NULL DEFAULT '08:00:00',
+    hora_fin TIME NOT NULL DEFAULT '18:00:00',
+    duracion_minutos INT NOT NULL DEFAULT 30,
+    dias_semana VARCHAR(20) NOT NULL DEFAULT '1,2,3,4,5,6',
+    activo TINYINT(1) NOT NULL DEFAULT 1,
+    created_by INT NULL,
+    updated_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_enlace_cita_token (token_hash),
+    INDEX idx_enlace_cita_tenant (tenant_id, activo)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS recetas_medicas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tenant_id INT NOT NULL,

@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex, nofollow">
+    <title>Agendar cita - ClinicRD</title>
+    <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
+    <style nonce="{{ csp_nonce }}">
+        body { margin:0; min-height:100vh; background:#f0fdfa; font-family:Inter,Segoe UI,sans-serif; color:#172033; }
+        main { width:min(520px,100%); margin:0 auto; padding:20px; }
+        .card { padding:1.4rem; border-radius:18px; background:#fff; box-shadow:0 12px 40px rgba(15,23,42,.12); }
+        h1 { margin:0 0 .35rem; font-size:1.35rem; }
+        p { color:#526071; line-height:1.5; }
+        label { display:block; margin:.85rem 0 .3rem; font-weight:700; }
+        input, select, textarea, button { width:100%; min-height:48px; border-radius:12px; font-size:1rem; box-sizing:border-box; }
+        input, select, textarea { border:1px solid #cbd5e1; padding:.6rem .8rem; }
+        button { border:0; background:#0e7490; color:#fff; font-weight:700; margin-top:1rem; }
+        .error { padding:.8rem; border-radius:12px; background:#fef2f2; color:#991b1b; }
+        .ok { padding:.8rem; border-radius:12px; background:#ecfdf5; color:#065f46; }
+    </style>
+</head>
+<body>
+<main>
+    <div class="card">
+        {% if invalido %}
+        <h1>Este código ya no sirve</h1>
+        <p>Pida un cartel nuevo en recepción.</p>
+        {% elif exito %}
+        <h1>Cita agendada</h1>
+        <p class="ok">Quedó programada el {{ resumen.fecha }} a las {{ resumen.hora }}{% if resumen.medico %} con {{ resumen.medico }}{% endif %}.</p>
+        <p>Si dejó correo, le enviaremos un enlace para confirmar o cancelar.</p>
+        {% else %}
+        <h1>Agendar en {{ enlace['empresa_nombre'] }}</h1>
+        {% if enlace['medico_nombre'] %}
+        <p>{{ enlace['medico_nombre'] }}{% if enlace['medico_especialidad'] %} · {{ enlace['medico_especialidad'] }}{% endif %}</p>
+        {% else %}
+        <p>Elija médico, día y un horario libre.</p>
+        {% endif %}
+        {% if error %}<p class="error">{{ error }}</p>{% endif %}
+        <form method="POST" id="form-agendar">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% if medicos|length == 1 %}
+            <input type="hidden" name="medico_id" id="medico_id" value="{{ medicos[0]['id'] }}">
+            <p><strong>{{ medicos[0]['nombre'] }}</strong></p>
+            {% else %}
+            <label for="medico_id">Médico</label>
+            <select name="medico_id" id="medico_id" required>
+                <option value="">Seleccione</option>
+                {% for medico in medicos %}
+                <option value="{{ medico['id'] }}" {% if form_data.get('medico_id')|string == medico['id']|string %}selected{% endif %}>{{ medico['nombre'] }}{% if medico['especialidad'] %} · {{ medico['especialidad'] }}{% endif %}</option>
+                {% endfor %}
+            </select>
+            {% endif %}
+            <label for="fecha">Fecha</label>
+            <input type="date" id="fecha" name="fecha" min="{{ hoy }}" max="{{ max_fecha }}" value="{{ form_data.get('fecha', hoy) }}" required>
+            <label for="hora">Horario disponible</label>
+            <select id="hora" name="hora" required>
+                <option value="">Primero elija fecha</option>
+            </select>
+            <label for="cedula">Cédula</label>
+            <input id="cedula" name="cedula" inputmode="numeric" value="{{ form_data.get('cedula','') }}" autocomplete="off">
+            <label for="telefono">Teléfono</label>
+            <input id="telefono" name="telefono" required value="{{ form_data.get('telefono','') }}">
+            <label for="nombre">Nombre</label>
+            <input id="nombre" name="nombre" required value="{{ form_data.get('nombre','') }}">
+            <label for="email">Correo (opcional)</label>
+            <input id="email" name="email" type="email" value="{{ form_data.get('email','') }}">
+            <label for="motivo">Motivo de la cita</label>
+            <textarea id="motivo" name="motivo" rows="3" required>{{ form_data.get('motivo','') }}</textarea>
+            <button type="submit">Guardar cita</button>
+        </form>
+        {% endif %}
+    </div>
+</main>
+{% if not invalido and not exito %}
+<script nonce="{{ csp_nonce }}">
+(function () {
+    var token = {{ token|tojson }};
+    var horaSel = document.getElementById('hora');
+    var fecha = document.getElementById('fecha');
+    var medico = document.getElementById('medico_id');
+    var previa = {{ (form_data.get('hora') or '')|tojson }};
+    function cargarHuecos() {
+        if (!fecha.value || !medico.value) { horaSel.innerHTML = '<option value="">Elija médico y fecha</option>'; return; }
+        fetch('/agendar/' + encodeURIComponent(token) + '/horarios?fecha=' + encodeURIComponent(fecha.value) + '&medico_id=' + encodeURIComponent(medico.value), { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                var huecos = data.huecos || [];
+                horaSel.innerHTML = '';
+                if (!huecos.length) {
+                    horaSel.innerHTML = '<option value="">No hay horarios ese día</option>';
+                    return;
+                }
+                huecos.forEach(function (h) {
+                    var opt = document.createElement('option');
+                    opt.value = h; opt.textContent = h;
+                    if (h === previa) opt.selected = true;
+                    horaSel.appendChild(opt);
+                });
+            });
+    }
+    function buscarPaciente() {
+        var cedula = document.getElementById('cedula').value;
+        var telefono = document.getElementById('telefono').value;
+        if ((cedula || '').replace(/\D/g, '').length < 8 && (telefono || '').replace(/\D/g, '').length < 7) return;
+        fetch('/agendar/' + encodeURIComponent(token) + '/paciente?cedula=' + encodeURIComponent(cedula) + '&telefono=' + encodeURIComponent(telefono), { credentials: 'same-origin' })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (!data.encontrado) return;
+                if (data.nombre) document.getElementById('nombre').value = data.nombre;
+                if (data.telefono) document.getElementById('telefono').value = data.telefono;
+                if (data.email) document.getElementById('email').value = data.email;
+                if (data.cedula) document.getElementById('cedula').value = data.cedula;
+            });
+    }
+    fecha.addEventListener('change', cargarHuecos);
+    medico.addEventListener('change', cargarHuecos);
+    document.getElementById('cedula').addEventListener('blur', buscarPaciente);
+    document.getElementById('telefono').addEventListener('blur', buscarPaciente);
+    cargarHuecos();
+})();
+</script>
+{% endif %}
+</body>
+</html>

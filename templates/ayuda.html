@@ -155,6 +155,7 @@
                     <li>Al hacer clic en un día puedes agendar la cita: paciente, médico, hora y motivo.</li>
                     <li>Para moverla, abre la cita o pulsa <strong>Reagendar</strong>.</li>
                     <li>Al programar o reagendar, si el paciente tiene correo se le envía un enlace para <strong>confirmar o cancelar</strong>. El día anterior se reenvía un recordatorio al abrir la agenda o Mi cola.</li>
+                    <li>En {{ enlace('citas.crear', 'facturacion_citas_qr', 'QR para agendar') }} el administrador imprime un código. El paciente lo escanea, ve médicos y horarios libres y la cita queda en esta misma agenda. Si ya está registrado (cédula o teléfono), se rellenan sus datos.</li>
                     <li>En Mi cola verá Agendada, Confirmada o En cola, sin preguntar por teléfono.</li>
                 </ol>
                 <p class="manual-tip mb-0">Reagendar no crea otro paciente ni otra cita: cambia el horario de la misma cita y deja una nota del horario anterior.</p>
