@@ -23,12 +23,18 @@
     .report-360-search {
         display: grid;
         grid-template-columns: 1fr auto;
+        align-items: center;
         gap: .65rem;
         padding: 1rem;
         margin-bottom: 1rem;
         border: 1px solid var(--ars-shell-border);
         border-radius: 13px;
         background: var(--ars-shell-surface, #fff);
+    }
+    .report-360-search .form-control,
+    .report-360-search .btn {
+        margin: 0;
+        height: 38px;
     }
     .report-360-table {
         max-height: min(560px, calc(100vh - 260px));

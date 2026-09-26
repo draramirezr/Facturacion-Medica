@@ -666,6 +666,18 @@ form .btn {
     margin-top: 8px !important;
 }
 
+.search-box form .btn,
+.report-360-search .btn,
+.hc-search .btn,
+.nursing-filter .btn,
+.rx-filter .btn,
+.lm-filters .btn,
+.filtros-card form .btn,
+form .row.align-items-end > [class*="col"] > .btn,
+form .row.g-3 > [class*="col"] > .btn {
+    margin: 0 !important;
+}
+
 .form-group .btn {
     width: auto !important;
 }

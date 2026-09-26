@@ -127,10 +127,10 @@
         color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;
     }
     .fi-codigo-ars-inline-2 {
-        border-radius: 10px; height: 48px;
+        border-radius: 10px; height: 38px;
     }
     .fi-codigo-ars-inline-3 {
-        height: 48px;
+        height: 38px;
     }
     .fi-codigo-ars-inline-4 {
         width: 30%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
@@ -177,7 +177,7 @@
     <!-- Búsqueda -->
     <div class="search-box">
         <form method="GET" action="{{ url_for('facturacion_codigo_ars') }}">
-            <div class="row align-items-end">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-10">
                     <input type="text" name="search" class="form-control fi-codigo-ars-inline-2" placeholder="Buscar por {{ relacion.etiqueta|lower }}, ARS o código..." value="{{ search or '' }}">
                 </div>

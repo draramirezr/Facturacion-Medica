@@ -270,3 +270,61 @@
         padding: 1.2rem !important;
     }
 }
+
+/* Buscar / Aplicar: misma altura que el campo y alineados al pie de la fila */
+.ars-app-body .ars-content .search-box .row,
+.ars-app-body .ars-content .nursing-filter .row,
+.ars-app-body .ars-content .rx-filter .row,
+.ars-app-body .ars-content .lm-filters .row,
+.ars-app-body .ars-content .filtros-card form .row,
+.ars-app-body .ars-content .csp-u-002 form .row {
+    align-items: flex-end !important;
+}
+
+.ars-app-body .ars-content .search-box .form-control,
+.ars-app-body .ars-content .search-box .form-select,
+.ars-app-body .ars-content .search-box .btn,
+.ars-app-body .ars-content .report-360-search .form-control,
+.ars-app-body .ars-content .report-360-search .btn,
+.ars-app-body .ars-content .hc-search .form-control,
+.ars-app-body .ars-content .hc-search > .d-flex > .btn,
+.ars-app-body .ars-content .nursing-filter .form-control,
+.ars-app-body .ars-content .nursing-filter .btn,
+.ars-app-body .ars-content .rx-filter .form-control,
+.ars-app-body .ars-content .rx-filter .form-select,
+.ars-app-body .ars-content .rx-filter .btn,
+.ars-app-body .ars-content .lm-filters .form-control,
+.ars-app-body .ars-content .lm-filters .form-select,
+.ars-app-body .ars-content .lm-filters .btn,
+.ars-app-body .ars-content .filtros-card .form-control,
+.ars-app-body .ars-content .filtros-card .form-select,
+.ars-app-body .ars-content .filtros-card .btn,
+.ars-app-body .ars-content .csp-u-002 .form-select,
+.ars-app-body .ars-content .csp-u-002 .btn,
+.ars-app-body .ars-content form .row.align-items-end > [class*="col"] > .btn,
+.ars-app-body .ars-content form .row.g-3 > [class*="col"] > .btn-primary,
+.ars-app-body .ars-content form .row.g-3 > [class*="col"] > .btn-buscar {
+    margin: 0 !important;
+    height: 38px !important;
+    min-height: 38px !important;
+}
+
+.ars-app-body .ars-content .search-box .row > [class*="col-md-2"] > .btn,
+.ars-app-body .ars-content .nursing-filter .row > [class*="col"] > .btn,
+.ars-app-body .ars-content .rx-filter .row > [class*="col"] > .btn,
+.ars-app-body .ars-content .lm-filters .row > [class*="col"] > .btn {
+    width: 100% !important;
+}
+
+.ars-app-body .ars-content .report-360-search {
+    align-items: center;
+}
+
+.ars-app-body .ars-content .hc-search > .d-flex {
+    align-items: center !important;
+}
+
+.ars-app-body .ars-content .hc-search > .d-flex > .btn {
+    flex: 0 0 auto;
+    width: auto !important;
+}

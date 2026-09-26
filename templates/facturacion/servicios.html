@@ -99,10 +99,10 @@
         color: var(--primary-color); font-weight: 800; font-size: 2rem; margin-bottom: 0.5rem;
     }
     .fi-servicios-inline-2 {
-        border-radius: 10px; height: 48px;
+        border-radius: 10px; height: 38px;
     }
     .fi-servicios-inline-3 {
-        height: 48px;
+        height: 38px;
     }
     .fi-servicios-inline-4 {
         width: 8%; background: {{ tema.primary_dark }} !important; background-color: {{ tema.primary_dark }} !important; color: white !important;
@@ -149,7 +149,7 @@
     <!-- Búsqueda -->
     <div class="search-box">
         <form method="GET" action="{{ url_for('facturacion_servicios') }}">
-            <div class="row align-items-end">
+            <div class="row g-3 align-items-end">
                 <div class="col-md-10">
                     <input type="text" name="search" class="form-control fi-servicios-inline-2" placeholder="Buscar por descripción..." value="{{ search }}">
                 </div>

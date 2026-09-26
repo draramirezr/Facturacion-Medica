@@ -276,7 +276,7 @@
         </h5>
         <form method="GET" action="{{ url_for('facturacion_historico') }}">
             <input type="hidden" name="tipo" value="{{ tipo }}">
-            <div class="row">
+            <div class="row g-3 align-items-end">
                 {% if 'buscar' in filtros_visibles %}
                 <div class="col-md-3 mb-3">
                     <label class="historico-filter-label">Buscar</label>
@@ -351,9 +351,8 @@
                     <input type="date" class="form-control" name="fecha_hasta" value="{{ filtros.fecha_hasta or '' }}">
                 </div>
                 {% endif %}
-            </div>
-            <div class="text-end">
-                <a href="{{ url_for('facturacion_historico', tipo=tipo) }}" class="btn btn-limpiar me-2">
+                <div class="col-auto mb-3 d-flex align-items-end gap-2">
+                <a href="{{ url_for('facturacion_historico', tipo=tipo) }}" class="btn btn-limpiar">
                     <i class="fas fa-times-circle me-1"></i>
                     Limpiar
                 </a>
@@ -361,6 +360,7 @@
                     <i class="fas fa-search me-1"></i>
                     Buscar
                 </button>
+                </div>
             </div>
         </form>
     </div>
