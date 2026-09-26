@@ -389,7 +389,7 @@ SEO_PAGINAS = {
         ),
     },
     'software-consultorio': {
-        'path': '/software-consultorio',
+        'path': '/software-para-consultorios',
         'h1': 'Software para consultorio médico: todo el día clínico en un solo lugar',
         'titulo': (
             'Software para consultorio médico en República Dominicana | ClinicRD'
@@ -424,7 +424,7 @@ SEO_PAGINAS = {
         ),
     },
     'software-centro-medico': {
-        'path': '/software-centro-medico',
+        'path': '/software-para-clinicas',
         'h1': 'Software para centro médico y clínica: médicos, turnos y emergencia',
         'titulo': (
             'Software para centro médico y clínica en RD | ClinicRD'

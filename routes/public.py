@@ -56,7 +56,11 @@ def redirects():
         '/emr': '/historia-clinica',
         '/expediente-clinico': '/historia-clinica',
         '/pacientes': '/gestion-de-pacientes',
-        '/software-clinica': '/software-centro-medico',
+        '/software-consultorio': '/software-para-consultorios',
+        '/software-para-consultorio': '/software-para-consultorios',
+        '/software-centro-medico': '/software-para-clinicas',
+        '/software-clinica': '/software-para-clinicas',
+        '/software-para-clinica': '/software-para-clinicas',
         '/software-para-medicos': '/software-medico',
     }
     return redirect(destinos.get(request.path, '/'), code=301)
@@ -229,7 +233,9 @@ def register_public_routes(app):
     app.add_url_rule('/ayuda', 'centro_ayuda', centro_ayuda)
     for path in (
         '/services', '/about', '/contact', '/request-appointment',
-        '/emr', '/expediente-clinico', '/pacientes', '/software-clinica',
+        '/emr', '/expediente-clinico', '/pacientes',
+        '/software-consultorio', '/software-para-consultorio',
+        '/software-centro-medico', '/software-clinica', '/software-para-clinica',
         '/software-para-medicos',
     ):
         app.add_url_rule(path, 'redirects', redirects)
