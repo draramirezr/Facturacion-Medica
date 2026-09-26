@@ -29,6 +29,7 @@ from services.platform import (
     listar_solicitudes_demo,
     registrar_solicitud_demo,
     resumen_facturacion_plataforma,
+    resumen_visitas_pagina,
 )
 
 
@@ -312,12 +313,14 @@ def plataforma_reportes():
     resumen['monto_deudoras'] = sum(
         float(item.get('monto_pendiente') or 0) for item in deudoras
     )
+    visitas = resumen_visitas_pagina(30)
     return render_template(
         'admin/plataforma/reportes.html',
         facturas=facturas,
         resumen=resumen,
         filtros=filtros,
         deudoras=deudoras,
+        visitas=visitas,
     )
 
 

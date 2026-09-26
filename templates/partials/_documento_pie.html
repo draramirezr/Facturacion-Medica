@@ -1,0 +1,15 @@
+{% if papeleria and papeleria.pie_pagina %}
+<style nonce="{{ csp_nonce }}">
+    .doc-pie-papeleria {
+        margin-top: 1.5rem;
+        padding-top: .6rem;
+        border-top: 1px solid #cfd6dd;
+        font-size: .78rem;
+        color: #526071;
+        text-align: center;
+        white-space: pre-wrap;
+    }
+</style>
+<p class="doc-pie-papeleria">{{ papeleria.pie_pagina }}</p>
+{% endif %}
+

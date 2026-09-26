@@ -86,8 +86,11 @@
 
     <article class="history-sheet">
         <header class="history-title">
+            {% include 'partials/_documento_membrete.html' %}
             <h1>Historia Clínica de Emergencia</h1>
+            {% if not papeleria or not papeleria.encabezado %}
             <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ClinicRD' }}</div>
+            {% endif %}
         </header>
 
         <section class="history-section">
@@ -174,6 +177,7 @@
             <strong>{{ historia['medico_nombre'] }}</strong><br>
             Firma del médico
         </div>
+        {% include 'partials/_documento_pie.html' %}
     </article>
 </div>
 

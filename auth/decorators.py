@@ -15,6 +15,10 @@ from auth.helpers import (
 PERMISOS_PLATAFORMA_DUENO = frozenset({
     'configuracion.ver',
     'configuracion.editar',
+    'usuarios.ver',
+    'usuarios.crear',
+    'usuarios.editar',
+    'usuarios.eliminar',
 })
 
 logger = logging.getLogger(__name__)

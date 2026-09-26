@@ -14,6 +14,7 @@ from core.config import url_publica_base
 from core.presentation import obtener_soporte
 from core.security import rate_limit
 from routes.support import sanitize_input, validate_email
+from services.platform import registrar_vista_pagina
 
 logger = logging.getLogger(__name__)
 
@@ -42,6 +43,7 @@ def receive_csp_report():
 
 
 def index():
+    registrar_vista_pagina('index')
     return render_template('inicio.html', current_year=datetime.now().year)
 
 

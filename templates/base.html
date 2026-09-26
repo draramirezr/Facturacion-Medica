@@ -5,9 +5,14 @@
     <script nonce="{{ csp_nonce }}">
         (() => {
             try {
+                {% if current_user.is_authenticated %}
+                document.documentElement.dataset.colorMode = {{ (current_user.modo_color if current_user.modo_color in ['light', 'dark'] else 'light')|tojson }};
+                document.documentElement.dataset.colorAccount = '1';
+                {% else %}
                 const saved = localStorage.getItem('arsflow-color-mode');
                 const mode = saved || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
                 document.documentElement.dataset.colorMode = mode;
+                {% endif %}
             } catch (error) {
                 document.documentElement.dataset.colorMode = 'light';
             }
@@ -1099,6 +1104,11 @@
                         <i class="fas fa-flask"></i>
                         <span>Demos</span>
                     </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('admin_usuarios') else '' }}"
+                       href="{{ url_for('admin_usuarios') }}">
+                        <i class="fas fa-users-gear"></i>
+                        <span>Equipo ClinicRD</span>
+                    </a>
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('verificar_multitenant') else '' }}"
                        href="{{ url_for('verificar_multitenant_visual') }}">
                         <i class="fas fa-shield-halved"></i>
@@ -1543,7 +1553,7 @@
     </main>
 
     {% if current_user.is_authenticated %}
-    <link href="{{ url_for('static', filename='css/visual-refresh.css') }}?v=2.5" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/visual-refresh.css') }}?v=2.6" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/dark-mode.css') }}?v=1.8" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/typography.css') }}?v=3.1" rel="stylesheet">
     {% endif %}
@@ -1726,7 +1736,7 @@
     <script src="{{ url_for('static', filename='js/chat.js') }}?v=2" defer></script>
     {% endif %}
     {% endif %}
-    <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=1" defer></script>
+    <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=2" defer></script>
     
     <!-- Script de optimización de rendimiento -->
     <script src="{{ url_for('static', filename='js/performance.js') }}?v=2" defer></script>

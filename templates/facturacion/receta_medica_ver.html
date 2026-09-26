@@ -39,8 +39,11 @@
 <article class="rx-paper">
     {% if receta['estado']=='Anulada' %}<div class="rx-annulled">ANULADA</div>{% endif %}
     <header class="rx-title">
+        {% include 'partials/_documento_membrete.html' %}
         <h1>Receta Médica</h1>
+        {% if not papeleria or not papeleria.encabezado %}
         <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ClinicRD' }}</div>
+        {% endif %}
         <strong>{{ receta['codigo'] }}</strong>
     </header>
     <div class="rx-info">
@@ -66,6 +69,7 @@
     {% if receta['consulta_id'] %}<p class="no-print mt-3"><a href="{{ url_for('facturacion_historia_clinica_ver',consulta_id=receta['consulta_id']) }}">Abrir Historia Clínica relacionada</a></p>{% endif %}
     {% if receta['estado']=='Anulada' %}<section class="mt-4"><h2 class="h6">Anulación</h2><p>{{ receta['fecha_anulacion'] }} · {{ receta['motivo_anulacion'] }}</p></section>{% endif %}
     <div class="rx-signature"><div class="rx-signature-line"></div><strong>{{ receta['medico_nombre'] }}</strong><br><span>{{ receta['especialidad'] or '' }} · Exequátur {{ receta['exequatur'] or '—' }}</span></div>
+    {% include 'partials/_documento_pie.html' %}
 </article>
 {% if receta['estado']!='Anulada' %}
 <div class="modal fade" id="annulModal" tabindex="-1"><div class="modal-dialog"><form class="modal-content" method="POST" action="{{ url_for('facturacion_receta_medica_anular',receta_id=receta['id']) }}"><div class="modal-header"><h2 class="modal-title fs-5">Anular receta</h2><button class="btn-close" type="button" data-bs-dismiss="modal"></button></div><div class="modal-body"><label class="form-label required">Motivo</label><textarea class="form-control" name="motivo_anulacion" rows="4" maxlength="2000" required></textarea></div><div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Confirmar</button></div></form></div></div>

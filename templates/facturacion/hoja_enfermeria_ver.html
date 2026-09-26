@@ -43,6 +43,7 @@
 </div>
 <article class="nursing-paper">
     <header class="document-head">
+        {% include 'partials/_documento_membrete.html' %}
         <h1>{{ centro['nombre'] if centro and centro.get('nombre') else empresa.empresa_nombre if empresa else 'Centro Médico' }}</h1>
         {% if centro and centro.get('direccion') %}<p>{{ centro['direccion'] }}</p>{% endif %}
         {% if centro and centro.get('telefono') %}<p>Tel.: {{ centro['telefono'] }}</p>{% endif %}
@@ -72,6 +73,7 @@
     </table>
     {% if hoja['observaciones'] %}<div class="document-notes"><strong>Observaciones generales:</strong> {{ hoja['observaciones'] }}</div>{% endif %}
     <div class="document-signature">{{ hoja['firma_responsable'] }}<br>FIRMA RESPONSABLE</div>
+    {% include 'partials/_documento_pie.html' %}
 </article>
 {% if imprimir %}<script nonce="{{ csp_nonce }}">window.addEventListener('load',()=>setTimeout(()=>window.print(),120));</script>{% endif %}
 {% endblock %}

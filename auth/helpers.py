@@ -134,4 +134,5 @@ def load_user(user_id):
         ),
         rbac_role_count=user_data.get('cantidad_roles_rbac', 0),
         medico_id=user_data.get('medico_id'),
+        modo_color=user_data.get('modo_color', 'light'),
     )

@@ -160,11 +160,12 @@
     }
 
     .empresas-page { max-width: 1400px; }
-    .col-razon { width: 28%; }
-    .col-licencias { width: 12%; }
-    .col-usuarios { width: 8%; }
-    .col-meta { width: 37%; }
-    .col-acciones { width: 15%; }
+    .col-razon { width: 24%; }
+    .col-licencias { width: 10%; }
+    .col-usuarios { width: 7%; }
+    .col-login { width: 14%; }
+    .col-meta { width: 32%; }
+    .col-acciones { width: 13%; }
     .licencias-count { font-size: 0.85rem; font-weight: 600; }
     .empty-icon { font-size: 3rem; color: var(--text-muted); opacity: 0.5; }
     .empresa-meta {
@@ -237,6 +238,7 @@
                         <th class="col-razon">Razón Social</th>
                         <th class="col-licencias">Licencias</th>
                         <th class="col-usuarios">Usuarios</th>
+                        <th class="col-login">Último login</th>
                         <th class="col-meta">Plan y estado</th>
                         <th class="text-center col-acciones">Acciones</th>
                     </tr>
@@ -257,6 +259,13 @@
                         </td>
                         <td class="text-center">
                             <strong>{{ empresa['total_usuarios'] }}</strong>
+                        </td>
+                        <td class="text-nowrap">
+                            {% if empresa.get('ultimo_login') %}
+                            {{ empresa['ultimo_login'].strftime('%Y-%m-%d %H:%M') if empresa['ultimo_login'] is not string else empresa['ultimo_login'][:16] }}
+                            {% else %}
+                            <span class="text-muted">Nunca</span>
+                            {% endif %}
                         </td>
                         <td>
                             <div class="empresa-meta">

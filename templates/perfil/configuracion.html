@@ -326,6 +326,49 @@
     </section>
     {% endif %}
 
+    {% if can('configuracion.editar') and papeleria is not none %}
+    <section class="settings-card">
+        <h2 class="settings-card-title">Papelería del consultorio</h2>
+        <p class="settings-card-subtitle">
+            Logo, encabezado y pie para recetas, licencias, hojas de enfermería, emergencias y facturas de esta empresa.
+            Solo PNG, JPG o WEBP, máximo 512 KB. No se aceptan SVG ni HTML.
+        </p>
+        {% if papeleria.tiene_logo %}
+        <img src="{{ url_for('papeleria_logo') }}" alt="Logo de papelería" style="max-height:72px;max-width:160px;object-fit:contain;margin:.75rem 0;">
+        {% endif %}
+        <form method="POST" action="{{ url_for('perfil_configuracion') }}" enctype="multipart/form-data" class="mt-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="accion" value="papeleria">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="encabezado">Encabezado</label>
+                    <input class="form-control" id="encabezado" name="encabezado" maxlength="120" value="{{ papeleria.encabezado }}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="subtitulo">Subtítulo</label>
+                    <input class="form-control" id="subtitulo" name="subtitulo" maxlength="160" value="{{ papeleria.subtitulo }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="pie_pagina">Pie de página</label>
+                    <textarea class="form-control" id="pie_pagina" name="pie_pagina" rows="3" maxlength="350">{{ papeleria.pie_pagina }}</textarea>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label" for="logo_papeleria">Logo</label>
+                    <input class="form-control" id="logo_papeleria" name="logo_papeleria" type="file" accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+                </div>
+                {% if papeleria.tiene_logo %}
+                <div class="col-md-4 d-flex align-items-end">
+                    <label class="form-check"><input class="form-check-input" type="checkbox" name="quitar_logo" value="1"> Quitar logo</label>
+                </div>
+                {% endif %}
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button class="btn btn-primary" type="submit">Guardar papelería</button>
+            </div>
+        </form>
+    </section>
+    {% endif %}
+
     {% if can('configuracion.editar') %}
     <section class="settings-card">
         <h2 class="settings-card-title">Correo del consultorio</h2>
@@ -384,6 +427,29 @@
         <p class="settings-card-subtitle">El color seleccionado se aplicará a menús, botones y elementos destacados.</p>
 
         <form method="POST" action="{{ url_for('perfil_configuracion') }}">
+            <div class="theme-category">
+                <h3>Pantalla</h3>
+                <p class="settings-card-subtitle">Es un gusto personal: cada usuario elige claro u oscuro en su cuenta.</p>
+                <div class="font-grid">
+                    <label class="font-option" for="modo_color_light">
+                        <input type="radio" id="modo_color_light" name="modo_color" value="light"
+                               {% if current_user.modo_color != 'dark' %}checked{% endif %}>
+                        <span class="font-preview">
+                            <strong>Modo claro</strong>
+                            <small>Fondo claro</small>
+                        </span>
+                    </label>
+                    <label class="font-option" for="modo_color_dark">
+                        <input type="radio" id="modo_color_dark" name="modo_color" value="dark"
+                               {% if current_user.modo_color == 'dark' %}checked{% endif %}>
+                        <span class="font-preview">
+                            <strong>Modo oscuro</strong>
+                            <small>Fondo oscuro</small>
+                        </span>
+                    </label>
+                </div>
+            </div>
+
             <div class="theme-category">
                 <h3>Frescos</h3>
                 <div class="theme-grid">

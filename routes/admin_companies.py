@@ -33,7 +33,8 @@ def admin_empresas():
     if tenant_id is None:
         empresas = execute_query(
             """
-            SELECT e.*, COUNT(u.id) AS total_usuarios
+            SELECT e.*, COUNT(u.id) AS total_usuarios,
+                   MAX(u.last_login) AS ultimo_login
             FROM empresas e
             LEFT JOIN usuarios u ON e.id=u.tenant_id AND u.activo=1
             GROUP BY e.id ORDER BY e.fecha_creacion DESC
@@ -43,7 +44,8 @@ def admin_empresas():
     else:
         empresas = execute_query(
             """
-            SELECT e.*, COUNT(u.id) AS total_usuarios
+            SELECT e.*, COUNT(u.id) AS total_usuarios,
+                   MAX(u.last_login) AS ultimo_login
             FROM empresas e
             LEFT JOIN usuarios u ON e.id=u.tenant_id AND u.activo=1
             WHERE e.id = %s GROUP BY e.id ORDER BY e.fecha_creacion DESC

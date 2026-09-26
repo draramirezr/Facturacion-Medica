@@ -224,6 +224,31 @@
     color: #fff !important;
 }
 
+.ars-app-body .ars-content .btn-accion-editar,
+.ars-app-body .ars-content .btn-accion-ver,
+.ars-app-body .ars-content .btn-accion-eliminar {
+    font-size: 0 !important;
+    line-height: 0 !important;
+    width: 36px !important;
+    min-width: 36px !important;
+    max-width: 36px !important;
+    height: 36px !important;
+    min-height: 36px !important;
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+.ars-app-body .ars-content .btn-accion-editar i,
+.ars-app-body .ars-content .btn-accion-ver i,
+.ars-app-body .ars-content .btn-accion-eliminar i,
+.ars-app-body .ars-content .btn-accion-editar .fas,
+.ars-app-body .ars-content .btn-accion-ver .fas,
+.ars-app-body .ars-content .btn-accion-eliminar .fas {
+    margin: 0 !important;
+    font-size: 0.85rem !important;
+    line-height: 1 !important;
+}
+
 .ars-app-body .ars-content .btn:hover,
 .ars-app-body .ars-content button:hover,
 .ars-app-body .ars-content [class*="card"]:hover,

@@ -27,6 +27,24 @@
             const label = button.querySelector('[data-theme-label]');
             if (label) label.textContent = dark ? 'Modo claro' : 'Modo oscuro';
         });
+        document.querySelectorAll('input[name="modo_color"]').forEach((input) => {
+            input.checked = input.value === mode;
+        });
+    }
+
+    function persistAccount(mode) {
+        if (root.dataset.colorAccount !== '1') {
+            return;
+        }
+        const body = JSON.stringify({ modo: mode });
+        window.fetch('/perfil/modo-color', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: body,
+            credentials: 'same-origin',
+        }).catch(() => {
+            // El modo visual ya cambió; se reintentará en el próximo clic.
+        });
     }
 
     function setMode(mode, persist) {
@@ -39,14 +57,24 @@
             } catch (error) {
                 // El selector visual sigue funcionando aunque storage esté bloqueado.
             }
+            persistAccount(nextMode);
         }
     }
 
     function initialize() {
-        setMode(root.dataset.colorMode || preferredMode(), false);
+        if (root.dataset.colorAccount === '1' && root.dataset.colorMode) {
+            setMode(root.dataset.colorMode, false);
+        } else {
+            setMode(root.dataset.colorMode || preferredMode(), false);
+        }
         document.querySelectorAll('[data-theme-toggle]').forEach((button) => {
             button.addEventListener('click', () => {
                 setMode(root.dataset.colorMode === 'dark' ? 'light' : 'dark', true);
+            });
+        });
+        document.querySelectorAll('input[name="modo_color"]').forEach((input) => {
+            input.addEventListener('change', () => {
+                if (input.checked) setMode(input.value, true);
             });
         });
     }

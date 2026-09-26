@@ -238,7 +238,11 @@
     <div class="admin-header">
         <div>
             <h1><i class="fas fa-users me-2"></i>Gestión de Usuarios</h1>
-            {% if empresa and (empresa.empresa_nombre or empresa.nombre) %}
+            {% if equipo_plataforma %}
+            <p class="text-muted mb-0">
+                Equipo que administra ClinicRD contigo. No consume licencias de consultorio.
+            </p>
+            {% elif empresa and (empresa.empresa_nombre or empresa.nombre) %}
             <p class="text-muted mb-0">
                 Solo usuarios de {{ empresa.empresa_nombre or empresa.nombre }}
             </p>

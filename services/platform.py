@@ -70,6 +70,17 @@ def asegurar_tablas_plataforma():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         '''
     )
+    execute_update(
+        '''
+        CREATE TABLE IF NOT EXISTS visitas_pagina (
+            pagina VARCHAR(64) NOT NULL,
+            fecha DATE NOT NULL,
+            vistas INT NOT NULL DEFAULT 0,
+            PRIMARY KEY (pagina, fecha),
+            INDEX idx_visitas_fecha (fecha)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+        '''
+    )
     if not execute_query("SHOW COLUMNS FROM empresas LIKE 'es_demo'"):
         execute_update(
             '''
@@ -542,3 +553,104 @@ def enviar_factura_plataforma_por_correo(factura, destinatario=None):
     if respuesta.status_code not in (200, 202):
         return False, f'No se pudo enviar el correo ({respuesta.status_code})'
     return True, correo
+
+
+PAGINAS_PUBLICAS = {
+    'index': 'Página de inicio',
+    'registro': 'Registro',
+}
+
+_USER_AGENTS_BOT = (
+    'bot', 'crawler', 'spider', 'preview', 'slurp', 'monitor', 'headless',
+)
+
+
+def _es_bot_visita():
+    try:
+        from flask import request
+        ua = (request.user_agent.string or '').lower()
+    except Exception:
+        return False
+    return any(marca in ua for marca in _USER_AGENTS_BOT)
+
+
+def registrar_vista_pagina(pagina):
+    """Sumar una visita pública. No cuenta usuarios logueados ni bots."""
+    if pagina not in PAGINAS_PUBLICAS:
+        return False
+    try:
+        from flask_login import current_user
+        if getattr(current_user, 'is_authenticated', False):
+            return False
+    except Exception:
+        pass
+    if _es_bot_visita():
+        return False
+    try:
+        execute_update(
+            '''
+            INSERT INTO visitas_pagina (pagina, fecha, vistas)
+            VALUES (%s, CURDATE(), 1)
+            ON DUPLICATE KEY UPDATE vistas = visitas_pagina.vistas + 1
+            ''',
+            (pagina,),
+        )
+        return True
+    except Exception as error:
+        logger.debug('No se pudo registrar visita de %s: %s', pagina, error)
+        return False
+
+
+def _suma_visitas(filas, pagina=None, desde=None):
+    total = 0
+    for fila in filas or []:
+        if pagina and fila.get('pagina') != pagina:
+            continue
+        if desde:
+            fecha = fila.get('fecha')
+            if fecha and str(fecha) < str(desde):
+                continue
+        total += int(fila.get('vistas') or 0)
+    return total
+
+
+def resumen_visitas_pagina(dias=30):
+    """Totales y detalle diario para el dueño de ClinicRD."""
+    hoy = date.today()
+    desde = hoy - timedelta(days=max(int(dias), 1) - 1)
+    filas = execute_query(
+        '''
+        SELECT pagina, fecha, vistas
+        FROM visitas_pagina
+        WHERE fecha >= %s
+        ORDER BY fecha DESC, pagina
+        ''',
+        (desde,),
+        fetch='all',
+    ) or []
+    total_row = execute_query(
+        'SELECT COALESCE(SUM(vistas), 0) AS total FROM visitas_pagina',
+        fetch='one',
+    ) or {}
+    por_dia = {}
+    for fila in filas:
+        clave = str(fila.get('fecha') or '')
+        dia = por_dia.setdefault(
+            clave,
+            {'fecha': fila.get('fecha'), 'index': 0, 'registro': 0, 'total': 0},
+        )
+        pagina = fila.get('pagina')
+        vistas = int(fila.get('vistas') or 0)
+        if pagina in ('index', 'registro'):
+            dia[pagina] += vistas
+        dia['total'] += vistas
+    semanal_desde = hoy - timedelta(days=6)
+    return {
+        'hoy': _suma_visitas(filas, desde=hoy),
+        'semana': _suma_visitas(filas, desde=semanal_desde),
+        'total': int(total_row.get('total') or 0),
+        'inicio_hoy': _suma_visitas(filas, pagina='index', desde=hoy),
+        'registro_hoy': _suma_visitas(filas, pagina='registro', desde=hoy),
+        'por_dia': list(por_dia.values()),
+        'etiquetas': PAGINAS_PUBLICAS,
+    }

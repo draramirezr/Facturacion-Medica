@@ -264,6 +264,8 @@
         <p>
             {% if usuario %}
                 Modifica los datos del usuario {{ usuario.nombre }}
+            {% elif equipo_plataforma %}
+                Crea una cuenta para quien administra ClinicRD contigo. No consume licencias de consultorio.
             {% else %}
                 Crea un nuevo usuario para el panel administrativo
             {% endif %}
@@ -317,6 +319,7 @@
             <small>Este será el usuario para iniciar sesión</small>
         </div>
         
+        {% if not equipo_plataforma %}
         <div class="form-group">
             <label for="rol_id">
                 <i class="fas fa-key me-1"></i>Rol de usuario <span class="required">*</span>
@@ -347,6 +350,11 @@
             </select>
             <small>Es obligatorio para roles que gestionan una cola médica propia.</small>
         </div>
+        {% else %}
+        <div class="info-box">
+            Esta cuenta entra al panel de dueño: empresas, facturas, demos, reportes y el equipo ClinicRD.
+        </div>
+        {% endif %}
         
         {% if usuario %}
             <div class="form-group">
@@ -488,14 +496,19 @@
     const medicoSelect = document.getElementById('medico_id');
 
     function syncMedicoRequirement() {
+        if (!roleSelect || !medicoGroup || !medicoSelect) {
+            return;
+        }
         const option = roleSelect.options[roleSelect.selectedIndex];
         const required = option && option.dataset.requiereMedico === '1';
         medicoGroup.hidden = !required;
         medicoSelect.required = required;
     }
 
-    roleSelect.addEventListener('change', syncMedicoRequirement);
-    syncMedicoRequirement();
+    if (roleSelect) {
+        roleSelect.addEventListener('change', syncMedicoRequirement);
+        syncMedicoRequirement();
+    }
 
     // Generar contraseña temporal segura (para modo editar)
     function generarPasswordTemporal() {

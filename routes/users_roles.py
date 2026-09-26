@@ -1,15 +1,17 @@
 """Administraci?n de roles, usuarios y perfil."""
 
 import json
+import logging
 
 from flask import (
-    Response, current_app, flash, redirect, render_template, request,
+    Response, current_app, flash, jsonify, redirect, render_template, request,
     send_file, stream_with_context, url_for,
 )
 from flask_login import current_user, login_required, logout_user
 from werkzeug.security import generate_password_hash
 
 from auth import permission_required, user_has_permission
+from auth.helpers import usuario_es_dueno_software
 from core.database import execute_query, execute_update, transactional_methods
 from core.presentation import FUENTES_UI
 from core.tenant import get_current_tenant_id
@@ -21,6 +23,29 @@ from routes.support import (
 from services.ecf_operations import obtener_configuracion_ecf_tenant
 from services.subscriptions import check_license_available, get_empresa_info
 from services.tenant_mail import resumen_correo_empresa
+
+logger = logging.getLogger(__name__)
+_MODO_COLOR_LISTO = False
+
+
+def asegurar_columna_modo_color():
+    """Preferencia clara/oscura por usuario."""
+    global _MODO_COLOR_LISTO
+    if _MODO_COLOR_LISTO:
+        return
+    try:
+        if not execute_query("SHOW COLUMNS FROM usuarios LIKE 'modo_color'"):
+            execute_update(
+                '''
+                ALTER TABLE usuarios
+                ADD COLUMN modo_color VARCHAR(10) NOT NULL DEFAULT 'light'
+                AFTER idioma_correccion
+                '''
+            )
+        _MODO_COLOR_LISTO = True
+    except Exception as error:
+        logger.warning('No se pudo preparar modo_color: %s', error)
+
 
 def obtener_rol_tenant(rol_id, tenant_id):
     return execute_query(
@@ -242,10 +267,67 @@ def listar_usuarios_del_tenant(tenant_id):
     ) or []
 
 
+def listar_usuarios_plataforma():
+    """Equipo del dueño: cuentas sin consultorio (tenant_id nulo)."""
+    return execute_query(
+        '''
+        SELECT u.id, u.nombre, u.email, u.perfil, u.activo, u.last_login,
+               u.created_at, NULL AS empresa_nombre,
+               'Equipo ClinicRD' AS roles_nombres
+        FROM usuarios u
+        WHERE u.tenant_id IS NULL
+        ORDER BY u.nombre, u.id
+        ''',
+        fetch='all',
+    ) or []
+
+
+def _obtener_usuario_plataforma(usuario_id):
+    return execute_query(
+        'SELECT * FROM usuarios WHERE id=%s AND tenant_id IS NULL',
+        (usuario_id,),
+    )
+
+
+def _email_ya_usado(email, usuario_id=None):
+    if usuario_id:
+        return execute_query(
+            'SELECT id FROM usuarios WHERE email=%s AND id<>%s',
+            (email, usuario_id),
+        )
+    return execute_query('SELECT id FROM usuarios WHERE email=%s', (email,))
+
+
+def _conteo_equipo_plataforma_activo(excluir_id=None):
+    if excluir_id:
+        fila = execute_query(
+            '''
+            SELECT COUNT(*) AS total FROM usuarios
+            WHERE tenant_id IS NULL AND activo=1 AND id<>%s
+            ''',
+            (excluir_id,),
+        ) or {'total': 0}
+    else:
+        fila = execute_query(
+            '''
+            SELECT COUNT(*) AS total FROM usuarios
+            WHERE tenant_id IS NULL AND activo=1
+            '''
+        ) or {'total': 0}
+    return int(fila.get('total') or 0)
+
+
 @login_required
 @permission_required('usuarios.ver')
 def admin_usuarios():
-    """Listar solo los usuarios de la empresa del administrador."""
+    """Listar usuarios del consultorio o del equipo ClinicRD."""
+    if usuario_es_dueno_software(current_user):
+        return render_template(
+            'usuarios/lista.html',
+            usuarios=listar_usuarios_plataforma(),
+            empresa=None,
+            equipo_plataforma=True,
+        )
     tenant_id = get_current_tenant_id()
     if not tenant_id:
         flash(
@@ -257,6 +339,7 @@ def admin_usuarios():
         'usuarios/lista.html',
         usuarios=listar_usuarios_del_tenant(tenant_id),
         empresa=get_empresa_info(),
+        equipo_plataforma=False,
     )
 
 def obtener_contexto_usuario_form(tenant_id, usuario_id=None):
@@ -348,6 +431,8 @@ def usuario_tiene_permiso_db(usuario_id, tenant_id, codigo):
 @transactional_methods('POST')
 def admin_usuarios_nuevo():
     """Crear nuevo usuario"""
+    if usuario_es_dueno_software(current_user):
+        return _admin_usuarios_plataforma_nuevo()
     if request.method == 'POST':
         nombre = sanitize_input(request.form.get('nombre', ''), 100)
         email = request.form.get('email', '').strip().lower()
@@ -443,13 +528,137 @@ def admin_usuarios_nuevo():
         medicos=medicos,
         rol_seleccionado=rol_seleccionado,
         medico_seleccionado=medico_seleccionado,
+        equipo_plataforma=False,
     )
+
+
+def _admin_usuarios_plataforma_nuevo():
+    if request.method == 'POST':
+        nombre = sanitize_input(request.form.get('nombre', ''), 100)
+        email = request.form.get('email', '').strip().lower()
+        password = request.form.get('password_nuevo', '')
+        if not nombre or not email or not password:
+            flash('Nombre, correo y contraseña son obligatorios', 'error')
+            return redirect(url_for('admin_usuarios_nuevo'))
+        if not validate_email(email):
+            flash('Email inválido', 'error')
+            return redirect(url_for('admin_usuarios_nuevo'))
+        password_errors = validar_password_segura(password)
+        if password_errors:
+            flash(f'Contraseña no válida: {", ".join(password_errors)}', 'error')
+            return redirect(url_for('admin_usuarios_nuevo'))
+        if _email_ya_usado(email):
+            flash('Ya existe un usuario con ese correo', 'error')
+            return redirect(url_for('admin_usuarios_nuevo'))
+        password_hash = generate_password_hash(password)
+        execute_update(
+            '''
+            INSERT INTO usuarios (
+                tenant_id, nombre, email, password_hash, perfil, activo,
+                password_temporal
+            ) VALUES (NULL, %s, %s, %s, %s, 1, 1)
+            ''',
+            (nombre, email, password_hash, 'Administrador'),
+        )
+        flash(
+            f'{nombre} ya puede entrar al panel de ClinicRD. '
+            'Entrégarle la contraseña de forma segura.',
+            'success',
+        )
+        return redirect(url_for('admin_usuarios'))
+    return render_template(
+        'usuarios/form.html',
+        usuario=None,
+        roles=[],
+        medicos=[],
+        rol_seleccionado=None,
+        medico_seleccionado=None,
+        equipo_plataforma=True,
+    )
+
+
+def _admin_usuarios_plataforma_editar(usuario_id):
+    usuario = _obtener_usuario_plataforma(usuario_id)
+    if not usuario:
+        flash('Usuario no encontrado', 'error')
+        return redirect(url_for('admin_usuarios'))
+    if request.method == 'POST':
+        nombre = sanitize_input(request.form.get('nombre', ''), 100)
+        email = request.form.get('email', '').strip().lower()
+        activo = request.form.get('activo') == '1'
+        cambiar_password = request.form.get('cambiar_password') == '1'
+        password = request.form.get('password', '')
+        if not nombre or not email:
+            flash('Nombre y correo son obligatorios', 'error')
+            return redirect(url_for('admin_usuarios_editar', usuario_id=usuario_id))
+        if not validate_email(email):
+            flash('Email inválido', 'error')
+            return redirect(url_for('admin_usuarios_editar', usuario_id=usuario_id))
+        if usuario_id == current_user.id and not activo:
+            flash('No puedes desactivar tu propia cuenta', 'error')
+            return redirect(url_for('admin_usuarios_editar', usuario_id=usuario_id))
+        if not activo and _conteo_equipo_plataforma_activo(usuario_id) < 1:
+            flash('Debe quedar al menos una cuenta activa del equipo ClinicRD', 'error')
+            return redirect(url_for('admin_usuarios_editar', usuario_id=usuario_id))
+        if _email_ya_usado(email, usuario_id):
+            flash('Ya existe un usuario con ese correo', 'error')
+            return redirect(url_for('admin_usuarios_editar', usuario_id=usuario_id))
+        if cambiar_password and password:
+            password_errors = validar_password_segura(password)
+            if password_errors:
+                flash(
+                    f'Contraseña no válida: {", ".join(password_errors)}',
+                    'error',
+                )
+                return redirect(
+                    url_for('admin_usuarios_editar', usuario_id=usuario_id)
+                )
+            execute_update(
+                '''
+                UPDATE usuarios
+                SET nombre=%s, email=%s, password_hash=%s, activo=%s,
+                    password_temporal=1
+                WHERE id=%s AND tenant_id IS NULL
+                ''',
+                (
+                    nombre, email, generate_password_hash(password),
+                    activo, usuario_id,
+                ),
+            )
+            if usuario_id == current_user.id:
+                logout_user()
+                flash('Tu contraseña ha sido cambiada.', 'warning')
+                return redirect(url_for('login'))
+            flash(f'Usuario {nombre} actualizado con nueva contraseña', 'success')
+        else:
+            execute_update(
+                '''
+                UPDATE usuarios
+                SET nombre=%s, email=%s, activo=%s
+                WHERE id=%s AND tenant_id IS NULL
+                ''',
+                (nombre, email, activo, usuario_id),
+            )
+            flash(f'Usuario {nombre} actualizado exitosamente', 'success')
+        return redirect(url_for('admin_usuarios'))
+    return render_template(
+        'usuarios/form.html',
+        usuario=usuario,
+        roles=[],
+        medicos=[],
+        rol_seleccionado=None,
+        medico_seleccionado=None,
+        equipo_plataforma=True,
+    )
+
 
 @login_required
 @permission_required('usuarios.editar')
 @transactional_methods('POST')
 def admin_usuarios_editar(usuario_id):
     """Editar usuario"""
+    if usuario_es_dueno_software(current_user):
+        return _admin_usuarios_plataforma_editar(usuario_id)
     tenant_id = get_current_tenant_id()
     if tenant_id is None:
         flash(
@@ -612,6 +821,7 @@ def admin_usuarios_editar(usuario_id):
         medicos=medicos,
         rol_seleccionado=rol_seleccionado,
         medico_seleccionado=medico_seleccionado,
+        equipo_plataforma=False,
     )
 
 @login_required
@@ -712,6 +922,39 @@ def perfil_configuracion():
             flash('Certificado e-CF de la cuenta guardado correctamente.', 'success')
             return redirect(url_for('perfil_configuracion'))
 
+        if request.form.get('accion') == 'papeleria':
+            if not user_has_permission(current_user, 'configuracion.editar'):
+                flash('No tienes permiso para editar la papelería', 'error')
+                return redirect(url_for('perfil_configuracion'))
+            tenant_id = get_current_tenant_id()
+            if not tenant_id:
+                flash('La papelería es del consultorio, no de la plataforma.', 'error')
+                return redirect(url_for('perfil_configuracion'))
+            from services.stationery import MAX_LOGO_BYTES, guardar_papeleria
+            archivo = request.files.get('logo_papeleria')
+            logo_bytes = None
+            if archivo and archivo.filename:
+                logo_bytes = archivo.read(MAX_LOGO_BYTES + 1)
+                if len(logo_bytes) > MAX_LOGO_BYTES:
+                    flash('El logo no puede superar 512 KB.', 'error')
+                    return redirect(url_for('perfil_configuracion'))
+            try:
+                guardar_papeleria(
+                    tenant_id,
+                    {
+                        'encabezado': request.form.get('encabezado', ''),
+                        'subtitulo': request.form.get('subtitulo', ''),
+                        'pie_pagina': request.form.get('pie_pagina', ''),
+                    },
+                    logo_bytes=logo_bytes,
+                    quitar_logo=request.form.get('quitar_logo') == '1',
+                )
+            except ValueError as error:
+                flash(str(error), 'error')
+                return redirect(url_for('perfil_configuracion'))
+            flash('Papelería del consultorio actualizada.', 'success')
+            return redirect(url_for('perfil_configuracion'))
+
         tema_color = request.form.get(
             'tema_color', current_user.tema_color or 'cyan'
         )
@@ -723,6 +966,10 @@ def perfil_configuracion():
             'idioma_correccion',
             getattr(current_user, 'idioma_correccion', 'es'),
         )
+        modo_color = request.form.get(
+            'modo_color',
+            getattr(current_user, 'modo_color', 'light'),
+        )
         
         if tema_color not in TEMAS_VALIDOS:
             flash('Tema de color inválido', 'error')
@@ -733,12 +980,16 @@ def perfil_configuracion():
         if idioma_correccion not in {'es', 'en', 'fr', 'none'}:
             flash('Idioma de corrección inválido', 'error')
             return redirect(url_for('perfil_configuracion'))
+        if modo_color not in {'light', 'dark'}:
+            flash('Modo de pantalla inválido', 'error')
+            return redirect(url_for('perfil_configuracion'))
         
+        asegurar_columna_modo_color()
         execute_update(
             '''
             UPDATE usuarios
             SET tema_color=%s, fuente_ui=%s, mostrar_chat=%s,
-                idioma_correccion=%s
+                idioma_correccion=%s, modo_color=%s
             WHERE id=%s AND tenant_id <=> %s
             ''',
             (
@@ -746,6 +997,7 @@ def perfil_configuracion():
                 fuente_ui,
                 1 if mostrar_chat else 0,
                 idioma_correccion,
+                modo_color,
                 current_user.id,
                 get_current_tenant_id(),
             ),
@@ -755,6 +1007,7 @@ def perfil_configuracion():
         current_user.fuente_ui = fuente_ui
         current_user.mostrar_chat = mostrar_chat
         current_user.idioma_correccion = idioma_correccion
+        current_user.modo_color = modo_color
         
         flash('Preferencias actualizadas correctamente', 'success')
         return redirect(url_for('perfil_configuracion'))
@@ -812,10 +1065,17 @@ def perfil_configuracion():
         except Exception:
             correo_smtp = resumen_correo_empresa(None)
 
+    papeleria = None
+    tenant_id = get_current_tenant_id()
+    if tenant_id and user_has_permission(current_user, 'configuracion.editar'):
+        from services.stationery import obtener_papeleria
+        papeleria = obtener_papeleria(tenant_id)
+
     return render_template(
         'perfil/configuracion.html',
         ecf_certificado=ecf_certificado,
         correo_smtp=correo_smtp,
+        papeleria=papeleria,
     )
 
 
@@ -852,6 +1112,47 @@ def perfil_descargar_backup():
     )
 
 
+@login_required
+def perfil_modo_color():
+    """Guardar claro/oscuro solo para la cuenta que está en sesión."""
+    asegurar_columna_modo_color()
+    payload = request.get_json(silent=True) or request.form
+    modo = (payload.get('modo') or payload.get('modo_color') or '').strip()
+    if modo not in {'light', 'dark'}:
+        return jsonify({'ok': False, 'error': 'Modo inválido'}), 400
+    execute_update(
+        '''
+        UPDATE usuarios SET modo_color=%s
+        WHERE id=%s AND tenant_id <=> %s
+        ''',
+        (modo, current_user.id, get_current_tenant_id()),
+    )
+    current_user.modo_color = modo
+    return jsonify({'ok': True, 'modo': modo})
+
+
+@login_required
+def papeleria_logo():
+    """Servir el logo de papelería solo de la empresa en sesión."""
+    from flask import abort, send_file
+    from services.stationery import obtener_papeleria, ruta_logo
+
+    tenant_id = get_current_tenant_id()
+    if not tenant_id:
+        abort(404)
+    datos = obtener_papeleria(tenant_id) or {}
+    archivo = ruta_logo(tenant_id, datos.get('logo_ext'))
+    if not archivo or not archivo.is_file():
+        abort(404)
+    return send_file(
+        archivo,
+        mimetype=datos.get('logo_mime') or 'application/octet-stream',
+        max_age=300,
+        as_attachment=False,
+        download_name=archivo.name,
+    )
+
+
 def register_user_role_routes(app):
     app.add_url_rule('/admin/roles', endpoint='admin_roles', view_func=admin_roles)
     app.add_url_rule('/admin/roles/nuevo', endpoint='admin_roles_nuevo', view_func=admin_roles_nuevo, methods=['GET', 'POST'])
@@ -864,7 +1165,25 @@ def register_user_role_routes(app):
     app.add_url_rule('/admin/usuarios/<int:usuario_id>/eliminar', endpoint='admin_usuarios_eliminar', view_func=admin_usuarios_eliminar, methods=['POST'])
     app.add_url_rule('/perfil/configuracion', endpoint='perfil_configuracion', view_func=perfil_configuracion, methods=['GET', 'POST'])
     app.add_url_rule(
+        '/perfil/modo-color',
+        endpoint='perfil_modo_color',
+        view_func=perfil_modo_color,
+        methods=['POST'],
+    )
+    app.add_url_rule(
+        '/perfil/papeleria/logo',
+        endpoint='papeleria_logo',
+        view_func=papeleria_logo,
+    )
+    app.add_url_rule(
         '/perfil/configuracion/backup',
         endpoint='perfil_descargar_backup',
         view_func=perfil_descargar_backup,
     )
+
+    @app.before_request
+    def _asegurar_preferencia_modo_color():
+        if request.endpoint in (None, 'static'):
+            return None
+        asegurar_columna_modo_color()
+        return None

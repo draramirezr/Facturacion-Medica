@@ -297,6 +297,9 @@ class InternalMessagingTests(unittest.TestCase):
             return_value=5,
         ), patch.object(
             users_roles_routes,
+            "asegurar_columna_modo_color",
+        ), patch.object(
+            users_roles_routes,
             "execute_update",
         ) as execute_update:
             response = handler()
@@ -304,10 +307,11 @@ class InternalMessagingTests(unittest.TestCase):
         self.assertEqual(response.status_code, 302)
         self.assertEqual(
             execute_update.call_args.args[1],
-            ("cyan", "arsflow", 0, "es", 10, 5),
+            ("cyan", "arsflow", 0, "es", "light", 10, 5),
         )
         self.assertFalse(user.mostrar_chat)
         self.assertEqual(user.idioma_correccion, "es")
+        self.assertEqual(user.modo_color, "light")
 
     def test_chat_is_visible_by_default_for_new_user_objects(self):
         user = app_module.User(
@@ -317,6 +321,33 @@ class InternalMessagingTests(unittest.TestCase):
             perfil="Nivel 2",
         )
         self.assertTrue(user.mostrar_chat)
+        self.assertEqual(user.modo_color, 'light')
+
+    def test_logged_in_user_saves_own_color_mode(self):
+        handler = self._unwrapped(users_roles_routes.perfil_modo_color)
+        user = SimpleNamespace(
+            id=10,
+            tenant_id=5,
+            is_authenticated=True,
+            modo_color='light',
+        )
+        with self.flask_app.test_request_context(
+            '/perfil/modo-color',
+            method='POST',
+            json={'modo': 'dark'},
+        ), patch.object(
+            users_roles_routes, 'current_user', user,
+        ), patch.object(
+            users_roles_routes, 'get_current_tenant_id', return_value=5,
+        ), patch.object(
+            users_roles_routes, 'asegurar_columna_modo_color',
+        ), patch.object(
+            users_roles_routes, 'execute_update',
+        ) as execute_update:
+            respuesta = handler()
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(user.modo_color, 'dark')
+        self.assertEqual(execute_update.call_args.args[1], ('dark', 10, 5))
 
 
 if __name__ == "__main__":

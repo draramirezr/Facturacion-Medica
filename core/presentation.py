@@ -239,6 +239,7 @@ def inject_theme():
     if fuente_actual not in FUENTES_UI:
         fuente_actual = 'arsflow'
     empresa = {}
+    papeleria = None
     if current_user.is_authenticated and hasattr(current_user, 'tenant_id'):
         from services.subscriptions import get_empresa_info
         try:
@@ -254,6 +255,12 @@ def inject_theme():
             ),
             'tipo_empresa': empresa_db.get('tipo_empresa') or '',
         }
+        if current_user.tenant_id:
+            try:
+                from services.stationery import obtener_papeleria
+                papeleria = obtener_papeleria(current_user.tenant_id)
+            except Exception:
+                papeleria = None
     return {
         'tema': TEMAS[tema_actual],
         'tema_nombre': tema_actual,
@@ -262,6 +269,7 @@ def inject_theme():
         'fuente': FUENTES_UI[fuente_actual],
         'fuentes_disponibles': FUENTES_UI,
         'empresa': empresa,
+        'papeleria': papeleria,
         'soporte': obtener_soporte(),
         'can': lambda codigo: (
             current_user.is_authenticated

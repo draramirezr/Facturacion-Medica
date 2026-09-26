@@ -100,8 +100,11 @@
 <article class="license-paper">
     {% if licencia['estado'] == 'Anulada' %}<div class="annulled">ANULADA</div>{% endif %}
     <header class="license-title">
+        {% include 'partials/_documento_membrete.html' %}
         <h1>Licencia Médica</h1>
+        {% if not papeleria or not papeleria.encabezado %}
         <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ClinicRD' }}</div>
+        {% endif %}
         <div class="license-code">{{ licencia['codigo'] }}</div>
     </header>
 
@@ -148,6 +151,7 @@
         <strong>{{ licencia['medico_nombre'] }}</strong><br>
         <span>{{ licencia['especialidad'] }} · Exequátur {{ licencia['exequatur'] or '—' }}</span>
     </div>
+    {% include 'partials/_documento_pie.html' %}
 
     {% if auditoria and not imprimir %}
     <section class="license-section no-print">

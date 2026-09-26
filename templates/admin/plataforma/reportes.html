@@ -5,8 +5,60 @@
 {% block content %}
 <div class="container py-5">
     <h1 class="h3 mb-1"><i class="fas fa-chart-column me-2"></i>Reportes</h1>
-    <p class="text-muted mb-4">Empresas pendientes de pago y cobros de suscripción.</p>
+    <p class="text-muted mb-4">Visitas a la web pública, empresas pendientes de pago y cobros de suscripción.</p>
 
+    <h2 class="h5 mb-3">Visitas a la página</h2>
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+                <small class="text-muted">Hoy</small>
+                <div class="fs-3 fw-bold">{{ visitas.hoy }}</div>
+                <small>inicio {{ visitas.inicio_hoy }} · registro {{ visitas.registro_hoy }}</small>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+                <small class="text-muted">Últimos 7 días</small>
+                <div class="fs-3 fw-bold">{{ visitas.semana }}</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+                <small class="text-muted">Total acumulado</small>
+                <div class="fs-3 fw-bold">{{ visitas.total }}</div>
+            </div>
+        </div>
+    </div>
+    <div class="table-empresas mb-5" style="background:var(--ars-shell-surface,#fff);border-radius:15px;overflow:hidden;">
+        {% if visitas.por_dia %}
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th class="text-end">Inicio</th>
+                        <th class="text-end">Registro</th>
+                        <th class="text-end">Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for dia in visitas.por_dia %}
+                    <tr>
+                        <td>{{ dia.fecha }}</td>
+                        <td class="text-end">{{ dia.index }}</td>
+                        <td class="text-end">{{ dia.registro }}</td>
+                        <td class="text-end fw-bold">{{ dia.total }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-5 text-muted">Todavía no hay visitas registradas en la web pública.</div>
+        {% endif %}
+    </div>
+
+    <h2 class="h5 mb-3">Cobros</h2>
     <div class="row g-3 mb-4">
         <div class="col-md-3">
             <div class="p-3 rounded-4" style="background:var(--ars-shell-surface,#fff);">

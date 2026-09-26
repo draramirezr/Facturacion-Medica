@@ -22,7 +22,7 @@ from routes.support import (
     sanitize_input, validar_password_segura, validate_digits, validate_email,
 )
 from services.catalogos_ars import sembrar_ars_tenant
-from services.platform import asegurar_tablas_plataforma
+from services.platform import asegurar_tablas_plataforma, registrar_vista_pagina
 from services.subscriptions import (
     check_license_available, verificar_suscripciones_vencidas,
 )
@@ -167,6 +167,7 @@ def _build_user(data):
         empresa_nombre=data.get('empresa_nombre', ''),
         mostrar_chat=data.get('mostrar_chat', 1),
         idioma_correccion=data.get('idioma_correccion', 'es'),
+        modo_color=data.get('modo_color', 'light'),
     )
 
 
@@ -175,6 +176,7 @@ def registro():
     if current_user.is_authenticated:
         return redirect(url_for(destino_inicio_sesion(current_user)))
     if request.method == 'GET':
+        registrar_vista_pagina('registro')
         return render_template('registro.html')
     nombre_empresa = sanitize_input(request.form.get('nombre_empresa', ''), 255)
     tipo_empresa = request.form.get('tipo_empresa', '').strip()

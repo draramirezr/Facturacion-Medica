@@ -644,7 +644,7 @@
     <div class="factura-container">
         <!-- Header Compacto -->
         <div class="factura-header">
-            <div class="csp-u-005"></div>
+            <div class="csp-u-005">{% include 'partials/_documento_membrete.html' %}</div>
             <div class="factura-title-center">
                 <h1 class="factura-title">
                     {{ 'FACTURA ELECTRÓNICA' if factura_ecf else 'FACTURA' }}
@@ -732,6 +732,7 @@
         </div>
 
         <!-- Footer -->
+        {% include 'partials/_documento_pie.html' %}
         <div class="footer-factura">
             {% if tipo_empresa == 'centro_salud' %}
                 <p><strong>{{ empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A')) }}</strong></p>

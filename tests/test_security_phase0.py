@@ -143,6 +143,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
 
         self.assertEqual(len(queries), 1)
         self.assertIn('WHERE e.id = %s', queries[0][0])
+        self.assertIn('MAX(u.last_login)', queries[0][0])
         self.assertEqual(queries[0][1], (22,))
 
     def test_user_list_is_scoped_to_current_tenant(self):
@@ -170,12 +171,30 @@ class PhaseZeroSecurityTests(unittest.TestCase):
                     tenant_id=None,
                     is_authenticated=True,
                 )),
-                patch.object(user_routes, 'execute_query') as list_query,
+                patch.object(
+                    user_routes, 'usuario_es_dueno_software', return_value=True,
+                ),
+                patch.object(
+                    user_routes, 'listar_usuarios_plataforma', return_value=[],
+                ),
+                patch.object(
+                    user_routes, 'render_template', return_value='ok',
+                ) as render,
             ):
                 respuesta = user_routes.admin_usuarios.__wrapped__()
 
-        self.assertEqual(respuesta.status_code, 302)
-        list_query.assert_not_called()
+        self.assertEqual(respuesta, 'ok')
+        self.assertTrue(render.call_args.kwargs['equipo_plataforma'])
+
+    def test_platform_staff_list_only_has_null_tenant(self):
+        with patch.object(
+            user_routes,
+            'execute_query',
+            return_value=[{'id': 1, 'nombre': 'Equipo'}],
+        ) as query:
+            filas = user_routes.listar_usuarios_plataforma()
+        self.assertEqual(filas[0]['nombre'], 'Equipo')
+        self.assertIn('u.tenant_id IS NULL', query.call_args.args[0])
 
     def test_tenant_admin_cannot_see_other_tenants_user_counts(self):
         with self.flask_app.test_request_context('/admin/verificar-multitenant'):

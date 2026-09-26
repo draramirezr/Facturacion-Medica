@@ -20,6 +20,58 @@ class PlatformOwnerTests(unittest.TestCase):
         self.assertIn("url_for('plataforma_facturas')", plantilla)
         self.assertIn("url_for('plataforma_reportes')", plantilla)
         self.assertIn("url_for('plataforma_demos')", plantilla)
+        self.assertIn('Equipo ClinicRD', plantilla)
+
+    def test_owner_reports_show_page_views(self):
+        plantilla = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'admin'
+            / 'plataforma'
+            / 'reportes.html'
+        ).read_text(encoding='utf-8')
+        self.assertIn('Visitas a la página', plantilla)
+        self.assertIn('visitas.hoy', plantilla)
+        self.assertIn('visitas.por_dia', plantilla)
+
+    def test_page_view_summary_groups_by_day(self):
+        hoy = date.today()
+        filas = [
+            {'pagina': 'index', 'fecha': hoy, 'vistas': 5},
+            {'pagina': 'registro', 'fecha': hoy, 'vistas': 2},
+            {'pagina': 'index', 'fecha': hoy - timedelta(days=2), 'vistas': 3},
+        ]
+        with (
+            patch.object(platform_service, 'execute_query', side_effect=[filas, {'total': 10}]),
+        ):
+            resumen = platform_service.resumen_visitas_pagina(30)
+        self.assertEqual(resumen['hoy'], 7)
+        self.assertEqual(resumen['inicio_hoy'], 5)
+        self.assertEqual(resumen['registro_hoy'], 2)
+        self.assertEqual(resumen['total'], 10)
+        self.assertEqual(resumen['por_dia'][0]['total'], 7)
+
+    def test_logged_in_user_is_not_counted_as_page_view(self):
+        usuario = SimpleNamespace(is_authenticated=True)
+        with (
+            app_module.app.test_request_context('/'),
+            patch('flask_login.utils._get_user', return_value=usuario),
+            patch.object(platform_service, 'execute_update') as update,
+        ):
+            self.assertFalse(platform_service.registrar_vista_pagina('index'))
+        update.assert_not_called()
+
+    def test_anonymous_page_view_is_counted(self):
+        usuario = SimpleNamespace(is_authenticated=False)
+        with (
+            app_module.app.test_request_context(
+                '/', headers={'User-Agent': 'Mozilla/5.0'},
+            ),
+            patch('flask_login.utils._get_user', return_value=usuario),
+            patch.object(platform_service, 'execute_update') as update,
+        ):
+            self.assertTrue(platform_service.registrar_vista_pagina('index'))
+        update.assert_called_once()
 
     def test_public_home_does_not_show_demo_request_form(self):
         plantilla = (

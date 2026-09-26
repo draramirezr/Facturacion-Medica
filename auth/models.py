@@ -13,7 +13,7 @@ class User(UserMixin):
         fuente_ui='arsflow', tenant_id=1, empresa_nombre='',
         mostrar_chat=True, idioma_correccion='es',
         permissions=None, rbac_roles=None,
-        rbac_role_count=0, medico_id=None,
+        rbac_role_count=0, medico_id=None, modo_color='light',
     ):
         self.id = id
         self.nombre = nombre
@@ -35,6 +35,7 @@ class User(UserMixin):
         self.rbac_roles = tuple(rbac_roles or ())
         self.rbac_role_count = int(rbac_role_count or 0)
         self.medico_id = medico_id
+        self.modo_color = modo_color if modo_color in {'light', 'dark'} else 'light'
 
     def has_permission(self, codigo):
         """Autorizar por RBAC con fallback para usuarios aún no migrados."""

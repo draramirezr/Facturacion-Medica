@@ -1,0 +1,40 @@
+{% if papeleria and (papeleria.tiene_logo or papeleria.encabezado or papeleria.subtitulo) %}
+<style nonce="{{ csp_nonce }}">
+    .doc-membrete {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+        text-align: left;
+    }
+    .doc-membrete-logo {
+        width: 72px;
+        height: 72px;
+        object-fit: contain;
+        flex: 0 0 72px;
+    }
+    .doc-membrete strong { display: block; font-size: 1.05rem; }
+    .doc-membrete small { display: block; color: #526071; }
+    .doc-pie-papeleria {
+        margin-top: 1.5rem;
+        padding-top: .6rem;
+        border-top: 1px solid #cfd6dd;
+        font-size: .78rem;
+        color: #526071;
+        text-align: center;
+        white-space: pre-wrap;
+    }
+    @media print {
+        .doc-membrete-logo { width: 58px; height: 58px; flex-basis: 58px; }
+    }
+</style>
+<div class="doc-membrete">
+    {% if papeleria.tiene_logo %}
+    <img class="doc-membrete-logo" src="{{ url_for('papeleria_logo') }}" alt="">
+    {% endif %}
+    <div>
+        {% if papeleria.encabezado %}<strong>{{ papeleria.encabezado }}</strong>{% endif %}
+        {% if papeleria.subtitulo %}<small>{{ papeleria.subtitulo }}</small>{% endif %}
+    </div>
+</div>
+{% endif %}
