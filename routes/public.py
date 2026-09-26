@@ -11,7 +11,7 @@ from markupsafe import escape
 from core.extensions import csrf
 from auth.helpers import usuario_es_dueno_software
 from core.config import url_publica_base
-from core.presentation import obtener_soporte
+from core.presentation import datos_seo, obtener_soporte, SEO_PAGINAS
 from core.security import rate_limit
 from routes.support import sanitize_input, validate_email
 from services.platform import registrar_vista_pagina
@@ -53,6 +53,11 @@ def redirects():
         '/about': '/#beneficios',
         '/services': '/#beneficios',
         '/request-appointment': '/#contacto',
+        '/emr': '/historia-clinica',
+        '/expediente-clinico': '/historia-clinica',
+        '/pacientes': '/gestion-de-pacientes',
+        '/software-clinica': '/software-centro-medico',
+        '/software-para-medicos': '/software-medico',
     }
     return redirect(destinos.get(request.path, '/'), code=301)
 
@@ -60,8 +65,19 @@ def redirects():
 def robots_txt():
     base = (url_publica_base() or 'https://www.clinicrd.com').rstrip('/')
     cuerpo = (
+        'User-agent: Googlebot\n'
+        'Allow: /\n'
+        'Allow: /static/\n'
+        '\n'
+        'User-agent: Googlebot-Image\n'
+        'Allow: /static/\n'
+        '\n'
+        'User-agent: Bingbot\n'
+        'Allow: /\n'
+        '\n'
         'User-agent: *\n'
         'Allow: /\n'
+        'Allow: /static/\n'
         'Disallow: /login\n'
         'Disallow: /registro\n'
         'Disallow: /recuperar-password\n'
@@ -73,7 +89,9 @@ def robots_txt():
         'Disallow: /mi-cuenta\n'
         'Disallow: /perfil\n'
         'Disallow: /turnos\n'
-        f'\nSitemap: {base}/sitemap.xml\n'
+        'Disallow: /agendar\n'
+        f'\nHost: {base.replace("https://", "").replace("http://", "")}\n'
+        f'Sitemap: {base}/sitemap.xml\n'
     )
     return Response(cuerpo, mimetype='text/plain; charset=utf-8')
 
@@ -81,18 +99,46 @@ def robots_txt():
 def sitemap_xml():
     base = (url_publica_base() or 'https://www.clinicrd.com').rstrip('/')
     hoy = datetime.now().date().isoformat()
+    urls = []
+    for pagina in SEO_PAGINAS.values():
+        loc = f"{base}{pagina['path']}"
+        extra = ''
+        if pagina['path'] == '/':
+            extra = (
+                '    <image:image>\n'
+                f'      <image:loc>{base}/static/img/logo.png</image:loc>\n'
+                '      <image:title>ClinicRD</image:title>\n'
+                '      <image:caption>Software médico y facturación e-CF en República Dominicana</image:caption>\n'
+                '    </image:image>\n'
+            )
+        urls.append(
+            '  <url>\n'
+            f'    <loc>{loc}</loc>\n'
+            f'    <lastmod>{hoy}</lastmod>\n'
+            f'    <changefreq>{pagina["frecuencia"]}</changefreq>\n'
+            f'    <priority>{pagina["prioridad"]}</priority>\n'
+            + extra
+            + '  </url>\n'
+        )
     cuerpo = (
         '<?xml version="1.0" encoding="UTF-8"?>\n'
-        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
-        '  <url>\n'
-        f'    <loc>{base}/</loc>\n'
-        f'    <lastmod>{hoy}</lastmod>\n'
-        '    <changefreq>weekly</changefreq>\n'
-        '    <priority>1.0</priority>\n'
-        '  </url>\n'
-        '</urlset>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n'
+        '        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">\n'
+        + ''.join(urls)
+        + '</urlset>\n'
     )
     return Response(cuerpo, mimetype='application/xml; charset=utf-8')
+
+
+def pagina_seo(clave_seo):
+    if clave_seo not in SEO_PAGINAS or clave_seo == 'inicio':
+        return redirect(url_for('index'))
+    registrar_vista_pagina(clave_seo)
+    return render_template(
+        'seo_pagina.html',
+        current_year=datetime.now().year,
+        seo=datos_seo(clave_seo),
+    )
 
 
 @rate_limit(max_requests=5, window=300)
@@ -165,6 +211,15 @@ def register_public_routes(app):
     app.add_url_rule('/', 'index', index)
     app.add_url_rule('/robots.txt', 'robots_txt', robots_txt)
     app.add_url_rule('/sitemap.xml', 'sitemap_xml', sitemap_xml)
+    for clave, meta in SEO_PAGINAS.items():
+        if clave == 'inicio':
+            continue
+        app.add_url_rule(
+            meta['path'],
+            f'pagina_seo_{clave.replace("-", "_")}',
+            pagina_seo,
+            defaults={'clave_seo': clave},
+        )
     app.add_url_rule(
         '/contacto',
         'enviar_contacto',
@@ -172,5 +227,9 @@ def register_public_routes(app):
         methods=['GET', 'POST'],
     )
     app.add_url_rule('/ayuda', 'centro_ayuda', centro_ayuda)
-    for path in ('/services', '/about', '/contact', '/request-appointment'):
+    for path in (
+        '/services', '/about', '/contact', '/request-appointment',
+        '/emr', '/expediente-clinico', '/pacientes', '/software-clinica',
+        '/software-para-medicos',
+    ):
         app.add_url_rule(path, 'redirects', redirects)

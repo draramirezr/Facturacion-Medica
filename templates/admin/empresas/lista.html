@@ -218,6 +218,11 @@
                     {% endif %}
                 </p>
             </div>
+            {% if not es_dueno_software %}
+            <a class="btn btn-outline-primary" href="{{ url_for('perfil_configuracion') }}#papeleria">
+                <i class="fas fa-file-lines me-2"></i>Papelería (logo y membrete)
+            </a>
+            {% endif %}
             {% if es_dueno_software %}
             <div>
                 <a href="{{ url_for('admin_empresas_nueva') }}" class="btn btn-nuevo">

@@ -11,7 +11,7 @@ from flask_login import current_user, login_required, logout_user
 from werkzeug.security import generate_password_hash
 
 from auth import permission_required, user_has_permission
-from auth.helpers import usuario_es_dueno_software
+from auth.helpers import usuario_es_administrador, usuario_es_dueno_software
 from core.database import execute_query, execute_update, transactional_methods
 from core.presentation import FUENTES_UI
 from core.tenant import get_current_tenant_id
@@ -923,7 +923,7 @@ def perfil_configuracion():
             return redirect(url_for('perfil_configuracion'))
 
         if request.form.get('accion') == 'papeleria':
-            if not user_has_permission(current_user, 'configuracion.editar'):
+            if not user_has_permission(current_user, 'configuracion.editar') and not usuario_es_administrador(current_user):
                 flash('No tienes permiso para editar la papelería', 'error')
                 return redirect(url_for('perfil_configuracion'))
             tenant_id = get_current_tenant_id()
@@ -1067,9 +1067,21 @@ def perfil_configuracion():
 
     papeleria = None
     tenant_id = get_current_tenant_id()
-    if tenant_id and user_has_permission(current_user, 'configuracion.editar'):
+    if tenant_id and (
+        user_has_permission(current_user, 'configuracion.editar')
+        or usuario_es_administrador(current_user)
+    ):
         from services.stationery import obtener_papeleria
-        papeleria = obtener_papeleria(tenant_id)
+        vacia = {
+            'encabezado': '',
+            'subtitulo': '',
+            'pie_pagina': '',
+            'tiene_logo': False,
+        }
+        try:
+            papeleria = obtener_papeleria(tenant_id) or vacia
+        except Exception:
+            papeleria = vacia
 
     return render_template(
         'perfil/configuracion.html',

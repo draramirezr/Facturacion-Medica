@@ -99,8 +99,15 @@ class PlatformOwnerTests(unittest.TestCase):
             contacto = public_routes.redirects()
 
         self.assertIn('Disallow: /facturacion', robots.get_data(as_text=True))
+        self.assertIn('Googlebot', robots.get_data(as_text=True))
         self.assertIn('sitemap.xml', robots.get_data(as_text=True))
-        self.assertIn('<loc>', mapa.get_data(as_text=True))
+        mapa_texto = mapa.get_data(as_text=True)
+        self.assertIn('<loc>', mapa_texto)
+        self.assertIn('/software-medico', mapa_texto)
+        self.assertIn('/facturacion-electronica-ecf', mapa_texto)
+        self.assertIn('/gestion-de-pacientes', mapa_texto)
+        self.assertIn('/software-centro-medico', mapa_texto)
+        self.assertIn('/software-consultorio', mapa_texto)
         self.assertEqual(contacto.status_code, 301)
         self.assertTrue(contacto.location.endswith('/#contacto'))
 

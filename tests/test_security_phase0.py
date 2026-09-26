@@ -783,6 +783,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertIn('telefono', contexto['soporte'])
         self.assertIn('ClinicRD', contexto['seo']['titulo'])
         self.assertIn('e-CF', contexto['seo']['descripcion'])
+        self.assertIn('FAQPage', str(contexto['seo']['json_ld']))
 
         base = (
             Path(app_module.__file__).resolve().parent

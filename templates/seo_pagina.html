@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="es-DO">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ seo.titulo }}</title>
+    <meta name="description" content="{{ seo.descripcion }}">
+    <meta name="keywords" content="{{ seo.keywords }}">
+    <meta name="author" content="ClinicRD">
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+    <meta name="theme-color" content="#119c8f">
+    <meta name="geo.region" content="DO">
+    <meta name="geo.placename" content="República Dominicana">
+    {% if seo.google_site_verification %}
+    <meta name="google-site-verification" content="{{ seo.google_site_verification }}">
+    {% endif %}
+    {% if seo.bing_site_verification %}
+    <meta name="msvalidate.01" content="{{ seo.bing_site_verification }}">
+    {% endif %}
+    <link rel="canonical" href="{{ seo.canonical }}">
+    <link rel="alternate" hreflang="es-DO" href="{{ seo.canonical }}">
+    <link rel="alternate" hreflang="es" href="{{ seo.canonical }}">
+    <link rel="alternate" hreflang="x-default" href="{{ seo.canonical }}">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="ClinicRD">
+    <meta property="og:locale" content="{{ seo.locale }}">
+    <meta property="og:url" content="{{ seo.canonical }}">
+    <meta property="og:title" content="{{ seo.titulo }}">
+    <meta property="og:description" content="{{ seo.descripcion }}">
+    <meta property="og:image" content="{{ seo.imagen }}">
+    <meta property="og:image:alt" content="{{ seo.imagen_alt }}">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="{{ seo.titulo }}">
+    <meta name="twitter:description" content="{{ seo.descripcion }}">
+    <meta name="twitter:image" content="{{ seo.imagen }}">
+    <meta name="twitter:image:alt" content="{{ seo.imagen_alt }}">
+    <script type="application/ld+json" nonce="{{ csp_nonce }}">{{ seo.json_ld | tojson }}</script>
+    <link rel="icon" href="{{ url_for('static', filename='logos/favicon.ico') }}" type="image/x-icon">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='logos/favicon.png') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/public-theme.css') }}?v=2" rel="stylesheet">
+    <style nonce="{{ csp_nonce }}">
+        :root { --primary:#119c8f; --primary-dark:#087d73; --text:#172033; --muted:#64748b; --border:#e5edf3; --surface:#fff; --background:#f8fafb; }
+        * { box-sizing:border-box; }
+        body { margin:0; background:var(--background); color:var(--text); font-family:"Inter",sans-serif; line-height:1.65; }
+        a { color:var(--primary-dark); }
+        .wrap { width:min(820px, calc(100% - 40px)); margin:0 auto; padding:32px 0 72px; }
+        .crumb { font-size:.82rem; color:var(--muted); margin-bottom:18px; }
+        .crumb a { color:inherit; text-decoration:none; }
+        h1 { margin:0 0 18px; font-size:clamp(1.8rem, 3vw, 2.4rem); line-height:1.2; letter-spacing:-.03em; }
+        h2 { margin:2rem 0 .8rem; font-size:1.25rem; }
+        p { color:#334155; }
+        .faq dt { margin-top:1.2rem; font-weight:700; }
+        .faq dd { margin:6px 0 0; color:#475569; }
+        .actions { display:flex; flex-wrap:wrap; gap:10px; margin-top:28px; }
+        .button { min-height:44px; padding:0 18px; display:inline-flex; align-items:center; border-radius:10px; font-weight:700; text-decoration:none; }
+        .button-primary { background:var(--primary); color:#fff; }
+        .site-nav { border-bottom:1px solid var(--border); background:#fff; padding:14px 0; }
+        .nav-inner { width:min(1160px, calc(100% - 40px)); margin:0 auto; display:flex; justify-content:space-between; align-items:center; gap:16px; }
+        .brand img { height:44px; }
+        footer { border-top:1px solid var(--border); padding:28px 0; color:var(--muted); font-size:.82rem; }
+    </style>
+</head>
+<body>
+    <nav class="site-nav">
+        <div class="nav-inner">
+            <a class="brand" href="{{ url_for('index') }}"><img src="{{ url_for('static', filename='img/logo.png') }}?v=clinicrd5" alt="ClinicRD"></a>
+            <a class="button button-primary" href="{{ url_for('registro') }}">Probar 7 días</a>
+        </div>
+    </nav>
+    <main class="wrap">
+        <p class="crumb"><a href="{{ url_for('index') }}">Inicio</a> · {{ seo.pagina.h1 }}</p>
+        <h1>{{ seo.pagina.h1 }}</h1>
+        <p>{{ seo.descripcion }}</p>
+        {% if seo.clave == 'preguntas-frecuentes' %}
+        <dl class="faq">
+            {% for item in seo.faq %}
+            <dt>{{ item.pregunta }}</dt>
+            <dd>{{ item.respuesta }}</dd>
+            {% endfor %}
+        </dl>
+        {% else %}
+            {% for titulo, texto in seo.pagina.bloques %}
+            <h2>{{ titulo }}</h2>
+            <p>{{ texto }}</p>
+            {% endfor %}
+        {% endif %}
+        <div class="actions">
+            <a class="button button-primary" href="{{ url_for('registro') }}">Crear cuenta</a>
+            <a class="button" href="{{ url_for('index') }}#contacto">Hablar con ClinicRD</a>
+        </div>
+    </main>
+    <footer>
+        <div class="wrap" style="padding-top:0">
+            <a href="{{ url_for('index') }}">ClinicRD</a> ·
+            <a href="{{ url_for('pagina_seo_gestion_de_pacientes') }}">Pacientes</a> ·
+            <a href="{{ url_for('pagina_seo_software_consultorio') }}">Consultorio</a> ·
+            <a href="{{ url_for('pagina_seo_software_centro_medico') }}">Centro médico</a> ·
+            <a href="{{ url_for('pagina_seo_agenda_medica') }}">Agenda</a> ·
+            <a href="{{ url_for('pagina_seo_historia_clinica') }}">Historia</a> ·
+            <a href="{{ url_for('pagina_seo_facturacion_electronica_ecf') }}">e-CF</a> ·
+            <a href="{{ url_for('pagina_seo_preguntas_frecuentes') }}">Preguntas</a>
+        </div>
+    </footer>
+</body>
+</html>
