@@ -16,6 +16,7 @@ signxml==5.1.0
 requests==2.34.2
 qrcode[pil]==8.2
 tzdata==2025.2
+waitress==3.0.2
 
 
 
