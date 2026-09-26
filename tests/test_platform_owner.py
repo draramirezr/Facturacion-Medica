@@ -177,6 +177,75 @@ class PlatformOwnerTests(unittest.TestCase):
         self.assertFalse(usuario_es_dueno_software(admin))
         self.assertTrue(usuario_es_dueno_software(owner))
 
+    def test_tenant_admin_cannot_change_subscription_fields(self):
+        import routes.admin_companies as companies
+
+        admin = app_module.User(
+            4, 'Admin', 'admin@facturacion.com', 'Administrador', tenant_id=5,
+        )
+        empresa = {
+            'id': 5,
+            'nombre': 'Clinica',
+            'razon_social': 'Clinica SRL',
+            'rnc': '00100000001',
+            'telefono': '8095550101',
+            'email': 'clinica@example.com',
+            'direccion': 'Santo Domingo',
+            'fecha_inicio': date(2026, 9, 20),
+            'fecha_fin': date(2026, 11, 30),
+            'licencias_totales': 10,
+            'plan': 'profesional',
+            'estado': 'activo',
+            'tipo_empresa': 'medico',
+        }
+        captured = {}
+
+        def fake_update(query, params=None):
+            captured['params'] = params
+
+        with app_module.app.test_request_context(
+            '/admin/empresas/5/editar',
+            method='POST',
+            data={
+                'nombre': 'Clinica',
+                'razon_social': 'Clinica SRL',
+                'rnc': '00100000001',
+                'telefono': '8095550101',
+                'email': 'clinica@example.com',
+                'direccion': 'Santo Domingo',
+                'tipo_empresa': 'medico',
+                'fecha_inicio': '2020-01-01',
+                'fecha_fin': '2099-12-31',
+                'licencias_totales': '999',
+                'plan': 'empresarial',
+                'estado': 'inactivo',
+            },
+        ):
+            with (
+                patch.object(companies, 'current_user', admin),
+                patch.object(companies, 'get_current_tenant_id', return_value=5),
+                patch.object(companies, 'execute_query', return_value=empresa),
+                patch.object(companies, 'execute_update', side_effect=fake_update),
+                patch.object(companies, 'flash'),
+            ):
+                companies.admin_empresas_editar.__wrapped__(5)
+
+        self.assertEqual(captured['params'][6], '2026-09-20')
+        self.assertEqual(captured['params'][7], '2026-11-30')
+        self.assertEqual(captured['params'][8], 10)
+        self.assertEqual(captured['params'][9], 'profesional')
+        self.assertEqual(captured['params'][10], 'activo')
+
+        plantilla = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'admin'
+            / 'empresas'
+            / 'form.html'
+        ).read_text(encoding='utf-8')
+        self.assertIn('puede_editar_suscripcion', plantilla)
+        self.assertIn('Solo el dueño de ClinicRD', plantilla)
+
 
 if __name__ == '__main__':
     unittest.main()

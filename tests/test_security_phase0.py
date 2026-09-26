@@ -1,6 +1,7 @@
 import unittest
 import re
 from contextlib import contextmanager
+from datetime import date, datetime, time
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -714,6 +715,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         ).read_text(encoding='utf-8')
 
         self.assertIn('href="{{ volver_url }}"', template)
+        self.assertIn('name="csrf_token"', template)
         self.assertNotIn("url_for('facturacion_menu')", template)
 
     def test_dark_mode_stylesheets_use_theme_tokens(self):
@@ -1119,7 +1121,10 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertIn('fecha=dia.isoformat()', agenda)
 
     def test_appointment_can_be_rescheduled(self):
-        from routes.appointments import cita_se_puede_reagendar
+        from routes.appointments import (
+            cita_se_puede_reagendar,
+            estado_si_horario_vigente,
+        )
 
         form = (
             Path(app_module.__file__).resolve().parent
@@ -1138,10 +1143,31 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertTrue(cita_se_puede_reagendar({'estado': 'Cancelada'}))
         self.assertTrue(cita_se_puede_reagendar({'estado': 'Vencida'}))
         self.assertFalse(cita_se_puede_reagendar({'estado': 'Completada'}))
+        self.assertEqual(
+            estado_si_horario_vigente(
+                'Vencida',
+                date(2026, 10, 1),
+                time(9, 0),
+                45,
+                ahora=datetime(2026, 9, 26, 8, 30),
+            ),
+            'Programada',
+        )
+        self.assertEqual(
+            estado_si_horario_vigente(
+                'Vencida',
+                date(2026, 9, 20),
+                time(8, 0),
+                30,
+                ahora=datetime(2026, 9, 26, 8, 30),
+            ),
+            'Vencida',
+        )
         self.assertIn('name="accion" value="reagendar"', form)
         self.assertIn('id="reagendar"', form)
         self.assertIn('reagendar=1', agenda)
         self.assertIn("url_for('facturacion_citas_qr')", agenda)
+        self.assertIn('not agenda_restringida', agenda)
         self.assertIn('value="reenviar_aviso"', form)
         landing = (
             Path(app_module.__file__).resolve().parent
@@ -1150,6 +1176,13 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         ).read_text(encoding='utf-8')
         self.assertIn('name="decision" value="confirmar"', landing)
         self.assertIn('name="decision" value="cancelar"', landing)
+        agendar = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'agendar_cita.html'
+        ).read_text(encoding='utf-8')
+        self.assertIn('wa-float', agendar)
+        self.assertIn('Teléfono del centro', agendar)
 
     def test_dashboard_shows_health_center_name(self):
         dashboard = (

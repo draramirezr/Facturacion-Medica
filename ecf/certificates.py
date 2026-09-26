@@ -3,7 +3,7 @@
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .signer import ECFSigner, ECFSigningError
+from .signer import ECFSigner, ECFSigningError, MAX_CERTIFICATE_BYTES
 
 
 MAX_SECRET_BYTES = 4096
@@ -130,6 +130,69 @@ class TenantCertificateProvider:
         except ECFSigningError as error:
             raise ECFCertificateResolutionError(str(error)) from error
         return resolved, metadata
+
+    def store(self, tenant_id, certificate_bytes, password, expected_signer_id=None):
+        """Guardar el PKCS#12 y su secreto en el almacén de esta cuenta."""
+        try:
+            tenant_id = int(tenant_id)
+        except (TypeError, ValueError) as error:
+            raise ECFCertificateResolutionError(
+                "La cuenta del certificado no es válida"
+            ) from error
+        if tenant_id <= 0:
+            raise ECFCertificateResolutionError(
+                "La cuenta del certificado no es válida"
+            )
+        if self.root is None:
+            raise ECFCertificateResolutionError(
+                "El servidor no tiene almacén de certificados por cuenta. "
+                "Configure ECF_TENANT_SECRETS_ROOT."
+            )
+        if (
+            not certificate_bytes
+            or len(certificate_bytes) > MAX_CERTIFICATE_BYTES
+        ):
+            raise ECFCertificateResolutionError(
+                "El archivo de certificado no es válido"
+            )
+        password = str(password or "").strip()
+        if not password:
+            raise ECFCertificateResolutionError(
+                "Debe indicar la contraseña del certificado"
+            )
+        if len(password.encode("utf-8")) > MAX_SECRET_BYTES:
+            raise ECFCertificateResolutionError(
+                "El secreto del certificado supera el tamaño permitido"
+            )
+
+        tenant_dir = self._resolve_reference(f"tenant-{tenant_id}")
+        tenant_dir.mkdir(mode=0o700, parents=True, exist_ok=True)
+        tmp_certificate = tenant_dir / ".certificate.p12.tmp"
+        tmp_secret = tenant_dir / ".password.txt.tmp"
+        try:
+            tmp_certificate.write_bytes(certificate_bytes)
+            tmp_certificate.chmod(0o600)
+            tmp_secret.write_text(password, encoding="utf-8")
+            tmp_secret.chmod(0o600)
+            metadata = ECFSigner(
+                tmp_certificate, password
+            ).inspect_certificate(expected_signer_id)
+            tmp_certificate.replace(tenant_dir / "certificate.p12")
+            tmp_secret.replace(tenant_dir / "password.txt")
+        except ECFSigningError as error:
+            tmp_certificate.unlink(missing_ok=True)
+            tmp_secret.unlink(missing_ok=True)
+            raise ECFCertificateResolutionError(str(error)) from error
+        except OSError as error:
+            tmp_certificate.unlink(missing_ok=True)
+            tmp_secret.unlink(missing_ok=True)
+            raise ECFCertificateResolutionError(
+                "No se pudo guardar el certificado de la cuenta"
+            ) from error
+        extra_pfx = tenant_dir / "certificate.pfx"
+        if extra_pfx.is_file():
+            extra_pfx.unlink()
+        return metadata
 
     def _resolve_reference(self, reference):
         reference_path = Path(str(reference or "").strip())

@@ -32,6 +32,8 @@ def destino_inicio_sesion(user=None):
     """Página inicial según si opera el software o un consultorio."""
     if usuario_es_dueno_software(user):
         return 'admin_empresas'
+    if usuario_es_medico_operativo(user):
+        return 'turnos_mi_cola'
     return 'facturacion_menu'
 
 

@@ -176,31 +176,19 @@
                     </select>
                     <small class="text-muted">Este campo determina las funcionalidades disponibles para la empresa</small>
                 </div>
-                
-                <div class="col-md-12 mb-3">
-                    <label for="tipo_empresa" class="form-label">
-                        Tipo de Empresa <span class="required-asterisk">*</span>
-                    </label>
-                    <select class="form-select" id="tipo_empresa" name="tipo_empresa" required>
-                        <option value="">-- Seleccione un tipo --</option>
-                        <option value="medico" {{ 'selected' if empresa and empresa.get('tipo_empresa') == 'medico' else '' }}>
-                            Médico
-                        </option>
-                        <option value="centro_salud" {{ 'selected' if empresa and empresa.get('tipo_empresa') == 'centro_salud' else '' }}>
-                            Centro de Salud
-                        </option>
-                    </select>
-                    <small class="text-muted">Este campo determina las funcionalidades disponibles para la empresa</small>
-                </div>
             </div>
             
             <hr class="my-4">
             
+            {% set puede_editar_suscripcion = es_dueno_software %}
             <!-- Período de Suscripción -->
             <h5 class="section-title">
                 <i class="fas fa-calendar-alt me-2"></i>
                 Período de Suscripción
             </h5>
+            {% if not puede_editar_suscripcion %}
+            <p class="text-muted mb-3" style="font-size:.8rem;">Solo el dueño de ClinicRD puede cambiar fechas, licencias, plan y estado.</p>
+            {% endif %}
             
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -209,7 +197,7 @@
                     </label>
                     <input type="date" class="form-control" id="fecha_inicio" name="fecha_inicio" 
                            value="{{ empresa['fecha_inicio'] if empresa and empresa['fecha_inicio'] else '' }}" 
-                           required>
+                           required {% if not puede_editar_suscripcion %}readonly tabindex="-1"{% endif %}>
                     <small class="text-muted">Inicio de la suscripción</small>
                 </div>
                 
@@ -219,7 +207,7 @@
                     </label>
                     <input type="date" class="form-control" id="fecha_fin" name="fecha_fin" 
                            value="{{ empresa['fecha_fin'] if empresa and empresa['fecha_fin'] else '' }}" 
-                           required>
+                           required {% if not puede_editar_suscripcion %}readonly tabindex="-1"{% endif %}>
                     <small class="text-muted">Al vencer, el estado cambiará a "Suspendido" automáticamente</small>
                 </div>
             </div>
@@ -255,13 +243,15 @@
                     </label>
                     <input type="number" class="form-control" id="licencias_totales" name="licencias_totales" 
                            value="{{ empresa['licencias_totales'] if empresa else 5 }}" 
-                           required min="1" max="1000">
+                           required min="1" max="1000"
+                           {% if not puede_editar_suscripcion %}readonly tabindex="-1"{% endif %}>
                     <small class="text-muted">Número máximo de usuarios activos</small>
                 </div>
                 
                 <div class="col-md-6 mb-3">
                     <label for="plan" class="form-label">Plan <span class="required-asterisk">*</span></label>
-                    <select class="form-select" id="plan" name="plan" required>
+                    <select class="form-select" id="plan" name="plan" required
+                            {% if not puede_editar_suscripcion %}disabled{% endif %}>
                         <option value="basico" {{ 'selected' if empresa and empresa['plan'] == 'basico' else '' }}>
                             Independiente (1 médico)
                         </option>
@@ -277,7 +267,8 @@
                 {% if empresa %}
                 <div class="col-md-6 mb-3">
                     <label for="estado" class="form-label">Estado <span class="required-asterisk">*</span></label>
-                    <select class="form-select" id="estado" name="estado" required>
+                    <select class="form-select" id="estado" name="estado" required
+                            {% if not puede_editar_suscripcion %}disabled{% endif %}>
                         <option value="activo" {{ 'selected' if empresa['estado'] == 'activo' else '' }}>Activo</option>
                         <option value="suspendido" {{ 'selected' if empresa['estado'] == 'suspendido' else '' }}>Suspendido</option>
                         <option value="inactivo" {{ 'selected' if empresa['estado'] == 'inactivo' else '' }}>Inactivo</option>
@@ -336,6 +327,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const fechaFin = document.getElementById('fecha_fin');
     
     function validarFechas() {
+        if (!fechaInicio || !fechaFin || fechaInicio.readOnly) {
+            return;
+        }
         if (fechaInicio.value && fechaFin.value) {
             const inicio = new Date(fechaInicio.value);
             const fin = new Date(fechaFin.value);
@@ -348,8 +342,10 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    fechaInicio.addEventListener('change', validarFechas);
-    fechaFin.addEventListener('change', validarFechas);
+    if (fechaInicio && fechaFin && !fechaInicio.readOnly) {
+        fechaInicio.addEventListener('change', validarFechas);
+        fechaFin.addEventListener('change', validarFechas);
+    }
     
     // Calcular días restantes
     {% if empresa and empresa['fecha_fin'] %}

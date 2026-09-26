@@ -50,8 +50,12 @@ def handle_csrf_error(error):
         'La sesión de seguridad venció. Recarga la página e inténtalo de nuevo.',
         'error',
     )
-    destination = 'facturacion_menu' if current_user.is_authenticated else 'login'
-    return redirect(url_for(destination))
+    if not current_user.is_authenticated:
+        return redirect(url_for('login'))
+    if request.endpoint == 'cambiar_mi_password':
+        return redirect(url_for('cambiar_mi_password'))
+    from auth.helpers import destino_inicio_sesion
+    return redirect(url_for(destino_inicio_sesion(current_user)))
 
 
 def set_security_headers(response):

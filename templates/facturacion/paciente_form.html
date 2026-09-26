@@ -197,7 +197,7 @@
 
                     <div class="col-md-6 mb-3">
                         <label for="email" class="form-label">
-                            <i class="fas fa-envelope me-2 text-primary"></i>Correo Electrónico <span class="required-asterisk">*</span>
+                            <i class="fas fa-envelope me-2 text-primary"></i>Correo Electrónico
                         </label>
                         <input type="email" 
                                class="form-control" 
@@ -205,8 +205,7 @@
                                name="email" 
                                value="{{ (paciente['email'] or '') if es_edicion else '' }}" 
                                placeholder="Ej: juan@example.com"
-                               maxlength="100"
-                               required>
+                               maxlength="100">
                     </div>
                 </div>
 

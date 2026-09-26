@@ -6,7 +6,7 @@ import io
 import re
 import secrets
 from datetime import datetime, timedelta
-from urllib.parse import urljoin
+from urllib.parse import quote, urljoin
 
 import qrcode
 from cryptography.fernet import Fernet, InvalidToken
@@ -23,6 +23,7 @@ from flask import (
 from flask_login import current_user, login_required
 
 from auth import permission_required
+from core.clock import ahora_clinica, fecha_clinica
 from core.config import IS_PRODUCTION, url_publica_base
 from core.database import execute_query, execute_update, transactional_methods
 from core.security import rate_limit
@@ -35,6 +36,7 @@ from routes.appointments import (
     hora_como_time,
     medico_id_agenda_restringida,
     ocupaciones_medico_dia,
+    puede_gestionar_qr_citas,
 )
 from routes.support import sanitize_input, validate_int
 
@@ -83,13 +85,55 @@ def _solo_digitos(valor):
     return re.sub(r'\D+', '', valor or '')
 
 
+def numero_whatsapp(telefono):
+    """Número internacional para wa.me (RD: 1 + 10 dígitos)."""
+    digits = _solo_digitos(telefono)
+    if len(digits) == 10:
+        digits = '1' + digits
+    if len(digits) < 11:
+        return ''
+    return digits
+
+
+def url_whatsapp(telefono, texto=''):
+    numero = numero_whatsapp(telefono)
+    if not numero:
+        return ''
+    return 'https://wa.me/%s?text=%s' % (numero, quote(texto or ''))
+
+
+def tel_href(telefono):
+    numero = numero_whatsapp(telefono)
+    return ('tel:+' + numero) if numero else ''
+
+
+def _contacto_agendar(enlace):
+    centro = enlace.get('empresa_telefono') or ''
+    medico = enlace.get('medico_telefono') or ''
+    texto = 'Hola, quiero información para agendar en %s' % (
+        enlace.get('empresa_nombre') or 'el consultorio'
+    )
+    return {
+        'centro': centro,
+        'centro_href': tel_href(centro),
+        'medico': medico,
+        'medico_href': tel_href(medico),
+        'direccion': enlace.get('empresa_direccion') or '',
+        'whatsapp': url_whatsapp(medico or centro, texto),
+        'whatsapp_centro': url_whatsapp(centro, texto),
+        'texto': texto,
+    }
+
+
 def obtener_enlace_por_token(token):
     if not token or not (20 <= len(token) <= 80):
         return None
     return execute_query(
         '''
-        SELECT e.*, emp.nombre AS empresa_nombre, m.nombre AS medico_nombre,
-               m.especialidad AS medico_especialidad
+        SELECT e.*, emp.nombre AS empresa_nombre, emp.telefono AS empresa_telefono,
+               emp.direccion AS empresa_direccion,
+               m.nombre AS medico_nombre, m.especialidad AS medico_especialidad,
+               m.telefono AS medico_telefono
         FROM enlaces_cita_qr e
         JOIN empresas emp ON emp.id=e.tenant_id
         LEFT JOIN medicos m
@@ -108,9 +152,10 @@ def _medicos_enlace(enlace):
             'id': enlace['medico_id'],
             'nombre': enlace['medico_nombre'],
             'especialidad': enlace.get('medico_especialidad'),
+            'telefono': enlace.get('medico_telefono'),
         }]
     return execute_query(
-        'SELECT id, nombre, especialidad FROM medicos '
+        'SELECT id, nombre, especialidad, telefono FROM medicos '
         'WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
         (enlace['tenant_id'],),
         fetch='all',
@@ -216,6 +261,9 @@ def _resolver_paciente(tenant_id, nombre, cedula, telefono, email):
 @permission_required('citas.crear')
 @transactional_methods('POST')
 def facturacion_citas_qr():
+    if not puede_gestionar_qr_citas():
+        flash('El perfil médico no genera códigos QR. Pida el cartel en recepción.', 'error')
+        return redirect(url_for('facturacion_citas'))
     tenant_id = get_current_tenant_id()
     medico_restringido = medico_id_agenda_restringida()
     url_creada = None
@@ -345,6 +393,9 @@ def facturacion_citas_qr():
 @login_required
 @permission_required('citas.crear')
 def facturacion_citas_qr_imagen(enlace_id):
+    if not puede_gestionar_qr_citas():
+        flash('El perfil médico no genera códigos QR. Pida el cartel en recepción.', 'error')
+        return redirect(url_for('facturacion_citas'))
     tenant_id = get_current_tenant_id()
     enlace = execute_query(
         'SELECT * FROM enlaces_cita_qr WHERE id=%s AND tenant_id=%s AND activo=1',
@@ -378,16 +429,24 @@ def cita_agendar_publica(token):
             'agendar_cita.html', invalido=True, enlace=None, medicos=[],
         )
     medicos = _medicos_enlace(enlace)
+    contacto = _contacto_agendar(enlace)
+    for medico in medicos:
+        medico['whatsapp_url'] = url_whatsapp(
+            medico.get('telefono'), contacto['texto'],
+        ) or contacto['whatsapp_centro']
     contexto = {
         'invalido': False,
         'enlace': enlace,
         'medicos': medicos,
+        'contacto': contacto,
         'token': token,
-        'hoy': datetime.now().date().isoformat(),
-        'max_fecha': (datetime.now().date() + timedelta(days=21)).isoformat(),
+        'hoy': fecha_clinica().isoformat(),
+        'max_fecha': (fecha_clinica() + timedelta(days=21)).isoformat(),
         'exito': False,
         'error': None,
         'form_data': {},
+        'whatsapp_url': contacto['whatsapp'],
+        'whatsapp_centro': contacto['whatsapp_centro'],
     }
     if request.method != 'POST':
         return render_template('agendar_cita.html', **contexto)
@@ -411,7 +470,7 @@ def cita_agendar_publica(token):
     except ValueError:
         contexto['error'] = 'La fecha no es válida.'
         return render_template('agendar_cita.html', **contexto)
-    if fecha < datetime.now().date() or fecha > datetime.now().date() + timedelta(days=21):
+    if fecha < fecha_clinica() or fecha > fecha_clinica() + timedelta(days=21):
         contexto['error'] = 'Elija una fecha dentro de los próximos 21 días.'
         return render_template('agendar_cita.html', **contexto)
     huecos = _huecos_enlace(enlace, medico_id, fecha)
@@ -423,7 +482,7 @@ def cita_agendar_publica(token):
         contexto['error'] = 'La hora no es válida.'
         return render_template('agendar_cita.html', **contexto)
     inicio = datetime.combine(fecha, hora_obj)
-    if inicio < datetime.now():
+    if inicio < ahora_clinica():
         contexto['error'] = 'Ese horario ya pasó. Elija otro.'
         return render_template('agendar_cita.html', **contexto)
     paciente_id = _resolver_paciente(

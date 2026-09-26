@@ -71,10 +71,14 @@ def get_especialidad_form(form):
 
 def validar_password_segura(password):
     errores = []
-    if len(password) < 8: errores.append('M?nimo 8 caracteres')
-    if not re.search(r'[A-Z]', password): errores.append('Al menos una may?scula')
-    if not re.search(r'[a-z]', password): errores.append('Al menos una min?scula')
-    if not re.search(r'\d', password): errores.append('Al menos un n?mero')
+    if len(password) < 8:
+        errores.append('Mínimo 8 caracteres')
+    if not re.search(r'[A-Z]', password):
+        errores.append('Al menos una mayúscula')
+    if not re.search(r'[a-z]', password):
+        errores.append('Al menos una minúscula')
+    if not re.search(r'\d', password):
+        errores.append('Al menos un número')
     return errores
 
 def execute_paginated_query(base_query, params, order_by, default_per_page=25):

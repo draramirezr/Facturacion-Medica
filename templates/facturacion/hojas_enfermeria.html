@@ -25,7 +25,7 @@
         {% if hojas %}
         <table class="table table-hover nursing-table align-middle mb-0">
             <thead><tr><th>Fecha y hora</th><th>Paciente</th><th>Firma responsable</th><th>Acciones</th></tr></thead>
-            <tbody>{% for hoja in hojas %}<tr><td class="text-nowrap">{{ hoja['fecha_servicio'] }} · {{ hoja['hora_servicio']|hora_input }}</td><td><strong>{{ hoja['nombre_paciente'] }}</strong></td><td>{{ hoja['firma_responsable'] }}</td><td class="text-nowrap"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_hoja_enfermeria_ver', hoja_id=hoja['id']) }}"><i class="fas fa-eye"></i></a><a class="btn btn-sm btn-outline-primary" target="_blank" href="{{ url_for('facturacion_hoja_enfermeria_imprimir', hoja_id=hoja['id']) }}"><i class="fas fa-print"></i></a></td></tr>{% endfor %}</tbody>
+            <tbody>{% for hoja in hojas %}<tr><td class="text-nowrap">{{ hoja['fecha_servicio'] }} · {{ hoja['hora_servicio']|hora_input }}</td><td><strong>{{ hoja['nombre_paciente'] }}</strong></td><td>{{ hoja['firma_responsable'] }}</td><td class="text-nowrap"><div class="d-flex gap-2"><a class="btn btn-accion-editar" href="{{ url_for('facturacion_hoja_enfermeria_ver', hoja_id=hoja['id']) }}"><i class="fas fa-eye"></i> Ver</a><a class="btn btn-accion-editar" target="_blank" href="{{ url_for('facturacion_hoja_enfermeria_imprimir', hoja_id=hoja['id']) }}"><i class="fas fa-print"></i> Imprimir</a></div></td></tr>{% endfor %}</tbody>
         </table>
         {% else %}<div class="text-center text-muted py-5"><i class="fas fa-clipboard fa-3x mb-3"></i><p>No hay hojas de enfermería registradas.</p></div>{% endif %}
     </div>

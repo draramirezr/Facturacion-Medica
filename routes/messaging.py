@@ -1,6 +1,6 @@
 """Mensajer?a interna entre usuarios de un tenant."""
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import jsonify, request
 from flask_login import current_user, login_required
@@ -10,10 +10,40 @@ from core.security import rate_limit
 from core.tenant import get_current_tenant_id
 from routes.support import sanitize_input, validate_int
 
+PRESENCIA_SEGUNDOS = 90
+SQL_EN_LINEA = (
+    '(last_seen_at IS NOT NULL AND last_seen_at >= '
+    'DATE_SUB(NOW(), INTERVAL 90 SECOND))'
+)
+
+
+def marcar_presencia(usuario_id, tenant_id):
+    if not usuario_id or not tenant_id:
+        return
+    execute_update(
+        'UPDATE usuarios SET last_seen_at=NOW() WHERE id=%s AND tenant_id=%s',
+        (usuario_id, tenant_id),
+    )
+
+
+def esta_en_linea(last_seen_at, ahora=None, segundos=PRESENCIA_SEGUNDOS):
+    if not last_seen_at:
+        return False
+    momento = last_seen_at
+    if hasattr(momento, 'tzinfo') and momento.tzinfo is not None:
+        momento = momento.replace(tzinfo=None)
+    elif isinstance(momento, str):
+        try:
+            momento = datetime.fromisoformat(momento[:19])
+        except ValueError:
+            return False
+    return (ahora or datetime.now()) - momento <= timedelta(seconds=segundos)
+
+
 def obtener_usuario_mensajeria(usuario_id, tenant_id):
     """Resolver un destinatario activo sin salir del tenant actual."""
     return execute_query(
-        'SELECT id, nombre, perfil FROM usuarios '
+        f'SELECT id, nombre, perfil, {SQL_EN_LINEA} AS en_linea FROM usuarios '
         'WHERE id=%s AND tenant_id=%s AND activo=1',
         (usuario_id, tenant_id)
     )
@@ -48,13 +78,16 @@ def api_mensajeria_usuarios():
     tenant_id = get_current_tenant_id()
     if not tenant_id:
         return jsonify({'error': 'Usuario sin consultorio asignado'}), 403
+    marcar_presencia(current_user.id, tenant_id)
     usuarios = execute_query(
-        'SELECT id, nombre, perfil FROM usuarios '
+        f'SELECT id, nombre, perfil, {SQL_EN_LINEA} AS en_linea FROM usuarios '
         'WHERE tenant_id=%s AND activo=1 AND id<>%s '
         'ORDER BY nombre, id',
         (tenant_id, current_user.id),
         fetch='all'
     ) or []
+    for usuario in usuarios:
+        usuario['en_linea'] = bool(usuario.get('en_linea'))
     return jsonify({'usuarios': usuarios})
 
 @login_required
@@ -62,12 +95,14 @@ def api_mensajeria_conversaciones():
     tenant_id = get_current_tenant_id()
     if not tenant_id:
         return jsonify({'error': 'Usuario sin consultorio asignado'}), 403
-    conversaciones = execute_query('''
+    marcar_presencia(current_user.id, tenant_id)
+    conversaciones = execute_query(f'''
         SELECT c.id,
                CASE WHEN c.usuario_menor_id=%s
                     THEN c.usuario_mayor_id ELSE c.usuario_menor_id END
                     AS usuario_id,
                u.nombre, u.perfil, c.ultimo_mensaje_at,
+               {SQL_EN_LINEA.replace('last_seen_at', 'u.last_seen_at')} AS en_linea,
                (
                    SELECT m.cuerpo
                    FROM mensajes_internos m
@@ -103,6 +138,7 @@ def api_mensajeria_conversaciones():
             fecha.isoformat() if hasattr(fecha, 'isoformat')
             else (str(fecha) if fecha else None)
         )
+        conversacion['en_linea'] = bool(conversacion.get('en_linea'))
     return jsonify({'conversaciones': conversaciones})
 
 @login_required
@@ -110,11 +146,13 @@ def api_mensajeria_mensajes(usuario_id):
     tenant_id = get_current_tenant_id()
     if not tenant_id:
         return jsonify({'error': 'Usuario sin consultorio asignado'}), 403
+    marcar_presencia(current_user.id, tenant_id)
     if usuario_id == current_user.id:
         return jsonify({'error': 'El destinatario no es válido'}), 400
     destinatario = obtener_usuario_mensajeria(usuario_id, tenant_id)
     if not destinatario:
         return jsonify({'error': 'Usuario no encontrado'}), 404
+    destinatario['en_linea'] = bool(destinatario.get('en_linea'))
     conversacion = obtener_conversacion_directa(usuario_id, tenant_id)
     if not conversacion:
         return jsonify({
@@ -183,6 +221,7 @@ def api_mensajeria_enviar():
     destinatario = obtener_usuario_mensajeria(destinatario_id, tenant_id)
     if not destinatario:
         return jsonify({'error': 'Usuario no encontrado'}), 404
+    marcar_presencia(current_user.id, tenant_id)
 
     usuario_menor, usuario_mayor = sorted(
         (int(current_user.id), destinatario_id)
@@ -269,6 +308,7 @@ def api_mensajeria_no_leidos():
     tenant_id = get_current_tenant_id()
     if not tenant_id:
         return jsonify({'error': 'Usuario sin consultorio asignado'}), 403
+    marcar_presencia(current_user.id, tenant_id)
     resultado = execute_query('''
         SELECT COUNT(*) AS total
         FROM mensajes_internos m

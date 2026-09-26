@@ -6,12 +6,48 @@
 {% block content %}
 <style nonce="{{ csp_nonce }}">
     .hc-hero { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 2rem; margin-bottom: 1.5rem; }
-    .hc-search, .hc-list { background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.25rem; margin-bottom: 1.25rem; }
-    .hc-patient { display: grid; grid-template-columns: minmax(220px,2fr) 1fr 1fr auto; align-items: center; gap: 1rem; padding: 1rem; border-bottom: 1px solid #edf1f5; }
-    .hc-patient:last-child { border-bottom: 0; }
+    .hc-search { background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.25rem; margin-bottom: 1.25rem; }
+    .hc-list {
+        margin-bottom: 1.25rem;
+        max-height: min(560px, calc(100vh - 280px));
+        overflow-y: auto;
+        overflow-x: auto;
+        border: 1px solid {{ tema.primary }}20;
+        border-radius: 15px;
+        background: var(--ars-shell-surface, #fff);
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
+    }
+    .hc-list table { width: auto; min-width: 720px; margin: 0; border-collapse: collapse; }
+    .hc-list th,
+    .hc-list td { padding: .7rem 1rem; vertical-align: middle; }
+    .hc-list th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
+        border-bottom: 1px solid var(--ars-shell-border);
+        background: color-mix(in srgb, var(--primary-color) 8%, var(--ars-shell-surface, #fff));
+        color: var(--ars-shell-muted);
+        font-size: .69rem;
+        font-weight: 700;
+        letter-spacing: .04em;
+        text-align: left;
+        text-transform: uppercase;
+    }
+    .hc-list td { border-bottom: 1px solid #edf1f5; color: var(--ars-shell-text); font-size: .84rem; }
+    .hc-list tbody tr:last-child td { border-bottom: 0; }
+    .hc-col-name { width: 240px; max-width: 240px; }
+    .hc-col-phone { width: 140px; }
+    .hc-col-visits { width: 220px; }
+    .hc-col-action { width: 1%; white-space: nowrap; }
     .hc-name { font-weight: 800; color: var(--ars-shell-text); }
-    .hc-notice { margin: 0 0 .5rem; padding: .65rem .85rem; border-left: 4px solid var(--primary-color); border-radius: 8px; background: {{ tema.primary }}12; color: var(--ars-shell-text); font-size: .85rem; }
-    @media (max-width: 767px) { .hc-patient { grid-template-columns: 1fr; } }
+    .hc-meta { display: block; margin-top: .15rem; color: var(--ars-shell-muted); font-size: .72rem; }
+    .hc-notice { margin: .75rem 1rem .25rem; padding: .65rem .85rem; border-left: 4px solid var(--primary-color); border-radius: 8px; background: {{ tema.primary }}12; color: var(--ars-shell-text); font-size: .85rem; }
+    .hc-empty { padding: 2.2rem 1rem; color: var(--ars-shell-muted); text-align: center; }
+    @media (max-width: 767px) {
+        .hc-list table { min-width: 640px; }
+        .hc-col-name { width: 200px; max-width: 200px; }
+    }
 </style>
 
 <div class="container py-4">
@@ -38,35 +74,45 @@
     </form>
 
     <div class="hc-list">
-        {% if pacientes %}
-            {% for paciente in pacientes %}
-            <div class="hc-patient">
-                <div>
-                    <div class="hc-name">{{ paciente['nombre'] }}</div>
-                    <small class="text-muted">{{ paciente['cedula'] or 'Sin documento' }}</small>
-                </div>
-                <div><small class="text-muted d-block">Teléfono</small>{{ paciente['telefono'] or 'N/D' }}</div>
-                <div><small class="text-muted d-block">Consultas</small>{{ paciente['total_consultas'] }}{% if paciente['ultima_consulta'] %} · Última {{ paciente['ultima_consulta'] }}{% endif %}</div>
-                <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=paciente['id']) }}">Abrir expediente</a>
-            </div>
-            {% endfor %}
-        {% elif sin_historias_propias %}
-            <p class="hc-notice">
-                Encontramos estos pacientes, pero todavía no tienes historias clínicas registradas para ellos.
-            </p>
-            {% for paciente in sin_historias_propias %}
-            <div class="hc-patient">
-                <div>
-                    <div class="hc-name">{{ paciente['nombre'] }}</div>
-                    <small class="text-muted">{{ paciente['cedula'] or 'Sin documento' }}</small>
-                </div>
-                <div><small class="text-muted d-block">Teléfono</small>{{ paciente['telefono'] or 'N/D' }}</div>
-                <div><small class="text-muted d-block">Consultas tuyas</small>Ninguna</div>
-                <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=paciente['id']) }}">Abrir expediente</a>
-            </div>
-            {% endfor %}
+        {% if pacientes or sin_historias_propias %}
+        {% if sin_historias_propias %}
+        <p class="hc-notice">
+            Encontramos estos pacientes, pero todavía no tienes historias clínicas registradas para ellos.
+        </p>
+        {% endif %}
+        <table>
+            <thead>
+                <tr>
+                    <th class="hc-col-name">Nombre</th>
+                    <th class="hc-col-phone">Teléfono</th>
+                    <th class="hc-col-visits">Consultas</th>
+                    <th class="hc-col-action"></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for paciente in pacientes or sin_historias_propias %}
+                <tr>
+                    <td class="hc-col-name">
+                        <span class="hc-name">{{ paciente['nombre'] }}</span>
+                        <span class="hc-meta">{{ paciente['cedula'] or 'Sin documento' }}</span>
+                    </td>
+                    <td class="hc-col-phone">{{ paciente['telefono'] or 'N/D' }}</td>
+                    <td class="hc-col-visits">
+                        {% if sin_historias_propias and not pacientes %}
+                        Ninguna
+                        {% else %}
+                        {{ paciente['total_consultas'] }}{% if paciente['ultima_consulta'] %} · Última {{ paciente['ultima_consulta'] }}{% endif %}
+                        {% endif %}
+                    </td>
+                    <td class="hc-col-action">
+                        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=paciente['id']) }}">Abrir expediente</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         {% else %}
-            <div class="text-center py-4 text-muted">No se encontraron pacientes.</div>
+        <div class="hc-empty">No se encontraron pacientes.</div>
         {% endif %}
     </div>
     {% include "_pagination.html" %}

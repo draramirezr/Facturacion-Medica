@@ -99,6 +99,24 @@ class TenantCertificateProviderTests(unittest.TestCase):
         ):
             self.provider.resolve(3)
 
+    def test_stores_uploaded_certificate_for_tenant(self):
+        tenant_dir = self.root / "tenant-9"
+        create_tenant_certificate(tenant_dir, "999999999", "clave-nueva")
+        payload = (tenant_dir / "certificate.p12").read_bytes()
+        for leftover in tenant_dir.iterdir():
+            leftover.unlink()
+        tenant_dir.rmdir()
+
+        metadata = self.provider.store(
+            9, payload, "clave-nueva", "999999999"
+        )
+        resolved, stored = self.provider.inspect(9, "999999999")
+        self.assertEqual(metadata.fingerprint, stored.fingerprint)
+        self.assertTrue(resolved.certificate_path.is_file())
+        self.assertEqual(
+            resolved.certificate_path.parent.name, "tenant-9"
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

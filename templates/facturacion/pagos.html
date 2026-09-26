@@ -85,47 +85,10 @@
     }
     .pago-acciones {
         display: flex;
-        flex-direction: row;
         flex-wrap: nowrap;
         gap: 4px;
         justify-content: center;
         align-items: center;
-    }
-    .pago-acciones .btn-accion-ver,
-    .pago-acciones .btn-accion-editar {
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 28px !important;
-        height: 28px !important;
-        min-width: 28px !important;
-        min-height: 28px !important;
-        max-width: 28px !important;
-        max-height: 28px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        border-radius: 4px !important;
-        text-decoration: none !important;
-        box-sizing: border-box !important;
-        flex-shrink: 0 !important;
-        position: relative;
-        z-index: 2;
-    }
-    .pago-acciones .btn-accion-ver {
-        color: var(--primary-dark) !important;
-        border: 1px solid color-mix(in srgb, var(--primary-color) 45%, var(--ars-shell-border, #d3d3d3)) !important;
-        background: color-mix(in srgb, var(--primary-color) 16%, var(--ars-shell-surface, #fff)) !important;
-    }
-    .pago-acciones .btn-accion-editar {
-        color: var(--primary-color) !important;
-        border: 1px solid #D3D3D3 !important;
-        background: var(--ars-shell-surface, #fff) !important;
-    }
-    .pago-acciones .btn-accion-ver i,
-    .pago-acciones .btn-accion-editar i {
-        font-size: 0.65rem !important;
-        line-height: 1 !important;
-        margin: 0 !important;
     }
     .fi-pagos-inline-11 {
         background: {{ tema.primary }}15; border: 2px solid var(--primary-color); color: var(--text-dark); border-radius: 15px; padding: 1.5rem; margin: 2rem; display: inline-block;
@@ -187,15 +150,13 @@
                         <td class="text-center">
                             <div class="pago-acciones">
                                 <a href="{{ url_for('facturacion_pago_detalle', pago_id=pago['id']) }}"
-                                   class="btn-accion-icono btn-accion-ver"
-                                   title="Ver">
-                                    <i class="fas fa-eye"></i>
+                                   class="btn btn-accion-editar">
+                                    <i class="fas fa-eye"></i> Ver
                                 </a>
                                 {% if can('facturacion.editar') %}
                                 <a href="{{ url_for('facturacion_pago_editar', pago_id=pago['id']) }}"
-                                   class="btn-accion-icono btn-accion-editar"
-                                   title="Editar">
-                                    <i class="fas fa-pencil-alt"></i>
+                                   class="btn btn-accion-editar">
+                                    <i class="fas fa-edit"></i> Editar
                                 </a>
                                 {% endif %}
                             </div>

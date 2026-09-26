@@ -12,6 +12,12 @@
         .card { padding:1.4rem; border-radius:18px; background:#fff; box-shadow:0 12px 40px rgba(15,23,42,.12); }
         h1 { margin:0 0 .35rem; font-size:1.35rem; }
         p { color:#526071; line-height:1.5; }
+        .contacto { margin:1rem 0; padding:1rem; border-radius:12px; background:#ecfeff; }
+        .contacto a { color:#0e7490; font-weight:700; }
+        .contacto small { display:block; color:#526071; margin-top:.25rem; }
+        .wa-float { position:fixed; right:18px; bottom:18px; z-index:40; width:58px; height:58px; border-radius:50%; background:#25D366; color:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 8px 24px rgba(37,211,102,.45); }
+        .wa-float svg { width:32px; height:32px; fill:#fff; }
+        .wa-float[hidden] { display:none; }
         label { display:block; margin:.85rem 0 .3rem; font-weight:700; }
         input, select, textarea, button { width:100%; min-height:48px; border-radius:12px; font-size:1rem; box-sizing:border-box; }
         input, select, textarea { border:1px solid #cbd5e1; padding:.6rem .8rem; }
@@ -30,6 +36,18 @@
         <h1>Cita agendada</h1>
         <p class="ok">Quedó programada el {{ resumen.fecha }} a las {{ resumen.hora }}{% if resumen.medico %} con {{ resumen.medico }}{% endif %}.</p>
         <p>Si dejó correo, le enviaremos un enlace para confirmar o cancelar.</p>
+        <div class="contacto">
+            {% if contacto.centro %}
+            <div>Teléfono del centro:
+                {% if contacto.centro_href %}<a href="{{ contacto.centro_href }}">{{ contacto.centro }}</a>{% else %}{{ contacto.centro }}{% endif %}
+            </div>
+            {% endif %}
+            {% if contacto.medico %}
+            <div>Teléfono del médico:
+                {% if contacto.medico_href %}<a href="{{ contacto.medico_href }}">{{ contacto.medico }}</a>{% else %}{{ contacto.medico }}{% endif %}
+            </div>
+            {% endif %}
+        </div>
         {% else %}
         <h1>Agendar en {{ enlace['empresa_nombre'] }}</h1>
         {% if enlace['medico_nombre'] %}
@@ -37,6 +55,22 @@
         {% else %}
         <p>Elija médico, día y un horario libre.</p>
         {% endif %}
+        <div class="contacto">
+            {% if contacto.centro %}
+            <div>Teléfono del centro:
+                {% if contacto.centro_href %}<a href="{{ contacto.centro_href }}">{{ contacto.centro }}</a>{% else %}{{ contacto.centro }}{% endif %}
+            </div>
+            {% endif %}
+            {% if contacto.medico %}
+            <div>Teléfono del médico:
+                {% if contacto.medico_href %}<a href="{{ contacto.medico_href }}">{{ contacto.medico }}</a>{% else %}{{ contacto.medico }}{% endif %}
+            </div>
+            {% endif %}
+            {% if contacto.direccion %}<small>{{ contacto.direccion }}</small>{% endif %}
+            {% if not contacto.centro and not contacto.medico %}
+            <small>El consultorio aún no publicó un teléfono de contacto.</small>
+            {% endif %}
+        </div>
         {% if error %}<p class="error">{{ error }}</p>{% endif %}
         <form method="POST" id="form-agendar">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -48,7 +82,7 @@
             <select name="medico_id" id="medico_id" required>
                 <option value="">Seleccione</option>
                 {% for medico in medicos %}
-                <option value="{{ medico['id'] }}" {% if form_data.get('medico_id')|string == medico['id']|string %}selected{% endif %}>{{ medico['nombre'] }}{% if medico['especialidad'] %} · {{ medico['especialidad'] }}{% endif %}</option>
+                <option value="{{ medico['id'] }}" data-whatsapp="{{ medico.get('whatsapp_url') or '' }}" {% if form_data.get('medico_id')|string == medico['id']|string %}selected{% endif %}>{{ medico['nombre'] }}{% if medico['especialidad'] %} · {{ medico['especialidad'] }}{% endif %}</option>
                 {% endfor %}
             </select>
             {% endif %}
@@ -115,12 +149,24 @@
             });
     }
     fecha.addEventListener('change', cargarHuecos);
-    medico.addEventListener('change', cargarHuecos);
+    medico.addEventListener('change', function () {
+        cargarHuecos();
+        var wa = document.getElementById('wa-float');
+        var opt = medico.options && medico.options[medico.selectedIndex];
+        if (wa && opt && opt.getAttribute('data-whatsapp')) {
+            wa.href = opt.getAttribute('data-whatsapp');
+        }
+    });
     document.getElementById('cedula').addEventListener('blur', buscarPaciente);
     document.getElementById('telefono').addEventListener('blur', buscarPaciente);
     cargarHuecos();
 })();
 </script>
+{% endif %}
+{% if not invalido and whatsapp_url %}
+<a class="wa-float" id="wa-float" href="{{ whatsapp_url }}" target="_blank" rel="noopener noreferrer" aria-label="Contactar por WhatsApp">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2 22l5.25-1.38c1.45.79 3.08 1.21 4.79 1.21 5.46 0 9.91-4.45 9.91-9.91S17.5 2 12.04 2zm5.79 14.18c-.24.68-1.4 1.26-1.94 1.34-.5.07-1.13.1-1.82-.11-.42-.13-.96-.31-1.66-.61-2.92-1.26-4.82-4.2-4.97-4.4-.14-.2-1.18-1.57-1.18-3 0-1.42.75-2.12 1.01-2.41.25-.28.55-.35.73-.35h.53c.17 0 .4-.06.62.48.24.6.8 2.08.87 2.23.07.15.12.32.02.52-.1.2-.15.32-.3.5-.15.17-.31.39-.45.52-.15.15-.3.31-.13.6.17.28.75 1.23 1.6 2 .1.82 1.95 1.6 2.26 1.73.3.14.48.12.66-.07.17-.2.75-.87.95-1.17.2-.3.4-.25.67-.15.28.1 1.76.83 2.06.98.3.15.5.22.57.34.07.12.07.7-.17 1.38z"/></svg>
+</a>
 {% endif %}
 </body>
 </html>

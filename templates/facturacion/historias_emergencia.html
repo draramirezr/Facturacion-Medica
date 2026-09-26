@@ -45,8 +45,8 @@
                     <td>{{ historia['estatus_paciente'] }}</td>
                     <td>{{ historia['medico_nombre'] }}</td>
                     <td>
-                        <a class="emergency-action" href="{{ url_for('facturacion_historia_emergencia_ver', historia_id=historia['id']) }}"><i class="fas fa-eye"></i> Ver</a>
-                        <a class="emergency-action" target="_blank" href="{{ url_for('facturacion_historia_emergencia_imprimir', historia_id=historia['id']) }}"><i class="fas fa-print"></i> Imprimir</a>
+                        <a class="btn btn-accion-editar" href="{{ url_for('facturacion_historia_emergencia_ver', historia_id=historia['id']) }}"><i class="fas fa-eye"></i> Ver</a>
+                        <a class="btn btn-accion-editar" target="_blank" href="{{ url_for('facturacion_historia_emergencia_imprimir', historia_id=historia['id']) }}"><i class="fas fa-print"></i> Imprimir</a>
                     </td>
                 </tr>
                 {% endfor %}

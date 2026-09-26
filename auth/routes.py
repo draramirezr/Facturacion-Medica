@@ -303,15 +303,20 @@ def url_retorno_segura(destino_alterno=None):
     return f'{ruta}?{partes.query}' if partes.query else ruta
 
 
+def _formulario_cambiar_password(volver_url):
+    return render_template(
+        'cambiar_mi_password.html',
+        volver_url=volver_url,
+    )
+
+
 @login_required
+@rate_limit(max_requests=8, window=300)
 def cambiar_mi_password():
     """Permitir que el usuario autenticado cambie únicamente su contraseña."""
     volver_url = url_retorno_segura()
     if request.method == 'GET':
-        return render_template(
-            'cambiar_mi_password.html',
-            volver_url=volver_url,
-        )
+        return _formulario_cambiar_password(volver_url)
 
     password_actual = request.form.get('password_actual', '')
     password_nuevo = request.form.get('password_nuevo', '')
@@ -326,19 +331,19 @@ def cambiar_mi_password():
         password_actual,
     ):
         flash('La contraseña actual no es correcta', 'error')
-        return redirect(url_for('cambiar_mi_password', volver=volver_url))
+        return _formulario_cambiar_password(volver_url)
     if password_nuevo != password_confirm:
         flash('Las contraseñas nuevas no coinciden', 'error')
-        return redirect(url_for('cambiar_mi_password', volver=volver_url))
+        return _formulario_cambiar_password(volver_url)
     if check_password_hash(usuario['password_hash'], password_nuevo):
         flash('La contraseña nueva debe ser diferente a la actual', 'error')
-        return redirect(url_for('cambiar_mi_password', volver=volver_url))
+        return _formulario_cambiar_password(volver_url)
     errors = validar_password_segura(password_nuevo)
     if errors:
         flash(f'Contraseña no válida: {", ".join(errors)}', 'error')
-        return redirect(url_for('cambiar_mi_password', volver=volver_url))
+        return _formulario_cambiar_password(volver_url)
 
-    execute_update(
+    actualizado = execute_update(
         'UPDATE usuarios SET password_hash=%s, password_temporal=0, '
         'reset_token=NULL, reset_token_expiracion=NULL '
         'WHERE id=%s AND tenant_id <=> %s',
@@ -348,6 +353,9 @@ def cambiar_mi_password():
             current_user.tenant_id,
         ),
     )
+    if actualizado is None:
+        flash('No se pudo actualizar la contraseña. Inténtalo de nuevo.', 'error')
+        return _formulario_cambiar_password(volver_url)
     flash('Tu contraseña fue actualizada correctamente', 'success')
     return redirect(volver_url)
 

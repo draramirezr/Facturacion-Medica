@@ -28,10 +28,12 @@
     .calendar-day.can-book:hover .calendar-day-add { display:inline-flex; align-items:center; gap:.25rem; }
     .calendar-event { position:relative; z-index:2; display:block; margin-bottom:.3rem; padding:.35rem .4rem; overflow:hidden; border-left:3px solid var(--primary-color); border-radius:6px; background:{{ tema.primary }}10; color:var(--ars-shell-text); font-size:.67rem; text-decoration:none; text-overflow:ellipsis; white-space:nowrap; }
     .calendar-event:hover { color:var(--primary-dark); background:{{ tema.primary }}18; text-decoration:none; }
-    .agenda-row { display:grid; grid-template-columns:120px 1.3fr 1fr 1fr auto; gap:1rem; align-items:center; padding:1rem; border-bottom:1px solid var(--ars-shell-border); }
+    .agenda-row { display:grid; grid-template-columns:110px minmax(160px,1.5fr) minmax(140px,1fr) minmax(220px,auto); gap:1rem; align-items:center; padding:1rem; border-bottom:1px solid var(--ars-shell-border); }
     .agenda-row:last-child { border-bottom:0; }
-    .agenda-status { display:inline-block; padding:.25rem .55rem; border:1px solid {{ tema.primary }}30; border-radius:7px; background:{{ tema.primary }}12; color:var(--primary-dark); font-size:.68rem; font-weight:700; }
-    @media(max-width:900px){ .agenda-row{grid-template-columns:100px 1fr auto}.agenda-doctor,.agenda-reason{grid-column:2}.calendar-scroll{overflow-x:auto;} }
+    .agenda-status { display:inline-flex; align-items:center; padding:.25rem .55rem; border:1px solid {{ tema.primary }}30; border-radius:7px; background:{{ tema.primary }}12; color:var(--primary-dark); font-size:.68rem; font-weight:700; white-space:nowrap; }
+    .agenda-actions { display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.4rem; }
+    .agenda-actions .btn { margin:0; white-space:nowrap; }
+    @media(max-width:900px){ .agenda-row{grid-template-columns:1fr}.agenda-actions{justify-content:flex-start}.calendar-scroll{overflow-x:auto;} }
 </style>
 <div class="container py-4">
     <header class="agenda-hero d-flex justify-content-between align-items-center flex-wrap gap-3">
@@ -49,7 +51,7 @@
             </p>
         </div>
         <a class="btn btn-primary" href="{{ url_for('facturacion_citas_nueva') }}"><i class="fas fa-plus me-2"></i>Nueva cita</a>
-        {% if can('citas.crear') %}
+        {% if can('citas.crear') and not agenda_restringida %}
         <a class="btn btn-outline-primary" href="{{ url_for('facturacion_citas_qr') }}">QR para agendar</a>
         {% endif %}
     </header>
@@ -120,8 +122,13 @@
             <div><strong>{{ cita['fecha'] }}</strong><br><span class="text-muted">{{ cita['hora']|hora_input }}</span></div>
             <div><strong>{{ cita['paciente_nombre'] }}</strong><br><small class="text-muted">{{ cita['telefono'] or 'Sin teléfono' }}</small></div>
             <div class="agenda-doctor"><small class="text-muted d-block">Médico</small>{{ cita['medico_nombre'] }}</div>
-            <div class="agenda-reason"><small class="text-muted d-block">Motivo</small>{{ cita['motivo']|truncate(60) }}</div>
-            <div class="text-end"><span class="agenda-status">{{ cita['estado'] }}</span><br><a class="btn btn-sm btn-outline-primary mt-2" href="{{ url_for('facturacion_cita_editar',cita_id=cita['id']) }}">Abrir</a>{% if can('citas.editar') and cita['estado'] != 'Completada' %}<a class="btn btn-sm btn-outline-secondary mt-2 ms-1" href="{{ url_for('facturacion_cita_editar',cita_id=cita['id'],reagendar=1) }}">Reagendar</a>{% endif %}</div>
+            <div class="agenda-actions">
+                <span class="agenda-status">{{ cita['estado'] }}</span>
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_cita_editar',cita_id=cita['id']) }}">Abrir</a>
+                {% if can('citas.editar') and cita['estado'] != 'Completada' %}
+                <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('facturacion_cita_editar',cita_id=cita['id'],reagendar=1) }}">Reagendar</a>
+                {% endif %}
+            </div>
         </div>
         {% else %}<div class="text-center text-muted py-5"><i class="far fa-calendar-xmark fa-3x mb-3"></i><p>No hay citas que coincidan.</p></div>{% endfor %}
     </section>

@@ -13,7 +13,14 @@ def internal_error(error):
 
 def forbidden(error):
     flash('No tienes permisos para acceder a este recurso', 'error')
-    return redirect(url_for('facturacion_menu')), 403
+    from auth.helpers import destino_inicio_sesion
+    from flask_login import current_user
+    destino = (
+        destino_inicio_sesion(current_user)
+        if getattr(current_user, 'is_authenticated', False)
+        else 'login'
+    )
+    return redirect(url_for(destino)), 403
 
 
 def request_entity_too_large(error):

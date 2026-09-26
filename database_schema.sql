@@ -64,6 +64,7 @@ CREATE TABLE IF NOT EXISTS usuarios (
     reset_token VARCHAR(255) NULL,
     reset_token_expiracion DATETIME NULL,
     last_login DATETIME NULL,
+    last_seen_at DATETIME NULL,
     mostrar_chat TINYINT(1) NOT NULL DEFAULT 1,
     tema_color VARCHAR(30) NOT NULL DEFAULT 'cyan',
     fuente_ui VARCHAR(30) NOT NULL DEFAULT 'arsflow',

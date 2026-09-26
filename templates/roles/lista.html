@@ -27,17 +27,23 @@
                 <p class="text-muted">{{ rol['descripcion'] or 'Sin descripción' }}</p>
                 <div class="role-meta"><span>{{ rol['total_permisos'] }} permisos</span><span>{{ rol['total_usuarios'] }} usuarios</span></div>
                 <div class="role-actions">
-                    {% if not rol['es_sistema'] and can('roles.editar') %}
-                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('admin_roles_editar', rol_id=rol['id']) }}">Editar</a>
+                    {% if can('roles.editar') %}
+                    <a class="btn btn-accion-editar" href="{{ url_for('admin_roles_editar', rol_id=rol['id']) }}">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
                     {% endif %}
                     {% if not rol['es_sistema'] and not rol['total_usuarios'] and can('roles.eliminar') %}
                     <form method="POST" action="{{ url_for('admin_roles_eliminar', rol_id=rol['id']) }}">
-                        <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
+                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                        <button class="btn btn-accion-editar" type="submit">
+                            <i class="fas fa-trash"></i> Eliminar
+                        </button>
                     </form>
                     {% endif %}
                 </div>
                 {% if can('roles.crear') %}
                 <form class="clone-form" method="POST" action="{{ url_for('admin_roles_clonar', rol_id=rol['id']) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <input class="form-control form-control-sm" name="nombre" maxlength="100" required placeholder="Nombre de la copia">
                     <button class="btn btn-sm btn-outline-secondary" type="submit">Clonar</button>
                 </form>

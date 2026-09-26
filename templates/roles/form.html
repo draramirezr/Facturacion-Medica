@@ -20,9 +20,15 @@
             <a class="btn btn-outline-secondary" href="{{ url_for('admin_roles') }}">Volver</a>
         </div>
         <form method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="card p-3 mb-3">
                 <label class="form-label" for="nombre">Nombre *</label>
-                <input class="form-control mb-3" id="nombre" name="nombre" maxlength="100" required value="{{ rol['nombre'] if rol else '' }}">
+                <input class="form-control mb-3" id="nombre" name="nombre" maxlength="100" required
+                       value="{{ rol['nombre'] if rol else '' }}"
+                       {% if rol and rol['es_sistema'] %}readonly{% endif %}>
+                {% if rol and rol['es_sistema'] %}
+                <p class="text-muted" style="font-size:.78rem;">El nombre de un rol de sistema no se cambia. Sí puedes ajustar la descripción y los permisos.</p>
+                {% endif %}
                 <label class="form-label" for="descripcion">Descripción</label>
                 <textarea class="form-control" id="descripcion" name="descripcion" maxlength="500" rows="2">{{ rol['descripcion'] if rol else '' }}</textarea>
             </div>

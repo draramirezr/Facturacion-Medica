@@ -120,13 +120,12 @@ def admin_roles_editar(rol_id):
     if not rol:
         flash('Rol no encontrado', 'error')
         return redirect(url_for('admin_roles'))
-    if rol.get('es_sistema'):
-        flash('Los roles del sistema no se pueden modificar', 'warning')
-        return redirect(url_for('admin_roles'))
     if request.method == 'POST':
         nombre = sanitize_input(request.form.get('nombre', ''), 100)
         descripcion = sanitize_input(request.form.get('descripcion', ''), 500)
         codigos = request.form.getlist('permisos')
+        if rol.get('es_sistema'):
+            nombre = rol['nombre']
         if not nombre or not codigos or not set(codigos).issubset(TODOS_LOS_PERMISOS):
             flash('Nombre o permisos no válidos', 'error')
             return redirect(url_for('admin_roles_editar', rol_id=rol_id))
@@ -138,11 +137,18 @@ def admin_roles_editar(rol_id):
         if duplicado:
             flash('Ya existe otro rol con ese nombre', 'error')
             return redirect(url_for('admin_roles_editar', rol_id=rol_id))
-        execute_update(
-            'UPDATE roles SET nombre=%s, descripcion=%s '
-            'WHERE id=%s AND tenant_id=%s AND es_sistema=0',
-            (nombre, descripcion or None, rol_id, tenant_id)
-        )
+        if rol.get('es_sistema'):
+            execute_update(
+                'UPDATE roles SET descripcion=%s '
+                'WHERE id=%s AND tenant_id=%s',
+                (descripcion or None, rol_id, tenant_id)
+            )
+        else:
+            execute_update(
+                'UPDATE roles SET nombre=%s, descripcion=%s '
+                'WHERE id=%s AND tenant_id=%s AND es_sistema=0',
+                (nombre, descripcion or None, rol_id, tenant_id)
+            )
         guardar_permisos_rol(rol_id, tenant_id, codigos)
         flash('Rol actualizado correctamente', 'success')
         return redirect(url_for('admin_roles'))
@@ -674,6 +680,38 @@ def perfil_configuracion():
                 flash('Correo del consultorio guardado', 'success')
             return redirect(url_for('perfil_configuracion'))
 
+        if request.form.get('accion') == 'certificado_ecf':
+            if not user_has_permission(current_user, 'configuracion.editar'):
+                flash('No tienes permiso para cargar el certificado e-CF', 'error')
+                return redirect(url_for('perfil_configuracion'))
+            tenant_id = get_current_tenant_id()
+            if not tenant_id:
+                flash('No hay una empresa asociada a tu usuario.', 'error')
+                return redirect(url_for('perfil_configuracion'))
+            archivo = request.files.get('certificado_p12')
+            password = request.form.get('certificado_password', '')
+            nombre = (archivo.filename or '').lower() if archivo else ''
+            if not archivo or not nombre.endswith(('.p12', '.pfx')):
+                flash('Sube un certificado PKCS#12 (.p12 o .pfx).', 'error')
+                return redirect(url_for('perfil_configuracion'))
+            empresa_actual = get_empresa_info(tenant_id) or {}
+            rnc = str(empresa_actual.get('rnc') or '').strip()
+            if not rnc:
+                flash(
+                    'Registra el RNC de la empresa antes de cargar el certificado.',
+                    'error',
+                )
+                return redirect(url_for('perfil_configuracion'))
+            try:
+                TenantCertificateProvider(
+                    current_app.config['ECF_CONFIG']
+                ).store(tenant_id, archivo.read(), password, rnc)
+            except ECFCertificateResolutionError as error:
+                flash(str(error), 'error')
+                return redirect(url_for('perfil_configuracion'))
+            flash('Certificado e-CF de la cuenta guardado correctamente.', 'success')
+            return redirect(url_for('perfil_configuracion'))
+
         tema_color = request.form.get(
             'tema_color', current_user.tema_color or 'cyan'
         )
@@ -728,10 +766,16 @@ def perfil_configuracion():
         ecf_config = current_app.config['ECF_CONFIG']
         ecf_certificado = {
             'habilitado_global': ecf_config.enabled,
+            'almacen_disponible': bool(ecf_config.tenant_secrets_root),
             'ambiente': ecf_config.environment,
             'configurado': False,
             'valido': False,
-            'mensaje': 'La integración e-CF está desactivada en el servidor.',
+            'mensaje': (
+                'La integración e-CF está desactivada en el servidor. '
+                'Aun así puede cargar el certificado de esta cuenta.'
+                if not ecf_config.enabled else
+                'La cuenta no tiene un certificado PKCS#12 configurado'
+            ),
             'vence': None,
             'huella': None,
             'compatibilidad_global': False,
@@ -739,7 +783,7 @@ def perfil_configuracion():
                 f'tenant-{tenant_id}/certificate.p12'
             ),
         }
-        if ecf_config.enabled:
+        if tenant_id and (ecf_config.enabled or ecf_config.tenant_secrets_root):
             try:
                 resolved, metadata = TenantCertificateProvider(
                     ecf_config

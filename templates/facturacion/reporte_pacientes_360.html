@@ -31,13 +31,20 @@
         background: var(--ars-shell-surface, #fff);
     }
     .report-360-table {
-        overflow: hidden;
+        max-height: min(560px, calc(100vh - 260px));
+        overflow-y: auto;
+        overflow-x: auto;
         border: 1px solid var(--ars-shell-border);
         border-radius: 13px;
         background: var(--ars-shell-surface, #fff);
+        scrollbar-width: thin;
+        -webkit-overflow-scrolling: touch;
     }
     .report-360-table table { width: 100%; margin: 0; border-collapse: collapse; }
     .report-360-table th {
+        position: sticky;
+        top: 0;
+        z-index: 2;
         padding: .8rem;
         border-bottom: 1px solid var(--ars-shell-border);
         background: color-mix(in srgb, var(--primary-color) 8%, var(--ars-shell-surface, #fff));
@@ -50,13 +57,12 @@
     .report-360-table td { padding: .85rem .8rem; border-bottom: 1px solid var(--ars-shell-border); color: var(--ars-shell-text); font-size: .8rem; vertical-align: middle; }
     .report-360-table tbody tr:last-child td { border-bottom: 0; }
     .patient-name { display: block; font-weight: 800; }
-    .patient-meta { display: block; margin-top: .2rem; color: var(--ars-shell-muted); font-size: .7rem; }
     .empty-360 { padding: 3rem 1rem; color: var(--ars-shell-muted); text-align: center; }
     @media (max-width: 760px) {
         .report-360-shell { padding: .8rem; }
         .report-360-header { flex-direction: column; }
         .report-360-search { grid-template-columns: 1fr; }
-        .report-360-table { overflow-x: auto; }
+        .report-360-table { overflow-x: auto; overflow-y: auto; }
         .report-360-table table { min-width: 760px; }
     }
 </style>
@@ -67,9 +73,6 @@
             <h1><i class="fas fa-address-card me-2 report-360-title-icon"></i>Vista 360 de pacientes</h1>
             <p>{% if can('facturacion.ver') and not es_medico_operativo %}Consulta datos básicos, historias, emergencias, citas, recetas, licencias, consultas y facturas.{% else %}Consulta el expediente clínico: historias, emergencias, citas, recetas y licencias. Sin facturación, pagos ni reclamaciones.{% endif %}</p>
         </div>
-        <a href="{{ url_for('facturacion_menu') }}" class="btn btn-outline-primary">
-            <i class="fas fa-arrow-left me-2"></i>Volver al inicio
-        </a>
     </header>
 
     <form class="report-360-search" method="GET">
@@ -100,7 +103,6 @@
                 <tr>
                     <td>
                         <span class="patient-name">{{ paciente.nombre }}</span>
-                        <span class="patient-meta">{{ paciente.sexo or 'Sexo no registrado' }}</span>
                     </td>
                     <td>{{ paciente.cedula or 'Sin cédula' }}</td>
                     <td>{{ paciente.telefono or 'Sin teléfono' }}</td>

@@ -391,9 +391,8 @@
                     <td class="text-center">
                         {% if ver_endpoint and ver_param %}
                         <a href="{{ url_for(ver_endpoint, **{ver_param: fila['id']}) }}"
-                           class="btn-accion-icono btn-accion-ver"
-                           title="Ver">
-                            <i class="fas fa-eye"></i>
+                           class="btn btn-accion-editar">
+                            <i class="fas fa-eye"></i> Ver
                         </a>
                         {% endif %}
                     </td>

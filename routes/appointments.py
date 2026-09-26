@@ -10,6 +10,7 @@ from flask_login import current_user, login_required
 
 from auth import permission_required, user_has_permission
 from core.config import IS_PRODUCTION, url_publica_base
+from core.clock import ahora_clinica, fecha_clinica
 from core.database import execute_query, execute_update
 from core.security import rate_limit
 from core.tenant import get_current_tenant_id
@@ -28,6 +29,7 @@ logger = logging.getLogger(__name__)
 ESTADOS_REAGENDABLES = frozenset({
     'Programada', 'Confirmada', 'No asistió', 'Vencida', 'Cancelada',
 })
+ESTADOS_AL_REVIVIR = frozenset({'Vencida', 'No asistió'})
 
 
 COLUMNAS_CONFIRMACION_CITA = {
@@ -40,6 +42,33 @@ COLUMNAS_CONFIRMACION_CITA = {
 def cita_se_puede_reagendar(cita):
     """Permitir cambiar fecha y hora salvo que la cita ya se haya completado."""
     return bool(cita) and cita.get('estado') in ESTADOS_REAGENDABLES
+
+
+def cita_horario_sigue_vigente(fecha, hora, duracion, ahora=None):
+    """True si el bloque aún no termina (misma regla que al marcar Vencida)."""
+    hora_t = hora_como_time(hora)
+    if fecha is None or hora_t is None:
+        return False
+    if hasattr(fecha, 'year') and not hasattr(fecha, 'hour'):
+        fecha_d = fecha
+    elif hasattr(fecha, 'date'):
+        fecha_d = fecha.date()
+    else:
+        try:
+            fecha_d = datetime.strptime(str(fecha)[:10], '%Y-%m-%d').date()
+        except ValueError:
+            return False
+    fin = datetime.combine(fecha_d, hora_t) + timedelta(minutes=int(duracion or 30))
+    return fin > (ahora or ahora_clinica())
+
+
+def estado_si_horario_vigente(estado, fecha, hora, duracion, ahora=None):
+    """Vencida o No asistió vuelven a Programada si el nuevo horario no ha pasado."""
+    if estado in ESTADOS_AL_REVIVIR and cita_horario_sigue_vigente(
+        fecha, hora, duracion, ahora,
+    ):
+        return 'Programada'
+    return estado
 
 
 def asegurar_columnas_confirmacion_cita():
@@ -61,6 +90,12 @@ def hora_como_time(valor):
     if hasattr(valor, 'hour') and not hasattr(valor, 'year'):
         return valor
     texto = str(valor).strip()
+    texto_norm = texto.upper().replace('.', '')
+    for formato in ('%H:%M:%S', '%H:%M', '%I:%M:%S %p', '%I:%M %p'):
+        try:
+            return datetime.strptime(texto_norm if '%p' in formato else texto, formato).time()
+        except ValueError:
+            continue
     if len(texto) >= 8 and texto[2] == ':':
         texto = texto[:8]
     elif len(texto) >= 5:
@@ -82,7 +117,7 @@ def calcular_huecos(fecha, duracion, hora_inicio, hora_fin, ocupados, ahora=None
     paso = timedelta(minutes=int(duracion))
     cursor = datetime.combine(fecha, inicio)
     limite = datetime.combine(fecha, fin)
-    umbral = ahora if ahora is not None else datetime.now()
+    umbral = ahora if ahora is not None else ahora_clinica()
     bloques = []
     for item in ocupados or []:
         hora = hora_como_time(item.get('hora') if isinstance(item, dict) else item[0])
@@ -181,7 +216,7 @@ def emitir_enlace_confirmacion(cita_id, tenant_id, fecha, hora):
     if hasattr(fecha, 'strftime') and hasattr(hora, 'strftime'):
         vencimiento = datetime.combine(fecha, hora) + timedelta(hours=6)
     else:
-        vencimiento = datetime.now() + timedelta(days=2)
+        vencimiento = ahora_clinica() + timedelta(days=2)
     execute_update(
         '''
         UPDATE citas_medicas
@@ -249,13 +284,13 @@ def enviar_recordatorios_citas(tenant_id):
         JOIN pacientes p
           ON p.id=c.paciente_id AND p.tenant_id=c.tenant_id
         WHERE c.tenant_id=%s
-          AND c.fecha=DATE_ADD(CURDATE(), INTERVAL 1 DAY)
+          AND c.fecha=%s
           AND c.estado IN ('Programada', 'Confirmada')
           AND IFNULL(c.recordatorio_enviado, 0)=0
           AND p.email IS NOT NULL AND p.email<>''
         LIMIT 20
         ''',
-        (tenant_id,),
+        (tenant_id, fecha_clinica() + timedelta(days=1)),
         fetch='all',
     ) or []
     for cita in pendientes:
@@ -319,20 +354,31 @@ def medico_id_agenda_restringida():
     return medico_id if medico_id and es_medico and not es_administrador else None
 
 
+def puede_gestionar_qr_citas():
+    """Solo recepción/administración genera el QR del consultorio."""
+    return medico_id_agenda_restringida() is None
+
+
 def actualizar_citas_vencidas(tenant_id):
+    ahora = ahora_clinica()
     execute_update('''
         UPDATE citas_medicas
         SET estado='Vencida'
         WHERE tenant_id=%s
           AND estado IN ('Programada', 'Confirmada')
           AND (
-              fecha<CURDATE()
+              fecha<%s
               OR (
-                  fecha=CURDATE()
-                  AND ADDTIME(hora, SEC_TO_TIME(duracion_minutos * 60))<CURTIME()
+                  fecha=%s
+                  AND ADDTIME(hora, SEC_TO_TIME(duracion_minutos * 60))<%s
               )
           )
-    ''', (tenant_id,))
+    ''', (
+        tenant_id,
+        ahora.date(),
+        ahora.date(),
+        ahora.strftime('%H:%M:%S'),
+    ))
 
 
 def contexto_formulario_cita(tenant_id, medico_id_restringido=None):
@@ -386,7 +432,9 @@ def validar_formulario_cita(tenant_id, cita_id=None):
         return None, 'El estado de la cita no es válido'
     try:
         fecha_obj = datetime.strptime(fecha, '%Y-%m-%d').date()
-        hora_obj = datetime.strptime(hora, '%H:%M').time()
+        hora_obj = hora_como_time(hora)
+        if hora_obj is None:
+            raise ValueError('hora')
     except ValueError:
         return None, 'La fecha u hora no es válida'
     paciente = execute_query(
@@ -402,7 +450,8 @@ def validar_formulario_cita(tenant_id, cita_id=None):
         return None, 'El paciente o médico seleccionado no es válido'
     if estado in ['Programada', 'Confirmada']:
         inicio = datetime.combine(fecha_obj, hora_obj)
-        if inicio < datetime.now():
+        fin = inicio + timedelta(minutes=duracion)
+        if fin <= ahora_clinica():
             return None, 'No puede programar una cita en una fecha u hora pasada'
     conflicto = None
     if estado in ['Programada', 'Confirmada']:
@@ -439,11 +488,11 @@ def facturacion_citas():
     vista = request.args.get('vista', 'mes')
     if vista not in ['mes', 'hoy', 'proximas', 'todas']:
         vista = 'mes'
-    mes_texto = request.args.get('mes', datetime.now().strftime('%Y-%m'))
+    mes_texto = request.args.get('mes', ahora_clinica().strftime('%Y-%m'))
     try:
         primer_dia = datetime.strptime(mes_texto, '%Y-%m').date().replace(day=1)
     except ValueError:
-        primer_dia = datetime.now().date().replace(day=1)
+        primer_dia = fecha_clinica().replace(day=1)
         mes_texto = primer_dia.strftime('%Y-%m')
     ultimo_dia_numero = calendar_module.monthrange(
         primer_dia.year, primer_dia.month
@@ -468,7 +517,7 @@ def facturacion_citas():
         WHERE c.tenant_id=%s
     '''
     params = [tenant_id]
-    hoy = datetime.now().date()
+    hoy = fecha_clinica()
     if vista == 'mes':
         query += ' AND c.fecha BETWEEN %s AND %s'
         params.extend([primer_dia, ultimo_dia])
@@ -641,6 +690,10 @@ def facturacion_cita_editar(cita_id):
                 **contexto
             )
         notas = datos['notas'] or ''
+        estado_previo = datos['estado']
+        datos['estado'] = estado_si_horario_vigente(
+            datos['estado'], datos['fecha'], datos['hora'], datos['duracion'],
+        )
         if request.form.get('accion') == 'reagendar':
             if not cita_se_puede_reagendar(cita):
                 flash('Esta cita no se puede reagendar', 'error')
@@ -684,7 +737,14 @@ def facturacion_cita_editar(cita_id):
                 datos['hora'], 'reagendada',
             )
         else:
-            flash('Cita actualizada correctamente', 'success')
+            if estado_previo in ESTADOS_AL_REVIVIR and datos['estado'] == 'Programada':
+                flash(
+                    'El horario sigue vigente: la cita pasó de %s a Programada.'
+                    % estado_previo,
+                    'success',
+                )
+            else:
+                flash('Cita actualizada correctamente', 'success')
         return redirect(url_for(
             'facturacion_citas', vista='mes',
             mes=datos['fecha'].strftime('%Y-%m')
@@ -740,7 +800,7 @@ def facturacion_cita_estado(cita_id):
     ''', (
         estado, current_user.id,
         current_user.id if estado == 'Cancelada' else None,
-        datetime.now() if estado == 'Cancelada' else None,
+        ahora_clinica() if estado == 'Cancelada' else None,
         motivo_cancelacion if estado == 'Cancelada' else None,
         cita_id, tenant_id
     ))
@@ -753,7 +813,7 @@ def cita_paciente_gestionar(token):
     """El paciente confirma o cancela sin iniciar sesión."""
     cita = obtener_cita_por_token(token)
     vencimiento = _datetime_cita(cita.get('confirmacion_token_expiracion') if cita else None)
-    vencida = not cita or not vencimiento or vencimiento < datetime.now()
+    vencida = not cita or not vencimiento or vencimiento < ahora_clinica()
     if vencida or not cita:
         return render_template(
             'cita_paciente.html',

@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="{{ 'es' if not current_user.is_authenticated or current_user.idioma_correccion == 'none' else current_user.idioma_correccion }}"
       data-font="{{ fuente_nombre|default('arsflow') }}">
 <head>
@@ -1048,7 +1048,7 @@
     
     {% if current_user.is_authenticated %}
     {% set endpoint = request.endpoint or '' %}
-    {% set nombre_partes = current_user.nombre.split() %}
+    {% set nombre_partes = (current_user.nombre or 'U').split() %}
     {% set es_medico_operativo = es_medico_operativo if es_medico_operativo is defined else false %}
     {% set es_administrador = es_administrador if es_administrador is defined else current_user.perfil == 'Administrador' %}
     {% set es_dueno_software = es_dueno_software if es_dueno_software is defined else (current_user.perfil == 'Administrador' and current_user.tenant_id is none) %}

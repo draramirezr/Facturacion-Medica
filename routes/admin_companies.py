@@ -113,6 +113,14 @@ def _decorate_subscription(empresa):
         )
 
 
+def _fecha_iso(value):
+    if value is None:
+        return ''
+    if hasattr(value, 'strftime'):
+        return value.strftime('%Y-%m-%d')
+    return str(value)[:10]
+
+
 def _company_form_values():
     return {
         'nombre': sanitize_input(request.form.get('nombre', ''), 255),
@@ -163,7 +171,12 @@ def _validate_company(values, editing=False):
         end = datetime.strptime(values['fecha_fin'], '%Y-%m-%d').date()
         if end <= start:
             return 'La fecha de fin debe ser posterior a la fecha de inicio'
-        if editing and end < date.today() and values['estado'] == 'activo':
+        if (
+            editing
+            and usuario_es_dueno_software(current_user)
+            and end < date.today()
+            and values['estado'] == 'activo'
+        ):
             values['estado'] = 'suspendido'
             flash(
                 'La fecha de fin ya venció. El estado se cambió a '
@@ -173,6 +186,18 @@ def _validate_company(values, editing=False):
     except ValueError:
         return 'Fechas inválidas'
     return None
+
+
+def _conservar_suscripcion_si_no_es_dueno(values, empresa):
+    """Fechas, plan, licencias y estado solo los cambia el dueño del software."""
+    if usuario_es_dueno_software(current_user) or not empresa:
+        return values
+    values['fecha_inicio'] = _fecha_iso(empresa.get('fecha_inicio'))
+    values['fecha_fin'] = _fecha_iso(empresa.get('fecha_fin'))
+    values['licencias_totales'] = empresa.get('licencias_totales')
+    values['plan'] = empresa.get('plan') or values.get('plan')
+    values['estado'] = empresa.get('estado') or values.get('estado')
+    return values
 
 
 @login_required
@@ -238,6 +263,7 @@ def admin_empresas_editar(empresa_id):
     if request.method == 'GET':
         return render_template('admin/empresas/form.html', empresa=empresa)
     values = _company_form_values()
+    values = _conservar_suscripcion_si_no_es_dueno(values, empresa)
     error = _validate_company(values, editing=True)
     if error:
         flash(error, 'error')

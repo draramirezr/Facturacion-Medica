@@ -57,9 +57,11 @@
                 <td>{{ licencia['cantidad_dias'] }}</td>
                 <td><span class="lm-state">{{ licencia['estado'] }}</span></td>
                 <td class="text-nowrap">
-                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_licencia_medica_ver', licencia_id=licencia['id']) }}" title="Ver"><i class="fas fa-eye"></i></a>
-                    {% if licencia['estado'] == 'Borrador' %}<a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_licencia_medica_editar', licencia_id=licencia['id']) }}" title="Editar"><i class="fas fa-pen"></i></a>{% endif %}
-                    <a class="btn btn-sm btn-outline-primary" target="_blank" href="{{ url_for('facturacion_licencia_medica_imprimir', licencia_id=licencia['id']) }}" title="Imprimir"><i class="fas fa-print"></i></a>
+                    <div class="d-flex justify-content-center gap-2 flex-nowrap">
+                    <a class="btn btn-accion-editar" href="{{ url_for('facturacion_licencia_medica_ver', licencia_id=licencia['id']) }}"><i class="fas fa-eye"></i> Ver</a>
+                    {% if licencia['estado'] == 'Borrador' %}<a class="btn btn-accion-editar" href="{{ url_for('facturacion_licencia_medica_editar', licencia_id=licencia['id']) }}"><i class="fas fa-edit"></i> Editar</a>{% endif %}
+                    <a class="btn btn-accion-editar" target="_blank" href="{{ url_for('facturacion_licencia_medica_imprimir', licencia_id=licencia['id']) }}"><i class="fas fa-print"></i> Imprimir</a>
+                    </div>
                 </td>
             </tr>
             {% endfor %}

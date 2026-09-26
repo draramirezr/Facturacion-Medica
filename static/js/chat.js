@@ -166,9 +166,18 @@
             );
             button.dataset.userId = user.id;
 
+            const avatarWrap = document.createElement('span');
+            avatarWrap.className = 'ars-chat-avatar-wrap';
             const avatar = document.createElement('span');
             avatar.className = 'ars-chat-avatar';
             avatar.textContent = initials(user.nombre);
+            avatarWrap.appendChild(avatar);
+            if (user.en_linea) {
+                const dot = document.createElement('span');
+                dot.className = 'ars-chat-online';
+                dot.title = 'En línea';
+                avatarWrap.appendChild(dot);
+            }
 
             const copy = document.createElement('span');
             copy.className = 'ars-chat-contact-copy';
@@ -177,7 +186,7 @@
             const detail = document.createElement('small');
             detail.textContent = conversation.ultimo_mensaje || user.perfil;
             copy.append(name, detail);
-            button.append(avatar, copy);
+            button.append(avatarWrap, copy);
 
             const unread = Number(conversation.no_leidos) || 0;
             if (unread) {
@@ -203,6 +212,20 @@
                     (conversation) => [Number(conversation.usuario_id), conversation]
                 )
             );
+            if (selectedUser) {
+                const fresh = users.find(
+                    (user) => Number(user.id) === Number(selectedUser.id)
+                );
+                if (fresh) {
+                    selectedUser = fresh;
+                    const status = header.querySelector('small');
+                    if (status) {
+                        status.textContent = fresh.en_linea
+                            ? `En línea · ${fresh.perfil}`
+                            : fresh.perfil;
+                    }
+                }
+            }
             contactsElement.className = 'ars-chat-contact-list';
             renderContacts();
         } catch (error) {
@@ -299,7 +322,9 @@
         const name = document.createElement('strong');
         name.textContent = user.nombre;
         const profile = document.createElement('small');
-        profile.textContent = user.perfil;
+        profile.textContent = user.en_linea
+            ? `En línea · ${user.perfil}`
+            : user.perfil;
         header.append(name, profile);
         form.hidden = false;
         messagesElement.innerHTML = '<div class="ars-chat-state">Cargando mensajes…</div>';
@@ -433,6 +458,12 @@
 
     loadUnread();
     window.setInterval(loadUnread, 30000);
+    window.setInterval(() => {
+        if (panel.classList.contains('open')) {
+            loadContacts();
+            loadMessages();
+        }
+    }, 20000);
     window.setInterval(() => {
         if (panel.classList.contains('open')) {
             loadMessages();

@@ -164,6 +164,24 @@ def _asegurar_columnas_confirmacion_cita(cursor, database):
         )
 
 
+def _asegurar_columnas_presencia_chat(cursor, database):
+    cursor.execute(
+        '''
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = %s
+          AND TABLE_NAME = 'usuarios'
+          AND COLUMN_NAME = 'last_seen_at'
+        ''',
+        (database,),
+    )
+    if cursor.fetchone():
+        return
+    cursor.execute(
+        'ALTER TABLE usuarios ADD COLUMN `last_seen_at` DATETIME NULL'
+    )
+
+
 def bootstrap_required_schema(connection_factory=None):
     """Crear tablas faltantes en la base actual y sembrar permisos."""
     factory = connection_factory or pymysql.connect
@@ -191,6 +209,7 @@ def bootstrap_required_schema(connection_factory=None):
             _asegurar_columnas_activacion(cursor, database)
             _asegurar_columnas_smtp_empresa(cursor, database)
             _asegurar_columnas_confirmacion_cita(cursor, database)
+            _asegurar_columnas_presencia_chat(cursor, database)
         connection.commit()
     except Exception:
         try:

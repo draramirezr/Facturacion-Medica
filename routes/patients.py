@@ -91,9 +91,9 @@ def facturacion_pacientes_nuevo():
         telefono_pariente = sanitize_input(request.form.get('telefono_pariente', ''), 20)
         parentesco = sanitize_input(request.form.get('parentesco', ''), 50)
 
-        if (not nombre or not telefono or not email or not direccion or
+        if (not nombre or not telefono or not direccion or
                 not fecha_nacimiento or not sexo):
-            flash('Todos los campos del paciente son obligatorios', 'error')
+            flash('Complete los campos obligatorios del paciente', 'error')
             return redirect(url_for('facturacion_pacientes_nuevo'))
 
         if cedula and not validate_digits(cedula, 11):
@@ -102,7 +102,7 @@ def facturacion_pacientes_nuevo():
         if not validate_digits(telefono, 10):
             flash('El teléfono debe contener exactamente 10 números', 'error')
             return redirect(url_for('facturacion_pacientes_nuevo'))
-        if not validate_email(email):
+        if email and not validate_email(email):
             flash('Debe introducir un correo electrónico válido', 'error')
             return redirect(url_for('facturacion_pacientes_nuevo'))
         if sexo not in ['M', 'F', 'Otro']:
@@ -176,7 +176,7 @@ def facturacion_pacientes_nuevo():
                 telefono_pariente, parentesco, ars_id
             ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
-            tenant_id, nombre, cedula or None, nss or None, telefono, email, direccion,
+            tenant_id, nombre, cedula or None, nss or None, telefono, email or None, direccion,
             fecha_nacimiento, sexo, nombre_pariente or None, cedula_pariente or None,
             telefono_pariente or None, parentesco or None, ars_id
         ))
@@ -291,9 +291,9 @@ def facturacion_pacientes_editar(paciente_id):
         telefono_pariente = sanitize_input(request.form.get('telefono_pariente', ''), 20)
         parentesco = sanitize_input(request.form.get('parentesco', ''), 50)
         
-        if (not nombre or not telefono or not email or not direccion or
+        if (not nombre or not telefono or not direccion or
                 not fecha_nacimiento or not sexo):
-            flash('Todos los campos del paciente son obligatorios', 'error')
+            flash('Complete los campos obligatorios del paciente', 'error')
             return redirect(url_for('facturacion_pacientes_editar', paciente_id=paciente_id))
         
         if cedula and not validate_digits(cedula, 11):
@@ -304,7 +304,7 @@ def facturacion_pacientes_editar(paciente_id):
             flash('El teléfono debe contener exactamente 10 números', 'error')
             return redirect(url_for('facturacion_pacientes_editar', paciente_id=paciente_id))
 
-        if not validate_email(email):
+        if email and not validate_email(email):
             flash('Debe introducir un correo electrónico válido', 'error')
             return redirect(url_for('facturacion_pacientes_editar', paciente_id=paciente_id))
 

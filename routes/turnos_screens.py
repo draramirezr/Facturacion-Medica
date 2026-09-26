@@ -14,6 +14,7 @@ from flask import (
 from flask_login import current_user, login_required
 
 from auth import permission_required, user_has_permission
+from core.clock import ahora_clinica, fecha_clinica
 from core.database import execute_query, execute_update, transactional_methods
 from core.tenant import get_current_tenant_id
 from routes.support import sanitize_input
@@ -187,7 +188,7 @@ def turnos_recepcion():
             return redirect(url_for('turnos_mi_cola'))
         return jsonify({'error': 'Permiso denegado'}), 403
     tenant_id = get_current_tenant_id()
-    fecha = request.args.get('fecha') or datetime.now().strftime('%Y-%m-%d')
+    fecha = request.args.get('fecha') or fecha_clinica().isoformat()
     medico_id = request.args.get('medico_id', type=int)
     busqueda = sanitize_input(request.args.get('q', ''), 100)
     pacientes = []
@@ -247,7 +248,7 @@ def turnos_nuevo():
     medico_id = request.form.get('medico_id', type=int)
     cita_id = request.form.get('cita_id', type=int)
     motivo = sanitize_input(request.form.get('motivo', ''), 1000)
-    fecha = datetime.now().strftime('%Y-%m-%d')
+    fecha = fecha_clinica().isoformat()
     registro_incompleto = 0
 
     if cita_id:
@@ -511,7 +512,7 @@ def turnos_mi_cola():
     if not medico:
         flash('El médico vinculado ya no está disponible', 'error')
         return redirect(url_for('facturacion_menu'))
-    fecha = datetime.now().strftime('%Y-%m-%d')
+    fecha = fecha_clinica().isoformat()
     from routes.appointments import enviar_recordatorios_citas
     enviar_recordatorios_citas(get_current_tenant_id())
     citas_hoy = listar_citas_medico_hoy(fecha, current_user.medico_id)
@@ -532,7 +533,7 @@ def turnos_mi_cola_estado():
     """Firma de la cola y citas de hoy para refrescar la pantalla del médico."""
     if not current_user.medico_id:
         return jsonify({'error': 'Médico no vinculado'}), 400
-    fecha = datetime.now().strftime('%Y-%m-%d')
+    fecha = fecha_clinica().isoformat()
     turnos = [
         turno for turno in listar_turnos(fecha, current_user.medico_id)
         if turno.get('estado') in ESTADOS_TURNO_EN_COLA
@@ -797,7 +798,7 @@ def turnos_pantalla_feed(token):
             cola['siguiente'] = numero
     return jsonify({
         'colas': list(colas.values()),
-        'actualizado': datetime.now().strftime('%H:%M:%S'),
+        'actualizado': ahora_clinica().strftime('%H:%M:%S'),
     })
 
 def register_turnos_routes(app):

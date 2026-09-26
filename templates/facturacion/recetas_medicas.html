@@ -47,7 +47,7 @@
                     <td>{{ receta['paciente_nombre'] }}</td><td>{{ receta['medico_nombre'] }}</td>
                     <td>{{ receta['total_medicamentos'] }}</td><td>{{ receta['diagnostico'] or 'No indicado' }}</td>
                     <td><span class="rx-status">{{ receta['estado'] }}</span></td>
-                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_receta_medica_ver',receta_id=receta['id']) }}">Ver</a></td>
+                    <td class="text-end"><a class="btn btn-accion-editar" href="{{ url_for('facturacion_receta_medica_ver',receta_id=receta['id']) }}"><i class="fas fa-eye"></i> Ver</a></td>
                 </tr>{% else %}<tr><td colspan="7" class="text-center text-muted py-5">No hay recetas registradas.</td></tr>{% endfor %}</tbody>
             </table>
         </div>

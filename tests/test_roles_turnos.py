@@ -68,6 +68,7 @@ class RbacCatalogTests(unittest.TestCase):
             medico_id=22,
         )
         self.assertTrue(usuario_es_medico_operativo(medico))
+        self.assertEqual(destino_inicio_sesion(medico), 'turnos_mi_cola')
         self.assertTrue(medico.has_permission('historia_clinica.ver'))
         self.assertFalse(medico.has_permission('facturacion.ver'))
         self.assertFalse(medico.has_permission('reportes.ver'))
@@ -100,6 +101,15 @@ class RbacCatalogTests(unittest.TestCase):
             plantilla.count("url_for('facturacion_reporte_pacientes_360')"),
             1,
         )
+
+        lista_roles = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates'
+            / 'roles'
+            / 'lista.html'
+        ).read_text(encoding='utf-8')
+        self.assertIn("url_for('admin_roles_editar', rol_id=rol['id'])", lista_roles)
+        self.assertNotIn("not rol['es_sistema'] and can('roles.editar')", lista_roles)
 
     def test_doctor_queue_shows_todays_appointments(self):
         from routes.turnos_screens import resumen_citas_medico_hoy

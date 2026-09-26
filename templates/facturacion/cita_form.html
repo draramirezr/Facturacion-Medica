@@ -61,7 +61,7 @@
         {% if cita and puede_reagendar|default(false) %}
         <section class="appointment-card mt-4" id="reagendar">
             <h2>Reagendar cita</h2>
-            <p class="text-muted small mb-3">Cambia la fecha y hora. La cita vuelve a quedar programada{% if cita['estado'] == 'Cancelada' %} y se limpia la cancelación{% endif %}.</p>
+            <p class="text-muted small mb-3">Cambia la fecha y hora. Si el nuevo horario no ha pasado, el estado vuelve solo a Programada{% if cita['estado'] == 'Cancelada' %} y se limpia la cancelación{% endif %}.</p>
             <form method="POST">
                 <input type="hidden" name="accion" value="reagendar">
                 <input type="hidden" name="paciente_id" value="{{ cita['paciente_id'] }}">

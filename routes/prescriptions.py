@@ -10,6 +10,7 @@ from flask_login import current_user, login_required
 from auth import permission_required
 from core.database import execute_query, execute_update, transactional_methods
 from core.tenant import get_current_tenant_id
+from routes.support import sanitize_input, validate_int
 from services.tenant_mail import notificar_paciente
 
 

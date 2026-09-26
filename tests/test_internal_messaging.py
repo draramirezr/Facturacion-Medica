@@ -1,4 +1,5 @@
 import unittest
+from datetime import datetime
 from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
@@ -38,6 +39,9 @@ class InternalMessagingTests(unittest.TestCase):
             return_value=5,
         ), patch.object(
             messaging_routes,
+            "execute_update",
+        ), patch.object(
+            messaging_routes,
             "execute_query",
             return_value=[],
         ) as execute_query:
@@ -46,6 +50,7 @@ class InternalMessagingTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         query, params = execute_query.call_args.args[:2]
         self.assertIn("tenant_id=%s", query)
+        self.assertIn("en_linea", query)
         self.assertEqual(params, (5, 10))
 
     def test_message_rejects_recipient_from_another_tenant(self):
@@ -98,14 +103,14 @@ class InternalMessagingTests(unittest.TestCase):
         ), patch.object(
             messaging_routes,
             "execute_update",
-            side_effect=[31, 91, None],
+            side_effect=[None, 31, 91, None],
         ) as execute_update:
             response, status = handler()
 
         self.assertEqual(status, 201)
-        conversation_params = execute_update.call_args_list[0].args[1]
+        conversation_params = execute_update.call_args_list[1].args[1]
         self.assertEqual(conversation_params, (5, 7, 10))
-        message_params = execute_update.call_args_list[1].args[1]
+        message_params = execute_update.call_args_list[2].args[1]
         self.assertEqual(message_params, (5, 31, 10, 7, "Hola"))
         self.assertEqual(response.get_json()["mensaje"]["cuerpo"], "Hola")
 
@@ -160,7 +165,10 @@ class InternalMessagingTests(unittest.TestCase):
                 {"id": 31},
                 [message],
             ],
-        ) as execute_query:
+        ) as execute_query, patch.object(
+            messaging_routes,
+            "execute_update",
+        ):
             response = handler(7)
 
         self.assertEqual(response.status_code, 200)
@@ -217,11 +225,29 @@ class InternalMessagingTests(unittest.TestCase):
             messaging_routes,
             "execute_query",
             return_value={"total": 4},
-        ) as execute_query:
+        ) as execute_query, patch.object(
+            messaging_routes,
+            "execute_update",
+        ):
             response = handler()
 
         self.assertEqual(response.get_json()["total"], 4)
         self.assertEqual(execute_query.call_args.args[1], (5, 10))
+
+    def test_presence_is_online_within_ninety_seconds(self):
+        ahora = datetime(2026, 9, 26, 8, 43)
+        self.assertTrue(
+            messaging_routes.esta_en_linea(
+                datetime(2026, 9, 26, 8, 42),
+                ahora=ahora,
+            )
+        )
+        self.assertFalse(
+            messaging_routes.esta_en_linea(
+                datetime(2026, 9, 26, 8, 40),
+                ahora=ahora,
+            )
+        )
 
     def test_schema_and_authenticated_shell_include_messaging(self):
         root = Path(app_module.__file__).resolve().parent
@@ -237,6 +263,10 @@ class InternalMessagingTests(unittest.TestCase):
         self.assertIn("UNIQUE KEY uq_conversacion_pareja", migration)
         self.assertIn("tenant_id INT NOT NULL", migration)
         self.assertIn("mostrar_chat TINYINT(1) NOT NULL DEFAULT 1", migration)
+        schema = (root / "database_schema.sql").read_text(encoding="utf-8")
+        self.assertIn("last_seen_at DATETIME NULL", schema)
+        chat_js = (root / "static" / "js" / "chat.js").read_text(encoding="utf-8")
+        self.assertIn("ars-chat-online", chat_js)
         self.assertIn("id=\"arsChatPanel\"", template)
         self.assertIn("class=\"ars-chat-fab\"", template)
         self.assertIn("current_user.mostrar_chat", template)
