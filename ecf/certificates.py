@@ -148,6 +148,12 @@ class TenantCertificateProvider:
                 "El servidor no tiene almacén de certificados por cuenta. "
                 "Configure ECF_TENANT_SECRETS_ROOT."
             )
+        try:
+            self.root.mkdir(parents=True, exist_ok=True)
+        except OSError as error:
+            raise ECFCertificateResolutionError(
+                "No se pudo preparar el almacén de certificados de la cuenta"
+            ) from error
         if (
             not certificate_bytes
             or len(certificate_bytes) > MAX_CERTIFICATE_BYTES

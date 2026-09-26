@@ -65,7 +65,15 @@ class ECFConfigTests(unittest.TestCase):
         ):
             self.config("CERTIFICACION", **environment_urls("PRUEBAS"))
 
-    def test_disabled_production_configuration_does_not_activate_itself(self):
+    def test_disabled_configuration_creates_upload_store(self):
+        config = ECFConfig.from_env({
+            "ECF_ENABLED": "false",
+            "ECF_ENVIRONMENT": "PRUEBAS",
+        })
+        self.assertFalse(config.enabled)
+        self.assertTrue(config.tenant_secrets_root)
+        self.assertTrue(Path(config.tenant_secrets_root).is_dir())
+        self.assertTrue(config.tenant_secrets_root.endswith("ecf-secrets"))
         config = ECFConfig.from_env({
             "ECF_ENABLED": "false",
             "ECF_ENVIRONMENT": "PRODUCCION",

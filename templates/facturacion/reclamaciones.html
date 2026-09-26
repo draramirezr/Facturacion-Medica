@@ -25,22 +25,29 @@
         overflow-y: auto;
     }
 
+    .table-facturacion table {
+        min-width: 1040px;
+        margin: 0;
+    }
+
     .table-facturacion th {
         background: {{ tema.primary_dark }} !important;
         background-color: {{ tema.primary_dark }} !important;
         color: #FFFFFF !important;
         font-weight: 600;
-        padding: 1rem;
+        padding: .75rem 1rem;
         border: none;
         position: sticky;
         top: 0;
         z-index: 10;
+        white-space: nowrap;
     }
 
     .table-facturacion td {
-        padding: 1rem;
+        padding: .75rem 1rem;
         vertical-align: middle;
         border-bottom: 1px solid {{ tema.primary }}15;
+        white-space: nowrap;
     }
 
     .table-facturacion tbody tr:hover {
@@ -79,7 +86,7 @@
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%); border: none; color: white;
     }
     .fi-reclamaciones-inline-4 {
-        width: 12%;
+        width: 18%;
     }
     .fi-reclamaciones-inline-5 {
         width: 20%;
@@ -154,7 +161,7 @@
                 <tbody>
                     {% for reclamacion in reclamaciones_list %}
                     <tr>
-                        <td><strong>{{ reclamacion['numero_factura'] }}</strong></td>
+                        <td class="reclamacion-numero"><strong>{{ reclamacion['numero_factura'] }}</strong></td>
                         <td>{{ reclamacion['nombre_ars'] or 'Sin ARS' }}</td>
                         <td class="text-end">${{ "{:,.2f}".format(reclamacion['total_factura']) }}</td>
                         <td class="text-end"><strong>${{ "{:,.2f}".format(reclamacion['monto_reclamado']) }}</strong></td>

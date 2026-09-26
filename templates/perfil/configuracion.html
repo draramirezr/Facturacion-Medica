@@ -305,26 +305,20 @@
                 Cargue aquí el archivo .p12 o .pfx de DGII y la contraseña del certificado.
                 Queda guardado solo para esta empresa; la contraseña no se guarda en la base de datos.
             </p>
-            {% if not ecf_certificado.almacen_disponible %}
-            <p class="settings-card-subtitle mb-3">
-                El servidor todavía no tiene <strong>ECF_TENANT_SECRETS_ROOT</strong>.
-                Sin esa carpeta no se puede recibir el certificado por pantalla.
-            </p>
-            {% endif %}
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label" for="certificado_p12">Archivo del certificado</label>
                     <input class="form-control" id="certificado_p12" name="certificado_p12" type="file"
-                           accept=".p12,.pfx,application/x-pkcs12" {% if not ecf_certificado.almacen_disponible %}disabled{% endif %} required>
+                           accept=".p12,.pfx,application/x-pkcs12" required>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label" for="certificado_password">Contraseña del certificado</label>
                     <input class="form-control" id="certificado_password" name="certificado_password" type="password"
-                           autocomplete="new-password" {% if not ecf_certificado.almacen_disponible %}disabled{% endif %} required>
+                           autocomplete="new-password" required>
                 </div>
             </div>
             <div class="d-flex flex-wrap gap-2 mt-3">
-                <button class="btn btn-primary" type="submit" {% if not ecf_certificado.almacen_disponible %}disabled{% endif %}>
+                <button class="btn btn-primary" type="submit">
                     {{ 'Reemplazar certificado' if ecf_certificado.configurado else 'Cargar certificado' }}
                 </button>
             </div>

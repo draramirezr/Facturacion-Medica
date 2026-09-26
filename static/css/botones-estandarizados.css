@@ -156,8 +156,12 @@
     margin: 2px !important;
     
     /* Apariencia */
-    border-radius: 10px !important;
-    border: 2px solid transparent !important;
+    border: 2px solid var(--primary-color, #CEB0B7) !important;
+    background: var(--ars-shell-surface, #fff) !important;
+    color: var(--primary-color, #CEB0B7) !important;
+    min-width: 0 !important;
+    width: auto !important;
+    white-space: nowrap !important;
     
     /* Transiciones */
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
@@ -248,7 +252,7 @@
 
 .btn-login,
 .btn-submit,
-button[type="submit"]:not(.btn-sm):not(.btn-xs):not(.btn-accion-icono):not(.btn-accion-eliminar) {
+button[type="submit"]:not(.btn-sm):not(.btn-xs):not(.btn-accion-icono):not(.btn-accion-eliminar):not(.btn-accion-editar):not(.btn-accion-ver) {
     /* Tamaño estandarizado */
     min-width: 200px !important;
     min-height: 50px !important;

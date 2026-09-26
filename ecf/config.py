@@ -17,6 +17,14 @@ def _as_bool(value: Optional[str], default=False):
     return value.strip().lower() in {"1", "true", "yes", "si", "sí", "on"}
 
 
+def _default_tenant_secrets_root(source: Mapping[str, str]):
+    """Carpeta para certificados por cuenta si no hay ECF_TENANT_SECRETS_ROOT."""
+    volume = (source.get("RAILWAY_VOLUME_MOUNT_PATH") or "").strip()
+    if volume:
+        return str((Path(volume) / "ecf-secrets").resolve())
+    return str((Path.cwd() / "instance" / "ecf-secrets").resolve())
+
+
 def _read_secret(env: Mapping[str, str]):
     """Leer la clave desde archivo de secreto o variable de entorno."""
     password_file = env.get("ECF_CERTIFICATE_PASSWORD_FILE", "").strip()
@@ -52,9 +60,18 @@ class ECFConfig:
     def from_env(cls, env=None):
         source = os.environ if env is None else env
         enabled = _as_bool(source.get("ECF_ENABLED"), False)
+        environment = source.get("ECF_ENVIRONMENT", "PRUEBAS").strip().upper()
         tenant_secrets_root = source.get(
             "ECF_TENANT_SECRETS_ROOT", ""
         ).strip()
+        if not tenant_secrets_root and not (
+            enabled and environment == "PRODUCCION"
+        ):
+            tenant_secrets_root = _default_tenant_secrets_root(source)
+            try:
+                Path(tenant_secrets_root).mkdir(parents=True, exist_ok=True)
+            except OSError:
+                tenant_secrets_root = ""
         password_file = source.get(
             "ECF_CERTIFICATE_PASSWORD_FILE", ""
         ).strip()
@@ -71,7 +88,7 @@ class ECFConfig:
             ) from error
         config = cls(
             enabled=enabled,
-            environment=source.get("ECF_ENVIRONMENT", "PRUEBAS").strip().upper(),
+            environment=environment,
             allow_production=_as_bool(
                 source.get("ECF_ALLOW_PRODUCTION"), False
             ),

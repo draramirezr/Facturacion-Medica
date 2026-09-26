@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="{{ 'es' if not current_user.is_authenticated or current_user.idioma_correccion == 'none' else current_user.idioma_correccion }}"
       data-font="{{ fuente_nombre|default('arsflow') }}">
 <head>
@@ -92,7 +92,7 @@
     <link href="{{ url_for('static', filename='css/responsive-enhanced.min.css') }}?v=3.0" rel="stylesheet">
     
     <!-- Botones Estandarizados - Todos los botones con tamaño consistente -->
-    <link href="{{ url_for('static', filename='css/botones-estandarizados.min.css') }}?v=1.5" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/botones-estandarizados.css') }}?v=1.6" rel="stylesheet">
 
     {% if current_user.is_authenticated %}
     <!-- Shell autenticado ClinicRD -->
@@ -1543,7 +1543,7 @@
     </main>
 
     {% if current_user.is_authenticated %}
-    <link href="{{ url_for('static', filename='css/visual-refresh.css') }}?v=2.3" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/visual-refresh.css') }}?v=2.4" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/dark-mode.css') }}?v=1.8" rel="stylesheet">
     <link href="{{ url_for('static', filename='css/typography.css') }}?v=3.1" rel="stylesheet">
     {% endif %}

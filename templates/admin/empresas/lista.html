@@ -140,7 +140,6 @@
     
     .acciones-fila {
         display: flex;
-        flex-direction: row;
         flex-wrap: nowrap;
         align-items: center;
         justify-content: center;
@@ -151,39 +150,6 @@
         display: inline-flex;
         margin: 0;
         padding: 0;
-        width: 36px;
-        height: 36px;
-    }
-
-    .acciones-fila .btn,
-    .acciones-fila .btn-editar,
-    .acciones-fila a.btn,
-    .acciones-fila button.btn {
-        width: 36px !important;
-        height: 36px !important;
-        min-width: 36px !important;
-        max-width: 36px !important;
-        min-height: 36px !important;
-        max-height: 36px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        line-height: 1 !important;
-        font-size: 0.85rem !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        flex: 0 0 36px !important;
-        background: var(--ars-shell-surface, #fff);
-        border: 2px solid var(--primary-color) !important;
-        color: var(--primary-color) !important;
-        border-radius: 8px !important;
-        box-sizing: border-box !important;
-    }
-
-    .acciones-fila .btn:hover,
-    .acciones-fila .btn-editar:hover {
-        background: var(--primary-color) !important;
-        color: white !important;
     }
 
     .empresas-title {
@@ -313,24 +279,24 @@
                         <td class="text-center col-acciones">
                             <div class="acciones-fila">
                                 <a href="{{ url_for('admin_empresas_editar', empresa_id=empresa['id']) }}"
-                                   class="btn btn-editar" title="Editar">
-                                    <i class="fas fa-edit"></i>
+                                   class="btn btn-accion-editar">
+                                    <i class="fas fa-edit"></i> Editar
                                 </a>
                                 {% if es_dueno_software %}
                                 <a href="{{ url_for('plataforma_factura_nueva', empresa_id=empresa['id']) }}"
-                                   class="btn btn-editar" title="Facturar">
-                                    <i class="fas fa-file-invoice-dollar"></i>
+                                   class="btn btn-accion-editar">
+                                    <i class="fas fa-file-invoice-dollar"></i> Facturar
                                 </a>
                                 {% if empresa.get('es_demo') %}
                                 <a href="{{ url_for('plataforma_empresa_alta', empresa_id=empresa['id']) }}"
-                                   class="btn btn-editar" title="Dar de alta">
-                                    <i class="fas fa-handshake"></i>
+                                   class="btn btn-accion-editar">
+                                    <i class="fas fa-handshake"></i> Dar de alta
                                 </a>
                                 {% endif %}
                                 <form method="post" action="{{ url_for('plataforma_empresa_demo', empresa_id=empresa['id']) }}">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button class="btn btn-editar" type="submit" title="Demo 7 días">
-                                        <i class="fas fa-hourglass-start"></i>
+                                    <button class="btn btn-accion-editar" type="submit">
+                                        <i class="fas fa-hourglass-start"></i> Demo 7 días
                                     </button>
                                 </form>
                                 {% endif %}

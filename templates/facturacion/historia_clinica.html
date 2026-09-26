@@ -104,8 +104,10 @@
                         {{ paciente['total_consultas'] }}{% if paciente['ultima_consulta'] %} · Última {{ paciente['ultima_consulta'] }}{% endif %}
                         {% endif %}
                     </td>
-                    <td class="hc-col-action">
-                        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=paciente['id']) }}">Abrir expediente</a>
+                    <td class="hc-col-action text-nowrap">
+                        <a class="btn btn-accion-editar" href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=paciente['id']) }}">
+                            <i class="fas fa-folder-open"></i> Abrir expediente
+                        </a>
                     </td>
                 </tr>
                 {% endfor %}

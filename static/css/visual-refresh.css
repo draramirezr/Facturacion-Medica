@@ -175,6 +175,7 @@
     min-width: 0 !important;
     min-height: 32px !important;
     padding: .35rem .6rem !important;
+    white-space: nowrap !important;
 }
 
 .ars-app-body .ars-content .w-100.btn,
@@ -195,11 +196,17 @@
 .ars-app-body .ars-content .btn-limpiar,
 .ars-app-body .ars-content .btn-filter-secondary,
 .ars-app-body .ars-content .btn-ver-factura,
-.ars-app-body .ars-content .btn-editar-factura {
+.ars-app-body .ars-content .btn-editar-factura,
+.ars-app-body .ars-content .btn-accion-editar,
+.ars-app-body .ars-content .btn-accion-ver,
+.ars-app-body .ars-content .btn-accion-eliminar {
     border: 1px solid var(--primary-color) !important;
     border-radius: 10px !important;
     background: color-mix(in srgb, var(--primary-color) 16%, var(--ars-shell-surface, #fff)) !important;
     color: var(--primary-dark) !important;
+    min-width: 0 !important;
+    width: auto !important;
+    white-space: nowrap !important;
 }
 
 .ars-app-body .ars-content .btn-outline-primary:hover,
@@ -209,7 +216,10 @@
 .ars-app-body .ars-content .btn-limpiar:hover,
 .ars-app-body .ars-content .btn-filter-secondary:hover,
 .ars-app-body .ars-content .btn-ver-factura:hover,
-.ars-app-body .ars-content .btn-editar-factura:hover {
+.ars-app-body .ars-content .btn-editar-factura:hover,
+.ars-app-body .ars-content .btn-accion-editar:hover,
+.ars-app-body .ars-content .btn-accion-ver:hover,
+.ars-app-body .ars-content .btn-accion-eliminar:hover {
     background: var(--primary-color) !important;
     color: #fff !important;
 }

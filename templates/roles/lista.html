@@ -22,7 +22,6 @@
             <article class="role-card">
                 <div class="d-flex justify-content-between gap-2">
                     <h2 class="h5">{{ rol['nombre'] }}</h2>
-                    {% if rol['es_sistema'] %}<span class="badge text-bg-secondary">Sistema</span>{% endif %}
                 </div>
                 <p class="text-muted">{{ rol['descripcion'] or 'Sin descripción' }}</p>
                 <div class="role-meta"><span>{{ rol['total_permisos'] }} permisos</span><span>{{ rol['total_usuarios'] }} usuarios</span></div>
