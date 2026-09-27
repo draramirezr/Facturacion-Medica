@@ -24,6 +24,21 @@ request_counts = defaultdict(list)
 rate_limit_lock = threading.Lock()
 
 
+CANONICAL_HOST = 'www.clinicrd.com'
+APEX_HOSTS = frozenset({'clinicrd.com'})
+
+
+def redirect_apex_host():
+    """Si el tráfico llega a clinicrd.com, mandarlo a www (HTTPS)."""
+    host = (request.host or '').split(':')[0].lower()
+    if host not in APEX_HOSTS:
+        return None
+    destino = request.full_path
+    if destino.endswith('?'):
+        destino = destino[:-1]
+    return redirect(f'https://{CANONICAL_HOST}{destino}', code=301)
+
+
 def generate_csp_nonce():
     """Crear un nonce distinto para cada respuesta HTML."""
     g.csp_nonce = secrets.token_urlsafe(18)
@@ -159,6 +174,7 @@ def rate_limit(
 
 def init_security(app):
     """Registrar los hooks sin crear endpoints nuevos."""
+    app.before_request(redirect_apex_host)
     app.before_request(generate_csp_nonce)
     app.context_processor(inject_csp_nonce)
     app.register_error_handler(CSRFError, handle_csrf_error)

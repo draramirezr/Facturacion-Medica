@@ -23,7 +23,12 @@
     .hc-checks input { width: 18px; height: 18px; accent-color: var(--primary-color); }
     .hc-specialty-intro { border-left: 4px solid var(--primary-color); background: var(--ars-shell-bg); border-radius: 8px; padding: .85rem 1rem; }
     .hc-specialty-empty { color: var(--ars-shell-muted); padding: 1rem 0; }
-    .vital-warn { border-color: #d99a00 !important; background: #d99a000d; }
+    .lab-chips { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.5rem; min-height:1.5rem; }
+    .lab-chip { display:inline-flex; align-items:center; gap:.35rem; padding:.2rem .55rem; border-radius:999px; background: {{ tema.primary }}18; border:1px solid {{ tema.primary }}40; font-size:.82rem; }
+    .lab-chip button { border:0; background:transparent; color:inherit; padding:0; line-height:1; }
+    .lab-suggest { position:relative; z-index:5; margin:0; padding:.25rem 0; border:1px solid var(--ars-shell-border); border-radius:10px; background:var(--ars-shell-surface); max-height:220px; overflow:auto; }
+    .lab-suggest button { display:block; width:100%; text-align:left; border:0; background:transparent; padding:.45rem .75rem; }
+    .lab-suggest button:hover { background: {{ tema.primary }}12; }
 </style>
 
 <div class="container py-4">
@@ -189,7 +194,21 @@
 
                 <div class="tab-pane fade" id="tab-plan">
                     <div class="row">
-                        <div class="col-md-6 mb-3"><label class="form-label">Estudios de laboratorio</label><textarea class="form-control" name="estudios_laboratorio" rows="2">{{ plan.get('laboratorios','') }}</textarea></div>
+                        <div class="col-md-6 mb-3" data-lab-picker data-search-url="{{ url_for('api_pruebas_laboratorio') }}">
+                            <label class="form-label" for="labSearch">Estudios de laboratorio</label>
+                            <div class="lab-chips" data-lab-chips></div>
+                            <input class="form-control" id="labSearch" type="search" autocomplete="off"
+                                   placeholder="Escribe para buscar (hemo, tiroides, orina…)">
+                            <ul class="lab-suggest list-unstyled mt-1 d-none" data-lab-suggest></ul>
+                            <button class="btn btn-sm btn-outline-primary mt-2" type="button" data-lab-manual>Agregar este texto (no está en la lista)</button>
+                            <textarea class="form-control mt-2" name="estudios_laboratorio" data-lab-list rows="3">{{ plan.get('laboratorios','') }}</textarea>
+                            <small class="text-muted">Pulsa una prueba de la lista para sumarla. Si no aparece, escríbela y pulsa agregar. Luego imprime la orden desde la consulta.</small>
+                        </div>
+                        <div class="col-12 mb-3">
+                            <label class="form-label" for="hoja_indicaciones">Hoja de indicaciones (imagen, referido, otros estudios)</label>
+                            <textarea class="form-control" id="hoja_indicaciones" name="hoja_indicaciones" rows="5" placeholder="Ej. Sonografía abdominal, referido a cardiología, densitometría…">{{ plan.get('hoja_indicaciones','') }}</textarea>
+                            <small class="text-muted">Texto libre. No es laboratorio. Luego usa Imprimir indicaciones en la consulta.</small>
+                        </div>
                         <div class="col-md-6 mb-3"><label class="form-label">Estudios de imágenes</label><textarea class="form-control" name="estudios_imagenes" rows="2">{{ plan.get('imagenes','') }}</textarea></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Procedimientos</label><textarea class="form-control" name="procedimientos" rows="2">{{ plan.get('procedimientos','') }}</textarea></div>
                         <div class="col-md-6 mb-3"><label class="form-label">Recomendaciones</label><textarea class="form-control" name="recomendaciones" rows="2">{{ plan.get('recomendaciones','') }}</textarea></div>
@@ -217,6 +236,7 @@
 </div>
 
 <script src="{{ url_for('static', filename='js/historia-clinica.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/lab-picker.js') }}?v=1"></script>
 <script src="{{ url_for('static', filename='js/formulario-borrador.js') }}?v=1" nonce="{{ csp_nonce }}"></script>
 {% endblock %}
 {% endblock %}

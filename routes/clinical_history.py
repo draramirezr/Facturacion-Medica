@@ -20,6 +20,7 @@ from routes.support import (
     url_historia_clinica, validate_int,
 )
 from routes.turnos_screens import obtener_turno_tenant, registrar_evento_turno
+from services.subscriptions import get_empresa_info
 from turnos import EstadoTurno
 
 
@@ -233,7 +234,8 @@ def obtener_consulta_clinica_formulario():
             'laboratorios': texto('estudios_laboratorio', 3000),
             'imagenes': texto('estudios_imagenes', 3000),
             'procedimientos': texto('procedimientos', 3000),
-            'recomendaciones': texto('recomendaciones', 4000)
+            'recomendaciones': texto('recomendaciones', 4000),
+            'hoja_indicaciones': texto('hoja_indicaciones', 4000),
         },
         'nota_evolucion_inicial': texto('nota_evolucion_inicial', 5000),
         'proxima_cita': request.form.get('proxima_cita') or None,
@@ -289,7 +291,8 @@ def obtener_consulta_clinica(
         SELECT c.*, p.nombre AS paciente_nombre, p.fecha_nacimiento, p.cedula,
                p.telefono, p.email, p.direccion, p.ocupacion, p.sexo,
                m.nombre AS medico_nombre,
-               m.especialidad AS medico_especialidad
+               m.especialidad AS medico_especialidad,
+               m.exequatur AS medico_exequatur
         FROM consultas_clinicas c
         JOIN pacientes p ON c.paciente_id = p.id AND p.tenant_id = c.tenant_id
         JOIN medicos m ON c.medico_id = m.id AND m.tenant_id = c.tenant_id
@@ -692,6 +695,16 @@ def api_historia_clinica_plantilla_especialidad(medico_id):
     if not medico:
         return jsonify({'error': 'Médico no encontrado'}), 404
     return jsonify(get_specialty_schema(medico.get('especialidad')))
+
+
+@login_required
+@permission_required('historia_clinica.ver')
+def api_pruebas_laboratorio():
+    from services.lab_catalog import buscar_pruebas_laboratorio
+
+    termino = request.args.get('q', '')
+    nombres = buscar_pruebas_laboratorio(termino, get_current_tenant_id())
+    return jsonify({'pruebas': nombres})
 
 
 @login_required
@@ -1185,13 +1198,90 @@ def facturacion_historia_clinica_evolucion(consulta_id):
     return redirect(url_for('facturacion_historia_clinica_ver', consulta_id=consulta_id))
 
 
+@login_required
+@permission_required('historia_clinica.imprimir')
+def facturacion_orden_laboratorio(consulta_id):
+    """Hoja simple: lo escrito en Estudios de laboratorio de la consulta."""
+    tenant_id = get_current_tenant_id()
+    consulta = obtener_consulta_clinica(
+        consulta_id, tenant_id, medico_id_historias_restringido()
+    )
+    if not consulta:
+        flash('Consulta no encontrada', 'error')
+        return redirect(url_for('facturacion_historia_clinica'))
+    estudios = (consulta.get('plan_tratamiento') or {}).get('laboratorios') or ''
+    estudios = str(estudios).strip()
+    if not estudios:
+        flash(
+            'Escribe los estudios en el plan de la consulta (Estudios de laboratorio) y vuelve a imprimir.',
+            'error',
+        )
+        return redirect(url_for('facturacion_historia_clinica_ver', consulta_id=consulta_id))
+    consulta['edad'] = calcular_edad_clinica(
+        consulta.get('fecha_nacimiento'), consulta['fecha']
+    )
+    return render_template(
+        'facturacion/orden_laboratorio.html',
+        consulta=consulta,
+        estudios=estudios,
+        centro=get_empresa_info(tenant_id) or {},
+        imprimir=True,
+    )
+
+
+@login_required
+@permission_required('historia_clinica.imprimir')
+def facturacion_hoja_indicaciones(consulta_id):
+    """Hoja libre: imagen, referido u otras indicaciones que no son laboratorio."""
+    tenant_id = get_current_tenant_id()
+    consulta = obtener_consulta_clinica(
+        consulta_id, tenant_id, medico_id_historias_restringido()
+    )
+    if not consulta:
+        flash('Consulta no encontrada', 'error')
+        return redirect(url_for('facturacion_historia_clinica'))
+    texto_hoja = (consulta.get('plan_tratamiento') or {}).get('hoja_indicaciones') or ''
+    texto_hoja = str(texto_hoja).strip()
+    if not texto_hoja:
+        flash(
+            'Escribe las indicaciones en el plan de la consulta (Hoja de indicaciones) y vuelve a imprimir.',
+            'error',
+        )
+        return redirect(url_for('facturacion_historia_clinica_ver', consulta_id=consulta_id))
+    consulta['edad'] = calcular_edad_clinica(
+        consulta.get('fecha_nacimiento'), consulta['fecha']
+    )
+    return render_template(
+        'facturacion/hoja_indicaciones.html',
+        consulta=consulta,
+        indicaciones=texto_hoja,
+        centro=get_empresa_info(tenant_id) or {},
+        imprimir=True,
+    )
+
+
 def register_clinical_history_routes(app):
     app.add_url_rule('/facturacion/historia-clinica', endpoint='facturacion_historia_clinica', view_func=facturacion_historia_clinica)
     app.add_url_rule('/facturacion/reportes/pacientes-360', endpoint='facturacion_reporte_pacientes_360', view_func=facturacion_reporte_pacientes_360)
     app.add_url_rule('/facturacion/historia-clinica/paciente/<int:paciente_id>', endpoint='facturacion_historia_clinica_expediente', view_func=facturacion_historia_clinica_expediente)
     app.add_url_rule('/api/facturacion/historia-clinica/plantilla-especialidad/<int:medico_id>', endpoint='api_historia_clinica_plantilla_especialidad', view_func=api_historia_clinica_plantilla_especialidad)
+    app.add_url_rule(
+        '/api/facturacion/pruebas-laboratorio',
+        endpoint='api_pruebas_laboratorio',
+        view_func=api_pruebas_laboratorio,
+    )
     app.add_url_rule('/facturacion/historia-clinica/paciente/<int:paciente_id>/nueva', endpoint='facturacion_historia_clinica_nueva', view_func=facturacion_historia_clinica_nueva, methods=['GET', 'POST'])
     app.add_url_rule('/facturacion/historia-clinica/consulta/<int:consulta_id>', endpoint='facturacion_historia_clinica_ver', view_func=facturacion_historia_clinica_ver)
+    app.add_url_rule(
+        '/facturacion/historia-clinica/consulta/<int:consulta_id>/orden-laboratorio',
+        endpoint='facturacion_orden_laboratorio',
+        view_func=facturacion_orden_laboratorio,
+    )
+    app.add_url_rule(
+        '/facturacion/historia-clinica/consulta/<int:consulta_id>/hoja-indicaciones',
+        endpoint='facturacion_hoja_indicaciones',
+        view_func=facturacion_hoja_indicaciones,
+    )
     app.add_url_rule(
         '/facturacion/historia-clinica/consulta/<int:consulta_id>/vincular',
         endpoint='facturacion_historia_vincular_documento',

@@ -1,0 +1,12 @@
+{% if centro and (centro.razon_social or centro.nombre or centro.direccion or centro.telefono or centro.rnc) %}
+<p class="doc-centro">
+    <strong>{{ centro.razon_social or centro.nombre }}</strong>
+    {% if centro.direccion %}<br>{{ centro.direccion }}{% endif %}
+    {% if centro.rnc or centro.telefono or centro.email %}
+    <br>
+    {% if centro.rnc %}RNC {{ centro.rnc }}{% endif %}
+    {% if centro.telefono %}{% if centro.rnc %} · {% endif %}Tel. {{ centro.telefono }}{% endif %}
+    {% if centro.email %}{% if centro.rnc or centro.telefono %} · {% endif %}{{ centro.email }}{% endif %}
+    {% endif %}
+</p>
+{% endif %}

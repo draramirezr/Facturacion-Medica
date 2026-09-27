@@ -119,6 +119,26 @@ class PlatformOwnerTests(unittest.TestCase):
         self.assertNotIn('draramirez.com', base)
         self.assertIn('noindex, nofollow', base)
 
+    def test_apex_domain_redirects_to_www(self):
+        from core.security import redirect_apex_host
+
+        with app_module.app.test_request_context(
+            '/software-para-consultorios',
+            headers={'Host': 'clinicrd.com'},
+        ):
+            respuesta = redirect_apex_host()
+        self.assertEqual(respuesta.status_code, 301)
+        self.assertEqual(
+            respuesta.location,
+            'https://www.clinicrd.com/software-para-consultorios',
+        )
+
+        with app_module.app.test_request_context(
+            '/',
+            headers={'Host': 'www.clinicrd.com'},
+        ):
+            self.assertIsNone(redirect_apex_host())
+
     def test_public_contact_requires_message_fields(self):
         import routes.public as public_routes
 

@@ -34,6 +34,12 @@
                     <button class="btn btn-primary" type="button" data-hc-tab="recetas"><i class="fas fa-prescription me-2"></i>Receta</button>
                     <button class="btn btn-outline-primary" type="button" data-hc-tab="licencias"><i class="fas fa-file-medical me-2"></i>Licencia</button>
                     <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_editar', consulta_id=consulta['id']) }}"><i class="fas fa-pen me-2"></i>Editar con trazabilidad</a>
+                    {% if can('historia_clinica.imprimir') and consulta.plan_tratamiento.get('laboratorios') %}
+                    <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_orden_laboratorio', consulta_id=consulta['id']) }}"><i class="fas fa-vial me-2"></i>Imprimir laboratorio</a>
+                    {% endif %}
+                    {% if can('historia_clinica.imprimir') and consulta.plan_tratamiento.get('hoja_indicaciones') %}
+                    <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_hoja_indicaciones', consulta_id=consulta['id']) }}"><i class="fas fa-file-lines me-2"></i>Imprimir indicaciones</a>
+                    {% endif %}
                 </div>
             </div>
             <div class="detail-grid mt-4">
@@ -130,8 +136,16 @@
         <div class="hc-block border-0 px-0">
             <h2>Plan y tratamiento</h2>
             <div class="detail-grid">
-                {% for campo, etiqueta in [('laboratorios','Laboratorios'),('imagenes','Imágenes'),('procedimientos','Procedimientos'),('recomendaciones','Recomendaciones')] %}
-                <div class="detail-wide"><span>{{ etiqueta }}</span>{{ consulta.plan_tratamiento.get(campo) or 'N/D' }}</div>
+                {% for campo, etiqueta in [('laboratorios','Laboratorios'),('hoja_indicaciones','Hoja de indicaciones'),('imagenes','Imágenes'),('procedimientos','Procedimientos'),('recomendaciones','Recomendaciones')] %}
+                <div class="detail-wide">
+                    <span>{{ etiqueta }}</span>{{ consulta.plan_tratamiento.get(campo) or 'N/D' }}
+                    {% if campo == 'laboratorios' and can('historia_clinica.imprimir') and consulta.plan_tratamiento.get('laboratorios') %}
+                    <div class="mt-2 no-print"><a href="{{ url_for('facturacion_orden_laboratorio', consulta_id=consulta['id']) }}" target="_blank">Imprimir orden de laboratorio</a></div>
+                    {% endif %}
+                    {% if campo == 'hoja_indicaciones' and can('historia_clinica.imprimir') and consulta.plan_tratamiento.get('hoja_indicaciones') %}
+                    <div class="mt-2 no-print"><a href="{{ url_for('facturacion_hoja_indicaciones', consulta_id=consulta['id']) }}" target="_blank">Imprimir hoja de indicaciones</a></div>
+                    {% endif %}
+                </div>
                 {% endfor %}
             </div>
         </div>

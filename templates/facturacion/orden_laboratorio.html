@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+
+{% block title %}Orden de laboratorio - {{ consulta['paciente_nombre'] }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .lab-paper { max-width:900px; margin:1.5rem auto; padding:2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:var(--ars-shell-surface, #fff); }
+    .lab-title { margin-bottom:1.4rem; padding-bottom:1rem; border-bottom:2px solid var(--primary-color); text-align:center; }
+    .lab-title h1 { color:var(--primary-dark); font-size:1.55rem; }
+    .doc-centro { margin:0 0 1rem; color:#334155; font-size:.88rem; line-height:1.45; }
+    .lab-info { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
+    .lab-info-item { padding-bottom:.45rem; border-bottom:1px solid var(--ars-shell-border); }
+    .lab-info-item span { display:block; color:var(--ars-shell-muted); font-size:.74rem; }
+    .lab-studies { margin-top:1.5rem; white-space:pre-wrap; font-size:1.05rem; line-height:1.55; min-height:8rem; }
+    .lab-signature { margin-top:4rem; text-align:center; }
+    .lab-signature-line { width:290px; margin:0 auto .4rem; border-top:1px solid #222; }
+    @media(max-width:700px){.lab-info{grid-template-columns:1fr}.lab-paper{padding:1.2rem;margin:.5rem}}
+    @media print {
+        @page { size:Letter portrait; margin:10mm; }
+        .ars-shell-sidebar,.ars-shell-topbar,.ars-mobile-topbar,.no-print,footer{display:none!important}
+        .ars-shell-main,.ars-shell-content{margin:0!important;padding:0!important}
+        body{background:white!important}
+        .lab-paper{max-width:none;margin:0;padding:0;border:0;border-radius:0;box-shadow:none}
+        .lab-signature{margin-top:40px}
+    }
+</style>
+<div class="container py-3 no-print">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_ver', consulta_id=consulta['id']) }}"><i class="fas fa-arrow-left me-2"></i>Consulta</a>
+        <button class="btn btn-primary" type="button" data-csp-click="print"><i class="fas fa-print me-2"></i>Imprimir</button>
+    </div>
+</div>
+<article class="lab-paper">
+    <header class="lab-title">
+        {% include 'partials/_documento_membrete.html' %}
+        {% include 'partials/_documento_datos_centro.html' %}
+        <h1>Orden de laboratorio</h1>
+        {% if not papeleria or not papeleria.encabezado %}
+        <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ClinicRD' }}</div>
+        {% endif %}
+    </header>
+    <div class="lab-info">
+        <div class="lab-info-item"><span>Paciente</span><strong>{{ consulta['paciente_nombre'] }}</strong></div>
+        <div class="lab-info-item"><span>Identificación</span>{{ consulta['cedula'] or 'No registrada' }}</div>
+        <div class="lab-info-item"><span>Edad</span>{{ consulta['edad'] if consulta['edad'] is not none else '—' }}</div>
+        <div class="lab-info-item"><span>Fecha</span>{{ consulta['fecha'] }}</div>
+        <div class="lab-info-item"><span>Médico</span><strong>{{ consulta['medico_nombre'] }}</strong></div>
+        <div class="lab-info-item"><span>Diagnóstico</span>{{ consulta['diagnostico_principal'] or '—' }}</div>
+    </div>
+    <section class="mt-4">
+        <h2 class="h6 text-uppercase text-muted">Estudios solicitados</h2>
+        <div class="lab-studies">{{ estudios }}</div>
+    </section>
+    <div class="lab-signature">
+        <div class="lab-signature-line"></div>
+        <strong>{{ consulta['medico_nombre'] }}</strong><br>
+        <span>{{ consulta['medico_especialidad'] or '' }}{% if consulta['medico_exequatur'] %} · Exequátur {{ consulta['medico_exequatur'] }}{% endif %}</span>
+    </div>
+    {% include 'partials/_documento_pie.html' %}
+</article>
+{% if imprimir %}<script nonce="{{ csp_nonce }}">window.addEventListener('load',()=>setTimeout(()=>window.print(),150));</script>{% endif %}
+{% endblock %}

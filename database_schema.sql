@@ -627,6 +627,15 @@ CREATE TABLE IF NOT EXISTS usuario_medico (
 -- ============================================
 -- Historia clínica, recetas, licencias y emergencias
 -- ============================================
+CREATE TABLE IF NOT EXISTS catalogo_pruebas_laboratorio (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL DEFAULT 0,
+    nombre VARCHAR(160) NOT NULL,
+    busqueda VARCHAR(255) NOT NULL DEFAULT '',
+    activo TINYINT(1) NOT NULL DEFAULT 1,
+    UNIQUE KEY uq_lab_nombre (tenant_id, nombre)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS consultas_clinicas (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tenant_id INT NOT NULL,

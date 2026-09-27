@@ -81,9 +81,9 @@ REPRESENTATIVE_ACCESS = {
 
 # Contrato normalizado de las rutas de aplicación (se excluye la ruta
 # ``static`` que Flask agrega). El hash incluye endpoint, URL y métodos.
-ENDPOINT_CONTRACT_COUNT = 179
+ENDPOINT_CONTRACT_COUNT = 201
 ENDPOINT_CONTRACT_SHA256 = (
-    '226d347d4c9d5eb6c88fb286af05dd631777fe06fb85fc83bf9d732ff054acbc'
+    'ac9737773d504b8acbc7a96f0d89fcc03c3c08997790c694327e91a0162cfe82'
 )
 
 # Subconjunto legible que hace accionables las pérdidas en las áreas críticas.
@@ -148,6 +148,21 @@ IMPORTANT_ENDPOINTS = {
         'facturacion_historia_vincular_documento',
         '/facturacion/historia-clinica/consulta/<int:consulta_id>/vincular',
         ('POST',),
+    ),
+    (
+        'facturacion_orden_laboratorio',
+        '/facturacion/historia-clinica/consulta/<int:consulta_id>/orden-laboratorio',
+        ('GET',),
+    ),
+    (
+        'api_pruebas_laboratorio',
+        '/api/facturacion/pruebas-laboratorio',
+        ('GET',),
+    ),
+    (
+        'facturacion_hoja_indicaciones',
+        '/facturacion/historia-clinica/consulta/<int:consulta_id>/hoja-indicaciones',
+        ('GET',),
     ),
     ('facturacion_citas', '/facturacion/citas', ('GET',)),
     (
