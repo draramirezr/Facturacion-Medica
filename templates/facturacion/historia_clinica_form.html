@@ -62,8 +62,8 @@
             <div class="tab-content hc-form-card">
                 <div class="tab-pane fade show active" id="tab-consulta">
                     <div class="row">
-                        <div class="col-md-3 mb-3"><label class="form-label">Fecha *</label><input type="date" class="form-control" name="fecha" value="{{ fecha_actual }}" required></div>
-                        <div class="col-md-3 mb-3"><label class="form-label">Hora *</label><input type="time" class="form-control" name="hora" value="{{ hora_actual }}" required></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Fecha *</label><input type="date" class="form-control" name="fecha" id="consulta_fecha" value="{{ fecha_actual }}" {% if not consulta %}data-pc-date{% endif %} required></div>
+                        <div class="col-md-3 mb-3"><label class="form-label">Hora *</label><input type="time" class="form-control" name="hora" id="consulta_hora" value="{{ hora_actual }}" {% if not consulta %}data-pc-time{% endif %} required></div>
                         {% if turno_id %}<input type="hidden" name="turno_id" value="{{ turno_id }}">{% endif %}
                         <div class="col-md-6 mb-3">
                             <label class="form-label">Médico responsable *</label>
@@ -262,7 +262,7 @@
                         </div>
                         <div class="col-md-8"><label class="form-label">Diagnóstico de la licencia</label><input class="form-control" name="licencia_diagnostico" maxlength="5000" value="{{ consulta['diagnostico_principal'] if consulta else '' }}" placeholder="Si lo deja vacío se usa el diagnóstico de la consulta"></div>
                         <div class="col-12"><label class="form-label">Motivo / condición</label><textarea class="form-control" name="motivo_condicion" rows="2" placeholder="Si lo deja vacío se usa el motivo de consulta">{{ consulta['motivo_consulta'] if consulta else '' }}</textarea></div>
-                        <div class="col-md-3"><label class="form-label">Emisión</label><input type="date" class="form-control" name="fecha_emision" value="{{ fecha_actual }}"></div>
+                        <div class="col-md-3"><label class="form-label">Emisión</label><input type="date" class="form-control" name="fecha_emision" value="{{ fecha_actual }}" {% if not consulta %}data-pc-date{% endif %}></div>
                         <div class="col-md-3"><label class="form-label">Inicio</label><input type="date" class="form-control" id="hcFechaInicio" name="fecha_inicio"></div>
                         <div class="col-md-3"><label class="form-label">Término</label><input type="date" class="form-control" id="hcFechaTermino" name="fecha_termino"></div>
                         <div class="col-md-3"><label class="form-label">Estado</label><select class="form-select" name="licencia_estado"><option value="Emitida">Emitida</option><option value="Borrador">Borrador</option></select></div>
@@ -295,7 +295,7 @@
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/historia-clinica.js') }}?v=3"></script>
+<script src="{{ url_for('static', filename='js/historia-clinica.js') }}?v=4"></script>
 <script src="{{ url_for('static', filename='js/lab-picker.js') }}?v=1"></script>
-<script src="{{ url_for('static', filename='js/formulario-borrador.js') }}?v=1" nonce="{{ csp_nonce }}"></script>
+<script src="{{ url_for('static', filename='js/formulario-borrador.js') }}?v=2" nonce="{{ csp_nonce }}"></script>
 {% endblock %}

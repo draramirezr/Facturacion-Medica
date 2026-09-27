@@ -301,7 +301,18 @@ class HistoriaDocumentoLinkTests(unittest.TestCase):
         self.assertIn('name="medicamento[]"', template)
         self.assertIn('name="tipo_licencia_id"', template)
 
-    def test_consulta_print_url_includes_receta(self):
+    def test_consulta_print_url_includes_indicaciones(self):
+        with app_module.app.test_request_context('/'):
+            url = clinical_history.url_consulta_para_impresion(
+                8, plan={'hoja_indicaciones': 'Sonografía'}
+            )
+        self.assertIn('imprimir_indicaciones=1', url)
+        self.assertEqual(
+            clinical_history.texto_hoja_indicaciones({
+                'imagenes': 'Rayos X',
+            }),
+            'Estudios de imágenes:\nRayos X',
+        )
         with app_module.app.test_request_context('/'):
             url = clinical_history.url_consulta_para_impresion(8, receta_id=12)
         self.assertIn('/historia-clinica/consulta/8', url)

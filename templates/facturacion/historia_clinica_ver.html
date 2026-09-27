@@ -24,9 +24,15 @@
 <div class="container py-4">
     <div class="hc-view">
         <div class="hc-summary">
-            {% if imprimir_receta or imprimir_licencia %}
+            {% if imprimir_receta or imprimir_licencia or imprimir_indicaciones or imprimir_lab %}
             <div class="alert alert-primary no-print">
                 Entregue al paciente la copia impresa.
+                {% if imprimir_indicaciones and can('historia_clinica.imprimir') %}
+                <a class="alert-link" target="_blank" href="{{ url_for('facturacion_hoja_indicaciones', consulta_id=consulta['id']) }}">Imprimir indicaciones</a>
+                {% endif %}
+                {% if imprimir_lab and can('historia_clinica.imprimir') %}
+                <a class="alert-link" target="_blank" href="{{ url_for('facturacion_orden_laboratorio', consulta_id=consulta['id']) }}">Imprimir laboratorio</a>
+                {% endif %}
                 {% if imprimir_receta and can('recetas.imprimir') %}
                 <a class="alert-link" target="_blank" href="{{ url_for('facturacion_receta_medica_imprimir', receta_id=imprimir_receta) }}">Imprimir receta</a>
                 {% endif %}
@@ -37,19 +43,20 @@
             {% endif %}
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                 <div>
-                    <a href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=consulta['paciente_id']) }}" class="text-decoration-none"><i class="fas fa-arrow-left me-1"></i>Expediente</a>
-                    <h1 class="mt-2 mb-1">{{ consulta['paciente_nombre'] }}</h1>
-                    <p class="text-muted mb-0">Consulta del {{ consulta['fecha'] }} a las {{ consulta['hora'] }} · {{ consulta['medico_nombre'] }}</p>
+                    <a href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=consulta['paciente_id']) }}" class="text-decoration-none"><i class="fas fa-arrow-left me-1"></i>Volver al expediente del paciente</a>
+                    <p class="text-uppercase small fw-bold text-muted mt-3 mb-1">Consulta ya guardada en el expediente</p>
+                    <h1 class="mt-0 mb-1">{{ consulta['paciente_nombre'] }}</h1>
+                    <p class="text-muted mb-0">Esta pantalla es la visita del {{ consulta['fecha'] }} a las {{ consulta['hora']|hora_input }} · {{ consulta['medico_nombre'] }}. Aquí se revisa lo escrito, se imprime y se emite receta o licencia si hace falta.</p>
                 </div>
                 <div class="d-flex gap-2 flex-wrap">
-                    <button class="btn btn-primary" type="button" data-hc-tab="recetas"><i class="fas fa-prescription me-2"></i>Receta</button>
-                    <button class="btn btn-outline-primary" type="button" data-hc-tab="licencias"><i class="fas fa-file-medical me-2"></i>Licencia</button>
+                    <button class="btn btn-primary" type="button" data-hc-tab="recetas"><i class="fas fa-prescription me-2"></i>Ir a recetas</button>
+                    <button class="btn btn-outline-primary" type="button" data-hc-tab="licencias"><i class="fas fa-file-medical me-2"></i>Ir a licencias</button>
                     <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_editar', consulta_id=consulta['id']) }}"><i class="fas fa-pen me-2"></i>Editar con trazabilidad</a>
-                    {% if can('historia_clinica.imprimir') and consulta.plan_tratamiento.get('laboratorios') %}
+                    {% if can('historia_clinica.imprimir') and hay_laboratorio %}
                     <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_orden_laboratorio', consulta_id=consulta['id']) }}"><i class="fas fa-vial me-2"></i>Imprimir laboratorio</a>
                     {% endif %}
-                    {% if can('historia_clinica.imprimir') and consulta.plan_tratamiento.get('hoja_indicaciones') %}
-                    <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_hoja_indicaciones', consulta_id=consulta['id']) }}"><i class="fas fa-file-lines me-2"></i>Imprimir indicaciones</a>
+                    {% if can('historia_clinica.imprimir') %}
+                    <a class="btn btn-primary" target="_blank" href="{{ url_for('facturacion_hoja_indicaciones', consulta_id=consulta['id']) }}"><i class="fas fa-file-lines me-2"></i>Imprimir indicaciones</a>
                     {% endif %}
                     {% if can('recetas.imprimir') and recetas %}
                     <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_receta_medica_imprimir', receta_id=recetas[0]['id']) }}"><i class="fas fa-print me-2"></i>Imprimir receta</a>
@@ -80,6 +87,26 @@
 
         <div class="tab-content hc-tab-card">
             <div class="tab-pane fade show active" id="tab-consulta">
+        {% if can('historia_clinica.imprimir') or recetas or licencias %}
+        <div class="hc-block border-0 p-3 mb-4 no-print" style="border:1px solid var(--ars-shell-border)!important;border-radius:12px;">
+            <h2 class="mb-2" style="border:0;padding:0;">Imprimir para el paciente</h2>
+            <p class="text-muted small mb-3">Las indicaciones (imagen, referido, otros estudios), el laboratorio, la receta y la licencia se entregan desde aquí.</p>
+            <div class="d-flex gap-2 flex-wrap">
+                {% if can('historia_clinica.imprimir') %}
+                <a class="btn btn-primary" target="_blank" href="{{ url_for('facturacion_hoja_indicaciones', consulta_id=consulta['id']) }}"><i class="fas fa-file-lines me-2"></i>Imprimir indicaciones</a>
+                {% endif %}
+                {% if can('historia_clinica.imprimir') and hay_laboratorio %}
+                <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_orden_laboratorio', consulta_id=consulta['id']) }}"><i class="fas fa-vial me-2"></i>Imprimir laboratorio</a>
+                {% endif %}
+                {% if can('recetas.imprimir') and recetas %}
+                <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_receta_medica_imprimir', receta_id=recetas[0]['id']) }}"><i class="fas fa-print me-2"></i>Imprimir receta</a>
+                {% endif %}
+                {% if can('licencias.imprimir') and licencias %}
+                <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_licencia_medica_imprimir', licencia_id=licencias[0]['id']) }}"><i class="fas fa-print me-2"></i>Imprimir licencia</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
         <div class="hc-block border-0 p-0 mb-4">
             <h2>Motivo y enfermedad actual</h2>
             <p><span class="detail-label">Motivo de consulta</span>{{ consulta['motivo_consulta'] }}</p>
@@ -159,8 +186,8 @@
                     {% if campo == 'laboratorios' and can('historia_clinica.imprimir') and consulta.plan_tratamiento.get('laboratorios') %}
                     <div class="mt-2 no-print"><a href="{{ url_for('facturacion_orden_laboratorio', consulta_id=consulta['id']) }}" target="_blank">Imprimir orden de laboratorio</a></div>
                     {% endif %}
-                    {% if campo == 'hoja_indicaciones' and can('historia_clinica.imprimir') and consulta.plan_tratamiento.get('hoja_indicaciones') %}
-                    <div class="mt-2 no-print"><a href="{{ url_for('facturacion_hoja_indicaciones', consulta_id=consulta['id']) }}" target="_blank">Imprimir hoja de indicaciones</a></div>
+                    {% if campo == 'hoja_indicaciones' and can('historia_clinica.imprimir') %}
+                    <div class="mt-2 no-print"><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_hoja_indicaciones', consulta_id=consulta['id']) }}" target="_blank">Imprimir hoja de indicaciones</a></div>
                     {% endif %}
                 </div>
                 {% endfor %}
@@ -416,6 +443,12 @@
     {% endif %}
     {% if imprimir_licencia and can('licencias.imprimir') %}
     printUrls.push({{ url_for('facturacion_licencia_medica_imprimir', licencia_id=imprimir_licencia)|tojson }});
+    {% endif %}
+    {% if imprimir_indicaciones and can('historia_clinica.imprimir') %}
+    printUrls.push({{ url_for('facturacion_hoja_indicaciones', consulta_id=consulta['id'])|tojson }});
+    {% endif %}
+    {% if imprimir_lab and can('historia_clinica.imprimir') %}
+    printUrls.push({{ url_for('facturacion_orden_laboratorio', consulta_id=consulta['id'])|tojson }});
     {% endif %}
     printUrls.forEach((url, index) => {
         window.setTimeout(() => window.open(url, '_blank', 'noopener'), 200 + index * 400);

@@ -49,6 +49,9 @@
             }
             const lista = Array.isArray(valor) ? valor : [valor];
             campos.forEach((campo, indice) => {
+                if (campo.hasAttribute('data-pc-date') || campo.hasAttribute('data-pc-time')) {
+                    return;
+                }
                 if (lista[indice] !== undefined) {
                     campo.value = lista[indice];
                 }

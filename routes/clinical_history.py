@@ -9,6 +9,7 @@ from flask_login import current_user, login_required
 
 from auth import permission_required, user_has_permission
 from clinical_specialties import get_specialty_schema, validate_specialty_data
+from core.clock import ahora_clinica, fecha_clinica
 from core.database import execute_query, execute_update, transactional_methods
 from core.presentation import hora_input
 from core.tenant import get_current_tenant_id
@@ -28,13 +29,37 @@ from services.subscriptions import get_empresa_info
 from turnos import EstadoTurno
 
 
-def url_consulta_para_impresion(consulta_id, receta_id=None, licencia_id=None):
+def texto_hoja_indicaciones(plan):
+    """Texto para imprimir: hoja libre más imagen, procedimientos y recomendaciones."""
+    plan = plan or {}
+    partes = []
+    for titulo, clave in (
+        ('', 'hoja_indicaciones'),
+        ('Estudios de imágenes', 'imagenes'),
+        ('Procedimientos', 'procedimientos'),
+        ('Recomendaciones', 'recomendaciones'),
+    ):
+        valor = str(plan.get(clave) or '').strip()
+        if not valor:
+            continue
+        partes.append(f'{titulo}:\n{valor}' if titulo else valor)
+    return '\n\n'.join(partes).strip()
+
+
+def url_consulta_para_impresion(
+    consulta_id, receta_id=None, licencia_id=None, plan=None,
+):
     """Tras guardar, abrir la consulta y las hojas que el paciente debe llevar."""
     extra = {}
+    plan = plan or {}
     if receta_id:
         extra['imprimir_receta'] = receta_id
     if licencia_id:
         extra['imprimir_licencia'] = licencia_id
+    if texto_hoja_indicaciones(plan):
+        extra['imprimir_indicaciones'] = 1
+    if str(plan.get('laboratorios') or '').strip():
+        extra['imprimir_lab'] = 1
     return url_for(
         'facturacion_historia_clinica_ver', consulta_id=consulta_id, **extra
     )
@@ -152,7 +177,7 @@ def obtener_consulta_clinica_formulario():
         medico_id = int(medico_id)
     except (ValueError, TypeError):
         return None, 'La fecha, hora o médico no es válido'
-    if fecha_consulta > datetime.now().date():
+    if fecha_consulta > fecha_clinica():
         return None, 'La fecha de la consulta no puede ser futura'
 
     def texto(nombre, limite=5000):
@@ -865,6 +890,7 @@ def facturacion_historia_clinica_nueva(paciente_id):
         )
         return redirect(url_consulta_para_impresion(
             consulta_id, receta_id, licencia_id,
+            plan=datos['plan_tratamiento'],
         ))
     medicos = execute_query(
         'SELECT id, nombre, especialidad FROM medicos '
@@ -885,8 +911,8 @@ def facturacion_historia_clinica_nueva(paciente_id):
     return render_template(
         'facturacion/historia_clinica_form.html',
         paciente=paciente, medicos=medicos, consulta=None,
-        fecha_actual=datetime.now().strftime('%Y-%m-%d'),
-        hora_actual=datetime.now().strftime('%H:%M'),
+        fecha_actual=ahora_clinica().strftime('%Y-%m-%d'),
+        hora_actual=ahora_clinica().strftime('%H:%M'),
         tipos_licencia=tipos_licencia,
         esquema_especialidad=get_specialty_schema(
             medicos[0].get('especialidad')
@@ -998,6 +1024,13 @@ def facturacion_historia_clinica_ver(consulta_id):
         imprimir_receta = None
     if imprimir_licencia not in licencia_ids:
         imprimir_licencia = None
+    plan = consulta.get('plan_tratamiento') or {}
+    hay_indicaciones = bool(texto_hoja_indicaciones(plan))
+    hay_laboratorio = bool(str(plan.get('laboratorios') or '').strip())
+    imprimir_indicaciones = (
+        request.args.get('imprimir_indicaciones') == '1' and hay_indicaciones
+    )
+    imprimir_lab = request.args.get('imprimir_lab') == '1' and hay_laboratorio
     return render_template(
         'facturacion/historia_clinica_ver.html',
         consulta=consulta, evoluciones=evoluciones,
@@ -1007,8 +1040,12 @@ def facturacion_historia_clinica_ver(consulta_id):
         tipos_licencia=tipos_licencia,
         imprimir_receta=imprimir_receta,
         imprimir_licencia=imprimir_licencia,
-        fecha_actual=datetime.now().strftime('%Y-%m-%d'),
-        hora_actual=datetime.now().strftime('%H:%M')
+        imprimir_indicaciones=imprimir_indicaciones,
+        imprimir_lab=imprimir_lab,
+        hay_indicaciones=hay_indicaciones,
+        hay_laboratorio=hay_laboratorio,
+        fecha_actual=ahora_clinica().strftime('%Y-%m-%d'),
+        hora_actual=ahora_clinica().strftime('%H:%M')
     )
 
 
@@ -1175,6 +1212,7 @@ def facturacion_historia_clinica_editar(consulta_id):
         )
         return redirect(url_consulta_para_impresion(
             consulta_id, receta_id, licencia_id,
+            plan=datos['plan_tratamiento'],
         ))
     medicos = execute_query(
         'SELECT id, nombre, especialidad FROM medicos '
@@ -1235,7 +1273,7 @@ def facturacion_historia_clinica_evolucion(consulta_id):
     except (ValueError, TypeError):
         flash('Los datos de la evolución no son válidos', 'error')
         return redirect(url_for('facturacion_historia_clinica_ver', consulta_id=consulta_id))
-    if fecha_evolucion < consulta['fecha'] or fecha_evolucion > datetime.now().date():
+    if fecha_evolucion < consulta['fecha'] or fecha_evolucion > fecha_clinica():
         flash('La fecha de evolución debe estar entre la consulta y hoy', 'error')
         return redirect(url_for('facturacion_historia_clinica_ver', consulta_id=consulta_id))
     medico = execute_query(
@@ -1302,11 +1340,10 @@ def facturacion_hoja_indicaciones(consulta_id):
     if not consulta:
         flash('Consulta no encontrada', 'error')
         return redirect(url_for('facturacion_historia_clinica'))
-    texto_hoja = (consulta.get('plan_tratamiento') or {}).get('hoja_indicaciones') or ''
-    texto_hoja = str(texto_hoja).strip()
+    texto_hoja = texto_hoja_indicaciones(consulta.get('plan_tratamiento'))
     if not texto_hoja:
         flash(
-            'Escribe las indicaciones en el plan de la consulta (Hoja de indicaciones) y vuelve a imprimir.',
+            'Escribe imagen, referido u otras indicaciones en el plan de la consulta y vuelve a imprimir.',
             'error',
         )
         return redirect(url_for('facturacion_historia_clinica_ver', consulta_id=consulta_id))

@@ -1,6 +1,22 @@
 (function () {
     'use strict';
 
+    const pad2 = (value) => String(value).padStart(2, '0');
+    const nowOnThisPc = () => {
+        const now = new Date();
+        return {
+            date: `${now.getFullYear()}-${pad2(now.getMonth() + 1)}-${pad2(now.getDate())}`,
+            time: `${pad2(now.getHours())}:${pad2(now.getMinutes())}`,
+        };
+    };
+    const clock = nowOnThisPc();
+    document.querySelectorAll('[data-pc-date]').forEach((input) => {
+        input.value = clock.date;
+    });
+    document.querySelectorAll('[data-pc-time]').forEach((input) => {
+        input.value = clock.time;
+    });
+
     const createElement = (tagName, className, text) => {
         const element = document.createElement(tagName);
         if (className) {
