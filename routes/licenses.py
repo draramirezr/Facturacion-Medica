@@ -8,7 +8,7 @@ from datetime import datetime
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from auth import permission_required
+from auth import permission_required, user_has_permission
 from core.database import execute_query, execute_update, transactional_methods
 from core.tenant import get_current_tenant_id
 from routes.patients import paciente_adulto_sin_cedula
@@ -16,6 +16,7 @@ from routes.support import (
     calcular_edad_clinica, execute_paginated_query, id_consulta_retorno,
     sanitize_input, url_historia_clinica, validate_int,
 )
+from services.subscriptions import get_empresa_info
 
 
 def medico_id_licencias_restringido():
@@ -131,21 +132,22 @@ def contexto_formulario_licencia(
     }
 
 
-def validar_datos_licencia(tenant_id):
-    paciente_id = validate_int(request.form.get('paciente_id'), min_value=1, default=None)
+def validar_datos_licencia(tenant_id, fuente=None):
+    form = fuente if fuente is not None else request.form
+    paciente_id = validate_int(form.get('paciente_id'), min_value=1, default=None)
     medico_id = (
         medico_id_licencias_restringido()
-        or validate_int(request.form.get('medico_id'), min_value=1, default=None)
+        or validate_int(form.get('medico_id'), min_value=1, default=None)
     )
-    consulta_id = validate_int(request.form.get('consulta_id'), min_value=1, default=None)
-    tipo_id = validate_int(request.form.get('tipo_licencia_id'), min_value=1, default=None)
-    diagnostico = sanitize_input(request.form.get('diagnostico', ''), 5000)
-    motivo = sanitize_input(request.form.get('motivo_condicion', ''), 5000)
-    observaciones = sanitize_input(request.form.get('observaciones', ''), 5000)
-    fecha_emision = request.form.get('fecha_emision', '').strip()
-    fecha_inicio = request.form.get('fecha_inicio', '').strip()
-    fecha_termino = request.form.get('fecha_termino', '').strip()
-    estado = request.form.get('estado', 'Borrador').strip()
+    consulta_id = validate_int(form.get('consulta_id'), min_value=1, default=None)
+    tipo_id = validate_int(form.get('tipo_licencia_id'), min_value=1, default=None)
+    diagnostico = sanitize_input(form.get('diagnostico', ''), 5000)
+    motivo = sanitize_input(form.get('motivo_condicion', ''), 5000)
+    observaciones = sanitize_input(form.get('observaciones', ''), 5000)
+    fecha_emision = (form.get('fecha_emision') or '').strip()
+    fecha_inicio = (form.get('fecha_inicio') or '').strip()
+    fecha_termino = (form.get('fecha_termino') or '').strip()
+    estado = (form.get('estado') or 'Borrador').strip()
 
     if not all([paciente_id, medico_id, tipo_id, diagnostico, motivo,
                 fecha_emision, fecha_inicio, fecha_termino]):
@@ -204,6 +206,126 @@ def validar_datos_licencia(tenant_id):
         'fecha_termino': termino, 'cantidad_dias': cantidad_dias,
         'estado': estado
     }, None
+
+
+def insertar_licencia_medica(tenant_id, datos):
+    codigo = None
+    while not codigo:
+        candidato = (
+            f"LM-{datetime.now().strftime('%Y%m%d')}-"
+            f"{secrets.token_hex(3).upper()}"
+        )
+        if not execute_query(
+            "SELECT id FROM licencias_medicas WHERE tenant_id=%s AND codigo=%s",
+            (tenant_id, candidato)
+        ):
+            codigo = candidato
+    licencia_id = execute_update(
+        """
+        INSERT INTO licencias_medicas (
+            tenant_id, codigo, paciente_id, medico_id, consulta_id,
+            tipo_licencia_id, diagnostico, motivo_condicion,
+            observaciones, fecha_emision, fecha_inicio, fecha_termino,
+            cantidad_dias, estado, created_by, updated_by
+        ) VALUES (
+            %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+            %s, %s, %s, %s
+        )
+        """,
+        (
+            tenant_id, codigo, datos['paciente_id'], datos['medico_id'],
+            datos['consulta_id'], datos['tipo_id'], datos['diagnostico'],
+            datos['motivo'], datos['observaciones'],
+            datos['fecha_emision'], datos['fecha_inicio'],
+            datos['fecha_termino'], datos['cantidad_dias'],
+            datos['estado'], current_user.id, current_user.id
+        )
+    )
+    execute_update(
+        """
+        INSERT INTO auditoria_licencias_medicas (
+            tenant_id, licencia_id, usuario_id, accion, datos_nuevos,
+            ip, user_agent
+        ) VALUES (%s, %s, %s, 'Creación', %s, %s, %s)
+        """,
+        (
+            tenant_id, licencia_id, current_user.id,
+            json.dumps(datos, default=str, ensure_ascii=False),
+            request.remote_addr, (request.user_agent.string or '')[:500]
+        )
+    )
+    return licencia_id
+
+
+def emitir_licencia_desde_consulta(
+    tenant_id, paciente_id, medico_id, consulta_id,
+    diagnostico_consulta, motivo_consulta,
+):
+    """Si eligió tipo de licencia en la consulta, registrarla."""
+    if not user_has_permission(current_user, 'licencias.crear'):
+        return
+    if not request.form.get('tipo_licencia_id'):
+        return
+    fuente = {
+        'paciente_id': paciente_id,
+        'medico_id': medico_id,
+        'consulta_id': consulta_id,
+        'tipo_licencia_id': request.form.get('tipo_licencia_id'),
+        'diagnostico': (
+            request.form.get('licencia_diagnostico')
+            or diagnostico_consulta
+            or ''
+        ),
+        'motivo_condicion': (
+            request.form.get('motivo_condicion') or motivo_consulta or ''
+        ),
+        'observaciones': request.form.get('licencia_observaciones', ''),
+        'fecha_emision': (
+            request.form.get('fecha_emision') or request.form.get('fecha') or ''
+        ),
+        'fecha_inicio': request.form.get('fecha_inicio', ''),
+        'fecha_termino': request.form.get('fecha_termino', ''),
+        'estado': request.form.get('licencia_estado') or 'Emitida',
+    }
+    datos, error = validar_datos_licencia(tenant_id, fuente)
+    if error:
+        flash(error, 'error')
+        return
+    duplicada = execute_query(
+        """
+        SELECT id FROM licencias_medicas
+        WHERE tenant_id=%s AND paciente_id=%s AND medico_id=%s
+          AND fecha_inicio=%s AND fecha_termino=%s
+          AND diagnostico=%s AND estado<>'Anulada'
+        """,
+        (tenant_id, datos['paciente_id'], datos['medico_id'],
+         datos['fecha_inicio'], datos['fecha_termino'], datos['diagnostico'])
+    )
+    if duplicada:
+        flash('Ya existe una licencia igual; se evitó crear un duplicado', 'error')
+        return
+    solapada = execute_query(
+        """
+        SELECT codigo, fecha_inicio, fecha_termino
+        FROM licencias_medicas
+        WHERE tenant_id=%s AND paciente_id=%s AND estado<>'Anulada'
+          AND fecha_inicio<=%s AND fecha_termino>=%s
+        LIMIT 1
+        """,
+        (tenant_id, datos['paciente_id'],
+         datos['fecha_termino'], datos['fecha_inicio'])
+    )
+    if solapada and request.form.get('confirmar_solapamiento') != '1':
+        flash(
+            f"El período se solapa con {solapada['codigo']} "
+            f"({solapada['fecha_inicio']} a {solapada['fecha_termino']}). "
+            "Marque la confirmación para continuar o edite las fechas.",
+            'warning'
+        )
+        return
+    licencia_id = insertar_licencia_medica(tenant_id, datos)
+    flash('Licencia médica registrada. Imprímala para entregársela al paciente.', 'success')
+    return licencia_id
 
 
 @login_required
@@ -357,48 +479,7 @@ def facturacion_licencias_medicas_nueva():
                 advertencia_solapamiento=True, **contexto
             )
 
-        codigo = None
-        while not codigo:
-            candidato = f"LM-{datetime.now().strftime('%Y%m%d')}-{secrets.token_hex(3).upper()}"
-            if not execute_query(
-                "SELECT id FROM licencias_medicas WHERE tenant_id=%s AND codigo=%s",
-                (tenant_id, candidato)
-            ):
-                codigo = candidato
-        licencia_id = execute_update(
-            """
-            INSERT INTO licencias_medicas (
-                tenant_id, codigo, paciente_id, medico_id, consulta_id,
-                tipo_licencia_id, diagnostico, motivo_condicion,
-                observaciones, fecha_emision, fecha_inicio, fecha_termino,
-                cantidad_dias, estado, created_by, updated_by
-            ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s
-            )
-            """,
-            (
-                tenant_id, codigo, datos['paciente_id'], datos['medico_id'],
-                datos['consulta_id'], datos['tipo_id'], datos['diagnostico'],
-                datos['motivo'], datos['observaciones'],
-                datos['fecha_emision'], datos['fecha_inicio'],
-                datos['fecha_termino'], datos['cantidad_dias'],
-                datos['estado'], current_user.id, current_user.id
-            )
-        )
-        execute_update(
-            """
-            INSERT INTO auditoria_licencias_medicas (
-                tenant_id, licencia_id, usuario_id, accion, datos_nuevos,
-                ip, user_agent
-            ) VALUES (%s, %s, %s, 'Creación', %s, %s, %s)
-            """,
-            (
-                tenant_id, licencia_id, current_user.id,
-                json.dumps(datos, default=str, ensure_ascii=False),
-                request.remote_addr, (request.user_agent.string or '')[:500]
-            )
-        )
+        licencia_id = insertar_licencia_medica(tenant_id, datos)
         flash('Licencia médica registrada exitosamente', 'success')
         volver = id_consulta_retorno()
         if volver:
@@ -445,7 +526,8 @@ def facturacion_licencia_medica_ver(licencia_id):
     ) or []
     return render_template(
         'facturacion/licencia_medica_ver.html',
-        licencia=licencia, auditoria=auditoria, imprimir=False
+        licencia=licencia, auditoria=auditoria, imprimir=False,
+        centro=get_empresa_info(tenant_id) or {},
     )
 
 
@@ -606,7 +688,8 @@ def facturacion_licencia_medica_imprimir(licencia_id):
     )
     return render_template(
         'facturacion/licencia_medica_ver.html',
-        licencia=licencia, auditoria=[], imprimir=True
+        licencia=licencia, auditoria=[], imprimir=True,
+        centro=get_empresa_info(get_current_tenant_id()) or {},
     )
 
 

@@ -13,8 +13,12 @@ from core.database import execute_query, execute_update, transactional_methods
 from core.presentation import hora_input
 from core.tenant import get_current_tenant_id
 from routes.appointments import actualizar_citas_vencidas
-from routes.licenses import actualizar_licencias_vencidas
+from routes.licenses import (
+    actualizar_licencias_vencidas,
+    emitir_licencia_desde_consulta,
+)
 from routes.patients import paciente_adulto_sin_cedula
+from routes.prescriptions import emitir_receta_desde_consulta
 from routes.support import (
     calcular_edad_clinica, execute_paginated_query, sanitize_input,
     url_historia_clinica, validate_int,
@@ -22,6 +26,18 @@ from routes.support import (
 from routes.turnos_screens import obtener_turno_tenant, registrar_evento_turno
 from services.subscriptions import get_empresa_info
 from turnos import EstadoTurno
+
+
+def url_consulta_para_impresion(consulta_id, receta_id=None, licencia_id=None):
+    """Tras guardar, abrir la consulta y las hojas que el paciente debe llevar."""
+    extra = {}
+    if receta_id:
+        extra['imprimir_receta'] = receta_id
+    if licencia_id:
+        extra['imprimir_licencia'] = licencia_id
+    return url_for(
+        'facturacion_historia_clinica_ver', consulta_id=consulta_id, **extra
+    )
 
 
 def medico_id_historias_restringido():
@@ -839,7 +855,17 @@ def facturacion_historia_clinica_nueva(paciente_id):
             flash(error_agenda, 'warning')
         else:
             flash('Consulta clínica registrada y seguimiento agregado a la agenda', 'success')
-        return redirect(url_for('facturacion_historia_clinica_ver', consulta_id=consulta_id))
+        receta_id = emitir_receta_desde_consulta(
+            tenant_id, paciente_id, datos['medico_id'], consulta_id,
+            datos['fecha'], datos['diagnostico_principal'], datos['codigo_cie10'],
+        )
+        licencia_id = emitir_licencia_desde_consulta(
+            tenant_id, paciente_id, datos['medico_id'], consulta_id,
+            datos['diagnostico_principal'], datos['motivo_consulta'],
+        )
+        return redirect(url_consulta_para_impresion(
+            consulta_id, receta_id, licencia_id,
+        ))
     medicos = execute_query(
         'SELECT id, nombre, especialidad FROM medicos '
         'WHERE tenant_id = %s AND activo = 1 '
@@ -851,11 +877,17 @@ def facturacion_historia_clinica_nueva(paciente_id):
         ),
         fetch='all',
     ) or []
+    tipos_licencia = execute_query(
+        'SELECT id, nombre FROM tipos_licencia_medica '
+        'WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
+        (tenant_id,), fetch='all',
+    ) or []
     return render_template(
         'facturacion/historia_clinica_form.html',
         paciente=paciente, medicos=medicos, consulta=None,
         fecha_actual=datetime.now().strftime('%Y-%m-%d'),
         hora_actual=datetime.now().strftime('%H:%M'),
+        tipos_licencia=tipos_licencia,
         esquema_especialidad=get_specialty_schema(
             medicos[0].get('especialidad')
             if medico_id_restringido and medicos else ''
@@ -954,6 +986,18 @@ def facturacion_historia_clinica_ver(consulta_id):
         'WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
         (tenant_id,), fetch='all'
     ) or []
+    receta_ids = {item['id'] for item in recetas}
+    licencia_ids = {item['id'] for item in licencias}
+    imprimir_receta = validate_int(
+        request.args.get('imprimir_receta'), min_value=1, default=None
+    )
+    imprimir_licencia = validate_int(
+        request.args.get('imprimir_licencia'), min_value=1, default=None
+    )
+    if imprimir_receta not in receta_ids:
+        imprimir_receta = None
+    if imprimir_licencia not in licencia_ids:
+        imprimir_licencia = None
     return render_template(
         'facturacion/historia_clinica_ver.html',
         consulta=consulta, evoluciones=evoluciones,
@@ -961,6 +1005,8 @@ def facturacion_historia_clinica_ver(consulta_id):
         recetas=recetas, recetas_disponibles=recetas_disponibles,
         licencias=licencias, licencias_disponibles=licencias_disponibles,
         tipos_licencia=tipos_licencia,
+        imprimir_receta=imprimir_receta,
+        imprimir_licencia=imprimir_licencia,
         fecha_actual=datetime.now().strftime('%Y-%m-%d'),
         hora_actual=datetime.now().strftime('%H:%M')
     )
@@ -1119,7 +1165,17 @@ def facturacion_historia_clinica_editar(consulta_id):
             flash(error_agenda, 'warning')
         else:
             flash('Consulta actualizada y próxima cita sincronizada con la agenda', 'success')
-        return redirect(url_for('facturacion_historia_clinica_ver', consulta_id=consulta_id))
+        receta_id = emitir_receta_desde_consulta(
+            tenant_id, consulta['paciente_id'], datos['medico_id'], consulta_id,
+            datos['fecha'], datos['diagnostico_principal'], datos['codigo_cie10'],
+        )
+        licencia_id = emitir_licencia_desde_consulta(
+            tenant_id, consulta['paciente_id'], datos['medico_id'], consulta_id,
+            datos['diagnostico_principal'], datos['motivo_consulta'],
+        )
+        return redirect(url_consulta_para_impresion(
+            consulta_id, receta_id, licencia_id,
+        ))
     medicos = execute_query(
         'SELECT id, nombre, especialidad FROM medicos '
         'WHERE tenant_id=%s AND activo=1 '
@@ -1131,10 +1187,16 @@ def facturacion_historia_clinica_editar(consulta_id):
         ),
         fetch='all',
     ) or []
+    tipos_licencia = execute_query(
+        'SELECT id, nombre FROM tipos_licencia_medica '
+        'WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
+        (tenant_id,), fetch='all',
+    ) or []
     return render_template(
         'facturacion/historia_clinica_form.html',
         paciente=consulta, medicos=medicos, consulta=consulta,
         fecha_actual=consulta['fecha'], hora_actual=str(consulta['hora'])[:5],
+        tipos_licencia=tipos_licencia,
         esquema_especialidad=consulta['esquema_especialidad'],
         datos_especialidad=consulta['datos_especialidad'],
         historias_restringidas=bool(medico_id_restringido),

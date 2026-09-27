@@ -7,18 +7,148 @@ from datetime import datetime
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from auth import permission_required
+from auth import permission_required, user_has_permission
 from core.database import execute_query, execute_update, transactional_methods
 from core.tenant import get_current_tenant_id
 from routes.support import (
-    execute_paginated_query, id_consulta_retorno, sanitize_input, validate_int,
+    calcular_edad_clinica, execute_paginated_query, id_consulta_retorno,
+    sanitize_input, url_historia_clinica, validate_int,
 )
+from services.subscriptions import get_empresa_info
 from services.tenant_mail import notificar_paciente
 
 
 def clave_nombre_medicamento(nombre):
     """Normalizar el nombre para comparar duplicados sin mayúsculas ni espacios extra."""
     return ' '.join(str(nombre or '').split()).casefold()
+
+
+def medicamentos_desde_formulario():
+    """Leer filas de medicamento[] del POST. Vacío si no hay receta."""
+    nombres = request.form.getlist('medicamento[]')
+    presentaciones = request.form.getlist('presentacion[]')
+    dosis = request.form.getlist('dosis[]')
+    vias = request.form.getlist('via[]')
+    frecuencias = request.form.getlist('frecuencia[]')
+    duraciones = request.form.getlist('duracion[]')
+    cantidades = request.form.getlist('cantidad[]')
+    indicaciones = request.form.getlist('indicaciones[]')
+    medicamentos = []
+    nombres_usados = set()
+    for indice, nombre in enumerate(nombres):
+        nombre = sanitize_input(nombre, 250)
+        if not nombre:
+            continue
+        clave = clave_nombre_medicamento(nombre)
+        if clave in nombres_usados:
+            return [], 'Este medicamento ya está en la receta. No se puede agregar dos veces.'
+        nombres_usados.add(clave)
+        dosis_item = sanitize_input(
+            dosis[indice] if indice < len(dosis) else '', 150
+        )
+        frecuencia = sanitize_input(
+            frecuencias[indice] if indice < len(frecuencias) else '', 150
+        )
+        duracion = sanitize_input(
+            duraciones[indice] if indice < len(duraciones) else '', 150
+        )
+        if not all([dosis_item, frecuencia, duracion]):
+            return [], 'Cada medicamento requiere dosis, frecuencia y duración'
+        medicamentos.append({
+            'medicamento': nombre,
+            'presentacion': sanitize_input(
+                presentaciones[indice] if indice < len(presentaciones) else '', 150
+            ),
+            'dosis': dosis_item,
+            'via': sanitize_input(
+                vias[indice] if indice < len(vias) else '', 100
+            ),
+            'frecuencia': frecuencia,
+            'duracion': duracion,
+            'cantidad': sanitize_input(
+                cantidades[indice] if indice < len(cantidades) else '', 100
+            ),
+            'indicaciones': sanitize_input(
+                indicaciones[indice] if indice < len(indicaciones) else '', 2000
+            ),
+        })
+    return medicamentos, None
+
+
+def insertar_receta_emitida(
+    tenant_id, paciente_id, medico_id, consulta_id, fecha_obj,
+    diagnostico, codigo_cie10, indicaciones_generales, medicamentos,
+):
+    codigo_temporal = f"TMP-{secrets.token_hex(8)}"
+    receta_id = execute_update('''
+        INSERT INTO recetas_medicas (
+            tenant_id, codigo, paciente_id, medico_id, consulta_id,
+            fecha, diagnostico, codigo_cie10,
+            indicaciones_generales, estado, created_by
+        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'Emitida',%s)
+    ''', (
+        tenant_id, codigo_temporal, paciente_id, medico_id,
+        consulta_id, fecha_obj, diagnostico or None,
+        codigo_cie10 or None, indicaciones_generales or None,
+        current_user.id
+    ))
+    codigo = f"REC-{fecha_obj.year}-{receta_id:06d}"
+    execute_update(
+        'UPDATE recetas_medicas SET codigo=%s WHERE id=%s AND tenant_id=%s',
+        (codigo, receta_id, tenant_id)
+    )
+    for orden, item in enumerate(medicamentos, 1):
+        execute_update('''
+            INSERT INTO receta_medicamentos (
+                tenant_id, receta_id, medicamento, presentacion,
+                dosis, via, frecuencia, duracion, cantidad,
+                indicaciones, orden
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
+        ''', (
+            tenant_id, receta_id, item['medicamento'],
+            item['presentacion'] or None, item['dosis'],
+            item['via'] or None, item['frecuencia'],
+            item['duracion'], item['cantidad'] or None,
+            item['indicaciones'] or None, orden
+        ))
+    return receta_id
+
+
+def emitir_receta_desde_consulta(
+    tenant_id, paciente_id, medico_id, consulta_id, fecha_obj,
+    diagnostico, codigo_cie10,
+):
+    """Si el médico llenó medicamentos en la consulta, emitir la receta."""
+    if not user_has_permission(current_user, 'recetas.crear'):
+        return
+    medicamentos, error = medicamentos_desde_formulario()
+    if error:
+        flash(error, 'error')
+        return
+    if not medicamentos:
+        return
+    if isinstance(fecha_obj, str):
+        try:
+            fecha_obj = datetime.strptime(fecha_obj[:10], '%Y-%m-%d').date()
+        except ValueError:
+            flash('La fecha de la receta no es válida', 'error')
+            return
+    receta_id = insertar_receta_emitida(
+        tenant_id, paciente_id, medico_id, consulta_id, fecha_obj,
+        diagnostico, codigo_cie10,
+        sanitize_input(request.form.get('indicaciones_generales', ''), 5000),
+        medicamentos,
+    )
+    flash('Receta médica emitida. Imprímala para entregársela al paciente.', 'success')
+    ok, _detalle = notificar_paciente(
+        tenant_id,
+        paciente_id,
+        'Su receta médica',
+        '<p>Se emitió una receta médica a su nombre. Consulte al consultorio si necesita el detalle.</p>',
+    )
+    if ok:
+        flash('Se envió un aviso al correo del paciente.', 'info')
+    return receta_id
 
 
 def medico_id_recetas_restringido():
@@ -240,98 +370,15 @@ def facturacion_recetas_medicas_nueva():
         ):
             flash('El paciente y médico deben coincidir con la Historia Clínica', 'error')
         else:
-            nombres = request.form.getlist('medicamento[]')
-            presentaciones = request.form.getlist('presentacion[]')
-            dosis = request.form.getlist('dosis[]')
-            vias = request.form.getlist('via[]')
-            frecuencias = request.form.getlist('frecuencia[]')
-            duraciones = request.form.getlist('duracion[]')
-            cantidades = request.form.getlist('cantidad[]')
-            indicaciones = request.form.getlist('indicaciones[]')
-            medicamentos = []
-            nombres_usados = set()
-            for indice, nombre in enumerate(nombres):
-                nombre = sanitize_input(nombre, 250)
-                if not nombre:
-                    continue
-                clave = clave_nombre_medicamento(nombre)
-                if clave in nombres_usados:
-                    medicamentos = []
-                    flash(
-                        'Este medicamento ya está en la receta. '
-                        'No se puede agregar dos veces.',
-                        'error'
-                    )
-                    break
-                nombres_usados.add(clave)
-                dosis_item = sanitize_input(
-                    dosis[indice] if indice < len(dosis) else '', 150
+            medicamentos, error_meds = medicamentos_desde_formulario()
+            if error_meds:
+                flash(error_meds, 'error')
+            elif medicamentos:
+                receta_id = insertar_receta_emitida(
+                    tenant_id, paciente_id, medico_id, consulta_id, fecha_obj,
+                    diagnostico, codigo_cie10, indicaciones_generales,
+                    medicamentos,
                 )
-                frecuencia = sanitize_input(
-                    frecuencias[indice] if indice < len(frecuencias) else '', 150
-                )
-                duracion = sanitize_input(
-                    duraciones[indice] if indice < len(duraciones) else '', 150
-                )
-                if not all([dosis_item, frecuencia, duracion]):
-                    medicamentos = []
-                    flash(
-                        'Cada medicamento requiere dosis, frecuencia y duración',
-                        'error'
-                    )
-                    break
-                medicamentos.append({
-                    'medicamento': nombre,
-                    'presentacion': sanitize_input(
-                        presentaciones[indice] if indice < len(presentaciones) else '', 150
-                    ),
-                    'dosis': dosis_item,
-                    'via': sanitize_input(
-                        vias[indice] if indice < len(vias) else '', 100
-                    ),
-                    'frecuencia': frecuencia,
-                    'duracion': duracion,
-                    'cantidad': sanitize_input(
-                        cantidades[indice] if indice < len(cantidades) else '', 100
-                    ),
-                    'indicaciones': sanitize_input(
-                        indicaciones[indice] if indice < len(indicaciones) else '', 2000
-                    )
-                })
-            if medicamentos:
-                codigo_temporal = f"TMP-{secrets.token_hex(8)}"
-                receta_id = execute_update('''
-                    INSERT INTO recetas_medicas (
-                        tenant_id, codigo, paciente_id, medico_id, consulta_id,
-                        fecha, diagnostico, codigo_cie10,
-                        indicaciones_generales, estado, created_by
-                    ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,'Emitida',%s)
-                ''', (
-                    tenant_id, codigo_temporal, paciente_id, medico_id,
-                    consulta_id, fecha_obj, diagnostico or None,
-                    codigo_cie10 or None, indicaciones_generales or None,
-                    current_user.id
-                ))
-                codigo = f"REC-{fecha_obj.year}-{receta_id:06d}"
-                execute_update(
-                    'UPDATE recetas_medicas SET codigo=%s '
-                    'WHERE id=%s AND tenant_id=%s',
-                    (codigo, receta_id, tenant_id)
-                )
-                for orden, item in enumerate(medicamentos, 1):
-                    execute_update('''
-                        INSERT INTO receta_medicamentos (
-                            tenant_id, receta_id, medicamento, presentacion,
-                            dosis, via, frecuencia, duracion, cantidad,
-                            indicaciones, orden
-                        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
-                    ''', (
-                        tenant_id, receta_id, item['medicamento'],
-                        item['presentacion'] or None, item['dosis'],
-                        item['via'] or None, item['frecuencia'],
-                        item['duracion'], item['cantidad'] or None,
-                        item['indicaciones'] or None, orden
-                    ))
                 flash('Receta médica emitida correctamente', 'success')
                 ok, _detalle = notificar_paciente(
                     tenant_id,
@@ -372,8 +419,12 @@ def facturacion_receta_medica_ver(receta_id):
     receta['edad'] = calcular_edad_clinica(
         receta.get('fecha_nacimiento'), receta['fecha']
     )
+    tenant_id = get_current_tenant_id()
     return render_template(
-        'facturacion/receta_medica_ver.html', receta=receta, imprimir=False
+        'facturacion/receta_medica_ver.html',
+        receta=receta,
+        imprimir=False,
+        centro=get_empresa_info(tenant_id) or {},
     )
 
 
@@ -387,8 +438,12 @@ def facturacion_receta_medica_imprimir(receta_id):
     receta['edad'] = calcular_edad_clinica(
         receta.get('fecha_nacimiento'), receta['fecha']
     )
+    tenant_id = get_current_tenant_id()
     return render_template(
-        'facturacion/receta_medica_ver.html', receta=receta, imprimir=True
+        'facturacion/receta_medica_ver.html',
+        receta=receta,
+        imprimir=True,
+        centro=get_empresa_info(tenant_id) or {},
     )
 
 

@@ -8,6 +8,7 @@
     .rx-paper { max-width:900px; margin:1.5rem auto; padding:2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:var(--ars-shell-surface, #fff); position:relative; }
     .rx-title { margin-bottom:1.4rem; padding-bottom:1rem; border-bottom:2px solid var(--primary-color); text-align:center; }
     .rx-title h1 { color:var(--primary-dark); font-size:1.7rem; }
+    .doc-centro { margin:0 0 1rem; color:#334155; font-size:.88rem; line-height:1.45; }
     .rx-info { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; }
     .rx-info-item { padding-bottom:.45rem; border-bottom:1px solid var(--ars-shell-border); }
     .rx-info-item span { display:block; color:var(--ars-shell-muted); font-size:.74rem; }
@@ -29,7 +30,7 @@
 </style>
 <div class="container py-3 no-print">
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-        <a class="btn btn-outline-primary" href="{{ url_for('facturacion_recetas_medicas') }}"><i class="fas fa-arrow-left me-2"></i>Recetas</a>
+            <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_ver', consulta_id=receta['consulta_id']) if receta['consulta_id'] else url_for('facturacion_recetas_medicas') }}"><i class="fas fa-arrow-left me-2"></i>{{ 'Consulta' if receta['consulta_id'] else 'Recetas' }}</a>
         <div class="d-flex gap-2">
             <a class="btn btn-primary" target="_blank" href="{{ url_for('facturacion_receta_medica_imprimir',receta_id=receta['id']) }}"><i class="fas fa-print me-2"></i>Imprimir</a>
             {% if receta['estado']!='Anulada' %}<button class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#annulModal"><i class="fas fa-ban me-2"></i>Anular</button>{% endif %}
@@ -40,6 +41,7 @@
     {% if receta['estado']=='Anulada' %}<div class="rx-annulled">ANULADA</div>{% endif %}
     <header class="rx-title">
         {% include 'partials/_documento_membrete.html' %}
+        {% include 'partials/_documento_datos_centro.html' %}
         <h1>Receta Médica</h1>
         {% if not papeleria or not papeleria.encabezado %}
         <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ClinicRD' }}</div>

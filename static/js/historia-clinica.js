@@ -233,4 +233,25 @@
             }
         });
     });
+
+    const rows = document.getElementById('hcMedicineRows');
+    const addMedicine = document.getElementById('hcAddMedicine');
+    if (rows && addMedicine) {
+        addMedicine.addEventListener('click', () => {
+            const copy = rows.firstElementChild.cloneNode(true);
+            copy.querySelectorAll('input').forEach((input) => { input.value = ''; });
+            rows.appendChild(copy);
+        });
+        rows.addEventListener('click', (event) => {
+            const button = event.target.closest('.hc-remove-medicine');
+            if (!button) {
+                return;
+            }
+            if (rows.children.length > 1) {
+                button.closest('.medicine-row').remove();
+            } else {
+                rows.querySelectorAll('input').forEach((input) => { input.value = ''; });
+            }
+        });
+    }
 }());

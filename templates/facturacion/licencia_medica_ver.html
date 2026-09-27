@@ -8,6 +8,7 @@
     .license-paper { max-width: 980px; margin: 1.5rem auto; background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}25; border-radius: 15px; padding: 2rem; position: relative; }
     .license-title { text-align: center; border-bottom: 2px solid var(--primary-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
     .license-title h1 { color: var(--primary-dark); font-size: 1.7rem; margin-bottom: .2rem; }
+    .doc-centro { margin:0 0 1rem; color:#334155; font-size:.88rem; line-height:1.45; }
     .license-code { font-weight: 800; letter-spacing: .05em; }
     .license-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; }
     .license-item { border-bottom: 1px solid {{ tema.primary }}20; padding-bottom: .5rem; }
@@ -101,6 +102,7 @@
     {% if licencia['estado'] == 'Anulada' %}<div class="annulled">ANULADA</div>{% endif %}
     <header class="license-title">
         {% include 'partials/_documento_membrete.html' %}
+        {% include 'partials/_documento_datos_centro.html' %}
         <h1>Licencia Médica</h1>
         {% if not papeleria or not papeleria.encabezado %}
         <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ClinicRD' }}</div>

@@ -54,6 +54,8 @@
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-examen" type="button">Examen físico</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-diagnostico" type="button">Diagnóstico</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-plan" type="button">Plan</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-receta" type="button">Receta</button></li>
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-licencia" type="button">Licencia</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-seguimiento" type="button">Seguimiento</button></li>
             </ul>
 
@@ -215,6 +217,63 @@
                     </div>
                 </div>
 
+                <div class="tab-pane fade" id="tab-receta">
+                    {% if can('recetas.crear') %}
+                    <h2 class="hc-section-title">Receta de esta consulta</h2>
+                    <p class="text-muted">Opcional. Al registrar la consulta se emite la receta con estos medicamentos.</p>
+                    <div class="mb-3">
+                        <label class="form-label">Indicaciones generales</label>
+                        <textarea class="form-control" name="indicaciones_generales" rows="2" maxlength="5000"></textarea>
+                    </div>
+                    <div id="hcMedicineRows">
+                        <div class="medicine-row mb-3">
+                            <div class="d-flex justify-content-between mb-2"><strong>Medicamento</strong><button class="btn btn-sm btn-outline-secondary hc-remove-medicine" type="button">Quitar</button></div>
+                            <div class="row g-2">
+                                <div class="col-lg-5"><input class="form-control" name="medicamento[]" maxlength="250" placeholder="Nombre"></div>
+                                <div class="col-lg-3"><input class="form-control" name="presentacion[]" maxlength="150" placeholder="Presentación"></div>
+                                <div class="col-lg-2"><input class="form-control" name="dosis[]" maxlength="150" placeholder="Dosis"></div>
+                                <div class="col-lg-2"><input class="form-control" name="via[]" maxlength="100" placeholder="Vía"></div>
+                                <div class="col-lg-4"><input class="form-control" name="frecuencia[]" maxlength="150" placeholder="Frecuencia"></div>
+                                <div class="col-lg-4"><input class="form-control" name="duracion[]" maxlength="150" placeholder="Duración"></div>
+                                <div class="col-lg-4"><input class="form-control" name="cantidad[]" maxlength="100" placeholder="Cantidad"></div>
+                                <div class="col-12"><input class="form-control" name="indicaciones[]" maxlength="2000" placeholder="Indicaciones"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <button class="btn btn-outline-primary" id="hcAddMedicine" type="button">Agregar medicamento</button>
+                    {% else %}
+                    <p class="text-muted mb-0">No tiene permiso para emitir recetas.</p>
+                    {% endif %}
+                </div>
+
+                <div class="tab-pane fade" id="tab-licencia">
+                    {% if can('licencias.crear') %}
+                    <h2 class="hc-section-title">Licencia médica</h2>
+                    <p class="text-muted">Opcional. Elija un tipo y las fechas; al guardar la consulta se registra la licencia.</p>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Tipo</label>
+                            <select class="form-select" name="tipo_licencia_id">
+                                <option value="">Sin licencia en esta consulta</option>
+                                {% for tipo in tipos_licencia|default([]) %}
+                                <option value="{{ tipo['id'] }}">{{ tipo['nombre'] }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-8"><label class="form-label">Diagnóstico de la licencia</label><input class="form-control" name="licencia_diagnostico" maxlength="5000" value="{{ consulta['diagnostico_principal'] if consulta else '' }}" placeholder="Si lo deja vacío se usa el diagnóstico de la consulta"></div>
+                        <div class="col-12"><label class="form-label">Motivo / condición</label><textarea class="form-control" name="motivo_condicion" rows="2" placeholder="Si lo deja vacío se usa el motivo de consulta">{{ consulta['motivo_consulta'] if consulta else '' }}</textarea></div>
+                        <div class="col-md-3"><label class="form-label">Emisión</label><input type="date" class="form-control" name="fecha_emision" value="{{ fecha_actual }}"></div>
+                        <div class="col-md-3"><label class="form-label">Inicio</label><input type="date" class="form-control" id="hcFechaInicio" name="fecha_inicio"></div>
+                        <div class="col-md-3"><label class="form-label">Término</label><input type="date" class="form-control" id="hcFechaTermino" name="fecha_termino"></div>
+                        <div class="col-md-3"><label class="form-label">Estado</label><select class="form-select" name="licencia_estado"><option value="Emitida">Emitida</option><option value="Borrador">Borrador</option></select></div>
+                        <div class="col-12"><label class="form-label">Observaciones</label><textarea class="form-control" name="licencia_observaciones" rows="2"></textarea></div>
+                        <div class="col-12"><label class="form-check"><input class="form-check-input" type="checkbox" name="confirmar_solapamiento" value="1"> <span class="form-check-label">Continuar aunque exista otra licencia en el mismo período</span></label></div>
+                    </div>
+                    {% else %}
+                    <p class="text-muted mb-0">No tiene permiso para emitir licencias.</p>
+                    {% endif %}
+                </div>
+
                 <div class="tab-pane fade" id="tab-seguimiento">
                     <div class="mb-3"><label class="form-label">Nota de evolución de esta consulta</label><textarea class="form-control" name="nota_evolucion_inicial" rows="4">{{ consulta['nota_evolucion_inicial'] if consulta else '' }}</textarea></div>
                     <h2 class="hc-section-title">Próxima cita</h2>
@@ -231,11 +290,12 @@
             <div class="d-flex justify-content-end mt-3">
                 <button class="btn btn-primary px-4" type="submit"><i class="fas fa-save me-2"></i>{{ 'Guardar nueva versión' if consulta else 'Registrar consulta' }}</button>
             </div>
+            <p class="text-muted small mt-2 mb-0">Si llenó Receta o Licencia, se emiten al guardar.</p>
         </form>
     </div>
 </div>
 
-<script src="{{ url_for('static', filename='js/historia-clinica.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='js/historia-clinica.js') }}?v=3"></script>
 <script src="{{ url_for('static', filename='js/lab-picker.js') }}?v=1"></script>
 <script src="{{ url_for('static', filename='js/formulario-borrador.js') }}?v=1" nonce="{{ csp_nonce }}"></script>
 {% endblock %}

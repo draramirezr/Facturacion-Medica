@@ -289,6 +289,24 @@ class HistoriaDocumentoLinkTests(unittest.TestCase):
         self.assertIn("volver_consulta_id", template)
         self.assertIn("Relacionar receta existente", template)
 
+    def test_form_template_has_receta_and_licencia_tabs(self):
+        template = (
+            Path(app_module.__file__).resolve().parent
+            / "templates"
+            / "facturacion"
+            / "historia_clinica_form.html"
+        ).read_text(encoding="utf-8")
+        self.assertIn('id="tab-receta"', template)
+        self.assertIn('id="tab-licencia"', template)
+        self.assertIn('name="medicamento[]"', template)
+        self.assertIn('name="tipo_licencia_id"', template)
+
+    def test_consulta_print_url_includes_receta(self):
+        with app_module.app.test_request_context('/'):
+            url = clinical_history.url_consulta_para_impresion(8, receta_id=12)
+        self.assertIn('/historia-clinica/consulta/8', url)
+        self.assertIn('imprimir_receta=12', url)
+
     def test_links_existing_recipe_of_same_patient(self):
         handler = self._unwrapped(
             clinical_history.facturacion_historia_vincular_documento

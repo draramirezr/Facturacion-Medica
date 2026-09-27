@@ -24,6 +24,17 @@
 <div class="container py-4">
     <div class="hc-view">
         <div class="hc-summary">
+            {% if imprimir_receta or imprimir_licencia %}
+            <div class="alert alert-primary no-print">
+                Entregue al paciente la copia impresa.
+                {% if imprimir_receta and can('recetas.imprimir') %}
+                <a class="alert-link" target="_blank" href="{{ url_for('facturacion_receta_medica_imprimir', receta_id=imprimir_receta) }}">Imprimir receta</a>
+                {% endif %}
+                {% if imprimir_licencia and can('licencias.imprimir') %}
+                <a class="alert-link" target="_blank" href="{{ url_for('facturacion_licencia_medica_imprimir', licencia_id=imprimir_licencia) }}">Imprimir licencia</a>
+                {% endif %}
+            </div>
+            {% endif %}
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
                 <div>
                     <a href="{{ url_for('facturacion_historia_clinica_expediente', paciente_id=consulta['paciente_id']) }}" class="text-decoration-none"><i class="fas fa-arrow-left me-1"></i>Expediente</a>
@@ -39,6 +50,12 @@
                     {% endif %}
                     {% if can('historia_clinica.imprimir') and consulta.plan_tratamiento.get('hoja_indicaciones') %}
                     <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_hoja_indicaciones', consulta_id=consulta['id']) }}"><i class="fas fa-file-lines me-2"></i>Imprimir indicaciones</a>
+                    {% endif %}
+                    {% if can('recetas.imprimir') and recetas %}
+                    <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_receta_medica_imprimir', receta_id=recetas[0]['id']) }}"><i class="fas fa-print me-2"></i>Imprimir receta</a>
+                    {% endif %}
+                    {% if can('licencias.imprimir') and licencias %}
+                    <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_licencia_medica_imprimir', licencia_id=licencias[0]['id']) }}"><i class="fas fa-print me-2"></i>Imprimir licencia</a>
                     {% endif %}
                 </div>
             </div>
@@ -209,6 +226,9 @@
                     <div><strong>{{ receta['codigo'] }}</strong><small class="d-block text-muted">{{ receta['fecha'] }} · {{ receta['medicamentos'] }} medicamento(s) · {{ receta['estado'] }}</small></div>
                     <div class="d-flex gap-2">
                         <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_receta_medica_ver',receta_id=receta['id']) }}">Ver</a>
+                        {% if can('recetas.imprimir') %}
+                        <a class="btn btn-sm btn-primary" target="_blank" href="{{ url_for('facturacion_receta_medica_imprimir', receta_id=receta['id']) }}">Imprimir</a>
+                        {% endif %}
                         {% if can('recetas.crear') %}
                         <form method="POST" action="{{ url_for('facturacion_historia_vincular_documento', consulta_id=consulta['id']) }}">
                             <input type="hidden" name="tipo" value="receta">
@@ -282,6 +302,9 @@
                     </div>
                     <div class="d-flex gap-2">
                         <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_licencia_medica_ver', licencia_id=licencia['id']) }}">Ver</a>
+                        {% if can('licencias.imprimir') %}
+                        <a class="btn btn-sm btn-primary" target="_blank" href="{{ url_for('facturacion_licencia_medica_imprimir', licencia_id=licencia['id']) }}">Imprimir</a>
+                        {% endif %}
                         {% if can('licencias.crear') %}
                         <form method="POST" action="{{ url_for('facturacion_historia_vincular_documento', consulta_id=consulta['id']) }}">
                             <input type="hidden" name="tipo" value="licencia">
@@ -387,6 +410,16 @@
             }
         });
     }
+    const printUrls = [];
+    {% if imprimir_receta and can('recetas.imprimir') %}
+    printUrls.push({{ url_for('facturacion_receta_medica_imprimir', receta_id=imprimir_receta)|tojson }});
+    {% endif %}
+    {% if imprimir_licencia and can('licencias.imprimir') %}
+    printUrls.push({{ url_for('facturacion_licencia_medica_imprimir', licencia_id=imprimir_licencia)|tojson }});
+    {% endif %}
+    printUrls.forEach((url, index) => {
+        window.setTimeout(() => window.open(url, '_blank', 'noopener'), 200 + index * 400);
+    });
 })();
 </script>
 {% endblock %}
