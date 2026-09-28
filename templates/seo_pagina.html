@@ -76,7 +76,7 @@
         <p>{{ seo.descripcion }}</p>
         {% if seo.clave == 'preguntas-frecuentes' %}
         <dl class="faq">
-            {% for item in seo.faq %}
+            {% for item in seo.faq if not item.ocultar_en_pagina %}
             <dt>{{ item.pregunta }}</dt>
             <dd>{{ item.respuesta }}</dd>
             {% endfor %}

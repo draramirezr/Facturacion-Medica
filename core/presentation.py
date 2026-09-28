@@ -209,6 +209,7 @@ FAQ_SEO = (
             'médica, turnos, recetas, licencias, ARS, reclamaciones, e-CF, '
             'consultorio, clínica y centro de salud en República Dominicana.'
         ),
+        'ocultar_en_pagina': True,
     },
 )
 
@@ -522,6 +523,7 @@ def datos_seo(clave='inicio'):
             },
         }
         for item in FAQ_SEO
+        if not item.get('ocultar_en_pagina')
     ]
     graph = [
         {
