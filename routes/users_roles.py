@@ -20,7 +20,11 @@ from rbac_catalog import PERMISOS_POR_GRUPO, TODOS_LOS_PERMISOS
 from routes.support import (
     sanitize_input, validar_password_segura, validate_email, validate_int,
 )
-from services.ecf_operations import obtener_configuracion_ecf_tenant
+from services.ecf_operations import (
+    contexto_certificado_ecf_configuracion,
+    obtener_configuracion_ecf_tenant,
+    procesar_formulario_certificado_ecf,
+)
 from services.subscriptions import check_license_available, get_empresa_info
 from services.tenant_mail import resumen_correo_empresa
 
@@ -890,8 +894,25 @@ def perfil_configuracion():
                 flash('Correo del consultorio guardado', 'success')
             return redirect(url_for('perfil_configuracion'))
 
-        if request.form.get('accion') == 'certificado_ecf':
-            return redirect(url_for('facturacion_dgii_certificado'))
+        if request.form.get('accion') in {
+            'certificado_ecf',
+            'certificado_ecf_guardar',
+            'certificado_ecf_pruebas',
+        }:
+            if not user_has_permission(current_user, 'configuracion.editar'):
+                flash('No tienes permiso para cargar el certificado e-CF', 'error')
+                return redirect(url_for('perfil_configuracion', _anchor='certificado-ecf'))
+            tenant_id = get_current_tenant_id()
+            if not tenant_id:
+                flash('El certificado e-CF es de cada consultorio, no de la plataforma.', 'error')
+                return redirect(url_for('perfil_configuracion'))
+            _ok, mensaje, categoria = procesar_formulario_certificado_ecf(
+                tenant_id,
+                current_user.id,
+                get_empresa_info(tenant_id) or {},
+            )
+            flash(mensaje, categoria)
+            return redirect(url_for('perfil_configuracion', _anchor='certificado-ecf'))
 
         if request.form.get('accion') == 'papeleria':
             if not user_has_permission(current_user, 'configuracion.editar') and not usuario_es_administrador(current_user):
@@ -1028,6 +1049,10 @@ def perfil_configuracion():
                 })
             except ECFCertificateResolutionError as error:
                 ecf_certificado['mensaje'] = str(error)
+        if tenant_id:
+            ecf_certificado.update(
+                contexto_certificado_ecf_configuracion(tenant_id, empresa_actual)
+            )
 
     correo_smtp = {'configurado': False}
     if user_has_permission(current_user, 'configuracion.editar'):

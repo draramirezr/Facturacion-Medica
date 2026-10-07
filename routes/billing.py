@@ -20,7 +20,7 @@ from ecf import ECFBuildError, ECFBuilder, ECFCertificateResolutionError, ECFPri
 from routes.patients import paciente_adulto_sin_cedula
 from routes.support import execute_paginated_query, sanitize_input, validate_int
 from services.subscriptions import get_empresa_info
-from services.ecf_operations import consultar_resultado_ecf_dgii, ecf_habilitado_para_tenant, emisor_ecf_para_xml, fecha_vencimiento_secuencia_ecf, guardar_resultado_pruebas_ecf, obtener_configuracion_ecf_tenant, procesar_envio_ecf_dgii, upsert_configuracion_ecf_tenant
+from services.ecf_operations import consultar_resultado_ecf_dgii, ecf_habilitado_para_tenant, emisor_ecf_para_xml, fecha_vencimiento_secuencia_ecf, obtener_configuracion_ecf_tenant, procesar_envio_ecf_dgii
 logger = logging.getLogger(__name__)
 try:
     from sendgrid import SendGridAPIClient
@@ -4394,155 +4394,11 @@ def facturacion_generar_final():
             cursor.close()
 
 
-def _pasos_pruebas_ecf(cfg):
-    raw = (cfg or {}).get('last_test_json') or ''
-    if not raw:
-        return None
-    try:
-        return json.loads(raw)
-    except (TypeError, ValueError):
-        return None
-
-
 @login_required
 @permission_required('configuracion.editar')
 def facturacion_dgii_certificado():
-    """Certificado DGII, datos del emisor y batería de pruebas."""
-    from ecf.fecha_secuencia import normalize_fecha_vencimiento_secuencia
-    from ecf.tests_runner import run_dgii_pruebas
-
-    tenant_id = get_current_tenant_id()
-    if not tenant_id:
-        flash('El certificado e-CF es de cada consultorio, no de la plataforma.', 'error')
-        return redirect(url_for('facturacion_menu'))
-
-    empresa_info = get_empresa_info(tenant_id) or {}
-    cfg = obtener_configuracion_ecf_tenant(tenant_id) or {}
-    config = current_app.config['ECF_CONFIG']
-
-    if request.method == 'POST':
-        accion = (request.form.get('accion') or 'guardar').strip()
-        rnc = re.sub(r'\D', '', request.form.get('rnc_emisor') or '')
-        razon = sanitize_input(request.form.get('razon_social_emisor') or '', 200)
-        direccion = sanitize_input(request.form.get('direccion_emisor') or '', 255)
-        fecha_seq = normalize_fecha_vencimiento_secuencia(
-            f"{request.form.get('vence_dia', '').strip()}-"
-            f"{request.form.get('vence_mes', '').strip()}-"
-            f"{request.form.get('vence_anio', '').strip()}"
-        )
-        ambiente = str(request.form.get('ambiente') or config.environment).strip().upper()
-        if ambiente not in {'PRUEBAS', 'CERTIFICACION', 'PRODUCCION'}:
-            ambiente = config.environment
-        if not fecha_seq and (
-            request.form.get('vence_dia')
-            or request.form.get('vence_mes')
-            or request.form.get('vence_anio')
-        ):
-            flash(
-                'La fecha de vencimiento de secuencia debe ser día-mes-año válido (formato DGII).',
-                'error',
-            )
-            return redirect(url_for('facturacion_dgii_certificado'))
-
-        campos = {
-            'rnc_emisor': rnc or None,
-            'razon_social_emisor': razon or None,
-            'direccion_emisor': direccion or None,
-            'fecha_vencimiento_secuencia': fecha_seq or None,
-            'ambiente': ambiente,
-        }
-        if ambiente == 'PRODUCCION' and request.form.get('produccion_confirmada') == '1':
-            campos['produccion_confirmada'] = 1
-
-        if accion == 'certificado':
-            archivo = request.files.get('certificado_p12')
-            password = request.form.get('certificado_password', '')
-            nombre = (archivo.filename or '').lower() if archivo else ''
-            if not archivo or not nombre.endswith(('.p12', '.pfx')):
-                flash('Sube un certificado PKCS#12 (.p12 o .pfx).', 'error')
-                return redirect(url_for('facturacion_dgii_certificado'))
-            firmante = rnc or str(empresa_info.get('rnc') or '').strip()
-            if not firmante:
-                flash('Indica el RNC emisor antes de cargar el certificado.', 'error')
-                return redirect(url_for('facturacion_dgii_certificado'))
-            try:
-                metadata = TenantCertificateProvider(config).store(
-                    tenant_id, archivo.read(), password, firmante
-                )
-            except ECFCertificateResolutionError as error:
-                flash(str(error), 'error')
-                return redirect(url_for('facturacion_dgii_certificado'))
-            campos.update({
-                'certificado_referencia': f'tenant-{tenant_id}/certificate.p12',
-                'secreto_referencia': f'tenant-{tenant_id}/password.txt',
-                'certificado_huella': metadata.fingerprint,
-                'certificado_vence': metadata.valid_until.date(),
-                'certificado_validado_en': datetime.now(),
-            })
-            upsert_configuracion_ecf_tenant(tenant_id, campos, current_user.id)
-            tenant_cfg = obtener_configuracion_ecf_tenant(tenant_id)
-            resultado = run_dgii_pruebas(
-                config=config,
-                tenant_id=tenant_id,
-                tenant_config=tenant_cfg,
-                issuer_rnc=firmante,
-            )
-            guardar_resultado_pruebas_ecf(tenant_id, resultado, current_user.id)
-            flash(
-                'Certificado guardado. ' + (
-                    'Pruebas DGII correctas.'
-                    if resultado.get('ok')
-                    else 'Revise los pasos de prueba con DGII.'
-                ),
-                'success' if resultado.get('ok') else 'warning',
-            )
-            return redirect(url_for('facturacion_dgii_certificado'))
-
-        upsert_configuracion_ecf_tenant(tenant_id, campos, current_user.id)
-        if accion == 'pruebas':
-            tenant_cfg = obtener_configuracion_ecf_tenant(tenant_id)
-            firmante = rnc or str(empresa_info.get('rnc') or '').strip()
-            resultado = run_dgii_pruebas(
-                config=config,
-                tenant_id=tenant_id,
-                tenant_config=tenant_cfg,
-                issuer_rnc=firmante,
-            )
-            guardar_resultado_pruebas_ecf(tenant_id, resultado, current_user.id)
-            flash(
-                'Pruebas DGII correctas.' if resultado.get('ok') else 'Algún paso de prueba falló.',
-                'success' if resultado.get('ok') else 'warning',
-            )
-            return redirect(url_for('facturacion_dgii_certificado'))
-
-        flash('Datos del emisor e-CF guardados.', 'success')
-        return redirect(url_for('facturacion_dgii_certificado'))
-
-    fecha_parts = ['', '', '']
-    fecha_cfg = (cfg.get('fecha_vencimiento_secuencia') or '').strip()
-    if fecha_cfg:
-        from ecf.fecha_secuencia import normalize_fecha_vencimiento_secuencia
-        normalized = normalize_fecha_vencimiento_secuencia(fecha_cfg)
-        if normalized:
-            fecha_parts = normalized.split('-')
-    certificado_status = {
-        'configurado': bool(cfg.get('certificado_referencia') or cfg.get('certificado_huella')),
-        'huella': cfg.get('certificado_huella') or '',
-        'vence': cfg.get('certificado_vence'),
-        'ambiente_servidor': config.environment,
-        'almacen_disponible': bool(config.tenant_secrets_root),
-    }
-    return render_template(
-        'facturacion/dgii_certificado.html',
-        cfg=cfg,
-        empresa_info=empresa_info,
-        certificado_status=certificado_status,
-        pruebas=_pasos_pruebas_ecf(cfg),
-        vence_dia=fecha_parts[0],
-        vence_mes=fecha_parts[1],
-        vence_anio=fecha_parts[2],
-        ambiente_form=cfg.get('ambiente') or config.environment,
-    )
+    """La UI vive en Configuración; se conserva la ruta por compatibilidad."""
+    return redirect(url_for('perfil_configuracion', _anchor='certificado-ecf'))
 
 
 def register_billing_routes(app):

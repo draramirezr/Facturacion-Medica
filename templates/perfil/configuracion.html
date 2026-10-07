@@ -309,7 +309,8 @@
     {% endif %}
 
     {% if ecf_certificado %}
-    <section class="settings-card">
+    {% set cfg = ecf_certificado.cfg or {} %}
+    <section class="settings-card" id="certificado-ecf">
         <h2 class="settings-card-title">Certificado de facturación electrónica</h2>
         <p class="settings-card-subtitle">
             El certificado pertenece exclusivamente a esta cuenta. La contraseña nunca se muestra ni se guarda en la base de datos.
@@ -320,6 +321,9 @@
             <div>
                 <strong>{{ 'Certificado listo' if ecf_certificado.valido else 'Configuración pendiente' }}</strong>
                 <div>{{ ecf_certificado.mensaje }}</div>
+                {% if not ecf_certificado.almacen_disponible %}
+                <div class="mt-1">El servidor no tiene almacén por consultorio (volumen e-CF).</div>
+                {% endif %}
                 {% if ecf_certificado.compatibilidad_global %}
                 <div class="mt-1">Modo temporal de compatibilidad: debe migrarse antes de producción.</div>
                 {% endif %}
@@ -328,7 +332,7 @@
 
         <div class="certificate-grid">
             <div class="certificate-item">
-                <small>Ambiente</small>
+                <small>Ambiente del servidor</small>
                 <strong>{{ ecf_certificado.ambiente }}</strong>
             </div>
             <div class="certificate-item">
@@ -341,12 +345,102 @@
             </div>
         </div>
 
-        <p class="settings-card-subtitle mb-3">
-            Los datos del emisor, el archivo PKCS#12 y las pruebas DGII están en Facturación.
-        </p>
-        <a class="btn btn-primary" href="{{ url_for('facturacion_dgii_certificado') }}">
-            Abrir certificado e-CF
-        </a>
+        <form method="POST" action="{{ url_for('perfil_configuracion') }}" class="mt-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label" for="rnc_emisor">RNC emisor</label>
+                    <input class="form-control" id="rnc_emisor" name="rnc_emisor" maxlength="20"
+                           value="{{ cfg.get('rnc_emisor') or (ecf_certificado.empresa_info or {}).get('rnc') or '' }}">
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label" for="razon_social_emisor">Razón social</label>
+                    <input class="form-control" id="razon_social_emisor" name="razon_social_emisor" maxlength="200"
+                           value="{{ cfg.get('razon_social_emisor') or (ecf_certificado.empresa_info or {}).get('razon_social') or (ecf_certificado.empresa_info or {}).get('nombre') or '' }}">
+                </div>
+                <div class="col-12">
+                    <label class="form-label" for="direccion_emisor">Dirección</label>
+                    <input class="form-control" id="direccion_emisor" name="direccion_emisor" maxlength="255"
+                           value="{{ cfg.get('direccion_emisor') or (ecf_certificado.empresa_info or {}).get('direccion') or '' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="vence_dia">Día</label>
+                    <input class="form-control" id="vence_dia" name="vence_dia" maxlength="2" placeholder="dd" value="{{ ecf_certificado.vence_dia or '' }}">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="vence_mes">Mes</label>
+                    <input class="form-control" id="vence_mes" name="vence_mes" maxlength="2" placeholder="mm" value="{{ ecf_certificado.vence_mes or '' }}">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="vence_anio">Año</label>
+                    <input class="form-control" id="vence_anio" name="vence_anio" maxlength="4" placeholder="yyyy" value="{{ ecf_certificado.vence_anio or '' }}">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label" for="ambiente">Ambiente de la cuenta</label>
+                    <select class="form-select" id="ambiente" name="ambiente">
+                        {% for amb in ['PRUEBAS', 'CERTIFICACION', 'PRODUCCION'] %}
+                        <option value="{{ amb }}" {% if ecf_certificado.ambiente_form == amb %}selected{% endif %}>{{ amb }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-12">
+                    <label class="form-check">
+                        <input class="form-check-input" type="checkbox" name="produccion_confirmada" value="1"
+                               {% if cfg.get('produccion_confirmada') %}checked{% endif %}>
+                        Confirmar producción (solo si el servidor está en PRODUCCION)
+                    </label>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button class="btn btn-primary" type="submit" name="accion" value="certificado_ecf_guardar">Guardar datos</button>
+                <button class="btn btn-outline-primary" type="submit" name="accion" value="certificado_ecf_pruebas">Repetir pruebas DGII</button>
+            </div>
+        </form>
+
+        <form method="POST" action="{{ url_for('perfil_configuracion') }}" enctype="multipart/form-data" class="mt-4">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input type="hidden" name="rnc_emisor" value="{{ cfg.get('rnc_emisor') or (ecf_certificado.empresa_info or {}).get('rnc') or '' }}">
+            <input type="hidden" name="razon_social_emisor" value="{{ cfg.get('razon_social_emisor') or (ecf_certificado.empresa_info or {}).get('razon_social') or (ecf_certificado.empresa_info or {}).get('nombre') or '' }}">
+            <input type="hidden" name="direccion_emisor" value="{{ cfg.get('direccion_emisor') or (ecf_certificado.empresa_info or {}).get('direccion') or '' }}">
+            <input type="hidden" name="vence_dia" value="{{ ecf_certificado.vence_dia or '' }}">
+            <input type="hidden" name="vence_mes" value="{{ ecf_certificado.vence_mes or '' }}">
+            <input type="hidden" name="vence_anio" value="{{ ecf_certificado.vence_anio or '' }}">
+            <input type="hidden" name="ambiente" value="{{ ecf_certificado.ambiente_form or ecf_certificado.ambiente }}">
+            <p class="settings-card-subtitle mb-3">
+                Cargue el archivo .p12 o .pfx de DGII de esta empresa. Queda en el volumen, aislado por consultorio.
+            </p>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="certificado_p12">Archivo del certificado</label>
+                    <input class="form-control" id="certificado_p12" name="certificado_p12" type="file"
+                           accept=".p12,.pfx,application/x-pkcs12" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="certificado_password">Contraseña del certificado</label>
+                    <input class="form-control" id="certificado_password" name="certificado_password" type="password"
+                           autocomplete="new-password" required>
+                </div>
+            </div>
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button class="btn btn-primary" type="submit" name="accion" value="certificado_ecf">
+                    {{ 'Reemplazar certificado y probar' if ecf_certificado.configurado else 'Cargar certificado y probar' }}
+                </button>
+            </div>
+        </form>
+
+        {% if ecf_certificado.pruebas %}
+        <div class="mt-4">
+            <h3 class="h6">Últimas pruebas DGII</h3>
+            <p class="settings-card-subtitle">{{ ecf_certificado.pruebas.get('ambiente') }} · {{ ecf_certificado.pruebas.get('finished_at') }}</p>
+            <ul class="list-unstyled mb-0">
+                {% for paso in ecf_certificado.pruebas.get('steps') or [] %}
+                <li class="{{ 'text-success' if paso.ok else 'text-danger' }}">
+                    <strong>{{ paso.name }}:</strong> {{ paso.detail }}
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
     </section>
     {% endif %}
 

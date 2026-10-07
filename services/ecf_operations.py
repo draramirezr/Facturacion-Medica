@@ -141,6 +141,136 @@ def guardar_resultado_pruebas_ecf(tenant_id, resultado, usuario_id=None):
         campos['habilitado'] = 1
     upsert_configuracion_ecf_tenant(tenant_id, campos, usuario_id)
 
+
+def contexto_certificado_ecf_configuracion(tenant_id, empresa_info=None):
+    """Datos para la tarjeta de certificado en Configuración."""
+    from ecf.fecha_secuencia import normalize_fecha_vencimiento_secuencia
+
+    cfg = obtener_configuracion_ecf_tenant(tenant_id) or {}
+    config = current_app.config['ECF_CONFIG']
+    fecha_parts = ['', '', '']
+    fecha_cfg = (cfg.get('fecha_vencimiento_secuencia') or '').strip()
+    if fecha_cfg:
+        normalized = normalize_fecha_vencimiento_secuencia(fecha_cfg)
+        if normalized:
+            fecha_parts = normalized.split('-')
+    pruebas = None
+    raw = cfg.get('last_test_json') or ''
+    if raw:
+        try:
+            pruebas = json.loads(raw)
+        except (TypeError, ValueError):
+            pruebas = None
+    return {
+        'cfg': cfg,
+        'pruebas': pruebas,
+        'vence_dia': fecha_parts[0],
+        'vence_mes': fecha_parts[1],
+        'vence_anio': fecha_parts[2],
+        'ambiente_form': cfg.get('ambiente') or config.environment,
+        'empresa_info': empresa_info or {},
+    }
+
+
+def procesar_formulario_certificado_ecf(tenant_id, usuario_id, empresa_info=None):
+    """Guardar emisor, PKCS#12 por tenant o repetir pruebas DGII."""
+    from flask import request
+
+    from ecf.fecha_secuencia import normalize_fecha_vencimiento_secuencia
+    from ecf.tests_runner import run_dgii_pruebas
+    from routes.support import sanitize_input
+
+    empresa_info = empresa_info or {}
+    config = current_app.config['ECF_CONFIG']
+    accion = (request.form.get('accion') or '').strip()
+    if accion == 'certificado_ecf_guardar':
+        accion = 'guardar'
+    elif accion == 'certificado_ecf_pruebas':
+        accion = 'pruebas'
+    elif accion == 'certificado_ecf':
+        accion = 'certificado'
+
+    rnc = re.sub(r'\D', '', request.form.get('rnc_emisor') or '')
+    razon = sanitize_input(request.form.get('razon_social_emisor') or '', 200)
+    direccion = sanitize_input(request.form.get('direccion_emisor') or '', 255)
+    fecha_seq = normalize_fecha_vencimiento_secuencia(
+        f"{request.form.get('vence_dia', '').strip()}-"
+        f"{request.form.get('vence_mes', '').strip()}-"
+        f"{request.form.get('vence_anio', '').strip()}"
+    )
+    ambiente = str(request.form.get('ambiente') or config.environment).strip().upper()
+    if ambiente not in {'PRUEBAS', 'CERTIFICACION', 'PRODUCCION'}:
+        ambiente = config.environment
+    if not fecha_seq and (
+        request.form.get('vence_dia')
+        or request.form.get('vence_mes')
+        or request.form.get('vence_anio')
+    ):
+        return (
+            False,
+            'La fecha de vencimiento de secuencia debe ser día-mes-año válido (formato DGII).',
+            'error',
+        )
+
+    campos = {
+        'rnc_emisor': rnc or None,
+        'razon_social_emisor': razon or None,
+        'direccion_emisor': direccion or None,
+        'fecha_vencimiento_secuencia': fecha_seq or None,
+        'ambiente': ambiente,
+    }
+    if ambiente == 'PRODUCCION' and request.form.get('produccion_confirmada') == '1':
+        campos['produccion_confirmada'] = 1
+
+    if accion == 'certificado':
+        archivo = request.files.get('certificado_p12')
+        password = request.form.get('certificado_password', '')
+        nombre = (archivo.filename or '').lower() if archivo else ''
+        if not archivo or not nombre.endswith(('.p12', '.pfx')):
+            return False, 'Sube un certificado PKCS#12 (.p12 o .pfx).', 'error'
+        firmante = rnc or str(empresa_info.get('rnc') or '').strip()
+        if not firmante:
+            return False, 'Indica el RNC emisor antes de cargar el certificado.', 'error'
+        try:
+            metadata = TenantCertificateProvider(config).store(
+                tenant_id, archivo.read(), password, firmante
+            )
+        except ECFCertificateResolutionError as error:
+            return False, str(error), 'error'
+        campos.update({
+            'certificado_referencia': f'tenant-{tenant_id}/certificate.p12',
+            'secreto_referencia': f'tenant-{tenant_id}/password.txt',
+            'certificado_huella': metadata.fingerprint,
+            'certificado_vence': metadata.valid_until.date(),
+            'certificado_validado_en': datetime.now(),
+        })
+        upsert_configuracion_ecf_tenant(tenant_id, campos, usuario_id)
+        resultado = run_dgii_pruebas(
+            config=config,
+            tenant_id=tenant_id,
+            tenant_config=obtener_configuracion_ecf_tenant(tenant_id),
+            issuer_rnc=firmante,
+        )
+        guardar_resultado_pruebas_ecf(tenant_id, resultado, usuario_id)
+        if resultado.get('ok'):
+            return True, 'Certificado guardado. Pruebas DGII correctas.', 'success'
+        return True, 'Certificado guardado. Revise los pasos de prueba con DGII.', 'warning'
+
+    upsert_configuracion_ecf_tenant(tenant_id, campos, usuario_id)
+    if accion == 'pruebas':
+        firmante = rnc or str(empresa_info.get('rnc') or '').strip()
+        resultado = run_dgii_pruebas(
+            config=config,
+            tenant_id=tenant_id,
+            tenant_config=obtener_configuracion_ecf_tenant(tenant_id),
+            issuer_rnc=firmante,
+        )
+        guardar_resultado_pruebas_ecf(tenant_id, resultado, usuario_id)
+        if resultado.get('ok'):
+            return True, 'Pruebas DGII correctas.', 'success'
+        return True, 'Algún paso de prueba falló.', 'warning'
+    return True, 'Datos del emisor e-CF guardados.', 'success'
+
 def obtener_firmante_ecf_tenant(tenant_id):
     """Resolver el firmante aislado correspondiente a una sola cuenta."""
     provider = TenantCertificateProvider(current_app.config['ECF_CONFIG'])
