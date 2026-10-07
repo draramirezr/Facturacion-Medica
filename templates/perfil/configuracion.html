@@ -20,6 +20,26 @@
     .settings-header h1 { margin: 0 0 .35rem; color: var(--ars-shell-text); font-size: 1.65rem; font-weight: 800; }
     .settings-header p { margin: 0; color: var(--ars-shell-muted); font-size: .86rem; }
     .settings-card { padding: 1.35rem; margin-bottom: 1.2rem; border: 1px solid var(--ars-shell-border); border-radius: 15px; background:var(--ars-shell-surface, #fff); }
+    .settings-card:has(> .settings-fold) { padding: 0; }
+    .settings-fold { margin: 0; }
+    .settings-fold > summary {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 1.15rem 1.35rem;
+        cursor: pointer;
+        list-style: none;
+    }
+    .settings-fold > summary::-webkit-details-marker { display: none; }
+    .settings-fold > summary .settings-card-title { margin: 0; }
+    .settings-fold > summary .settings-card-subtitle { margin: .2rem 0 0; }
+    .settings-fold-chevron {
+        color: var(--ars-shell-muted);
+        transition: transform .15s ease;
+    }
+    .settings-fold[open] > summary .settings-fold-chevron { transform: rotate(180deg); }
+    .settings-fold-body { padding: 0 1.35rem 1.35rem; }
     .settings-card-title { margin: 0 0 .35rem; color: var(--ars-shell-text); font-size: 1rem; font-weight: 800; }
     .settings-card-subtitle { margin: 0; color: var(--ars-shell-muted); font-size: .78rem; }
     .profile-summary { display: flex; align-items: center; gap: 1rem; }
@@ -266,9 +286,17 @@
     </section>
 
     {% if papeleria is not none %}
-    <section class="settings-card" id="papeleria">
-        <h2 class="settings-card-title">Papelería del consultorio</h2>
-        <p class="settings-card-subtitle">
+    <section class="settings-card">
+        <details class="settings-fold" id="papeleria">
+        <summary>
+            <span>
+                <h2 class="settings-card-title">Papelería del consultorio</h2>
+                <p class="settings-card-subtitle">Logo, encabezado y pie de impresión</p>
+            </span>
+            <i class="fas fa-chevron-down settings-fold-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="settings-fold-body">
+        <p class="settings-card-subtitle mb-3">
             Logo, encabezado y pie para recetas, licencias, hojas de enfermería, emergencias y facturas de esta empresa.
             Solo PNG, JPG o WEBP, máximo 512 KB. No se aceptan SVG ni HTML.
         </p>
@@ -305,13 +333,23 @@
                 <button class="btn btn-primary" type="submit">Guardar papelería</button>
             </div>
         </form>
+        </div>
+        </details>
     </section>
     {% endif %}
 
     {% if ecf_certificado %}
     {% set cfg = ecf_certificado.cfg or {} %}
-    <section class="settings-card" id="certificado-ecf">
-        <h2 class="settings-card-title">Certificado de facturación electrónica</h2>
+    <section class="settings-card">
+        <details class="settings-fold" id="certificado-ecf">
+        <summary>
+            <span>
+                <h2 class="settings-card-title">Certificado de facturación electrónica</h2>
+                <p class="settings-card-subtitle">PKCS#12, emisor y pruebas DGII de esta cuenta</p>
+            </span>
+            <i class="fas fa-chevron-down settings-fold-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="settings-fold-body">
         <p class="settings-card-subtitle">
             El certificado pertenece exclusivamente a esta cuenta. La contraseña nunca se muestra ni se guarda en la base de datos.
         </p>
@@ -441,12 +479,22 @@
             </ul>
         </div>
         {% endif %}
+        </div>
+        </details>
     </section>
     {% endif %}
 
     {% if can('configuracion.editar') %}
     <section class="settings-card">
-        <h2 class="settings-card-title">Correo del consultorio</h2>
+        <details class="settings-fold" id="correo-consultorio">
+        <summary>
+            <span>
+                <h2 class="settings-card-title">Correo del consultorio</h2>
+                <p class="settings-card-subtitle">SMTP para avisos y facturas</p>
+            </span>
+            <i class="fas fa-chevron-down settings-fold-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="settings-fold-body">
         <p class="settings-card-subtitle">
             Los avisos de citas, recetas, facturas y recuperación de clave salen desde este correo.
             Use los datos SMTP de su proveedor (Gmail, Microsoft 365, Hostinger, etc.).
@@ -467,12 +515,22 @@
                 <button class="btn btn-outline-primary" type="submit" name="enviar_prueba" value="1">Enviar prueba a mi usuario</button>
             </div>
         </form>
+        </div>
+        </details>
     </section>
     {% endif %}
 
     {% if can('configuracion.backup') %}
     <section class="settings-card">
-        <h2 class="settings-card-title">Copia de seguridad</h2>
+        <details class="settings-fold" id="copia-seguridad">
+        <summary>
+            <span>
+                <h2 class="settings-card-title">Copia de seguridad</h2>
+                <p class="settings-card-subtitle">Excel con los datos del consultorio</p>
+            </span>
+            <i class="fas fa-chevron-down settings-fold-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="settings-fold-body">
         <p class="settings-card-subtitle">
             Descarga un libro de Excel con los datos de tu consultorio o centro médico,
             una hoja por módulo. Úsalo para guardar tu información si dejas de usar ClinicRD.
@@ -494,11 +552,21 @@
                 <div class="backup-progress-bar" id="backupProgressBar"></div>
             </div>
         </div>
+        </div>
+        </details>
     </section>
     {% endif %}
 
     <section class="settings-card">
-        <h2 class="settings-card-title">Tema de color</h2>
+        <details class="settings-fold" id="tema-color">
+        <summary>
+            <span>
+                <h2 class="settings-card-title">Tema de color</h2>
+                <p class="settings-card-subtitle">Apariencia, tipografía y chat</p>
+            </span>
+            <i class="fas fa-chevron-down settings-fold-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="settings-fold-body">
         <p class="settings-card-subtitle">El color seleccionado se aplicará a menús, botones y elementos destacados.</p>
 
         <form method="POST" action="{{ url_for('perfil_configuracion') }}">
@@ -590,9 +658,21 @@
                 <button class="btn btn-primary" type="submit"><i class="fas fa-check me-2"></i>Aplicar apariencia</button>
             </div>
         </form>
+        </div>
+        </details>
     </section>
 </div>
 <script nonce="{{ csp_nonce }}">
+(function () {
+    const destino = (window.location.hash || '').replace('#', '');
+    if (!destino) return;
+    const bloque = document.getElementById(destino);
+    if (bloque && bloque.tagName === 'DETAILS') {
+        bloque.open = true;
+        bloque.scrollIntoView({ block: 'start' });
+    }
+})();
+
 document.querySelectorAll('input[name="fuente_ui"]').forEach((input) => {
     input.addEventListener('change', () => {
         document.documentElement.dataset.font = input.value;
