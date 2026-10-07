@@ -410,25 +410,6 @@
             </div>
         </section>
 
-        <section class="section" id="preguntas">
-            <div class="container">
-                <header class="section-head">
-                    <span class="section-label">Preguntas frecuentes</span>
-                    <h2>Lo que más preguntan los consultorios</h2>
-                    <p>Respuestas cortas sobre ClinicRD en República Dominicana.</p>
-                </header>
-                <div class="features">
-                    {% for item in seo.faq if not item.ocultar_en_pagina %}
-                    <article class="feature">
-                        <h3>{{ item.pregunta }}</h3>
-                        <p>{{ item.respuesta }}</p>
-                    </article>
-                    {% endfor %}
-                </div>
-                <p class="hero-copy" style="text-align:center;margin-top:8px"><a href="{{ url_for('pagina_seo_preguntas_frecuentes') }}">Ver todas las preguntas</a></p>
-            </div>
-        </section>
-
         <section class="section section-white" id="contacto">
             <div class="container">
                 <header class="section-head">
