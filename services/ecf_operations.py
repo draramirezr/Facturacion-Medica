@@ -1,16 +1,19 @@
 """Operaciones de env?o y consulta e-CF/DGII."""
 
+import json
 import logging
 import os
 import re
+from datetime import datetime
 
 from flask import current_app
 
-from core.database import execute_query, get_db_connection
+from core.database import execute_query, execute_update, get_db_connection
 from ecf import (
     DGIIClient, DGIIClientError, ECFCertificateResolutionError,
     TenantCertificateProvider, classify_dgii_status,
 )
+from ecf.fecha_secuencia import parse_fecha_vencimiento_secuencia
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +49,97 @@ def obtener_configuracion_ecf_tenant(tenant_id):
         WHERE tenant_id=%s
         LIMIT 1
     ''', (tenant_id,)) or {}
+
+
+def emisor_ecf_para_xml(tenant_id, empresa_info=None):
+    """RNC, razón y dirección del emisor: config e-CF con fallback a empresa."""
+    cfg = obtener_configuracion_ecf_tenant(tenant_id) or {}
+    empresa = empresa_info or {}
+    razon = (
+        (cfg.get('razon_social_emisor') or '').strip()
+        or (empresa.get('razon_social') or '').strip()
+        or (empresa.get('nombre') or '').strip()
+    )
+    return {
+        'rnc': (cfg.get('rnc_emisor') or empresa.get('rnc') or '').strip(),
+        'razon_social': razon,
+        'nombre': razon,
+        'direccion': (
+            (cfg.get('direccion_emisor') or '').strip()
+            or (empresa.get('direccion') or '').strip()
+        ),
+    }
+
+
+def fecha_vencimiento_secuencia_ecf(tenant_id, fallback=None):
+    cfg = obtener_configuracion_ecf_tenant(tenant_id) or {}
+    parsed = parse_fecha_vencimiento_secuencia(
+        cfg.get('fecha_vencimiento_secuencia')
+    )
+    return parsed or fallback
+
+
+def upsert_configuracion_ecf_tenant(tenant_id, campos, usuario_id=None):
+    """Insertar o actualizar la fila de e-CF de la cuenta."""
+    existing = obtener_configuracion_ecf_tenant(tenant_id)
+    allowed = {
+        'habilitado',
+        'ambiente',
+        'certificado_referencia',
+        'secreto_referencia',
+        'certificado_huella',
+        'certificado_vence',
+        'certificado_validado_en',
+        'rnc_emisor',
+        'razon_social_emisor',
+        'direccion_emisor',
+        'fecha_vencimiento_secuencia',
+        'last_test_at',
+        'last_test_json',
+        'produccion_confirmada',
+    }
+    payload = {
+        key: value
+        for key, value in (campos or {}).items()
+        if key in allowed
+    }
+    if existing:
+        payload['actualizado_por'] = usuario_id
+        assignments = ', '.join(f'`{key}`=%s' for key in payload)
+        execute_update(
+            f'''
+            UPDATE ecf_configuraciones
+            SET {assignments}
+            WHERE tenant_id=%s
+            ''',
+            tuple(payload.values()) + (tenant_id,),
+        )
+        return obtener_configuracion_ecf_tenant(tenant_id)
+    payload.setdefault('ambiente', 'PRUEBAS')
+    payload.setdefault('habilitado', 0)
+    payload['tenant_id'] = tenant_id
+    payload['creado_por'] = usuario_id
+    payload['actualizado_por'] = usuario_id
+    columns = ', '.join(f'`{key}`' for key in payload)
+    placeholders = ', '.join(['%s'] * len(payload))
+    execute_update(
+        f'''
+        INSERT INTO ecf_configuraciones ({columns})
+        VALUES ({placeholders})
+        ''',
+        tuple(payload.values()),
+    )
+    return obtener_configuracion_ecf_tenant(tenant_id)
+
+
+def guardar_resultado_pruebas_ecf(tenant_id, resultado, usuario_id=None):
+    campos = {
+        'last_test_at': datetime.now(),
+        'last_test_json': json.dumps(resultado, ensure_ascii=False),
+    }
+    if resultado.get('ok'):
+        campos['habilitado'] = 1
+    upsert_configuracion_ecf_tenant(tenant_id, campos, usuario_id)
 
 def obtener_firmante_ecf_tenant(tenant_id):
     """Resolver el firmante aislado correspondiente a una sola cuenta."""

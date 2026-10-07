@@ -143,7 +143,7 @@ class DGIIClient:
         token = self.authenticate(issuer_rnc)
         return self.send_ecf(signed_xml, issuer_rnc, encf, token)
 
-    def authenticate(self, issuer_rnc):
+    def fetch_authentication_seed(self):
         seed_url = self._endpoint(
             self.config.authentication_url,
             "api/autenticacion/semilla",
@@ -152,26 +152,37 @@ class DGIIClient:
         seed_xml = seed_response.content
         if not seed_xml:
             raise DGIIResponseError("DGII devolvió una semilla vacía")
+        return seed_xml
 
+    def sign_authentication_seed(self, seed_xml, issuer_rnc):
         try:
-            signed_seed = self.signer.sign_authentication_seed(
+            return self.signer.sign_authentication_seed(
                 seed_xml, expected_signer_id=issuer_rnc
             )
         except ECFSigningError as error:
             raise DGIIClientError(
                 f"No se pudo firmar la semilla DGII: {error}"
             ) from error
+
+    def validate_signed_seed(self, signed_seed):
         validation_url = self._endpoint(
             self.config.authentication_url,
             "api/autenticacion/validarsemilla",
         )
+        signed_xml = (
+            signed_seed
+            if isinstance(signed_seed, (bytes, bytearray, str))
+            else signed_seed.signed_xml
+        )
+        if isinstance(signed_xml, str):
+            signed_xml = signed_xml.encode("utf-8")
         response = self._request(
             "POST",
             validation_url,
             files={
                 "xml": (
                     "semilla-firmada.xml",
-                    signed_seed.signed_xml.encode("utf-8"),
+                    signed_xml,
                     "text/xml",
                 )
             },
@@ -190,6 +201,46 @@ class DGIIClient:
             expires_at=self._value(payload, "expira"),
             issued_at=self._value(payload, "expedido"),
         )
+
+    def authenticate(self, issuer_rnc):
+        seed_xml = self.fetch_authentication_seed()
+        signed_seed = self.sign_authentication_seed(seed_xml, issuer_rnc)
+        return self.validate_signed_seed(signed_seed)
+
+    def ping_reception(self, token=None):
+        """Comprobar que el servicio de recepción responde, sin enviar XML."""
+        url = str(self.config.reception_url or "").rstrip("/")
+        if not url:
+            raise DGIIClientError("URL de recepción no configurada")
+        headers = {"Accept": "text/html, application/json, */*"}
+        if token and getattr(token, "value", None):
+            headers["Authorization"] = f"Bearer {token.value}"
+        try:
+            response = self.session.request(
+                "GET",
+                url,
+                headers=headers,
+                timeout=(
+                    self.config.connect_timeout_seconds,
+                    self.config.read_timeout_seconds,
+                ),
+                allow_redirects=True,
+            )
+        except requests.Timeout as error:
+            raise DGIITimeoutError(
+                "Tiempo de espera agotado al comunicarse con DGII"
+            ) from error
+        except requests.RequestException as error:
+            raise DGIIClientError(
+                "No fue posible conectarse con DGII"
+            ) from error
+        if response.status_code >= 500:
+            raise DGIIResponseError(
+                f"DGII respondió HTTP {response.status_code}",
+                http_status=response.status_code,
+                response_text=self._safe_response_text(response),
+            )
+        return response.status_code
 
     def send_ecf(self, signed_xml, issuer_rnc, encf, token):
         rnc = re.sub(r"\D", "", str(issuer_rnc or ""))

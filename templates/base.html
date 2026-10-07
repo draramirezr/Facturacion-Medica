@@ -1182,6 +1182,13 @@
                         <i class="fas fa-receipt"></i>
                         <span>NCF</span>
                     </a>
+                    {% if can('configuracion.editar') %}
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'facturacion_dgii_certificado' else '' }}"
+                       href="{{ url_for('facturacion_dgii_certificado') }}">
+                        <i class="fas fa-certificate"></i>
+                        <span>Certificado e-CF</span>
+                    </a>
+                    {% endif %}
                 </div>
                 {% endif %}
 

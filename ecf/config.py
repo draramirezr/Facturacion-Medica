@@ -17,12 +17,24 @@ def _as_bool(value: Optional[str], default=False):
     return value.strip().lower() in {"1", "true", "yes", "si", "sí", "on"}
 
 
-def _default_tenant_secrets_root(source: Mapping[str, str]):
-    """Carpeta para certificados por cuenta si no hay ECF_TENANT_SECRETS_ROOT."""
+def _resolve_tenant_secrets_root(source: Mapping[str, str]):
+    """Ruta del almacén por cliente.
+
+    En Railway el volumen (RAILWAY_VOLUME_MOUNT_PATH) gana sobre una ruta
+    de Windows copiada del .env local. Cada consultorio usa tenant-<id>/.
+    """
     volume = (source.get("RAILWAY_VOLUME_MOUNT_PATH") or "").strip()
+    explicit = (source.get("ECF_TENANT_SECRETS_ROOT") or "").strip()
     if volume:
-        return str((Path(volume) / "ecf-secrets").resolve())
-    return str((Path.cwd() / "instance" / "ecf-secrets").resolve())
+        volume_path = Path(volume)
+        if explicit:
+            try:
+                Path(explicit).resolve().relative_to(volume_path.resolve())
+                return str(Path(explicit).resolve())
+            except (ValueError, OSError):
+                return str((volume_path / "ecf-secrets").resolve())
+        return str((volume_path / "ecf-secrets").resolve())
+    return explicit
 
 
 def _read_secret(env: Mapping[str, str]):
@@ -61,17 +73,21 @@ class ECFConfig:
         source = os.environ if env is None else env
         enabled = _as_bool(source.get("ECF_ENABLED"), False)
         environment = source.get("ECF_ENVIRONMENT", "PRUEBAS").strip().upper()
-        tenant_secrets_root = source.get(
-            "ECF_TENANT_SECRETS_ROOT", ""
-        ).strip()
+        tenant_secrets_root = _resolve_tenant_secrets_root(source)
         if not tenant_secrets_root and not (
             enabled and environment == "PRODUCCION"
         ):
-            tenant_secrets_root = _default_tenant_secrets_root(source)
+            tenant_secrets_root = str(
+                (Path.cwd() / "instance" / "ecf-secrets").resolve()
+            )
+        if tenant_secrets_root:
             try:
                 Path(tenant_secrets_root).mkdir(parents=True, exist_ok=True)
             except OSError:
-                tenant_secrets_root = ""
+                if not (source.get("ECF_TENANT_SECRETS_ROOT") or "").strip() and not (
+                    source.get("RAILWAY_VOLUME_MOUNT_PATH") or ""
+                ).strip():
+                    tenant_secrets_root = ""
         password_file = source.get(
             "ECF_CERTIFICATE_PASSWORD_FILE", ""
         ).strip()

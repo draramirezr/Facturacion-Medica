@@ -164,6 +164,35 @@ def _asegurar_columnas_confirmacion_cita(cursor, database):
         )
 
 
+def _asegurar_columnas_ecf_emisor(cursor, database):
+    if not _existe_tabla(cursor, database, 'ecf_configuraciones'):
+        return
+    columnas = {
+        'rnc_emisor': 'VARCHAR(20) NULL',
+        'razon_social_emisor': 'VARCHAR(200) NULL',
+        'direccion_emisor': 'VARCHAR(255) NULL',
+        'fecha_vencimiento_secuencia': 'VARCHAR(20) NULL',
+        'last_test_at': 'DATETIME NULL',
+        'last_test_json': 'LONGTEXT NULL',
+    }
+    for nombre, definicion in columnas.items():
+        cursor.execute(
+            '''
+            SELECT 1
+            FROM information_schema.COLUMNS
+            WHERE TABLE_SCHEMA = %s
+              AND TABLE_NAME = 'ecf_configuraciones'
+              AND COLUMN_NAME = %s
+            ''',
+            (database, nombre),
+        )
+        if cursor.fetchone():
+            continue
+        cursor.execute(
+            f'ALTER TABLE ecf_configuraciones ADD COLUMN `{nombre}` {definicion}'
+        )
+
+
 def _asegurar_columnas_presencia_chat(cursor, database):
     cursor.execute(
         '''
@@ -210,6 +239,7 @@ def bootstrap_required_schema(connection_factory=None):
             _asegurar_columnas_smtp_empresa(cursor, database)
             _asegurar_columnas_confirmacion_cita(cursor, database)
             _asegurar_columnas_presencia_chat(cursor, database)
+            _asegurar_columnas_ecf_emisor(cursor, database)
         connection.commit()
     except Exception:
         try:

@@ -14,6 +14,9 @@ Un envío productivo requiere simultáneamente:
 4. `FLASK_ENV=production`.
 5. `ECF_TENANT_SECRETS_ROOT` en una ruta absoluta fuera del repositorio.
    Cada cuenta utiliza su propia carpeta `tenant-<ID>`.
+   En Railway: volumen con **Mount path `/data`** y
+   `ECF_TENANT_SECRETS_ROOT=/data/ecf-secrets`
+   (o deje que `RAILWAY_VOLUME_MOUNT_PATH` cree `/data/ecf-secrets`).
 6. Registro de la cuenta en `ecf_configuraciones` con:
    - `habilitado=1`;
    - `ambiente='PRODUCCION'`;

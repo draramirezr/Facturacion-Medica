@@ -16,11 +16,11 @@ from auth import permission_required, user_has_permission
 from auth.helpers import usuario_es_dueno_software
 from core.database import database_transaction, execute_query, execute_update, get_db_connection
 from core.tenant import get_current_tenant_id, validate_tenant_access
-from ecf import ECFBuildError, ECFBuilder, ECFCertificateResolutionError, ECFPrintableError, ECFSchemaError, ECFSigningError, ECFValidationError, ECFValidator, TenantCertificateProvider, build_encf, build_stamp, generate_e31_pdf, generate_qr, reserve_encf
+from ecf import ECFBuildError, ECFBuilder, ECFCertificateResolutionError, ECFPrintableError, ECFSchemaError, ECFSigningError, ECFStampError, ECFValidationError, ECFValidator, TenantCertificateProvider, build_encf, build_stamp, generate_e31_pdf, generate_qr, reserve_encf
 from routes.patients import paciente_adulto_sin_cedula
 from routes.support import execute_paginated_query, sanitize_input, validate_int
 from services.subscriptions import get_empresa_info
-from services.ecf_operations import consultar_resultado_ecf_dgii, ecf_habilitado_para_tenant, obtener_configuracion_ecf_tenant, procesar_envio_ecf_dgii
+from services.ecf_operations import consultar_resultado_ecf_dgii, ecf_habilitado_para_tenant, emisor_ecf_para_xml, fecha_vencimiento_secuencia_ecf, guardar_resultado_pruebas_ecf, obtener_configuracion_ecf_tenant, procesar_envio_ecf_dgii, upsert_configuracion_ecf_tenant
 logger = logging.getLogger(__name__)
 try:
     from sendgrid import SendGridAPIClient
@@ -1153,7 +1153,8 @@ def facturacion_ver_factura(factura_id):
                           tipo_empresa=tipo_empresa,
                           empresa_info=empresa_info,
                           fecha_factura=fecha_factura,
-                          factura_ecf=factura_ecf)
+                          factura_ecf=factura_ecf,
+                          mostrar_qr_ecf=_factura_tiene_qr_ecf(factura_ecf))
 
 @login_required
 @permission_required('facturacion.ver')
@@ -1201,6 +1202,35 @@ def _obtener_ecf_aceptado_para_ri(factura_id, tenant_id):
         raise ECFPrintableError('El e-CF aceptado no tiene XML firmado')
     return document
 
+
+def _factura_tiene_qr_ecf(factura_ecf):
+    if not factura_ecf or not factura_ecf.get('xml_firmado'):
+        return False
+    if factura_ecf.get('estado') == 'RECHAZADO':
+        return False
+    try:
+        stamp_url = current_app.config['ECF_CONFIG'].stamp_url
+        build_stamp(factura_ecf['xml_firmado'], stamp_url)
+        return True
+    except (ECFStampError, KeyError, AttributeError):
+        return False
+
+
+def _obtener_ecf_firmado_para_qr(factura_id, tenant_id):
+    document = execute_query('''
+        SELECT e_ncf, estado, xml_firmado, track_id
+        FROM facturas_ecf
+        WHERE factura_id=%s AND tenant_id=%s
+        LIMIT 1
+    ''', (factura_id, tenant_id))
+    if not document or not document.get('xml_firmado'):
+        raise ECFPrintableError(
+            'El QR se habilita cuando el e-CF tiene XML firmado'
+        )
+    if document.get('estado') == 'RECHAZADO':
+        raise ECFPrintableError('El e-CF fue rechazado y no admite QR fiscal')
+    return document
+
 @login_required
 @permission_required('facturacion.imprimir')
 def facturacion_qr_ecf(factura_id):
@@ -1210,7 +1240,7 @@ def facturacion_qr_ecf(factura_id):
         return redirect(url_for('facturacion_historico'))
 
     try:
-        document = _obtener_ecf_aceptado_para_ri(
+        document = _obtener_ecf_firmado_para_qr(
             factura_id, get_current_tenant_id()
         )
         config = current_app.config['ECF_CONFIG']
@@ -4037,8 +4067,10 @@ def facturacion_generar_final():
                         'tipo_ingresos': '01',
                         'tipo_pago': '2'
                     },
-                    sequence_expires_at=reserva_ecf.expires_at,
-                    issuer=empresa_info or {},
+                    sequence_expires_at=fecha_vencimiento_secuencia_ecf(
+                        tenant_id, reserva_ecf.expires_at
+                    ),
+                    issuer=emisor_ecf_para_xml(tenant_id, empresa_info or {}),
                     buyer=ars,
                     items=detalles_ecf,
                     generated_at=fecha_actual
@@ -4115,13 +4147,17 @@ def facturacion_generar_final():
                             current_app.config['ECF_CONFIG']
                         ).inspect(
                             tenant_id,
-                            (empresa_info or {}).get('rnc'),
+                            emisor_ecf_para_xml(
+                                tenant_id, empresa_info or {}
+                            ).get('rnc'),
                             obtener_configuracion_ecf_tenant(tenant_id),
                         )
                     )
                     resultado_firma = certificado_resuelto.signer().sign_e31(
                         resultado_xml.xml,
-                        expected_signer_id=(empresa_info or {}).get('rnc'),
+                        expected_signer_id=emisor_ecf_para_xml(
+                            tenant_id, empresa_info or {}
+                        ).get('rnc'),
                         signed_at=datetime.now()
                     )
                     validacion_firmada = ECFValidator().validate_signed_e31(
@@ -4357,6 +4393,158 @@ def facturacion_generar_final():
         if cursor:
             cursor.close()
 
+
+def _pasos_pruebas_ecf(cfg):
+    raw = (cfg or {}).get('last_test_json') or ''
+    if not raw:
+        return None
+    try:
+        return json.loads(raw)
+    except (TypeError, ValueError):
+        return None
+
+
+@login_required
+@permission_required('configuracion.editar')
+def facturacion_dgii_certificado():
+    """Certificado DGII, datos del emisor y batería de pruebas."""
+    from ecf.fecha_secuencia import normalize_fecha_vencimiento_secuencia
+    from ecf.tests_runner import run_dgii_pruebas
+
+    tenant_id = get_current_tenant_id()
+    if not tenant_id:
+        flash('El certificado e-CF es de cada consultorio, no de la plataforma.', 'error')
+        return redirect(url_for('facturacion_menu'))
+
+    empresa_info = get_empresa_info(tenant_id) or {}
+    cfg = obtener_configuracion_ecf_tenant(tenant_id) or {}
+    config = current_app.config['ECF_CONFIG']
+
+    if request.method == 'POST':
+        accion = (request.form.get('accion') or 'guardar').strip()
+        rnc = re.sub(r'\D', '', request.form.get('rnc_emisor') or '')
+        razon = sanitize_input(request.form.get('razon_social_emisor') or '', 200)
+        direccion = sanitize_input(request.form.get('direccion_emisor') or '', 255)
+        fecha_seq = normalize_fecha_vencimiento_secuencia(
+            f"{request.form.get('vence_dia', '').strip()}-"
+            f"{request.form.get('vence_mes', '').strip()}-"
+            f"{request.form.get('vence_anio', '').strip()}"
+        )
+        ambiente = str(request.form.get('ambiente') or config.environment).strip().upper()
+        if ambiente not in {'PRUEBAS', 'CERTIFICACION', 'PRODUCCION'}:
+            ambiente = config.environment
+        if not fecha_seq and (
+            request.form.get('vence_dia')
+            or request.form.get('vence_mes')
+            or request.form.get('vence_anio')
+        ):
+            flash(
+                'La fecha de vencimiento de secuencia debe ser día-mes-año válido (formato DGII).',
+                'error',
+            )
+            return redirect(url_for('facturacion_dgii_certificado'))
+
+        campos = {
+            'rnc_emisor': rnc or None,
+            'razon_social_emisor': razon or None,
+            'direccion_emisor': direccion or None,
+            'fecha_vencimiento_secuencia': fecha_seq or None,
+            'ambiente': ambiente,
+        }
+        if ambiente == 'PRODUCCION' and request.form.get('produccion_confirmada') == '1':
+            campos['produccion_confirmada'] = 1
+
+        if accion == 'certificado':
+            archivo = request.files.get('certificado_p12')
+            password = request.form.get('certificado_password', '')
+            nombre = (archivo.filename or '').lower() if archivo else ''
+            if not archivo or not nombre.endswith(('.p12', '.pfx')):
+                flash('Sube un certificado PKCS#12 (.p12 o .pfx).', 'error')
+                return redirect(url_for('facturacion_dgii_certificado'))
+            firmante = rnc or str(empresa_info.get('rnc') or '').strip()
+            if not firmante:
+                flash('Indica el RNC emisor antes de cargar el certificado.', 'error')
+                return redirect(url_for('facturacion_dgii_certificado'))
+            try:
+                metadata = TenantCertificateProvider(config).store(
+                    tenant_id, archivo.read(), password, firmante
+                )
+            except ECFCertificateResolutionError as error:
+                flash(str(error), 'error')
+                return redirect(url_for('facturacion_dgii_certificado'))
+            campos.update({
+                'certificado_referencia': f'tenant-{tenant_id}/certificate.p12',
+                'secreto_referencia': f'tenant-{tenant_id}/password.txt',
+                'certificado_huella': metadata.fingerprint,
+                'certificado_vence': metadata.valid_until.date(),
+                'certificado_validado_en': datetime.now(),
+            })
+            upsert_configuracion_ecf_tenant(tenant_id, campos, current_user.id)
+            tenant_cfg = obtener_configuracion_ecf_tenant(tenant_id)
+            resultado = run_dgii_pruebas(
+                config=config,
+                tenant_id=tenant_id,
+                tenant_config=tenant_cfg,
+                issuer_rnc=firmante,
+            )
+            guardar_resultado_pruebas_ecf(tenant_id, resultado, current_user.id)
+            flash(
+                'Certificado guardado. ' + (
+                    'Pruebas DGII correctas.'
+                    if resultado.get('ok')
+                    else 'Revise los pasos de prueba con DGII.'
+                ),
+                'success' if resultado.get('ok') else 'warning',
+            )
+            return redirect(url_for('facturacion_dgii_certificado'))
+
+        upsert_configuracion_ecf_tenant(tenant_id, campos, current_user.id)
+        if accion == 'pruebas':
+            tenant_cfg = obtener_configuracion_ecf_tenant(tenant_id)
+            firmante = rnc or str(empresa_info.get('rnc') or '').strip()
+            resultado = run_dgii_pruebas(
+                config=config,
+                tenant_id=tenant_id,
+                tenant_config=tenant_cfg,
+                issuer_rnc=firmante,
+            )
+            guardar_resultado_pruebas_ecf(tenant_id, resultado, current_user.id)
+            flash(
+                'Pruebas DGII correctas.' if resultado.get('ok') else 'Algún paso de prueba falló.',
+                'success' if resultado.get('ok') else 'warning',
+            )
+            return redirect(url_for('facturacion_dgii_certificado'))
+
+        flash('Datos del emisor e-CF guardados.', 'success')
+        return redirect(url_for('facturacion_dgii_certificado'))
+
+    fecha_parts = ['', '', '']
+    fecha_cfg = (cfg.get('fecha_vencimiento_secuencia') or '').strip()
+    if fecha_cfg:
+        from ecf.fecha_secuencia import normalize_fecha_vencimiento_secuencia
+        normalized = normalize_fecha_vencimiento_secuencia(fecha_cfg)
+        if normalized:
+            fecha_parts = normalized.split('-')
+    certificado_status = {
+        'configurado': bool(cfg.get('certificado_referencia') or cfg.get('certificado_huella')),
+        'huella': cfg.get('certificado_huella') or '',
+        'vence': cfg.get('certificado_vence'),
+        'ambiente_servidor': config.environment,
+        'almacen_disponible': bool(config.tenant_secrets_root),
+    }
+    return render_template(
+        'facturacion/dgii_certificado.html',
+        cfg=cfg,
+        empresa_info=empresa_info,
+        certificado_status=certificado_status,
+        pruebas=_pasos_pruebas_ecf(cfg),
+        vence_dia=fecha_parts[0],
+        vence_mes=fecha_parts[1],
+        vence_anio=fecha_parts[2],
+        ambiente_form=cfg.get('ambiente') or config.environment,
+    )
+
+
 def register_billing_routes(app):
     """Registrar facturación conservando endpoints legacy."""
     app.add_url_rule('/facturacion', endpoint='facturacion_menu', view_func=facturacion_menu)
@@ -4370,6 +4558,12 @@ def register_billing_routes(app):
     app.add_url_rule('/facturacion/pagos/<int:pago_id>', endpoint='facturacion_pago_detalle', view_func=facturacion_pago_detalle)
     app.add_url_rule('/facturacion/pagos/<int:pago_id>/editar', endpoint='facturacion_pago_editar', view_func=facturacion_pago_editar, methods=['GET', 'POST'])
     app.add_url_rule('/facturacion/historico', endpoint='facturacion_historico', view_func=facturacion_historico)
+    app.add_url_rule(
+        '/facturacion/dgii/certificado',
+        endpoint='facturacion_dgii_certificado',
+        view_func=facturacion_dgii_certificado,
+        methods=['GET', 'POST'],
+    )
     app.add_url_rule('/facturacion/facturas/<int:factura_id>/ver', endpoint='facturacion_ver_factura', view_func=facturacion_ver_factura)
     app.add_url_rule('/facturacion/facturas/<int:factura_id>/ecf/xml', endpoint='facturacion_ver_xml_ecf', view_func=facturacion_ver_xml_ecf)
     app.add_url_rule('/facturacion/facturas/<int:factura_id>/ecf/qr', endpoint='facturacion_qr_ecf', view_func=facturacion_qr_ecf)

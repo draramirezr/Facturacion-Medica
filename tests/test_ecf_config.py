@@ -113,6 +113,17 @@ class ECFConfigTests(unittest.TestCase):
         ):
             self.config(ECF_ALLOW_PRODUCTION="true")
 
+    def test_railway_volume_overrides_windows_secrets_path(self):
+        volume = Path(self.directory.name) / "data"
+        volume.mkdir()
+        config = self.config(
+            ECF_TENANT_SECRETS_ROOT="C:/ARSFlow/secretos-ecf",
+            RAILWAY_VOLUME_MOUNT_PATH=str(volume),
+        )
+        expected = str((volume / "ecf-secrets").resolve())
+        self.assertEqual(config.tenant_secrets_root, expected)
+        self.assertTrue(Path(expected).is_dir())
+
     def test_rejects_non_numeric_timeout(self):
         with self.assertRaisesRegex(
             ECFConfigurationError, "números enteros"

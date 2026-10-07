@@ -108,6 +108,12 @@ TABLES = [
         certificado_huella VARCHAR(128) NULL,
         certificado_vence DATE NULL,
         certificado_validado_en DATETIME NULL,
+        rnc_emisor VARCHAR(20) NULL,
+        razon_social_emisor VARCHAR(200) NULL,
+        direccion_emisor VARCHAR(255) NULL,
+        fecha_vencimiento_secuencia VARCHAR(20) NULL,
+        last_test_at DATETIME NULL,
+        last_test_json LONGTEXT NULL,
         produccion_confirmada TINYINT(1) NOT NULL DEFAULT 0,
         creado_por INT NULL,
         actualizado_por INT NULL,
@@ -261,6 +267,48 @@ def migrate():
                 "ecf_configuraciones",
                 "certificado_validado_en",
                 "DATETIME NULL AFTER certificado_vence",
+            )
+            ensure_column(
+                cursor,
+                database,
+                "ecf_configuraciones",
+                "rnc_emisor",
+                "VARCHAR(20) NULL AFTER certificado_validado_en",
+            )
+            ensure_column(
+                cursor,
+                database,
+                "ecf_configuraciones",
+                "razon_social_emisor",
+                "VARCHAR(200) NULL AFTER rnc_emisor",
+            )
+            ensure_column(
+                cursor,
+                database,
+                "ecf_configuraciones",
+                "direccion_emisor",
+                "VARCHAR(255) NULL AFTER razon_social_emisor",
+            )
+            ensure_column(
+                cursor,
+                database,
+                "ecf_configuraciones",
+                "fecha_vencimiento_secuencia",
+                "VARCHAR(20) NULL AFTER direccion_emisor",
+            )
+            ensure_column(
+                cursor,
+                database,
+                "ecf_configuraciones",
+                "last_test_at",
+                "DATETIME NULL AFTER fecha_vencimiento_secuencia",
+            )
+            ensure_column(
+                cursor,
+                database,
+                "ecf_configuraciones",
+                "last_test_json",
+                "LONGTEXT NULL AFTER last_test_at",
             )
 
             # Permitir futuros rangos del mismo tipo sin mezclar sus consecutivos.

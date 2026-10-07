@@ -599,14 +599,6 @@
                 tiene validez fiscal.
                 {% if factura_ecf.get('track_id') %}TrackID: <strong>{{ factura_ecf.get('track_id') }}</strong>.{% endif %}
                 {% if factura_ecf.get('mensaje_respuesta') %}<br>{{ factura_ecf.get('mensaje_respuesta') }}{% endif %}
-                <div class="mt-3">
-                    <a href="{{ url_for('facturacion_representacion_impresa_ecf', factura_id=factura['id']) }}" target="_blank" aria-label="Abrir representación impresa del e-CF">
-                        <img src="{{ url_for('facturacion_qr_ecf', factura_id=factura['id']) }}"
-                             alt="QR de validación DGII para {{ factura_ecf['e_ncf'] }}"
-                             width="120" height="120" class="csp-u-004">
-                    </a>
-                    <small>Escanee para validar este e-CF en DGII.</small>
-                </div>
             {% elif factura_ecf['estado'] == 'RECHAZADO' %}
                 DGII rechazó el comprobante {{ factura_ecf['e_ncf'] }}.
                 {% if factura_ecf.get('codigo_respuesta') %}Código: <strong>{{ factura_ecf.get('codigo_respuesta') }}</strong>.{% endif %}
@@ -733,6 +725,15 @@
 
         <!-- Footer -->
         {% include 'partials/_documento_pie.html' %}
+        {% if mostrar_qr_ecf %}
+        <div class="ecf-qr-print text-center my-3">
+            <p class="mb-1"><strong>e-NCF:</strong> {{ factura_ecf['e_ncf'] }}</p>
+            <img src="{{ url_for('facturacion_qr_ecf', factura_id=factura['id']) }}"
+                 alt="QR de consulta timbre DGII para {{ factura_ecf['e_ncf'] }}"
+                 width="140" height="140" class="csp-u-004">
+            <p class="small mb-0">Escanee para validar este e-CF en DGII.</p>
+        </div>
+        {% endif %}
         <div class="footer-factura">
             {% if tipo_empresa == 'centro_salud' %}
                 <p><strong>{{ empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A')) }}</strong></p>

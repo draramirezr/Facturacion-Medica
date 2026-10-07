@@ -891,36 +891,7 @@ def perfil_configuracion():
             return redirect(url_for('perfil_configuracion'))
 
         if request.form.get('accion') == 'certificado_ecf':
-            if not user_has_permission(current_user, 'configuracion.editar'):
-                flash('No tienes permiso para cargar el certificado e-CF', 'error')
-                return redirect(url_for('perfil_configuracion'))
-            tenant_id = get_current_tenant_id()
-            if not tenant_id:
-                flash('No hay una empresa asociada a tu usuario.', 'error')
-                return redirect(url_for('perfil_configuracion'))
-            archivo = request.files.get('certificado_p12')
-            password = request.form.get('certificado_password', '')
-            nombre = (archivo.filename or '').lower() if archivo else ''
-            if not archivo or not nombre.endswith(('.p12', '.pfx')):
-                flash('Sube un certificado PKCS#12 (.p12 o .pfx).', 'error')
-                return redirect(url_for('perfil_configuracion'))
-            empresa_actual = get_empresa_info(tenant_id) or {}
-            rnc = str(empresa_actual.get('rnc') or '').strip()
-            if not rnc:
-                flash(
-                    'Registra el RNC de la empresa antes de cargar el certificado.',
-                    'error',
-                )
-                return redirect(url_for('perfil_configuracion'))
-            try:
-                TenantCertificateProvider(
-                    current_app.config['ECF_CONFIG']
-                ).store(tenant_id, archivo.read(), password, rnc)
-            except ECFCertificateResolutionError as error:
-                flash(str(error), 'error')
-                return redirect(url_for('perfil_configuracion'))
-            flash('Certificado e-CF de la cuenta guardado correctamente.', 'success')
-            return redirect(url_for('perfil_configuracion'))
+            return redirect(url_for('facturacion_dgii_certificado'))
 
         if request.form.get('accion') == 'papeleria':
             if not user_has_permission(current_user, 'configuracion.editar') and not usuario_es_administrador(current_user):

@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}Certificado e-CF DGII{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .facturacion-hero {
+        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
+        border-radius: 20px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+    .ecf-card {
+        background: var(--ars-shell-surface, #fff);
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+        margin-bottom: 1.5rem;
+    }
+    .ecf-step-ok { color: #198754; }
+    .ecf-step-fail { color: #dc3545; }
+</style>
+
+<div class="facturacion-hero">
+    <h1 class="h3 mb-1">Certificado de facturación electrónica</h1>
+    <p class="mb-0">Datos del emisor, PKCS#12 de esta cuenta y pruebas de conexión con DGII.</p>
+</div>
+
+<div class="ecf-card">
+    <p class="mb-2">
+        Ambiente del servidor: <strong>{{ certificado_status.ambiente_servidor }}</strong>
+        {% if not certificado_status.almacen_disponible %}
+        · El servidor no tiene almacén por tenant (<code>ECF_TENANT_SECRETS_ROOT</code>).
+        {% endif %}
+    </p>
+    <p class="mb-0">
+        Certificado:
+        {% if certificado_status.configurado %}
+        configurado{% if certificado_status.vence %} · vence {{ certificado_status.vence }}{% endif %}
+        {% if certificado_status.huella %} · huella {{ certificado_status.huella[:16] }}…{% endif %}
+        {% else %}
+        pendiente
+        {% endif %}
+    </p>
+</div>
+
+<form method="POST" action="{{ url_for('facturacion_dgii_certificado') }}" enctype="multipart/form-data" class="ecf-card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <h2 class="h5 mb-3">Emisor y secuencia</h2>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label" for="rnc_emisor">RNC emisor</label>
+            <input class="form-control" id="rnc_emisor" name="rnc_emisor" value="{{ cfg.get('rnc_emisor') or empresa_info.get('rnc') or '' }}" maxlength="20">
+        </div>
+        <div class="col-md-8">
+            <label class="form-label" for="razon_social_emisor">Razón social</label>
+            <input class="form-control" id="razon_social_emisor" name="razon_social_emisor"
+                   value="{{ cfg.get('razon_social_emisor') or empresa_info.get('razon_social') or empresa_info.get('nombre') or '' }}" maxlength="200">
+        </div>
+        <div class="col-12">
+            <label class="form-label" for="direccion_emisor">Dirección</label>
+            <input class="form-control" id="direccion_emisor" name="direccion_emisor"
+                   value="{{ cfg.get('direccion_emisor') or empresa_info.get('direccion') or '' }}" maxlength="255">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="vence_dia">Día</label>
+            <input class="form-control" id="vence_dia" name="vence_dia" value="{{ vence_dia }}" maxlength="2" placeholder="dd">
+        </div>
+        <div class="col-md-2">
+            <label class="form-label" for="vence_mes">Mes</label>
+            <input class="form-control" id="vence_mes" name="vence_mes" value="{{ vence_mes }}" maxlength="2" placeholder="mm">
+        </div>
+        <div class="col-md-3">
+            <label class="form-label" for="vence_anio">Año</label>
+            <input class="form-control" id="vence_anio" name="vence_anio" value="{{ vence_anio }}" maxlength="4" placeholder="yyyy">
+        </div>
+        <div class="col-md-5">
+            <label class="form-label" for="ambiente">Ambiente de la cuenta</label>
+            <select class="form-select" id="ambiente" name="ambiente">
+                {% for amb in ['PRUEBAS', 'CERTIFICACION', 'PRODUCCION'] %}
+                <option value="{{ amb }}" {% if ambiente_form == amb %}selected{% endif %}>{{ amb }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-12">
+            <label class="form-check">
+                <input class="form-check-input" type="checkbox" name="produccion_confirmada" value="1"
+                       {% if cfg.get('produccion_confirmada') %}checked{% endif %}>
+                Confirmar producción (solo si el servidor está en PRODUCCION)
+            </label>
+        </div>
+    </div>
+    <div class="d-flex flex-wrap gap-2 mt-3">
+        <button class="btn btn-primary" type="submit" name="accion" value="guardar">Guardar datos</button>
+        <button class="btn btn-outline-primary" type="submit" name="accion" value="pruebas">Repetir pruebas DGII</button>
+    </div>
+</form>
+
+<form method="POST" action="{{ url_for('facturacion_dgii_certificado') }}" enctype="multipart/form-data" class="ecf-card">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <input type="hidden" name="rnc_emisor" value="{{ cfg.get('rnc_emisor') or empresa_info.get('rnc') or '' }}">
+    <input type="hidden" name="razon_social_emisor" value="{{ cfg.get('razon_social_emisor') or empresa_info.get('razon_social') or empresa_info.get('nombre') or '' }}">
+    <input type="hidden" name="direccion_emisor" value="{{ cfg.get('direccion_emisor') or empresa_info.get('direccion') or '' }}">
+    <input type="hidden" name="vence_dia" value="{{ vence_dia }}">
+    <input type="hidden" name="vence_mes" value="{{ vence_mes }}">
+    <input type="hidden" name="vence_anio" value="{{ vence_anio }}">
+    <input type="hidden" name="ambiente" value="{{ ambiente_form }}">
+    <h2 class="h5 mb-3">Archivo PKCS#12</h2>
+    <p class="text-muted">La contraseña no se guarda en la base de datos. El .p12 queda aislado por consultorio.</p>
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label" for="certificado_p12">Certificado .p12 / .pfx</label>
+            <input class="form-control" id="certificado_p12" name="certificado_p12" type="file"
+                   accept=".p12,.pfx,application/x-pkcs12" required>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label" for="certificado_password">Contraseña</label>
+            <input class="form-control" id="certificado_password" name="certificado_password" type="password"
+                   autocomplete="new-password" required>
+        </div>
+    </div>
+    <div class="mt-3">
+        <button class="btn btn-primary" type="submit" name="accion" value="certificado">
+            {{ 'Reemplazar certificado y probar' if certificado_status.configurado else 'Cargar certificado y probar' }}
+        </button>
+    </div>
+</form>
+
+{% if pruebas %}
+<div class="ecf-card">
+    <h2 class="h5 mb-3">Últimas pruebas DGII</h2>
+    <p class="text-muted">{{ pruebas.get('ambiente') }} · {{ pruebas.get('finished_at') }}</p>
+    <ul class="list-unstyled mb-0">
+        {% for paso in pruebas.get('steps') or [] %}
+        <li class="{{ 'ecf-step-ok' if paso.ok else 'ecf-step-fail' }}">
+            <i class="fas {{ 'fa-check' if paso.ok else 'fa-times' }}"></i>
+            <strong>{{ paso.name }}:</strong> {{ paso.detail }}
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endif %}
+{% endblock %}
