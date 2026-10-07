@@ -3243,6 +3243,17 @@ def facturacion_procesar_excel():
             'total_errores': 1,
         }), 500
 
+def _flash_ecf_no_habilitado():
+    if not current_app.config['ECF_CONFIG'].enabled:
+        flash(
+            'e-CF está desactivado en el servidor (ECF_ENABLED). '
+            'En PRUEBAS póngalo en true para emitir E31.',
+            'error',
+        )
+        return
+    flash('La cuenta no está habilitada para facturación electrónica', 'error')
+
+
 @login_required
 @permission_required('facturacion.crear')
 def facturacion_generar():
@@ -3267,7 +3278,7 @@ def facturacion_generar():
             tipo_factura == 'ELECTRONICA'
             and not ecf_habilitado_para_tenant(get_current_tenant_id())
         ):
-            flash('La cuenta no está habilitada para facturación electrónica', 'error')
+            _flash_ecf_no_habilitado()
             return redirect(url_for('facturacion_generar'))
         
         # Validar fecha
@@ -3394,7 +3405,7 @@ def facturacion_generar_step2():
             tipo_factura == 'ELECTRONICA'
             and not ecf_habilitado_para_tenant(get_current_tenant_id())
         ):
-            flash('La cuenta no está habilitada para facturación electrónica', 'error')
+            _flash_ecf_no_habilitado()
             return redirect(url_for('facturacion_generar'))
 
         if not all([pacientes_ids_json, ars_id, medico_factura_id, fecha_factura]) or (
@@ -3442,7 +3453,7 @@ def facturacion_generar_step2():
         tipo_factura == 'ELECTRONICA'
         and not ecf_habilitado_para_tenant(get_current_tenant_id())
     ):
-        flash('La cuenta no está habilitada para facturación electrónica', 'error')
+        _flash_ecf_no_habilitado()
         return redirect(url_for('facturacion_generar'))
 
     if not all([ars_id, medico_factura_id, fecha_factura]) or (
@@ -3564,7 +3575,7 @@ def facturacion_vista_previa():
         tipo_factura == 'ELECTRONICA'
         and not ecf_habilitado_para_tenant(get_current_tenant_id())
     ):
-        flash('La cuenta no está habilitada para facturación electrónica', 'error')
+        _flash_ecf_no_habilitado()
         return redirect(url_for('facturacion_generar'))
 
     if not all([pacientes_ids_str, ars_id, medico_factura_id, fecha_factura]) or (
@@ -3777,7 +3788,7 @@ def facturacion_generar_final():
         tipo_factura == 'ELECTRONICA'
         and not ecf_habilitado_para_tenant(get_current_tenant_id())
     ):
-        flash('La cuenta no está habilitada para facturación electrónica', 'error')
+        _flash_ecf_no_habilitado()
         return redirect(url_for('facturacion_generar'))
 
     if not all([pacientes_ids_str, ars_id, medico_factura_id, fecha_factura]) or (

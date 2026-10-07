@@ -253,10 +253,10 @@
                     <select class="form-select" id="plan" name="plan" required
                             {% if not puede_editar_suscripcion %}disabled{% endif %}>
                         <option value="basico" {{ 'selected' if empresa and empresa['plan'] == 'basico' else '' }}>
-                            Independiente (1 médico)
+                            Independiente (1 usuario)
                         </option>
                         <option value="profesional" {{ 'selected' if empresa and empresa['plan'] == 'profesional' else 'selected' }}>
-                            Consultorio (hasta 3 usuarios)
+                            Consultorio (hasta 2 usuarios)
                         </option>
                         <option value="empresarial" {{ 'selected' if empresa and empresa['plan'] == 'empresarial' else '' }}>
                             Clínica / Centro médico (hasta 5 usuarios)

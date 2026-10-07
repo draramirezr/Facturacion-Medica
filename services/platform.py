@@ -15,15 +15,16 @@ logger = logging.getLogger(__name__)
 
 DEMO_DIAS = 7
 PLAN_PRECIOS = {
-    'basico': 995,
-    'profesional': 1995,
-    'empresarial': 3995,
+    'basico': 1195,
+    'profesional': 1795,
+    'empresarial': 3695,
 }
 PLAN_LICENCIAS = {
     'basico': 1,
-    'profesional': 3,
+    'profesional': 2,
     'empresarial': 5,
 }
+PRECIO_USUARIO_ADICIONAL = 450
 
 
 def asegurar_tablas_plataforma():

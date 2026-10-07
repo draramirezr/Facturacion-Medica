@@ -30,16 +30,22 @@ def ecf_habilitado_para_tenant(tenant_id, solo_consulta=False):
         LIMIT 1
     ''', (tenant_id,))
 
-    # En pruebas se conserva la habilitación global para facilitar el proceso
-    # de certificación. Producción siempre exige un registro por cuenta.
-    if not tenant_config:
-        return config.environment != 'PRODUCCION'
-    if not solo_consulta and not bool(tenant_config.get('habilitado')):
-        return False
-    if str(tenant_config.get('ambiente') or '').upper() != config.environment:
-        return False
+    # En PRUEBAS/CERTIFICACION basta el interruptor global. Guardar el
+    # certificado o el emisor no debe bloquear la cuenta (habilitado=0).
+    # Producción exige fila, ambiente, habilitado y confirmación explícita.
     if config.environment == 'PRODUCCION':
-        return bool(tenant_config.get('produccion_confirmada'))
+        if not tenant_config:
+            return False
+        if str(tenant_config.get('ambiente') or '').upper() != 'PRODUCCION':
+            return False
+        return bool(tenant_config.get('habilitado')) and bool(
+            tenant_config.get('produccion_confirmada')
+        )
+
+    if tenant_config:
+        ambiente_cuenta = str(tenant_config.get('ambiente') or '').upper()
+        if ambiente_cuenta and ambiente_cuenta != config.environment:
+            return False
     return True
 
 def obtener_configuracion_ecf_tenant(tenant_id):

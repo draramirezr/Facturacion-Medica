@@ -22,6 +22,7 @@ from routes.support import (
 )
 from services.ecf_operations import (
     contexto_certificado_ecf_configuracion,
+    emisor_ecf_para_xml,
     obtener_configuracion_ecf_tenant,
     procesar_formulario_certificado_ecf,
 )
@@ -1030,11 +1031,14 @@ def perfil_configuracion():
         }
         if tenant_id and (ecf_config.enabled or ecf_config.tenant_secrets_root):
             try:
+                rnc_esperado = emisor_ecf_para_xml(
+                    tenant_id, empresa_actual
+                ).get('rnc')
                 resolved, metadata = TenantCertificateProvider(
                     ecf_config
                 ).inspect(
                     tenant_id,
-                    empresa_actual.get('rnc'),
+                    rnc_esperado,
                     obtener_configuracion_ecf_tenant(tenant_id),
                 )
                 ecf_certificado.update({

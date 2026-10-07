@@ -225,6 +225,26 @@
         z-index: 10;
     }
 
+    .botones-paso {
+        display: flex;
+        align-items: stretch;
+        gap: 1rem;
+        width: 100%;
+        margin-top: 0.25rem;
+    }
+    .botones-paso .btn-cancelar {
+        flex: 1 1 0;
+        width: auto !important;
+        min-height: 3.25rem;
+        margin: 0;
+        box-sizing: border-box;
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        line-height: 1.2;
+        vertical-align: stretch;
+    }
+
     /* Utilidades locales migradas desde atributos style para CSP. */
     .csp-u-001 { color: {{ tema.primary }}; font-weight: 800; font-size: 2.5rem; margin-bottom: 0.5rem; }
     .csp-u-002 { color: {{ tema.primary_dark }}; margin: 0; font-size: 1.1rem; font-weight: 600; }
@@ -454,17 +474,13 @@
         </div>
 
         <!-- Botones -->
-        <div class="row">
-            <div class="col-md-6 mb-3">
-                <a href="{{ url_for('facturacion_menu') }}" class="btn btn-cancelar w-100">
-                    <i class="fas fa-arrow-left me-2"></i>Volver al Menú
-                </a>
-            </div>
-            <div class="col-md-6 mb-3">
-                <button type="submit" class="btn btn-cancelar w-100" id="btnGenerar" disabled>
-                    <i class="fas fa-eye me-2"></i>Ver Factura
-                </button>
-            </div>
+        <div class="botones-paso">
+            <a href="{{ url_for('facturacion_menu') }}" class="btn btn-cancelar">
+                <i class="fas fa-arrow-left me-2"></i>Volver al Menú
+            </a>
+            <button type="submit" class="btn btn-cancelar" id="btnGenerar" disabled>
+                <i class="fas fa-eye me-2"></i>Ver Factura
+            </button>
         </div>
     </form>
 </div>
