@@ -1,0 +1,73 @@
+{% extends "base.html" %}
+
+{% block title %}Centro de trabajo - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .centro-pick-wrap { max-width: 560px; margin: 2.5rem auto; }
+    .centro-pick-card {
+        background: var(--ars-shell-surface, #fff);
+        border-radius: 20px;
+        padding: 2.25rem;
+        box-shadow: 0 4px 20px {{ tema.primary }}25;
+    }
+    .centro-pick-card h1 {
+        color: var(--primary-color);
+        font-weight: 800;
+        font-size: 1.75rem;
+        margin-bottom: 0.35rem;
+    }
+    .centro-option {
+        display: block;
+        width: 100%;
+        text-align: left;
+        border: 2px solid {{ tema.primary }}40;
+        background: var(--ars-shell-surface, #fff);
+        border-radius: 14px;
+        padding: 1rem 1.15rem;
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        color: #21304c;
+        transition: border-color .2s, background .2s;
+    }
+    .centro-option:hover {
+        border-color: var(--primary-color);
+        background: {{ tema.primary }}10;
+    }
+    .centro-option small {
+        display: block;
+        font-weight: 500;
+        color: #6b7a90;
+        margin-top: 0.2rem;
+    }
+</style>
+
+<div class="container">
+    <div class="centro-pick-wrap">
+        <div class="centro-pick-card">
+            <h1>
+                <i class="fas fa-hospital me-2"></i>
+                {% if cambio %}Cambiar centro{% else %}¿Dónde trabajas hoy?{% endif %}
+            </h1>
+            <p class="text-muted mb-4">
+                Elige ver todos tus pacientes o solo los de un centro específico.
+            </p>
+
+            <form method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button class="centro-option" type="submit" name="centro_id" value="todos">
+                    <i class="fas fa-users me-2 text-primary"></i>Ver todos mis pacientes
+                    <small>Pacientes de todos los centros donde atiendes</small>
+                </button>
+                {% for centro in centros %}
+                <button class="centro-option" type="submit" name="centro_id" value="{{ centro.id }}">
+                    <i class="fas fa-map-marker-alt me-2 text-primary"></i>{{ centro.nombre }}
+                    <small>Solo pacientes capturados o atendidos en este centro</small>
+                </button>
+                {% endfor %}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

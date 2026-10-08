@@ -271,6 +271,11 @@ RUTAS_RETORNO_PROHIBIDAS = frozenset({
 
 @login_required
 def logout():
+    try:
+        from services.centro_contexto import limpiar_contexto_centro
+        limpiar_contexto_centro()
+    except Exception:
+        pass
     logout_user()
     flash('Sesión cerrada correctamente', 'success')
     return redirect(url_for('index'))

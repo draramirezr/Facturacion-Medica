@@ -250,7 +250,11 @@
             <select class="form-select" id="ars_id" name="ars_id" required data-csp-change="checkForm,seleccionarNCFporARS">
                 <option value="">-- Seleccione una ARS --</option>
                 {% for ars in ars_list %}
-                <option value="{{ ars['id'] }}" data-nombre="{{ ars['nombre'] }}">{{ ars['nombre'] }} {% if ars['rnc'] %}(RNC: {{ ars['rnc'] }}){% endif %}</option>
+                <option value="{{ ars['id'] }}"
+                        data-nombre="{{ ars['nombre'] }}"
+                        data-tipo-ncf="{{ ars.get('tipo_ncf') or '' }}">
+                    {{ ars['nombre'] }} {% if ars['rnc'] %}(RNC: {{ ars['rnc'] }}){% endif %}
+                </option>
                 {% endfor %}
             </select>
             <small class="text-muted">
@@ -372,62 +376,48 @@ function actualizarTipoFactura() {
 }
 
 function seleccionarNCFporARS() {
-    const tipo = document.querySelector('input[name="tipo_factura"]:checked').value;
-    if (tipo === 'ELECTRONICA') {
+    const tipoFactura = document.querySelector('input[name="tipo_factura"]:checked').value;
+    if (tipoFactura === 'ELECTRONICA') {
         checkForm();
         return;
     }
     const arsSelect = document.getElementById('ars_id');
     const arsOption = arsSelect.options[arsSelect.selectedIndex];
     const ncfSelect = document.getElementById('ncf_id');
-    
-    // Si no hay ARS seleccionada o es la opción por defecto, limpiar NCF
+
     if (!arsSelect.value || !arsOption.dataset.nombre) {
         ncfSelect.selectedIndex = 0;
         checkForm();
         return;
     }
-    
-    const arsNombre = arsOption.dataset.nombre.toUpperCase();
-    
-    console.log('ARS seleccionada:', arsNombre);
-    
-    // Si es SENASA, seleccionar NCF GUBERNAMENTAL
-    if (arsNombre.includes('SENASA')) {
-        console.log('Buscando NCF GUBERNAMENTAL...');
-        // Buscar la opción con tipo GUBERNAMENTAL
+
+    const tipoNcf = (arsOption.dataset.tipoNcf || '').toUpperCase();
+    if (tipoNcf && !tipoNcf.startsWith('E')) {
         for (let i = 0; i < ncfSelect.options.length; i++) {
             const option = ncfSelect.options[i];
-            if (option.dataset.tipo) {
-                const tipo = option.dataset.tipo.toUpperCase();
-                console.log('Tipo encontrado:', tipo);
-                if (tipo.includes('GUBERNAMENTAL')) {
-                    ncfSelect.selectedIndex = i;
-                    console.log('NCF GUBERNAMENTAL seleccionado');
-                    checkForm();
-                    return;
-                }
-            }
-        }
-    } else {
-        console.log('Buscando NCF CRÉDITO FISCAL...');
-        // Para todas las demás ARS, seleccionar NCF CRÉDITO FISCAL
-        for (let i = 0; i < ncfSelect.options.length; i++) {
-            const option = ncfSelect.options[i];
-            if (option.dataset.tipo) {
-                const tipo = option.dataset.tipo.toUpperCase();
-                console.log('Tipo encontrado:', tipo);
-                if (tipo.includes('CRÉDITO') || tipo.includes('CREDITO')) {
-                    ncfSelect.selectedIndex = i;
-                    console.log('NCF CRÉDITO FISCAL seleccionado');
-                    checkForm();
-                    return;
-                }
+            const tipo = (option.dataset.tipo || '').toUpperCase();
+            const prefijo = (option.dataset.prefijo || '').toUpperCase();
+            if (tipo === tipoNcf || prefijo === tipoNcf) {
+                ncfSelect.selectedIndex = i;
+                checkForm();
+                return;
             }
         }
     }
-    
-    console.log('No se encontró NCF apropiado');
+
+    // Respaldo: SENASA → gubernamental; resto → crédito fiscal
+    const arsNombre = arsOption.dataset.nombre.toUpperCase();
+    const buscar = arsNombre.includes('SENASA')
+        ? ['GUBERNAMENTAL']
+        : ['CRÉDITO', 'CREDITO'];
+    for (let i = 0; i < ncfSelect.options.length; i++) {
+        const tipo = (ncfSelect.options[i].dataset.tipo || '').toUpperCase();
+        if (buscar.some(token => tipo.includes(token))) {
+            ncfSelect.selectedIndex = i;
+            checkForm();
+            return;
+        }
+    }
 }
 
 // Verificar al cargar la página

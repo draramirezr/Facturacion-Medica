@@ -17,6 +17,7 @@ from core.tenant import get_current_tenant_id
 from core.presentation import hora_input
 from markupsafe import escape
 from routes.support import sanitize_input, validate_int
+from services.centro_contexto import centro_para_nuevo_registro
 from services.tenant_mail import notificar_paciente
 import hashlib
 import logging
@@ -619,14 +620,17 @@ def facturacion_citas_nueva():
                 ))
         cita_id = execute_update('''
             INSERT INTO citas_medicas (
-                tenant_id, paciente_id, medico_id, consulta_origen_id,
+                tenant_id, paciente_id, medico_id, centro_medico_id,
+                consulta_origen_id,
                 fecha, hora, duracion_minutos, especialidad, motivo,
                 notas, estado, origen, created_by, updated_by
             ) VALUES (
-                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
             )
         ''', (
-            tenant_id, datos['paciente_id'], datos['medico_id'], consulta_id,
+            tenant_id, datos['paciente_id'], datos['medico_id'],
+            centro_para_nuevo_registro(),
+            consulta_id,
             datos['fecha'], datos['hora'], datos['duracion'],
             datos['especialidad'], datos['motivo'], datos['notas'],
             datos['estado'], 'Historia clinica' if consulta_id else 'Manual',

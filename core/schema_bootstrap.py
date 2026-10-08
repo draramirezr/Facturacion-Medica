@@ -211,6 +211,83 @@ def _asegurar_columnas_presencia_chat(cursor, database):
     )
 
 
+def _asegurar_columnas_ars(cursor, database):
+    if not _existe_tabla(cursor, database, 'ars'):
+        return
+    cursor.execute(
+        '''
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = %s
+          AND TABLE_NAME = 'ars'
+          AND COLUMN_NAME = 'tipo_ncf'
+        ''',
+        (database,),
+    )
+    if cursor.fetchone():
+        return
+    cursor.execute(
+        'ALTER TABLE ars ADD COLUMN `tipo_ncf` VARCHAR(10) NULL '
+        'AFTER `rnc`'
+    )
+
+
+def _asegurar_columna(cursor, database, tabla, columna, definicion):
+    if not _existe_tabla(cursor, database, tabla):
+        return
+    cursor.execute(
+        '''
+        SELECT 1
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = %s
+          AND TABLE_NAME = %s
+          AND COLUMN_NAME = %s
+        ''',
+        (database, tabla, columna),
+    )
+    if cursor.fetchone():
+        return
+    cursor.execute(
+        f'ALTER TABLE `{tabla}` ADD COLUMN `{columna}` {definicion}'
+    )
+
+
+def _asegurar_columnas_centro_contexto(cursor, database):
+    """Centro de captura/atención para médicos multi-centro."""
+    _asegurar_columna(
+        cursor, database, 'pacientes', 'centro_medico_id',
+        'INT NULL AFTER ars_id',
+    )
+    _asegurar_columna(
+        cursor, database, 'consultas_clinicas', 'centro_medico_id',
+        'INT NULL AFTER medico_id',
+    )
+    _asegurar_columna(
+        cursor, database, 'citas_medicas', 'centro_medico_id',
+        'INT NULL AFTER medico_id',
+    )
+
+
+def _asegurar_columnas_factura_edicion(cursor, database):
+    """Vínculo detalle↔pendiente y auditoría de anulación."""
+    _asegurar_columna(
+        cursor, database, 'factura_detalles', 'paciente_pendiente_id',
+        'INT NULL AFTER factura_id',
+    )
+    _asegurar_columna(
+        cursor, database, 'facturas', 'motivo_anulacion',
+        'TEXT NULL',
+    )
+    _asegurar_columna(
+        cursor, database, 'facturas', 'anulado_por',
+        'INT NULL',
+    )
+    _asegurar_columna(
+        cursor, database, 'facturas', 'fecha_anulacion',
+        'DATETIME NULL',
+    )
+
+
 def bootstrap_required_schema(connection_factory=None):
     """Crear tablas faltantes en la base actual y sembrar permisos."""
     factory = connection_factory or pymysql.connect
@@ -240,6 +317,9 @@ def bootstrap_required_schema(connection_factory=None):
             _asegurar_columnas_confirmacion_cita(cursor, database)
             _asegurar_columnas_presencia_chat(cursor, database)
             _asegurar_columnas_ecf_emisor(cursor, database)
+            _asegurar_columnas_ars(cursor, database)
+            _asegurar_columnas_centro_contexto(cursor, database)
+            _asegurar_columnas_factura_edicion(cursor, database)
         connection.commit()
     except Exception:
         try:

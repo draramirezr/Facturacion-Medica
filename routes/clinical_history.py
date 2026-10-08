@@ -438,15 +438,17 @@ def sincronizar_cita_desde_historia(consulta_id, tenant_id):
     else:
         execute_update('''
             INSERT INTO citas_medicas (
-                tenant_id, paciente_id, medico_id, consulta_origen_id,
+                tenant_id, paciente_id, medico_id, centro_medico_id,
+                consulta_origen_id,
                 fecha, hora, duracion_minutos, especialidad, motivo,
                 notas, estado, origen, created_by, updated_by
             ) VALUES (
-                %s,%s,%s,%s,%s,%s,30,%s,%s,%s,
+                %s,%s,%s,%s,%s,%s,%s,30,%s,%s,%s,
                 'Programada','Historia clinica',%s,%s
             )
         ''', (
             tenant_id, consulta['paciente_id'], consulta['medico_id'],
+            consulta.get('centro_medico_id'),
             consulta_id, consulta['proxima_cita'], hora,
             consulta.get('proxima_especialidad'), motivo,
             consulta.get('indicaciones_seguimiento'),
@@ -458,6 +460,8 @@ def sincronizar_cita_desde_historia(consulta_id, tenant_id):
 @login_required
 @permission_required('historia_clinica.ver')
 def facturacion_historia_clinica():
+    from services.centro_contexto import sql_filtro_paciente_por_centro
+
     tenant_id = get_current_tenant_id()
     medico_id_restringido = medico_id_historias_restringido()
     search = request.args.get('search', '').strip()
@@ -477,6 +481,9 @@ def facturacion_historia_clinica():
         tenant_id,
         medico_id_restringido,
     ]
+    filtro_centro, params_centro = sql_filtro_paciente_por_centro('p')
+    query += filtro_centro
+    params.extend(params_centro)
     if search:
         query += '''
             AND (
@@ -818,9 +825,18 @@ def facturacion_historia_clinica_nueva(paciente_id):
                 'facturacion_historia_clinica_nueva',
                 paciente_id=paciente_id
             ))
+        from services.centro_contexto import centro_para_nuevo_registro
+        centro_consulta = centro_para_nuevo_registro()
+        if not centro_consulta:
+            paciente_centro = execute_query(
+                'SELECT centro_medico_id FROM pacientes WHERE id=%s AND tenant_id=%s',
+                (paciente_id, tenant_id),
+            ) or {}
+            centro_consulta = paciente_centro.get('centro_medico_id')
         consulta_id = execute_update('''
             INSERT INTO consultas_clinicas (
-                tenant_id, paciente_id, medico_id, especialidad_consulta,
+                tenant_id, paciente_id, medico_id, centro_medico_id,
+                especialidad_consulta,
                 plantilla_version, datos_especialidad,
                 fecha, hora, motivo_consulta,
                 enfermedad_actual, antecedentes_personales, antecedentes_familiares,
@@ -833,10 +849,10 @@ def facturacion_historia_clinica_nueva(paciente_id):
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s
             )
         ''', (
-            tenant_id, paciente_id, datos['medico_id'],
+            tenant_id, paciente_id, datos['medico_id'], centro_consulta,
             datos['especialidad_consulta'], datos['plantilla_version'],
             json.dumps(datos['datos_especialidad'], ensure_ascii=False),
             datos['fecha'], datos['hora'],

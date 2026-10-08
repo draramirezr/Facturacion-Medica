@@ -88,6 +88,8 @@ CREATE TABLE IF NOT EXISTS ars (
     tenant_id INT NOT NULL,
     codigo VARCHAR(50) NOT NULL,
     nombre VARCHAR(200) NOT NULL,
+    rnc VARCHAR(20) NULL,
+    tipo_ncf VARCHAR(10) NULL,
     telefono VARCHAR(20) NULL,
     email VARCHAR(100) NULL,
     direccion TEXT NULL,
@@ -256,6 +258,7 @@ CREATE TABLE IF NOT EXISTS pacientes (
     telefono_pariente VARCHAR(10) NULL,
     parentesco VARCHAR(50) NULL,
     ars_id INT NULL,
+    centro_medico_id INT NULL COMMENT 'Centro donde se capturó al paciente',
     tipo_afiliacion ENUM('Titular', 'Dependiente') NULL,
     registro_incompleto TINYINT(1) NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -266,7 +269,8 @@ CREATE TABLE IF NOT EXISTS pacientes (
     INDEX idx_pacientes_tenant (tenant_id),
     INDEX idx_nss (nss),
     INDEX idx_nombre (nombre),
-    INDEX idx_ars (ars_id)
+    INDEX idx_ars (ars_id),
+    INDEX idx_pacientes_centro (tenant_id, centro_medico_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -375,6 +379,7 @@ CREATE TABLE IF NOT EXISTS factura_detalles (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tenant_id INT NOT NULL,
     factura_id INT NOT NULL,
+    paciente_pendiente_id INT NULL,
     servicio_id INT NULL,
     codigo_servicio VARCHAR(50) NULL,
     descripcion VARCHAR(500) NOT NULL,
@@ -641,6 +646,7 @@ CREATE TABLE IF NOT EXISTS consultas_clinicas (
     tenant_id INT NOT NULL,
     paciente_id INT NOT NULL,
     medico_id INT NOT NULL,
+    centro_medico_id INT NULL,
     especialidad_consulta VARCHAR(150) NULL,
     plantilla_version INT NOT NULL DEFAULT 1,
     datos_especialidad LONGTEXT NULL,
@@ -712,6 +718,7 @@ CREATE TABLE IF NOT EXISTS citas_medicas (
     tenant_id INT NOT NULL,
     paciente_id INT NOT NULL,
     medico_id INT NOT NULL,
+    centro_medico_id INT NULL,
     consulta_origen_id INT NULL,
     fecha DATE NOT NULL,
     hora TIME NOT NULL,

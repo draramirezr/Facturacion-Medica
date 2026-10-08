@@ -136,6 +136,30 @@
                     </div>
                 </div>
 
+                {% set ctx = centro_contexto or {} %}
+                {% if not es_edicion and ctx.aplica and ctx.centros %}
+                <div class="mb-3">
+                    <label for="centro_medico_id" class="form-label">
+                        <i class="fas fa-hospital me-2 text-primary"></i>Centro de captura
+                        {% if ctx.mostrar_selector and ctx.viendo_todos %}<span class="required-asterisk">*</span>{% endif %}
+                    </label>
+                    {% if ctx.centro_id and not ctx.viendo_todos %}
+                    <input type="hidden" name="centro_medico_id" value="{{ ctx.centro_id }}">
+                    <input type="text" class="form-control" value="{{ ctx.etiqueta }}" readonly>
+                    <small class="text-muted">Se asigna según el centro en el que estás trabajando.</small>
+                    {% else %}
+                    <select class="form-control" id="centro_medico_id" name="centro_medico_id"
+                            {% if ctx.mostrar_selector and ctx.viendo_todos %}required{% endif %}>
+                        <option value="">Seleccione el centro...</option>
+                        {% for centro in ctx.centros %}
+                        <option value="{{ centro.id }}">{{ centro.nombre }}</option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">Indica en qué centro estás capturando a este paciente.</small>
+                    {% endif %}
+                </div>
+                {% endif %}
+
                 <div class="mb-3">
                     <div class="ars-active-check">
                         <input type="checkbox" id="es_asegurado" name="es_asegurado" value="1"

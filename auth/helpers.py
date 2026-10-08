@@ -32,6 +32,16 @@ def destino_inicio_sesion(user=None):
     """Página inicial según si opera el software o un consultorio."""
     if usuario_es_dueno_software(user):
         return 'admin_empresas'
+    try:
+        from services.centro_contexto import (
+            debe_elegir_centro,
+            preparar_contexto_al_login,
+        )
+        preparar_contexto_al_login(user)
+        if debe_elegir_centro(user):
+            return 'elegir_centro_trabajo'
+    except Exception:
+        pass
     if usuario_es_medico_operativo(user):
         return 'turnos_mi_cola'
     return 'facturacion_menu'

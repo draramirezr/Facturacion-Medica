@@ -33,6 +33,70 @@ NCF_TIPOS_TRADICIONALES = {
 
 @login_required
 @permission_required('catalogos.ver')
+def opciones_tipo_ncf_para_ars(tenant_id):
+    """Tipos NCF / e-NCF disponibles para asignar por defecto a un ARS."""
+    opciones = {}
+    ncf_tipos = obtener_catalogo_ncf_tenant(tenant_id)
+    for codigo, descripcion in ncf_tipos.items():
+        opciones[codigo] = f'{descripcion} - {codigo}'
+    registrados = execute_query(
+        '''
+        SELECT tipo, prefijo, descripcion
+        FROM ncf
+        WHERE tenant_id=%s AND activo=1
+        ORDER BY tipo
+        ''',
+        (tenant_id,),
+        fetch='all',
+    ) or []
+    for item in registrados:
+        codigo = str(item.get('tipo') or '').upper()
+        if not codigo:
+            continue
+        descripcion = (
+            str(item.get('descripcion') or '').strip()
+            or ncf_tipos.get(codigo, codigo)
+        )
+        prefijo = str(item.get('prefijo') or codigo).upper()
+        opciones[codigo] = f'{descripcion} - {prefijo}'
+
+    ecf_types = obtener_catalogo_ecf_tenant(tenant_id)
+    for codigo, descripcion in ecf_types.items():
+        clave = f'E{codigo}'
+        opciones[clave] = f'{descripcion} - {clave}'
+    secuencias = execute_query(
+        '''
+        SELECT tipo_ecf, descripcion_tipo
+        FROM ecf_secuencias
+        WHERE tenant_id=%s AND activo=1
+        ORDER BY tipo_ecf
+        ''',
+        (tenant_id,),
+        fetch='all',
+    ) or []
+    for item in secuencias:
+        codigo = str(item.get('tipo_ecf') or '').strip()
+        if not re.fullmatch(r'\d{2}', codigo):
+            continue
+        clave = f'E{codigo}'
+        descripcion = (
+            str(item.get('descripcion_tipo') or '').strip()
+            or ecf_types.get(codigo, clave)
+        )
+        opciones[clave] = f'{descripcion} - {clave}'
+    return dict(sorted(opciones.items()))
+
+
+def _leer_tipo_ncf_ars_formulario(tenant_id):
+    tipo_ncf = sanitize_input(request.form.get('tipo_ncf', ''), 10).upper()
+    if not tipo_ncf:
+        return None, 'El tipo de NCF es obligatorio'
+    permitidos = opciones_tipo_ncf_para_ars(tenant_id)
+    if tipo_ncf not in permitidos:
+        return None, 'Selecciona un tipo de NCF válido'
+    return tipo_ncf, None
+
+
 def facturacion_ars():
     """Lista de ARS - Filtrado por tenant"""
     
@@ -48,10 +112,13 @@ def facturacion_ars():
 @permission_required('catalogos.crear')
 def facturacion_ars_nuevo():
     """Crear nueva ARS"""
-    
+    tenant_id = get_current_tenant_id()
+    ncf_opciones = opciones_tipo_ncf_para_ars(tenant_id)
+
     if request.method == 'POST':
         nombre_ars = sanitize_input(request.form.get('nombre_ars', ''), 50)
         rnc = sanitize_input(request.form.get('rnc', ''), 50)
+        tipo_ncf, tipo_error = _leer_tipo_ncf_ars_formulario(tenant_id)
         activo = 1 if request.form.get('activo') == '1' else 0
         
         if not nombre_ars or not rnc:
@@ -61,8 +128,10 @@ def facturacion_ars_nuevo():
         if not validate_digits(rnc, 9):
             flash('El RNC debe contener exactamente 9 números', 'error')
             return redirect(url_for('facturacion_ars_nuevo'))
-        
-        tenant_id = get_current_tenant_id()
+
+        if tipo_error:
+            flash(tipo_error, 'error')
+            return redirect(url_for('facturacion_ars_nuevo'))
         
         # Generar código automáticamente basado en el nombre (primeras letras + timestamp)
         import time
@@ -76,14 +145,18 @@ def facturacion_ars_nuevo():
             contador += 1
         
         execute_update('''
-            INSERT INTO ars (tenant_id, codigo, nombre, rnc, activo)
-            VALUES (%s, %s, %s, %s, %s)
-        ''', (tenant_id, codigo, nombre_ars, rnc, activo))
+            INSERT INTO ars (tenant_id, codigo, nombre, rnc, tipo_ncf, activo)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        ''', (tenant_id, codigo, nombre_ars, rnc, tipo_ncf, activo))
         
         flash(f'ARS {nombre_ars} creada exitosamente', 'success')
         return redirect(url_for('facturacion_ars'))
     
-    return render_template('facturacion/ars_form.html', ars=None)
+    return render_template(
+        'facturacion/ars_form.html',
+        ars=None,
+        ncf_opciones=ncf_opciones,
+    )
 
 @login_required
 @permission_required('catalogos.editar')
@@ -95,10 +168,12 @@ def facturacion_ars_editar(ars_id):
     if not ars:
         flash('ARS no encontrada', 'error')
         return redirect(url_for('facturacion_ars'))
+    ncf_opciones = opciones_tipo_ncf_para_ars(tenant_id)
     
     if request.method == 'POST':
         nombre_ars = sanitize_input(request.form.get('nombre_ars', ''), 50)
         rnc = sanitize_input(request.form.get('rnc', ''), 50)
+        tipo_ncf, tipo_error = _leer_tipo_ncf_ars_formulario(tenant_id)
         activo = 1 if request.form.get('activo') == '1' else 0
         
         if not nombre_ars or not rnc:
@@ -108,19 +183,27 @@ def facturacion_ars_editar(ars_id):
         if not validate_digits(rnc, 9):
             flash('El RNC debe contener exactamente 9 números', 'error')
             return redirect(url_for('facturacion_ars_editar', ars_id=ars_id))
+
+        if tipo_error:
+            flash(tipo_error, 'error')
+            return redirect(url_for('facturacion_ars_editar', ars_id=ars_id))
         
         # Mantener el código existente (no se modifica en edición)
         
         execute_update('''
             UPDATE ars 
-            SET nombre = %s, rnc = %s, activo = %s
+            SET nombre = %s, rnc = %s, tipo_ncf = %s, activo = %s
             WHERE id = %s AND tenant_id = %s
-        ''', (nombre_ars, rnc, activo, ars_id, tenant_id))
+        ''', (nombre_ars, rnc, tipo_ncf, activo, ars_id, tenant_id))
         
         flash(f'ARS {nombre_ars} actualizada exitosamente', 'success')
         return redirect(url_for('facturacion_ars'))
     
-    return render_template('facturacion/ars_form.html', ars=ars)
+    return render_template(
+        'facturacion/ars_form.html',
+        ars=ars,
+        ncf_opciones=ncf_opciones,
+    )
 
 @login_required
 @permission_required('catalogos.eliminar')

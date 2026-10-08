@@ -27,17 +27,25 @@ except ImportError:
 @permission_required('pacientes.ver')
 def facturacion_pacientes():
     """Lista de pacientes - Filtrado por tenant"""
+    from services.centro_contexto import sql_filtro_paciente_por_centro
+
     tenant_id = get_current_tenant_id()
     search = request.args.get('search', '').strip()
     
     query = '''
-        SELECT p.*, a.nombre as ars_nombre 
+        SELECT p.*, a.nombre as ars_nombre,
+               cm.nombre AS centro_nombre
         FROM pacientes p
         LEFT JOIN ars a
           ON p.ars_id = a.id AND a.tenant_id = p.tenant_id
+        LEFT JOIN centros_medicos cm
+          ON cm.id = p.centro_medico_id AND cm.tenant_id = p.tenant_id
         WHERE p.tenant_id = %s
     '''
     params = [tenant_id]
+    filtro_centro, params_centro = sql_filtro_paciente_por_centro('p')
+    query += filtro_centro
+    params.extend(params_centro)
     
     if search:
         query += (' AND (p.nombre LIKE %s OR p.nss LIKE %s OR p.cedula LIKE %s '
@@ -169,25 +177,48 @@ def facturacion_pacientes_nuevo():
             flash('Ya existe un paciente con esta cédula', 'error')
             return redirect(url_for('facturacion_pacientes_nuevo'))
 
+        from services.centro_contexto import (
+            centro_para_nuevo_registro,
+            contexto_centro_actual,
+        )
+        ctx = contexto_centro_actual()
+        centro_medico_id = centro_para_nuevo_registro(
+            request.form.get('centro_medico_id')
+        )
+        if ctx.get('mostrar_selector') and ctx.get('viendo_todos') and not centro_medico_id:
+            flash('Indica el centro donde capturas a este paciente', 'error')
+            return redirect(url_for('facturacion_pacientes_nuevo'))
+        if centro_medico_id and ctx.get('centros'):
+            ids_ok = {int(c['id']) for c in ctx['centros']}
+            if int(centro_medico_id) not in ids_ok:
+                flash('El centro seleccionado no es válido para tu usuario', 'error')
+                return redirect(url_for('facturacion_pacientes_nuevo'))
+
         paciente_id = execute_update('''
             INSERT INTO pacientes (
                 tenant_id, nombre, cedula, nss, telefono, email, direccion,
                 fecha_nacimiento, sexo, nombre_pariente, cedula_pariente,
-                telefono_pariente, parentesco, ars_id
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                telefono_pariente, parentesco, ars_id, centro_medico_id
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             tenant_id, nombre, cedula or None, nss or None, telefono, email or None, direccion,
             fecha_nacimiento, sexo, nombre_pariente or None, cedula_pariente or None,
-            telefono_pariente or None, parentesco or None, ars_id
+            telefono_pariente or None, parentesco or None, ars_id, centro_medico_id
         ))
         flash('Paciente creado exitosamente', 'success')
         return redirect(url_for('facturacion_paciente_acciones', paciente_id=paciente_id))
 
+    from services.centro_contexto import contexto_centro_actual
     ars_list = execute_query(
         'SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre',
         (tenant_id,), fetch='all'
     ) or []
-    return render_template('facturacion/paciente_form.html', paciente=None, ars_list=ars_list)
+    return render_template(
+        'facturacion/paciente_form.html',
+        paciente=None,
+        ars_list=ars_list,
+        centro_contexto=contexto_centro_actual(),
+    )
 
 def paciente_adulto_sin_cedula(paciente):
     """Indicar si un paciente ya cumplió 18 años y requiere cédula propia."""
@@ -383,7 +414,13 @@ def facturacion_pacientes_editar(paciente_id):
     # Obtener lista de ARS para el dropdown
     ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
     
-    return render_template('facturacion/paciente_form.html', paciente=paciente, ars_list=ars_list)
+    from services.centro_contexto import contexto_centro_actual
+    return render_template(
+        'facturacion/paciente_form.html',
+        paciente=paciente,
+        ars_list=ars_list,
+        centro_contexto=contexto_centro_actual(),
+    )
 
 @login_required
 @permission_required('pacientes.eliminar')

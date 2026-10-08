@@ -134,10 +134,16 @@ def _listar_ars(tenant_id):
 
 
 def _consultar_facturas(tenant_id, filtros):
+    from datetime import date, datetime
+
     query = '''
         SELECT f.id, f.fecha_emision AS fecha, f.numero_factura, f.ncf,
                f.nombre_ars, COALESCE(m.nombre, f.nombre_medico) AS medico,
-               f.total, f.estado
+               f.total, f.estado, f.created_at,
+               CASE WHEN EXISTS (
+                   SELECT 1 FROM pago_facturas pf
+                   WHERE pf.factura_id=f.id AND pf.tenant_id=f.tenant_id
+               ) THEN 1 ELSE 0 END AS tiene_pagos
         FROM facturas f
         LEFT JOIN medicos m
           ON m.id=f.medico_id AND m.tenant_id=f.tenant_id
@@ -160,6 +166,24 @@ def _consultar_facturas(tenant_id, filtros):
     filas, pagination = execute_paginated_query(
         query, params, 'f.fecha_emision DESC, f.id DESC', default_per_page=50
     )
+    hoy = date.today()
+    for fila in filas or []:
+        creacion = fila.get('created_at') or fila.get('fecha')
+        if isinstance(creacion, datetime):
+            creacion = creacion.date()
+        elif isinstance(creacion, str):
+            try:
+                creacion = datetime.strptime(creacion[:10], '%Y-%m-%d').date()
+            except ValueError:
+                creacion = hoy
+        dias = (hoy - creacion).days if creacion else 999
+        estado = (fila.get('estado') or '')
+        fila['editable'] = (
+            dias < 30
+            and estado not in ('Anulada',)
+            and not int(fila.get('tiene_pagos') or 0)
+        )
+        fila['anulable'] = fila['editable']
     return {
         'filas': filas,
         'pagination': pagination,
@@ -177,6 +201,7 @@ def _consultar_facturas(tenant_id, filtros):
         'filtros': ('ars_id', 'medico_id', 'ncf', 'estado', 'fecha_desde', 'fecha_hasta'),
         'estados': ('Pendiente', 'Pagada', 'Vencida', 'Anulada'),
         'moneda': ('total',),
+        'acciones_factura': True,
     }
 
 
@@ -609,4 +634,5 @@ def renderizar_historico():
         medicos_list=_listar_medicos(tenant_id, restringido)
         if 'medico_id' in (resultado.get('filtros') or ()) else [],
         medico_restringido=bool(restringido),
+        acciones_factura=bool(resultado.get('acciones_factura')),
     )

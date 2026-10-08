@@ -117,6 +117,25 @@
                            title="El RNC debe contener exactamente 9 números">
                 </div>
 
+                <div class="mb-4">
+                    <label for="tipo_ncf" class="form-label">
+                        <i class="fas fa-file-invoice me-2 text-primary"></i>Tipo de NCF *
+                    </label>
+                    <select class="form-control" id="tipo_ncf" name="tipo_ncf" required>
+                        <option value="">Seleccione un tipo</option>
+                        {% for codigo, etiqueta in ncf_opciones.items() %}
+                        <option value="{{ codigo }}"
+                            {% if ars and ars.get('tipo_ncf') == codigo %}selected{% endif %}>
+                            {{ etiqueta }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Este NCF se usará por defecto al generar facturas para esta ARS
+                    </small>
+                </div>
+
                 <!-- Activar/Desactivar ARS -->
                 <div class="mb-4">
                     <div class="ars-active-check">

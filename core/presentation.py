@@ -663,6 +663,16 @@ def _clave_seo_actual():
     return 'inicio'
 
 
+def _contexto_centro_plantilla():
+    if not current_user.is_authenticated:
+        return {}
+    try:
+        from services.centro_contexto import contexto_centro_actual
+        return contexto_centro_actual()
+    except Exception:
+        return {}
+
+
 def inject_theme():
     tema_actual = (
         (getattr(current_user, 'tema_color', None) or 'cyan')
@@ -725,6 +735,7 @@ def inject_theme():
             current_user.is_authenticated
             and usuario_es_medico_operativo(current_user)
         ),
+        'centro_contexto': _contexto_centro_plantilla(),
         'producto': PRODUCTO,
         'product_name': PRODUCTO['nombre'],
         'seo': datos_seo(_clave_seo_actual()),

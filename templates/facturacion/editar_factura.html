@@ -577,6 +577,7 @@
     </div>
 
     <form method="POST" id="formEditarFactura">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <!-- Campos ocultos para enviar los IDs -->
         <input type="hidden" name="pacientes_agregar_ids" id="pacientes_agregar_ids" value="[]">
         <input type="hidden" name="pacientes_eliminar_ids" id="pacientes_eliminar_ids" value="[]">

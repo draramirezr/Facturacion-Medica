@@ -22,6 +22,8 @@ def api_buscar_pacientes():
     patron = f'%{termino}%'
     digits = re.sub(r'\D', '', termino)
     phone_pattern = f'%{digits}%' if len(digits) >= 3 else patron
+    from services.centro_contexto import sql_filtro_paciente_por_centro
+
     query = """
         SELECT p.id, p.nombre, p.cedula, p.nss, p.telefono,
                p.fecha_nacimiento, p.sexo, p.direccion,
@@ -33,6 +35,9 @@ def api_buscar_pacientes():
         WHERE p.tenant_id=%s
     """
     params = [get_current_tenant_id()]
+    filtro_centro, params_centro = sql_filtro_paciente_por_centro('p')
+    query += filtro_centro
+    params.extend(params_centro)
     if paciente_id:
         query += " AND p.id=%s"
         params.append(paciente_id)

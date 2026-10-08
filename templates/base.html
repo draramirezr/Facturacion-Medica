@@ -1451,6 +1451,22 @@
                         <li><span class="dropdown-item-text"><small><i class="fas fa-building me-2"></i>{{ empresa.empresa_nombre }}</small></span></li>
                         {% endif %}
                         <li><hr class="dropdown-divider"></li>
+                        {% if centro_contexto and centro_contexto.mostrar_selector %}
+                        <li>
+                            <span class="dropdown-item-text">
+                                <small>
+                                    <i class="fas fa-hospital me-2"></i>
+                                    {{ centro_contexto.etiqueta }}
+                                </small>
+                            </span>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{{ url_for('cambiar_centro_trabajo') }}">
+                                <i class="fas fa-exchange-alt me-2"></i> Cambiar centro de trabajo
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        {% endif %}
                         {% if can('configuracion.ver') %}
                         <li>
                             <a class="dropdown-item" href="{{ url_for('perfil_configuracion') }}">
