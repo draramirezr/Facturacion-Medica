@@ -17,11 +17,62 @@ from auth.helpers import usuario_es_dueno_software
 from core.database import database_transaction, execute_query, execute_update, get_db_connection
 from core.tenant import get_current_tenant_id, validate_tenant_access
 from ecf import ECFBuildError, ECFBuilder, ECFCertificateResolutionError, ECFPrintableError, ECFSchemaError, ECFSigningError, ECFStampError, ECFValidationError, ECFValidator, TenantCertificateProvider, build_encf, build_stamp, generate_e31_pdf, generate_qr, reserve_encf
+from core.clock import fecha_clinica
 from routes.patients import paciente_adulto_sin_cedula
 from routes.support import execute_paginated_query, sanitize_input, validate_int
 from services.subscriptions import get_empresa_info
 from services.ecf_operations import consultar_resultado_ecf_dgii, ecf_habilitado_para_tenant, emisor_ecf_para_xml, fecha_vencimiento_secuencia_ecf, obtener_configuracion_ecf_tenant, procesar_envio_ecf_dgii
 logger = logging.getLogger(__name__)
+
+# Validaciones de carga de consultas (alineadas con Shirley)
+FECHA_MIN_CONSULTA_DIAS = 45
+_RE_NSS = re.compile(r'^[0-9\-]+$')
+_RE_AUTORIZACION = re.compile(r'^[A-Z0-9\-]+$')
+_RE_NOMBRE = re.compile(r'^[A-ZÁÉÍÓÚÜÑ\s\.\-]+$')
+_RE_TEXTO_GENERAL = re.compile(r'^[A-ZÁÉÍÓÚÜÑ\s\.\-/]+$')
+
+
+def _upper_clean_spaces(value: str) -> str:
+    value = (value or '').strip().upper()
+    return re.sub(r'\s+', ' ', value).strip()
+
+
+def _validate_or_raise(
+    value: str,
+    pattern: re.Pattern,
+    field_name: str,
+    idx=None,
+    max_len=None,
+    required: bool = True,
+) -> str:
+    """Valida y retorna valor limpio en mayúsculas. Lanza ValueError si inválido."""
+    cleaned = _upper_clean_spaces(value)
+    prefix = f'Línea {idx}: ' if idx else ''
+    if max_len is not None and len(cleaned) > max_len:
+        raise ValueError(f'{prefix}{field_name} supera el máximo de {max_len} caracteres')
+    if not cleaned:
+        if not required:
+            return ''
+        raise ValueError(f'{prefix}{field_name} es obligatorio')
+    if not pattern.fullmatch(cleaned):
+        raise ValueError(f'{prefix}{field_name} contiene caracteres no permitidos')
+    return cleaned
+
+
+def fecha_minima_consulta_rd(hoy_rd=None):
+    """Fecha mínima permitida para consulta: hoy (RD) menos 45 días."""
+    if hoy_rd is None:
+        hoy_rd = fecha_clinica()
+    return hoy_rd - timedelta(days=FECHA_MIN_CONSULTA_DIAS)
+
+
+def _extraer_autorizacion_servicios(servicios_realizados) -> str:
+    texto = (servicios_realizados or '').strip()
+    if ' - Autorización:' in texto:
+        return texto.split(' - Autorización:', 1)[1].strip().upper()
+    return ''
+
+
 try:
     from sendgrid import SendGridAPIClient
     from sendgrid.helpers.mail import Mail
@@ -2739,53 +2790,153 @@ def registrar_consultas_pendientes_atomico(
     centro_medico_id,
     usuario_id,
 ):
-    """Crear pacientes/pendientes como una unidad, sin consultas N+1."""
-    normalizadas = []
-    nss_vistos = set()
-    for linea in lineas:
-        nss = sanitize_input(linea.get('nss', ''), 50)
-        nombre = sanitize_input(linea.get('nombre', ''), 200)
-        if not nss or not nombre:
-            continue
-        if nss in nss_vistos:
-            raise ValueError(f'El NSS {nss} está repetido en la carga')
-        nss_vistos.add(nss)
+    """Crear pacientes/pendientes como una unidad, con validaciones de integridad."""
+    fecha_hoy_rd = fecha_clinica()
+    fecha_minima_rd = fecha_minima_consulta_rd(fecha_hoy_rd)
+    errores_validacion = []
+    candidatos = []
+    claves_lote = set()
+
+    for idx, linea in enumerate(lineas or [], start=1):
+        nss_raw = linea.get('nss', '')
+        nombre_raw = linea.get('nombre', '')
+        fecha_raw = linea.get('fecha', '')
+        autorizacion_raw = linea.get('autorizacion', '')
+        servicio_raw = linea.get('servicio', '')
+        monto_raw = linea.get('monto', 0)
+
         try:
-            monto = Decimal(str(linea.get('monto', 0))).quantize(
-                Decimal('0.01')
+            nss = _validate_or_raise(nss_raw, _RE_NSS, 'NSS', idx=idx, max_len=20)
+            nombre = _validate_or_raise(
+                nombre_raw, _RE_NOMBRE, 'Nombre del paciente', idx=idx, max_len=200
             )
+            servicio = _validate_or_raise(
+                servicio_raw, _RE_TEXTO_GENERAL, 'Servicio', idx=idx, max_len=200
+            )
+            autorizacion = _validate_or_raise(
+                autorizacion_raw,
+                _RE_AUTORIZACION,
+                'Autorización',
+                idx=idx,
+                max_len=50,
+                required=False,
+            )
+        except ValueError as error:
+            errores_validacion.append(str(error))
+            continue
+
+        try:
+            monto = Decimal(str(monto_raw)).quantize(Decimal('0.01'))
         except (InvalidOperation, TypeError, ValueError):
-            raise ValueError(f'El monto del paciente {nombre} no es válido')
-        if monto < 0:
-            raise ValueError(f'El monto del paciente {nombre} no puede ser negativo')
-        normalizadas.append({
+            errores_validacion.append(f'Línea {idx}: Monto inválido')
+            continue
+        if monto <= 0:
+            errores_validacion.append(f'Línea {idx}: El monto debe ser mayor a cero')
+            continue
+
+        fecha_str = str(fecha_raw or '').strip()
+        try:
+            fecha_obj = date.fromisoformat(fecha_str[:10]) if fecha_str else None
+        except ValueError:
+            fecha_obj = None
+        if not fecha_obj:
+            errores_validacion.append(
+                f'Línea {idx}: Fecha de consulta inválida (use YYYY-MM-DD)'
+            )
+            continue
+        if fecha_obj > fecha_hoy_rd:
+            errores_validacion.append(
+                f'Línea {idx}: La fecha de consulta no puede ser futura'
+            )
+            continue
+        if fecha_obj < fecha_minima_rd:
+            errores_validacion.append(
+                f'Línea {idx}: La fecha de consulta no puede ser anterior a '
+                f'{FECHA_MIN_CONSULTA_DIAS} días '
+                f'(mínimo {fecha_minima_rd.strftime("%Y-%m-%d")})'
+            )
+            continue
+
+        clave = (nss, fecha_obj.isoformat(), autorizacion)
+        candidatos.append({
+            'idx': idx,
             'nss': nss,
             'nombre': nombre,
-            'fecha': linea.get('fecha'),
-            'autorizacion': sanitize_input(linea.get('autorizacion', ''), 50),
-            'servicio': sanitize_input(linea.get('servicio', ''), 200),
+            'fecha': fecha_obj,
+            'autorizacion': autorizacion,
+            'servicio': servicio,
             'monto': monto,
+            'clave': clave,
+            'duplicado_lote': clave in claves_lote,
         })
+        claves_lote.add(clave)
 
-    if not normalizadas:
+    if errores_validacion:
+        raise ValueError('\n'.join(errores_validacion[:12]))
+
+    if not candidatos:
         raise ValueError('No hay pacientes válidos para registrar')
 
+    omitidos = []
+    a_insertar = []
+
     with database_transaction():
-        placeholders = ','.join(['%s'] * len(normalizadas))
+        nss_unicos = list({item['nss'] for item in candidatos})
+        placeholders = ','.join(['%s'] * len(nss_unicos))
         existentes = execute_query(f'''
             SELECT id, nss, cedula, fecha_nacimiento
             FROM pacientes
             WHERE tenant_id = %s AND ars_id = %s
               AND nss IN ({placeholders})
             FOR UPDATE
-        ''', (
-            tenant_id,
-            ars_id,
-            *[linea['nss'] for linea in normalizadas],
-        ), fetch='all') or []
+        ''', (tenant_id, ars_id, *nss_unicos), fetch='all') or []
         pacientes_por_nss = {paciente['nss']: paciente for paciente in existentes}
 
-        for linea in normalizadas:
+        fechas = list({item['fecha'] for item in candidatos})
+        fecha_placeholders = ','.join(['%s'] * len(fechas))
+        pendientes_existentes = execute_query(f'''
+            SELECT id, nss, fecha_servicio, servicios_realizados
+            FROM pacientes_pendientes
+            WHERE tenant_id = %s AND ars_id = %s
+              AND nss IN ({placeholders})
+              AND fecha_servicio IN ({fecha_placeholders})
+        ''', (tenant_id, ars_id, *nss_unicos, *fechas), fetch='all') or []
+
+        duplicados_bd = set()
+        for pendiente in pendientes_existentes:
+            fecha_pend = pendiente.get('fecha_servicio')
+            if hasattr(fecha_pend, 'isoformat'):
+                fecha_clave = fecha_pend.isoformat()
+            else:
+                fecha_clave = str(fecha_pend or '')[:10]
+            autorizacion_pend = _extraer_autorizacion_servicios(
+                pendiente.get('servicios_realizados')
+            )
+            duplicados_bd.add((pendiente.get('nss'), fecha_clave, autorizacion_pend))
+
+        for linea in candidatos:
+            clave = linea['clave']
+            if linea.get('duplicado_lote') or clave in duplicados_bd:
+                omitidos.append(
+                    f"Línea {linea['idx']}: Registro duplicado - NSS {linea['nss']}, "
+                    f"Fecha {linea['fecha'].isoformat()}, "
+                    f"Autorización {linea['autorizacion'] or '(vacía)'} ya existe"
+                )
+                continue
+            a_insertar.append(linea)
+            duplicados_bd.add(clave)
+
+        if not a_insertar:
+            raise ValueError(
+                'No se agregó ningún paciente. '
+                + (
+                    f'Se detectaron {len(omitidos)} registro(s) duplicado(s).'
+                    if omitidos
+                    else 'Verifique los datos e intente nuevamente.'
+                )
+            )
+
+        for linea in a_insertar:
             paciente = pacientes_por_nss.get(linea['nss'])
             if paciente:
                 if paciente_adulto_sin_cedula(paciente):
@@ -2833,7 +2984,11 @@ def registrar_consultas_pendientes_atomico(
             if not pendiente_id:
                 raise RuntimeError('No se pudo crear la consulta pendiente')
 
-    return len(normalizadas)
+    return {
+        'creados': len(a_insertar),
+        'omitidos': omitidos,
+        'total_enviado': len(lineas or []),
+    }
 
 @login_required
 @permission_required('facturacion.crear')
@@ -2882,7 +3037,7 @@ def facturacion_facturas_nueva():
             return redirect(url_for('facturacion_facturas_nueva'))
         
         try:
-            pacientes_agregados = registrar_consultas_pendientes_atomico(
+            resultado = registrar_consultas_pendientes_atomico(
                 lineas,
                 tenant_id,
                 ars_id,
@@ -2891,7 +3046,9 @@ def facturacion_facturas_nueva():
                 current_user.id,
             )
         except ValueError as error:
-            flash(str(error), 'error')
+            for mensaje in str(error).split('\n'):
+                if mensaje.strip():
+                    flash(mensaje.strip(), 'error')
             return redirect(url_for('facturacion_facturas_nueva'))
         except Exception:
             logger.error(
@@ -2903,8 +3060,24 @@ def facturacion_facturas_nueva():
                 'error',
             )
             return redirect(url_for('facturacion_facturas_nueva'))
-        
-        flash(f'{pacientes_agregados} paciente(s) agregado(s) como pendientes de facturación', 'success')
+
+        creados = resultado.get('creados', 0)
+        total_enviado = resultado.get('total_enviado', creados)
+        omitidos = resultado.get('omitidos') or []
+        flash(
+            f'{creados} de {total_enviado} paciente(s) agregado(s) '
+            'como pendientes de facturación',
+            'success',
+        )
+        if omitidos:
+            flash(
+                f'Se omitieron {len(omitidos)} registro(s) por duplicados.',
+                'warning',
+            )
+            for mensaje in omitidos[:5]:
+                flash(mensaje, 'warning')
+            if len(omitidos) > 5:
+                flash(f'... y {len(omitidos) - 5} más.', 'warning')
         return redirect(url_for('facturacion_pacientes_pendientes'))
     
     # GET: Mostrar formulario
@@ -2944,13 +3117,18 @@ def facturacion_facturas_nueva():
         if paciente_adulto_sin_cedula(paciente_preseleccionado):
             flash('Debe actualizar la cédula propia del paciente antes de registrar la consulta', 'warning')
             return redirect(url_for('facturacion_paciente_acciones', paciente_id=paciente_id))
-    
-    return render_template('facturacion/facturas_form.html', 
-                         ars_list=ars_list, 
-                         medicos=medicos, 
-                         centros_medicos=centros_medicos,
-                         servicios_list=servicios_list,
-                         paciente_preseleccionado=paciente_preseleccionado)
+
+    hoy_rd = fecha_clinica()
+    return render_template(
+        'facturacion/facturas_form.html',
+        ars_list=ars_list,
+        medicos=medicos,
+        centros_medicos=centros_medicos,
+        servicios_list=servicios_list,
+        paciente_preseleccionado=paciente_preseleccionado,
+        fecha_hoy_rd=hoy_rd.strftime('%Y-%m-%d'),
+        fecha_min_rd=fecha_minima_consulta_rd(hoy_rd).strftime('%Y-%m-%d'),
+    )
 
 @login_required
 @permission_required('facturacion.crear')
@@ -3056,15 +3234,21 @@ def descargar_plantilla_excel():
         title_cell.font = Font(bold=True, size=16, color="8B5A9F")
         ws_instrucciones.merge_cells('A1:D1')
         
+        hoy_rd = fecha_clinica()
+        min_rd = fecha_minima_consulta_rd(hoy_rd)
         # Instrucciones numeradas
         instrucciones = [
             "Complete la hoja \"Pacientes\" con los datos de los pacientes",
             "NSS: Solo números y guiones (ej: 001-234-5678)",
-            "NOMBRE: Nombre completo del paciente",
-            "FECHA: Formato AAAA-MM-DD (ej: 2025-10-16)",
-            "AUTORIZACIÓN: Solo números, debe ser única para cada paciente",
+            "NOMBRE: Solo letras, espacios, punto y guion (mayúsculas)",
+            (
+                f"FECHA: Formato AAAA-MM-DD o DD/MM/AAAA. "
+                f"Rango permitido: últimos {FECHA_MIN_CONSULTA_DIAS} días "
+                f"hasta hoy ({min_rd.strftime('%Y-%m-%d')} a {hoy_rd.strftime('%Y-%m-%d')})"
+            ),
+            "AUTORIZACIÓN: Letras, números y guiones; única por NSS+fecha+ARS",
             "SERVICIO: Seleccione de la lista desplegable (se alimenta de la hoja \"Servicios\")",
-            "MONTO: Cantidad en pesos (solo números)"
+            "MONTO: Cantidad en pesos mayor a cero (solo números)"
         ]
         
         row = 3
@@ -3086,7 +3270,8 @@ def descargar_plantilla_excel():
         importantes = [
             "Los encabezados están protegidos y NO se pueden modificar",
             "La columna SERVICIO tiene lista desplegable - haga clic en la flecha para seleccionar",
-            "Cada autorización debe ser única",
+            f"La fecha no puede ser futura ni anterior a {FECHA_MIN_CONSULTA_DIAS} días",
+            "No se permiten caracteres especiales fuera de los permitidos por campo",
             "Complete directamente desde la fila 2"
         ]
         
@@ -3252,21 +3437,39 @@ def descargar_plantilla_excel():
                 ws.add_data_validation(dv_servicio)
                 dv_servicio.add(f"E2:E1048576")  # Aplicar a toda la columna E desde fila 2
         
-        # Validación de datos: Autorización única (columna D)
-        # Usar fórmula personalizada para verificar que no haya duplicados
-        # COUNTIF($D:$D, D2) debe ser igual a 1 (solo una ocurrencia)
+        # Validación de datos: Autorización (columna D) — alfanumérico + guiones
         dv_autorizacion = DataValidation(
             type="custom",
             formula1="COUNTIF($D:$D,D2)=1",
-            allow_blank=False
+            allow_blank=True,
         )
-        dv_autorizacion.error = "Esta autorización ya existe. Cada autorización debe ser única."
+        dv_autorizacion.error = "Esta autorización ya existe en la plantilla."
         dv_autorizacion.errorTitle = "Autorización duplicada"
-        dv_autorizacion.prompt = "Ingrese una autorización única (solo números)"
+        dv_autorizacion.prompt = "Letras, números y guiones (opcional)"
         dv_autorizacion.promptTitle = "Autorización"
         ws.add_data_validation(dv_autorizacion)
-        dv_autorizacion.add(f"D2:D1048576")  # Aplicar a toda la columna D desde fila 2
-        
+        dv_autorizacion.add('D2:D1048576')
+
+        # Validación de fecha: últimos 45 días hasta hoy (RD)
+        dv_fecha = DataValidation(
+            type='date',
+            operator='between',
+            formula1=f'DATE({min_rd.year},{min_rd.month},{min_rd.day})',
+            formula2=f'DATE({hoy_rd.year},{hoy_rd.month},{hoy_rd.day})',
+            allow_blank=False,
+        )
+        dv_fecha.error = (
+            f'La FECHA debe ser válida. No puede ser futura ni anterior a '
+            f'{FECHA_MIN_CONSULTA_DIAS} días.'
+        )
+        dv_fecha.errorTitle = 'Fecha inválida'
+        dv_fecha.prompt = (
+            f'Seleccione una fecha. Rango: últimos {FECHA_MIN_CONSULTA_DIAS} días hasta hoy.'
+        )
+        dv_fecha.promptTitle = 'Fecha de consulta'
+        ws.add_data_validation(dv_fecha)
+        dv_fecha.add('C2:C1048576')
+
         # Validación de datos: Solo números para MONTO (columna F)
         dv_monto = DataValidation(type="decimal", operator="greaterThan", formula1=0, allow_blank=False)
         dv_monto.error = "El monto debe ser un número mayor a cero"
@@ -3434,9 +3637,11 @@ def facturacion_procesar_excel():
         # Leer datos desde la fila 2 (la fila 1 es el encabezado)
         pacientes = []
         errores = []
-        autorizaciones_vistas = set()
+        claves_vistas = set()
         numero_fila = 1
-        
+        hoy_rd = fecha_clinica()
+        min_rd = fecha_minima_consulta_rd(hoy_rd)
+
         for row in ws.iter_rows(min_row=2, values_only=False):
             numero_fila += 1
             
@@ -3446,8 +3651,6 @@ def facturacion_procesar_excel():
             # Fecha puede venir como datetime de Excel o como string
             fecha_raw = row[2].value if row[2].value else ''
             if fecha_raw:
-                # Si es datetime de Excel, convertir a string primero
-                from datetime import datetime, date
                 if isinstance(fecha_raw, (datetime, date)):
                     fecha = fecha_raw.strftime('%Y-%m-%d')
                 else:
@@ -3464,87 +3667,94 @@ def facturacion_procesar_excel():
             
             # Validaciones
             errores_fila = []
-            
-            # Validar NSS
-            if not nss:
-                errores_fila.append(f'Fila {numero_fila}: NSS es obligatorio')
-            elif len(nss) > 50:
-                errores_fila.append(f'Fila {numero_fila}: NSS muy largo (máximo 50 caracteres)')
-            
-            # Validar Nombre
-            if not nombre:
-                errores_fila.append(f'Fila {numero_fila}: Nombre es obligatorio')
-            elif len(nombre) > 200:
-                errores_fila.append(f'Fila {numero_fila}: Nombre muy largo (máximo 200 caracteres)')
-            
+            fecha_obj = None
+
+            try:
+                nss = _validate_or_raise(nss, _RE_NSS, 'NSS', idx=numero_fila, max_len=20)
+            except ValueError as error:
+                errores_fila.append(str(error).replace(f'Línea {numero_fila}:', f'Fila {numero_fila}:'))
+
+            try:
+                nombre = _validate_or_raise(
+                    nombre, _RE_NOMBRE, 'Nombre', idx=numero_fila, max_len=200
+                )
+            except ValueError as error:
+                errores_fila.append(str(error).replace(f'Línea {numero_fila}:', f'Fila {numero_fila}:'))
+
+            try:
+                autorizacion = _validate_or_raise(
+                    autorizacion,
+                    _RE_AUTORIZACION,
+                    'Autorización',
+                    idx=numero_fila,
+                    max_len=50,
+                    required=False,
+                )
+            except ValueError as error:
+                errores_fila.append(str(error).replace(f'Línea {numero_fila}:', f'Fila {numero_fila}:'))
+
+            try:
+                servicio = _validate_or_raise(
+                    servicio, _RE_TEXTO_GENERAL, 'Servicio', idx=numero_fila, max_len=200
+                )
+            except ValueError as error:
+                errores_fila.append(str(error).replace(f'Línea {numero_fila}:', f'Fila {numero_fila}:'))
+
             # Validar y normalizar Fecha
             if not fecha:
                 errores_fila.append(f'Fila {numero_fila}: Fecha es obligatoria')
             else:
                 try:
-                    from datetime import datetime, date
                     fecha_normalizada = None
-                    
-                    # Si ya está en formato AAAA-MM-DD, validar y usar directamente
                     try:
                         datetime.strptime(fecha, '%Y-%m-%d')
-                        fecha_normalizada = fecha  # Ya está en el formato correcto
+                        fecha_normalizada = fecha
                     except ValueError:
-                        # Si no está en formato AAAA-MM-DD, intentar normalizar
-                        # Normalizar separadores: convertir "/" a "-"
                         fecha_str = fecha.replace('/', '-').strip()
-                        
-                        # Intentar parsear diferentes formatos
                         formatos_fecha = [
-                            '%Y-%m-%d',      # AAAA-MM-DD (formato estándar)
-                            '%d-%m-%Y',      # DD-MM-AAAA
-                            '%m-%d-%Y',      # MM-DD-AAAA
-                            '%Y/%m/%d',      # AAAA/MM/DD (por si acaso quedó algún /)
-                            '%d/%m/%Y',      # DD/MM/AAAA
-                            '%m/%d/%Y',      # MM/DD/AAAA
+                            '%Y-%m-%d',
+                            '%d-%m-%Y',
+                            '%m-%d-%Y',
+                            '%Y/%m/%d',
+                            '%d/%m/%Y',
+                            '%m/%d/%Y',
                         ]
-                        
-                        fecha_obj = None
+                        parsed = None
                         for formato in formatos_fecha:
                             try:
-                                fecha_obj = datetime.strptime(fecha_str, formato)
+                                parsed = datetime.strptime(fecha_str, formato)
                                 break
                             except ValueError:
                                 continue
-                        
-                        if fecha_obj:
-                            # Convertir a formato estándar AAAA-MM-DD
-                            fecha_normalizada = fecha_obj.strftime('%Y-%m-%d')
+                        if parsed:
+                            fecha_normalizada = parsed.strftime('%Y-%m-%d')
                         else:
-                            # Si no se pudo parsear, intentar con el valor original
                             raise ValueError(f'No se pudo parsear la fecha: {fecha}')
-                    
-                    if fecha_normalizada:
-                        # Validar que el formato sea correcto (AAAA-MM-DD)
-                        datetime.strptime(fecha_normalizada, '%Y-%m-%d')
-                        fecha = fecha_normalizada
-                    else:
-                        raise ValueError(f'Fecha no válida: {fecha}')
-                        
-                except Exception as e:
-                    errores_fila.append(f'Fila {numero_fila}: Fecha inválida "{fecha}" (formato esperado: AAAA-MM-DD o DD/MM/AAAA)')
-            
-            # Validar Autorización
-            if not autorizacion:
-                errores_fila.append(f'Fila {numero_fila}: Autorización es obligatoria')
-            elif len(autorizacion) > 50:
-                errores_fila.append(f'Fila {numero_fila}: Autorización muy larga (máximo 50 caracteres)')
-            elif autorizacion.upper() in autorizaciones_vistas:
-                errores_fila.append(f'Fila {numero_fila}: Autorización duplicada ({autorizacion})')
-            else:
-                autorizaciones_vistas.add(autorizacion.upper())
-            
-            # Validar Servicio
-            if not servicio:
-                errores_fila.append(f'Fila {numero_fila}: Servicio es obligatorio')
-            elif servicios_validos and servicio.upper() not in servicios_validos:
-                errores_fila.append(f'Fila {numero_fila}: Servicio "{servicio}" no existe. Servicios válidos: {", ".join(servicios_validos[:5])}...')
-            
+
+                    fecha_obj = date.fromisoformat(fecha_normalizada)
+                    fecha = fecha_normalizada
+                    if fecha_obj > hoy_rd:
+                        errores_fila.append(
+                            f'Fila {numero_fila}: La fecha de consulta no puede ser futura'
+                        )
+                    elif fecha_obj < min_rd:
+                        errores_fila.append(
+                            f'Fila {numero_fila}: La fecha no puede ser anterior a '
+                            f'{FECHA_MIN_CONSULTA_DIAS} días '
+                            f'(mínimo {min_rd.strftime("%Y-%m-%d")})'
+                        )
+                except Exception:
+                    errores_fila.append(
+                        f'Fila {numero_fila}: Fecha inválida "{fecha}" '
+                        '(formato esperado: AAAA-MM-DD o DD/MM/AAAA)'
+                    )
+
+            if servicios_validos and servicio and servicio.upper() not in servicios_validos:
+                errores_fila.append(
+                    f'Fila {numero_fila}: Servicio "{servicio}" no existe. '
+                    f'Servicios válidos: {", ".join(servicios_validos[:5])}...'
+                )
+
             # Validar Monto
             try:
                 if monto == '' or monto is None:
@@ -3555,7 +3765,17 @@ def facturacion_procesar_excel():
                         errores_fila.append(f'Fila {numero_fila}: Monto debe ser mayor a cero')
             except (ValueError, TypeError):
                 errores_fila.append(f'Fila {numero_fila}: Monto inválido (debe ser un número)')
-            
+
+            if fecha_obj and nss and not errores_fila:
+                clave = (nss, fecha, autorizacion)
+                if clave in claves_vistas:
+                    errores_fila.append(
+                        f'Fila {numero_fila}: Registro duplicado en el Excel '
+                        f'(NSS {nss}, fecha {fecha}, autorización {autorizacion or "(vacía)"})'
+                    )
+                else:
+                    claves_vistas.add(clave)
+
             # Si hay errores en esta fila, agregarlos y continuar
             if errores_fila:
                 errores.extend(errores_fila)
@@ -3564,10 +3784,10 @@ def facturacion_procesar_excel():
             # Si no hay errores, agregar el paciente
             pacientes.append({
                 'nss': nss,
-                'nombre': nombre.upper(),
+                'nombre': nombre,
                 'fecha': fecha,
-                'autorizacion': autorizacion.upper(),
-                'servicio': servicio.upper(),
+                'autorizacion': autorizacion,
+                'servicio': servicio,
                 'monto': float(monto)
             })
         

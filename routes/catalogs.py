@@ -97,6 +97,24 @@ def _leer_tipo_ncf_ars_formulario(tenant_id):
     return tipo_ncf, None
 
 
+def _rnc_ars_ya_existe(tenant_id, rnc, excluir_ars_id=None):
+    """True si el RNC ya está registrado en otra ARS del mismo tenant."""
+    rnc_normalizado = re.sub(r'\D', '', str(rnc or ''))
+    if not rnc_normalizado:
+        return False
+    query = '''
+        SELECT id FROM ars
+        WHERE tenant_id = %s
+          AND REPLACE(REPLACE(REPLACE(IFNULL(rnc, ''), '-', ''), ' ', ''), '.', '') = %s
+    '''
+    params = [tenant_id, rnc_normalizado]
+    if excluir_ars_id:
+        query += ' AND id <> %s'
+        params.append(excluir_ars_id)
+    query += ' LIMIT 1'
+    return bool(execute_query(query, tuple(params)))
+
+
 def facturacion_ars():
     """Lista de ARS - Filtrado por tenant"""
     
@@ -127,6 +145,13 @@ def facturacion_ars_nuevo():
 
         if not validate_digits(rnc, 9):
             flash('El RNC debe contener exactamente 9 números', 'error')
+            return redirect(url_for('facturacion_ars_nuevo'))
+
+        if _rnc_ars_ya_existe(tenant_id, rnc):
+            flash(
+                f'Ya existe un ARS con el RNC {rnc}. El RNC debe ser único.',
+                'error',
+            )
             return redirect(url_for('facturacion_ars_nuevo'))
 
         if tipo_error:
@@ -182,6 +207,13 @@ def facturacion_ars_editar(ars_id):
 
         if not validate_digits(rnc, 9):
             flash('El RNC debe contener exactamente 9 números', 'error')
+            return redirect(url_for('facturacion_ars_editar', ars_id=ars_id))
+
+        if _rnc_ars_ya_existe(tenant_id, rnc, excluir_ars_id=ars_id):
+            flash(
+                f'Ya existe un ARS con el RNC {rnc}. El RNC debe ser único.',
+                'error',
+            )
             return redirect(url_for('facturacion_ars_editar', ars_id=ars_id))
 
         if tipo_error:

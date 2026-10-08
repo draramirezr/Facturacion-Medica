@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Nueva Factura - Facturación{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -577,7 +577,119 @@ document.getElementById('medico_id').addEventListener('change', function() {
 let numeroLinea = 0;
 let lineas = [];
 
-// La fecha se establece automáticamente al generar la factura
+const FECHA_HOY_RD = {{ (fecha_hoy_rd or '')|tojson }};
+const FECHA_MIN_RD = {{ (fecha_min_rd or '')|tojson }};
+const FECHA_MIN_DIAS = 45;
+
+function hoyIso() {
+    if (FECHA_HOY_RD && /^\d{4}-\d{2}-\d{2}$/.test(FECHA_HOY_RD)) return FECHA_HOY_RD;
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
+function minIso() {
+    if (FECHA_MIN_RD && /^\d{4}-\d{2}-\d{2}$/.test(FECHA_MIN_RD)) return FECHA_MIN_RD;
+    const h = hoyIso();
+    const [y, m, d] = h.split('-').map(n => parseInt(n, 10));
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() - FECHA_MIN_DIAS);
+    const yy = dt.getFullYear();
+    const mm = String(dt.getMonth() + 1).padStart(2, '0');
+    const dd = String(dt.getDate()).padStart(2, '0');
+    return `${yy}-${mm}-${dd}`;
+}
+
+function isoAEs(valor) {
+    const v = (valor || '').toString().trim();
+    if (!v) return '';
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) return v;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) {
+        const [y, m, d] = v.split('-');
+        return `${d}/${m}/${y}`;
+    }
+    return v;
+}
+
+function fechaEsAISO(valor) {
+    const v = (valor || '').toString().trim();
+    if (!v) return '';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+    const m = v.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+    if (!m) return '';
+    const d = parseInt(m[1], 10);
+    const mo = parseInt(m[2], 10);
+    const y = parseInt(m[3], 10);
+    if (mo < 1 || mo > 12 || d < 1 || d > 31) return '';
+    const dt = new Date(y, mo - 1, d);
+    if (dt.getFullYear() !== y || dt.getMonth() !== (mo - 1) || dt.getDate() !== d) return '';
+    return `${y}-${String(mo).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+}
+
+function validarFechaNoFutura(input) {
+    const maxIso = hoyIso();
+    const min = minIso();
+    const v = (input?.value || '').toString().trim();
+    if (!v) return;
+    const iso = fechaEsAISO(v);
+    if (!iso) {
+        input.style.borderColor = '#dc3545';
+        input.style.backgroundColor = '#ffe6e6';
+        return;
+    }
+    if (iso < min) {
+        alert(`La fecha de consulta no puede ser anterior a ${FECHA_MIN_DIAS} días.\n\nFecha seleccionada: ${isoAEs(iso)}\nMínimo permitido: ${isoAEs(min)}`);
+        input.value = min;
+        input.style.borderColor = '#dc3545';
+        input.style.backgroundColor = '#ffe6e6';
+        setTimeout(() => {
+            input.style.borderColor = '';
+            input.style.backgroundColor = '';
+        }, 1200);
+        return;
+    }
+    if (iso > maxIso) {
+        alert(`La fecha de consulta no puede ser futura.\n\nFecha seleccionada: ${isoAEs(iso)}\nMáximo permitido: ${isoAEs(maxIso)}`);
+        input.value = maxIso;
+        input.style.borderColor = '#dc3545';
+        input.style.backgroundColor = '#ffe6e6';
+        setTimeout(() => {
+            input.style.borderColor = '';
+            input.style.backgroundColor = '';
+        }, 1200);
+        return;
+    }
+    input.style.borderColor = '';
+    input.style.backgroundColor = '';
+}
+
+function _limpiarConRegex(valor, regexNoPermitido) {
+    return (valor || '').replace(regexNoPermitido, '');
+}
+
+function _limpiarCampoSegunTipo(input) {
+    if (!input || !input.dataset) return;
+    const campo = input.dataset.campo;
+    if (!campo) return;
+    let v = input.value || '';
+    if (campo === 'nss') {
+        v = _limpiarConRegex(v, /[^0-9-]/g);
+    } else if (campo === 'autorizacion') {
+        v = v.toUpperCase();
+        v = _limpiarConRegex(v, /[^A-Z0-9-]/g);
+    } else if (campo === 'nombre') {
+        v = v.toUpperCase();
+        v = _limpiarConRegex(v, /[^A-ZÁÉÍÓÚÜÑ\s.\-]/g);
+        v = v.replace(/\s+/g, ' ');
+    } else if (campo === 'servicio') {
+        v = v.toUpperCase();
+        v = _limpiarConRegex(v, /[^A-ZÁÉÍÓÚÜÑ\s.\-\/]/g);
+        v = v.replace(/\s+/g, ' ');
+    }
+    input.value = v;
+}
 
 function agregarLinea() {
     numeroLinea++;
@@ -604,8 +716,18 @@ function agregarLinea() {
                    maxlength="20">
             <div id="sugerencia-${numeroLinea}"></div>
         </td>
-        <td><input type="text" class="form-control form-control-sm" data-campo="nombre" placeholder="NOMBRE COMPLETO"></td>
-        <td><input type="date" class="form-control form-control-sm" data-campo="fecha" value="${new Date().toISOString().split('T')[0]}" max="${new Date().toISOString().split('T')[0]}"></td>
+        <td><input type="text" class="form-control form-control-sm" data-campo="nombre" placeholder="NOMBRE COMPLETO" maxlength="200"></td>
+        <td>
+            <input type="date"
+                   class="form-control form-control-sm"
+                   data-campo="fecha"
+                   value="${hoyIso()}"
+                   min="${minIso()}"
+                   max="${hoyIso()}"
+                   data-csp-change="validarFechaNoFutura"
+                   data-csp-blur="validarFechaNoFutura"
+                   data-csp-pass="element">
+        </td>
         <td>
             <input type="text" 
                    class="form-control form-control-sm csp-u-023"
@@ -624,6 +746,7 @@ function agregarLinea() {
                    value="CONSULTA"
                    list="servicios-list"
                    autocomplete="off"
+                   maxlength="200"
                    data-input-filter="no-digits">
         </td>
         <td>
@@ -742,9 +865,11 @@ function calcularTotal() {
     document.getElementById('total-valor').textContent = totalFormateado;
 }
 
-// Convertir a mayúsculas mientras se escribe
+// Mayúsculas + filtros de caracteres por campo (NSS, nombre, autorización, servicio)
 document.addEventListener('input', function(e) {
-    if (e.target.matches('.form-control[type="text"]')) {
+    if (e.target.matches('.form-control[type="text"][data-campo]')) {
+        _limpiarCampoSegunTipo(e.target);
+    } else if (e.target.matches('.form-control[type="text"]')) {
         e.target.value = e.target.value.toUpperCase();
     }
 });
@@ -955,8 +1080,18 @@ async function procesarExcel(input) {
                            maxlength="20">
                     <div id="sugerencia-${numeroLinea}"></div>
                 </td>
-                <td><input type="text" class="form-control form-control-sm" data-campo="nombre" placeholder="NOMBRE COMPLETO" value="${paciente.nombre}"></td>
-                <td><input type="date" class="form-control form-control-sm" data-campo="fecha" value="${paciente.fecha}" max="${new Date().toISOString().split('T')[0]}"></td>
+                <td><input type="text" class="form-control form-control-sm" data-campo="nombre" placeholder="NOMBRE COMPLETO" value="${paciente.nombre}" maxlength="200"></td>
+                <td>
+                    <input type="date"
+                           class="form-control form-control-sm"
+                           data-campo="fecha"
+                           value="${paciente.fecha}"
+                           min="${minIso()}"
+                           max="${hoyIso()}"
+                           data-csp-change="validarFechaNoFutura"
+                           data-csp-blur="validarFechaNoFutura"
+                           data-csp-pass="element">
+                </td>
                 <td>
                     <input type="text" 
                            class="form-control form-control-sm csp-u-023"
@@ -1145,11 +1280,11 @@ document.getElementById('formFactura').addEventListener('submit', function(e) {
     lineas = [];
     document.querySelectorAll('#tbody-lineas tr[id^="linea-"]').forEach(tr => {
         const linea = {
-            nss: tr.querySelector('[data-campo="nss"]').value,
-            nombre: tr.querySelector('[data-campo="nombre"]').value.toUpperCase(),
+            nss: tr.querySelector('[data-campo="nss"]').value.trim(),
+            nombre: tr.querySelector('[data-campo="nombre"]').value.trim().toUpperCase(),
             fecha: tr.querySelector('[data-campo="fecha"]').value,
-            autorizacion: tr.querySelector('[data-campo="autorizacion"]').value,
-            servicio: tr.querySelector('[data-campo="servicio"]').value.toUpperCase(),
+            autorizacion: tr.querySelector('[data-campo="autorizacion"]').value.trim().toUpperCase(),
+            servicio: tr.querySelector('[data-campo="servicio"]').value.trim().toUpperCase(),
             monto: parseFloat(tr.querySelector('[data-campo="monto"]').value) || 0
         };
         lineas.push(linea);
@@ -1159,11 +1294,38 @@ document.getElementById('formFactura').addEventListener('submit', function(e) {
         alert('Debe agregar al menos un paciente');
         return false;
     }
+
+    const min = minIso();
+    const max = hoyIso();
     
-    // Validar que todas las líneas tengan datos mínimos
+    // Validar que todas las líneas tengan datos mínimos y fechas en rango
     for (let i = 0; i < lineas.length; i++) {
         if (!lineas[i].nss || !lineas[i].nombre || !lineas[i].servicio || !lineas[i].monto) {
             alert(`La línea ${i + 1} tiene campos vacíos. Complete NSS, Nombre, Servicio y Monto.`);
+            return false;
+        }
+        if (!lineas[i].fecha) {
+            alert(`La línea ${i + 1} no tiene fecha de consulta.`);
+            return false;
+        }
+        if (lineas[i].fecha < min || lineas[i].fecha > max) {
+            alert(`La línea ${i + 1} tiene una fecha fuera de rango (últimos ${FECHA_MIN_DIAS} días hasta hoy).`);
+            return false;
+        }
+        if (!/^[0-9\-]+$/.test(lineas[i].nss)) {
+            alert(`La línea ${i + 1}: NSS contiene caracteres no permitidos.`);
+            return false;
+        }
+        if (!/^[A-ZÁÉÍÓÚÜÑ\s.\-]+$/.test(lineas[i].nombre)) {
+            alert(`La línea ${i + 1}: Nombre contiene caracteres no permitidos.`);
+            return false;
+        }
+        if (!/^[A-ZÁÉÍÓÚÜÑ\s.\-\/]+$/.test(lineas[i].servicio)) {
+            alert(`La línea ${i + 1}: Servicio contiene caracteres no permitidos.`);
+            return false;
+        }
+        if (lineas[i].autorizacion && !/^[A-Z0-9\-]+$/.test(lineas[i].autorizacion)) {
+            alert(`La línea ${i + 1}: Autorización contiene caracteres no permitidos.`);
             return false;
         }
     }

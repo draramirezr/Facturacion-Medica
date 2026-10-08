@@ -313,65 +313,68 @@
     </div>
 
     <div class="table-facturacion">
-        <div class="table-responsive">
+        <div class="table-responsive-wrapper">
             <table class="table mb-0">
                 <thead>
                     <tr>
-                        <th>Tipo</th>
-                        <th>Rango autorizado</th>
-                        <th>Último utilizado</th>
-                        <th>Próximo e-NCF</th>
-                        <th>Vencimiento</th>
-                        <th class="text-center">Estado</th>
-                        <th class="text-center">Acción</th>
+                        <th class="fi-ncf-inline-5">ID</th>
+                        <th class="fi-ncf-inline-6">Tipo</th>
+                        <th class="fi-ncf-inline-7">Prefijo</th>
+                        <th class="text-center fi-ncf-inline-8">Tamaño</th>
+                        <th class="text-center fi-ncf-inline-9">Ult Num</th>
+                        <th class="text-center fi-ncf-inline-10">Pox Num</th>
+                        <th class="text-center fi-ncf-inline-11">Fecha Fin</th>
+                        <th class="text-center fi-ncf-inline-12">Estado</th>
+                        <th class="text-center fi-ncf-inline-13">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for secuencia in ecf_secuencias %}
+                    {% set prefijo_ecf = (secuencia.get('serie') or 'E') ~ secuencia['tipo_ecf'] %}
+                    {% set descripcion_ecf = secuencia.get('descripcion_tipo') or ecf_types.get(secuencia['tipo_ecf']) or ('e-CF ' ~ secuencia['tipo_ecf']) %}
                     <tr>
-                        <td>
-                            <strong>E{{ secuencia['tipo_ecf'] }}</strong>
-                            {% if ecf_types.get(secuencia['tipo_ecf']) %}
-                            <small class="text-muted d-block">
-                                {{ ecf_types[secuencia['tipo_ecf']] }}
-                            </small>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {{ "%010d"|format(secuencia['secuencia_inicial']) }}
-                            –
-                            {{ "%010d"|format(secuencia['secuencia_final']) }}
-                        </td>
-                        <td>{{ "%010d"|format(secuencia['ultimo_numero']) }}</td>
-                        <td>
+                        <td><strong>{{ secuencia['id'] }}</strong></td>
+                        <td>{{ descripcion_ecf }}</td>
+                        <td><span class="badge bg-info">{{ prefijo_ecf }}</span></td>
+                        <td class="text-center">10</td>
+                        <td class="text-center">{{ secuencia['ultimo_numero'] }}</td>
+                        <td class="text-center">
                             {% if secuencia['proximo_numero'] <= secuencia['secuencia_final'] %}
-                            <span class="badge-numero">
-                                E{{ secuencia['tipo_ecf'] }}{{ "%010d"|format(secuencia['proximo_numero']) }}
-                            </span>
+                            <span class="badge-numero">{{ secuencia['proximo_numero'] }}</span>
                             {% else %}
-                            <span class="text-muted">Rango agotado</span>
+                            <span class="text-muted">—</span>
                             {% endif %}
                         </td>
-                        <td>{{ secuencia['fecha_vencimiento'] }}</td>
+                        <td class="text-center">
+                            {% if secuencia['fecha_vencimiento'] %}
+                            <small>{{ secuencia['fecha_vencimiento'] }}</small>
+                            {% else %}
+                            <span class="text-muted"><i class="fas fa-minus"></i></span>
+                            {% endif %}
+                        </td>
                         <td class="text-center">
                             {% if secuencia['activo'] %}
-                            <span class="badge bg-success">Activa</span>
+                            <span class="badge bg-success">Activo</span>
                             {% else %}
-                            <span class="badge bg-secondary">Inactiva</span>
+                            <span class="badge bg-secondary">Inactivo</span>
                             {% endif %}
                         </td>
                         <td class="text-center">
-                            <form method="POST"
-                                  action="{{ url_for('facturacion_ecf_secuencia_estado', secuencia_id=secuencia['id']) }}">
-                                <button type="submit" class="btn btn-accion-editar">
-                                    {{ 'Desactivar' if secuencia['activo'] else 'Activar' }}
-                                </button>
-                            </form>
+                            <div class="d-flex justify-content-center gap-2">
+                                <form method="POST"
+                                      action="{{ url_for('facturacion_ecf_secuencia_estado', secuencia_id=secuencia['id']) }}">
+                                    <button type="submit"
+                                            class="btn btn-accion-editar"
+                                            title="{{ 'Desactivar' if secuencia['activo'] else 'Activar' }}">
+                                        <i class="fas fa-{{ 'ban' if secuencia['activo'] else 'check' }}"></i>
+                                    </button>
+                                </form>
+                            </div>
                         </td>
                     </tr>
                     {% else %}
                     <tr>
-                        <td colspan="7" class="text-center py-4 text-muted">
+                        <td colspan="9" class="text-center py-4 text-muted">
                             No hay secuencias electrónicas registradas.
                         </td>
                     </tr>

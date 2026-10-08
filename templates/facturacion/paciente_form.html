@@ -65,7 +65,9 @@
         font-weight: 600;
         transition: all 0.3s ease;
         text-decoration: none;
-        display: inline-block;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .btn-cancelar:hover {
@@ -322,7 +324,7 @@
                 </div>
 
 
-                <div class="d-flex justify-content-between gap-3 mt-4">
+                <div class="form-actions right">
                     <a href="{{ url_for('facturacion_pacientes') }}" class="btn btn-cancelar">
                         <i class="fas fa-times me-2"></i>Cancelar
                     </a>

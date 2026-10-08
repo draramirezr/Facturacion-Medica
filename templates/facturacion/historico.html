@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Histórico{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -137,10 +137,34 @@
     }
     
     .btn-ver-factura i,
-    .btn-editar-factura i {
+    .btn-editar-factura i,
+    .btn-accion-editar i {
         color: #FFFFFF !important;
-        margin-right: 0.3rem !important;
+        margin-right: 0 !important;
         font-size: 0.85rem !important;
+    }
+
+    .tabla-historico .historico-acciones {
+        display: inline-flex !important;
+        flex-wrap: nowrap !important;
+        align-items: center !important;
+        justify-content: center !important;
+        gap: 0.35rem !important;
+    }
+
+    .tabla-historico .historico-acciones form {
+        display: inline-flex !important;
+        margin: 0 !important;
+    }
+
+    .tabla-historico .historico-acciones .btn-accion-editar,
+    .tabla-historico .historico-acciones .btn-editar-factura,
+    .tabla-historico .historico-acciones .btn-ver-factura {
+        width: 2rem !important;
+        height: 2rem !important;
+        min-width: 2rem !important;
+        padding: 0 !important;
+        margin: 0 !important;
     }
     
     .btn-editar-factura:hover i {
@@ -389,11 +413,11 @@
                     </td>
                     {% endfor %}
                     <td class="text-center">
-                        <div class="d-inline-flex flex-wrap gap-1 justify-content-center">
+                        <div class="historico-acciones">
                         {% if ver_endpoint and ver_param %}
                         <a href="{{ url_for(ver_endpoint, **{ver_param: fila['id']}) }}"
-                           class="btn btn-accion-editar">
-                            <i class="fas fa-eye"></i> Ver
+                           class="btn btn-accion-editar" title="Ver">
+                            <i class="fas fa-eye"></i>
                         </a>
                         {% endif %}
                         {% if acciones_factura and fila.get('editable') and can('facturacion.editar') %}
@@ -405,7 +429,6 @@
                         {% if acciones_factura and fila.get('anulable') and can('facturacion.anular') %}
                         <form method="POST"
                               action="{{ url_for('facturacion_anular_factura', factura_id=fila['id']) }}"
-                              class="d-inline"
                               onsubmit="return confirm('¿Anular esta factura? Los pacientes volverán a pendientes.');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="motivo_anulacion" value="Anulación desde histórico">

@@ -278,8 +278,10 @@
         flex: 1;
     }
     
-    .form-card .d-flex.justify-content-between {
+    .form-card .d-flex.justify-content-between,
+    .form-card .form-actions {
         gap: 0.5rem;
+        justify-content: flex-end !important;
     }
     
     .form-label i {

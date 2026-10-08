@@ -189,7 +189,6 @@ def _consultar_facturas(tenant_id, filtros):
         'pagination': pagination,
         'columnas': (
             ('fecha', 'Fecha'),
-            ('numero_factura', 'Factura'),
             ('ncf', 'NCF'),
             ('nombre_ars', 'ARS'),
             ('medico', 'Médico'),
