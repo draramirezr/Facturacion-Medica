@@ -155,8 +155,9 @@
                 
                 <div class="col-md-6 mb-3">
                     <label for="telefono" class="form-label">Teléfono <span class="required-asterisk">*</span></label>
-                    <input type="text" class="form-control" id="telefono" name="telefono" 
-                           value="{{ empresa['telefono'] if empresa else '' }}"
+                    {% set tel_digits = (empresa['telefono']|string if empresa and empresa['telefono'] else '')|replace('-','')|replace(' ','')|replace('(','')|replace(')','') %}
+                    <input type="text" class="form-control" id="telefono" name="telefono"
+                           value="{{ tel_digits }}"
                            minlength="10" maxlength="10"
                            pattern="[0-9]{10}"
                            data-digits-only="10"
@@ -270,13 +271,16 @@
                         <option value="basico" {{ 'selected' if empresa and empresa['plan'] == 'basico' else '' }}>
                             Independiente (1 usuario)
                         </option>
-                        <option value="profesional" {{ 'selected' if empresa and empresa['plan'] == 'profesional' else 'selected' }}>
+                        <option value="profesional" {{ 'selected' if empresa and empresa['plan'] == 'profesional' else '' }}>
                             Consultorio (hasta 2 usuarios)
                         </option>
                         <option value="empresarial" {{ 'selected' if empresa and empresa['plan'] == 'empresarial' else '' }}>
                             Centro médico (hasta 5 usuarios)
                         </option>
                     </select>
+                    {% if not puede_editar_suscripcion and empresa %}
+                    <input type="hidden" name="plan" value="{{ empresa['plan'] or 'profesional' }}">
+                    {% endif %}
                 </div>
                 
                 {% if empresa %}
@@ -288,6 +292,9 @@
                         <option value="suspendido" {{ 'selected' if empresa['estado'] == 'suspendido' else '' }}>Suspendido</option>
                         <option value="inactivo" {{ 'selected' if empresa['estado'] == 'inactivo' else '' }}>Inactivo</option>
                     </select>
+                    {% if not puede_editar_suscripcion %}
+                    <input type="hidden" name="estado" value="{{ empresa['estado'] or 'activo' }}">
+                    {% endif %}
                     <small class="text-muted">
                         ⚠️ Suspender/Inactivar bloqueará el acceso a todos los usuarios
                     </small>
@@ -350,6 +357,31 @@
 
     tipoEmpresa.addEventListener('change', actualizarDocumento);
     actualizarDocumento();
+
+    // Quitar guiones/espacios al cargar para que el patrón HTML5 no bloquee el submit.
+    const telefono = document.getElementById('telefono');
+    if (telefono) {
+        telefono.value = (telefono.value || '').replace(/\D/g, '').slice(0, 10);
+    }
+    documento.value = (documento.value || '').replace(/\D/g, '').slice(
+        0, Number.parseInt(documento.dataset.digitsOnly || '11', 10) || 11
+    );
+
+    const formEmpresa = documento.closest('form');
+    if (formEmpresa) {
+        formEmpresa.addEventListener('submit', function(event) {
+            if (telefono) {
+                telefono.value = (telefono.value || '').replace(/\D/g, '').slice(0, 10);
+            }
+            documento.value = (documento.value || '').replace(/\D/g, '').slice(
+                0, Number.parseInt(documento.dataset.digitsOnly || '11', 10) || 11
+            );
+            if (!formEmpresa.checkValidity()) {
+                event.preventDefault();
+                formEmpresa.reportValidity();
+            }
+        });
+    }
 
     // Validar que fecha_fin sea mayor que fecha_inicio
     const fechaInicio = document.getElementById('fecha_inicio');

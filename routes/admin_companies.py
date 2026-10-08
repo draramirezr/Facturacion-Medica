@@ -159,13 +159,15 @@ def _validate_company(values, editing=False):
         return 'Todos los campos son obligatorios'
     rnc_digits = re.sub(r'\D', '', values['rnc'] or '')
     values['rnc'] = rnc_digits
+    telefono_digits = re.sub(r'\D', '', values['telefono'] or '')
+    values['telefono'] = telefono_digits
     if values['tipo_empresa'] == 'medico':
         # Médico/consultorio: cédula (11) o RNC personal (9), ambos válidos ante DGII.
         if len(rnc_digits) not in (9, 11) or not rnc_digits.isdigit():
             return 'La cédula debe tener 11 números (o RNC de 9 números)'
     elif not validate_digits(rnc_digits, 9):
         return 'El RNC debe contener exactamente 9 números'
-    if not validate_digits(values['telefono'], 10):
+    if not validate_digits(telefono_digits, 10):
         return 'El teléfono debe contener exactamente 10 números'
     if not validate_email(values['email']):
         return 'Debe introducir un email válido'
