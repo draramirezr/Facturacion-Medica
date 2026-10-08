@@ -1022,11 +1022,18 @@ def obtener_tipo_ecf_formulario(catalogo, selector=None):
 def registrar_secuencia_ecf(tenant_id, tipo_ecf, descripcion_tipo):
     """Valida y guarda un rango e-NCF. Devuelve mensaje de error o None."""
     fecha_autorizacion = request.form.get('fecha_autorizacion') or None
-    fecha_vencimiento = request.form.get('fecha_vencimiento', '').strip()
+    fecha_vencimiento = (
+        request.form.get('fecha_vencimiento')
+        or request.form.get('fecha_fin')
+        or ''
+    ).strip()
     activo = 1 if request.form.get('activo') == '1' else 0
     try:
-        secuencia_inicial = int(request.form.get('secuencia_inicial', ''))
-        secuencia_final = int(request.form.get('secuencia_final', ''))
+        # Formulario simple: si no envían rango, usar 1…9999999999.
+        secuencia_inicial = int(request.form.get('secuencia_inicial') or 1)
+        secuencia_final = int(
+            request.form.get('secuencia_final') or 9999999999
+        )
         ultimo_numero = int(
             request.form.get('ultimo_numero', str(secuencia_inicial - 1))
         )

@@ -14,25 +14,17 @@
         padding: 3rem;
         box-shadow: 0 4px 20px {{ tema.primary }}25;
     }
-
-    .form-label {
-        font-weight: 600;
-        color: #282828;
-        margin-bottom: 0.5rem;
-    }
-
+    .form-label { font-weight: 600; color: #282828; margin-bottom: 0.5rem; }
     .form-control {
         border-radius: 10px;
         border: 2px solid {{ tema.primary }}50;
         padding: 0.75rem;
         transition: all 0.3s ease;
     }
-
     .form-control:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 0.2rem {{ tema.primary }}40;
     }
-
     .btn-guardar {
         background:var(--ars-shell-surface, #fff);
         border: 2px solid var(--primary-color);
@@ -42,14 +34,12 @@
         font-weight: 600;
         transition: all 0.3s ease;
     }
-
     .btn-guardar:hover {
         background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
         color: white;
         transform: translateY(-2px);
         box-shadow: 0 6px 20px {{ tema.primary }}50;
     }
-
     .btn-cancelar {
         background:var(--ars-shell-surface, #fff);
         border: 2px solid var(--text-muted);
@@ -59,27 +49,14 @@
         font-weight: 600;
         transition: all 0.3s ease;
     }
-
-    .btn-cancelar:hover {
-        background: var(--text-muted);
-        color: white;
-    }
-
-    .required-asterisk {
-        color: var(--primary-color) !important;
-        font-weight: bold;
-    }
-    .fi-ncf-form-inline-1 {
-        color: var(--primary-color); font-weight: 800; font-size: 2rem;
-    }
-    .fi-ncf-form-inline-2 {
-        color: #666; margin: 0;
-    }
-    .fi-ncf-form-inline-3 {
-        text-transform: uppercase;
-    }
+    .btn-cancelar:hover { background: var(--text-muted); color: white; }
+    .required-asterisk { color: var(--primary-color) !important; font-weight: bold; }
+    .fi-ncf-form-inline-1 { color: var(--primary-color); font-weight: 800; font-size: 2rem; }
+    .fi-ncf-form-inline-2 { color: #666; margin: 0; }
+    .fi-ncf-form-inline-3 { text-transform: uppercase; }
     .fi-ncf-form-inline-4 {
-        background-color: #f5f5f5; cursor: not-allowed; font-family: 'Courier New', monospace; font-weight: 600;
+        background-color: #f5f5f5; cursor: not-allowed;
+        font-family: 'Courier New', monospace; font-weight: 600;
     }
 </style>
 
@@ -95,13 +72,7 @@
                 <i class="fas fa-file-invoice me-2"></i>
                 {{ 'Editar NCF' if es_edicion else 'Nuevo NCF' }}
             </h1>
-            <p class="fi-ncf-form-inline-2">
-                {% if es_edicion %}
-                Complete los campos del Número de Comprobante Fiscal
-                {% else %}
-                Elige un tipo tradicional (B01, B02…) o electrónico (E31, E32…)
-                {% endif %}
-            </p>
+            <p class="fi-ncf-form-inline-2">Complete los campos del Número de Comprobante Fiscal</p>
         </div>
 
         <form method="POST" id="ncfForm">
@@ -122,7 +93,7 @@
                         {% for codigo, descripcion in ncf_tipos.items() %}
                         <option value="{{ codigo }}"
                             {% if (ncf and ncf['tipo'] == codigo) or tipo_form == codigo %}selected{% endif %}>
-                            {{ codigo }} - {{ descripcion }}
+                            {{ descripcion }}
                         </option>
                         {% endfor %}
                         {% if not es_edicion %}
@@ -135,7 +106,7 @@
                         {% for codigo, descripcion in ecf_types.items() %}
                         <option value="E{{ codigo }}"
                             {% if tipo_form == 'E' ~ codigo or (not tipo_form and modo_inicial == 'electronico' and codigo == '31') %}selected{% endif %}>
-                            E{{ codigo }} - {{ descripcion }}
+                            {{ descripcion }}
                         </option>
                         {% endfor %}
                         <option value="OTRO_ECF" {% if tipo_form == 'OTRO_ECF' %}selected{% endif %}>
@@ -151,7 +122,7 @@
                     </select>
                 </div>
 
-                <div class="col-md-6 mb-3" id="prefijoGroup">
+                <div class="col-md-6 mb-3">
                     <label class="form-label" for="prefijo">
                         <i class="fas fa-hashtag me-2"></i>Prefijo <span class="required-asterisk">*</span>
                     </label>
@@ -160,6 +131,7 @@
                            id="prefijo"
                            name="prefijo"
                            value="{{ ncf['prefijo'] if ncf else form.get('prefijo', '') }}"
+                           required
                            readonly
                            aria-readonly="true"
                            placeholder="Ej: B01"
@@ -171,14 +143,14 @@
             <div class="row" id="tipoPersonalizadoRow" hidden>
                 <div class="col-md-4 mb-3">
                     <label class="form-label" for="tipo_personalizado">
-                        Código del nuevo tipo <span class="required-asterisk">*</span>
+                        Código <span class="required-asterisk">*</span>
                     </label>
                     <input type="text" class="form-control fi-ncf-form-inline-3"
                            id="tipo_personalizado" name="tipo_personalizado"
                            value="{{ ncf['tipo'] if ncf and ncf['tipo'] not in ncf_tipos else form.get('tipo_personalizado', '') }}"
                            maxlength="3" pattern="B[0-9]{2}"
                            placeholder="Ej: B18">
-                    <small class="text-muted">Formato B seguido de dos números.</small>
+                    <small class="text-muted">Formato B + dos números.</small>
                 </div>
                 <div class="col-md-8 mb-3">
                     <label class="form-label" for="descripcion_personalizada">
@@ -188,20 +160,20 @@
                            id="descripcion_personalizada" name="descripcion_personalizada"
                            value="{{ ncf['descripcion'] if ncf and ncf['tipo'] not in ncf_tipos else form.get('descripcion_personalizada', '') }}"
                            maxlength="150"
-                           placeholder="Nombre descriptivo del comprobante">
+                           placeholder="Nombre del comprobante">
                 </div>
             </div>
 
             <div class="row" id="tipoEcfPersonalizadoRow" hidden>
                 <div class="col-md-4 mb-3">
                     <label class="form-label" for="tipo_ecf_personalizado">
-                        Código del nuevo tipo e-CF <span class="required-asterisk">*</span>
+                        Código <span class="required-asterisk">*</span>
                     </label>
                     <input type="text" class="form-control"
                            id="tipo_ecf_personalizado" name="tipo_ecf_personalizado"
                            value="{{ form.get('tipo_ecf_personalizado', '') }}"
                            inputmode="numeric" maxlength="2" placeholder="Ej: 48">
-                    <small class="text-muted">Dos dígitos distintos de 00.</small>
+                    <small class="text-muted">Dos dígitos (sin el E).</small>
                 </div>
                 <div class="col-md-8 mb-3">
                     <label class="form-label" for="descripcion_tipo_ecf">
@@ -215,116 +187,62 @@
                 </div>
             </div>
 
-            <div id="camposTradicionales">
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label" for="tamano_secuencia">
-                            <i class="fas fa-ruler-horizontal me-2"></i>Tamaño <span class="required-asterisk">*</span>
-                        </label>
-                        <input type="number"
-                               class="form-control"
-                               id="tamano_secuencia"
-                               name="tamano_secuencia"
-                               value="{{ ncf['tamano_secuencia'] if ncf else form.get('tamano_secuencia', '') }}"
-                               data-original="{{ ncf['tamano_secuencia'] if ncf else '' }}"
-                               min="1"
-                               placeholder="Ej: 8">
-                        <small class="text-muted">Cantidad de dígitos del número</small>
-                    </div>
-
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label" for="ultimo_numero">
-                            <i class="fas fa-sort-numeric-up me-2"></i>Último Número
-                        </label>
-                        <input type="number"
-                               class="form-control"
-                               id="ultimo_numero"
-                               name="ultimo_numero"
-                               value="{{ ncf['ultimo_numero'] if ncf else form.get('ultimo_numero', '0') }}"
-                               data-original="{{ ncf['ultimo_numero'] if ncf else '' }}"
-                               min="0"
-                               placeholder="0"
-                               data-csp-change="calcularProximo">
-                        <small class="text-muted">Último número utilizado</small>
-                        <small class="text-danger d-block mt-1" id="ncfNumeroError" hidden></small>
-                    </div>
-
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label">
-                            <i class="fas fa-calculator me-2"></i>Próximo Número
-                        </label>
-                        <input type="number"
-                               class="form-control fi-ncf-form-inline-4"
-                               id="proximo_numero"
-                               value="{{ (ncf['ultimo_numero'] + 1) if ncf else '1' }}"
-                               disabled>
-                        <small class="text-muted">Calculado automáticamente</small>
-                    </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="tamano_secuencia">
+                        <i class="fas fa-ruler-horizontal me-2"></i>Tamaño <span class="required-asterisk">*</span>
+                    </label>
+                    <input type="number"
+                           class="form-control"
+                           id="tamano_secuencia"
+                           name="tamano_secuencia"
+                           value="{{ ncf['tamano_secuencia'] if ncf else form.get('tamano_secuencia', '') }}"
+                           data-original="{{ ncf['tamano_secuencia'] if ncf else '' }}"
+                           min="1"
+                           placeholder="Ej: 8">
+                    <small class="text-muted" id="tamanoHelp">Cantidad de dígitos del número</small>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-12 mb-3">
-                        <label class="form-label" for="fecha_fin">
-                            Fecha Fin
-                        </label>
-                        <input type="date"
-                               class="form-control"
-                               id="fecha_fin"
-                               name="fecha_fin"
-                               value="{{ ncf['fecha_fin'] if ncf and ncf['fecha_fin'] else form.get('fecha_fin', '') }}">
-                        <small class="text-muted">Fecha de vencimiento o fin de validez del NCF (opcional)</small>
-                    </div>
+                <div class="col-md-4 mb-3">
+                    <label class="form-label" for="ultimo_numero">
+                        <i class="fas fa-sort-numeric-up me-2"></i>Último Número
+                    </label>
+                    <input type="number"
+                           class="form-control"
+                           id="ultimo_numero"
+                           name="ultimo_numero"
+                           value="{{ ncf['ultimo_numero'] if ncf else form.get('ultimo_numero', '0') }}"
+                           data-original="{{ ncf['ultimo_numero'] if ncf else '' }}"
+                           min="0"
+                           placeholder="0">
+                    <small class="text-muted">Último número utilizado</small>
+                    <small class="text-danger d-block mt-1" id="ncfNumeroError" hidden></small>
+                </div>
+
+                <div class="col-md-4 mb-3">
+                    <label class="form-label">
+                        <i class="fas fa-calculator me-2"></i>Próximo Número
+                    </label>
+                    <input type="number"
+                           class="form-control fi-ncf-form-inline-4"
+                           id="proximo_numero"
+                           value="{{ (ncf['ultimo_numero'] + 1) if ncf else '1' }}"
+                           disabled>
+                    <small class="text-muted">Calculado automáticamente</small>
                 </div>
             </div>
 
-            <div id="camposElectronicos" hidden>
-                <div class="alert alert-info mb-3">
-                    El e-NCF tendrá 13 posiciones: <strong>E</strong> + tipo
-                    + una secuencia de <strong>10 dígitos</strong>.
-                    Ejemplo: <strong id="vistaPreviaEcf">E310000000001</strong>
-                </div>
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label" for="secuencia_inicial">
-                            Secuencia inicial <span class="required-asterisk">*</span>
-                        </label>
-                        <input type="number" class="form-control" id="secuencia_inicial"
-                               name="secuencia_inicial" min="1" max="9999999999"
-                               value="{{ form.get('secuencia_inicial', '1') }}">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label" for="secuencia_final">
-                            Secuencia final <span class="required-asterisk">*</span>
-                        </label>
-                        <input type="number" class="form-control" id="secuencia_final"
-                               name="secuencia_final" min="1" max="9999999999"
-                               value="{{ form.get('secuencia_final', '') }}">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label class="form-label" for="ultimo_numero_ecf">
-                            Último número utilizado
-                        </label>
-                        <input type="number" class="form-control" id="ultimo_numero_ecf"
-                               min="0" max="9999999999"
-                               value="{{ form.get('ultimo_numero', '0') }}">
-                        <small class="text-muted">Usa 0 si el rango aún no se ha usado.</small>
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label" for="fecha_autorizacion">
-                            Fecha de autorización
-                        </label>
-                        <input type="date" class="form-control" id="fecha_autorizacion"
-                               name="fecha_autorizacion"
-                               value="{{ form.get('fecha_autorizacion', '') }}">
-                    </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label" for="fecha_vencimiento">
-                            Fecha de vencimiento <span class="required-asterisk">*</span>
-                        </label>
-                        <input type="date" class="form-control" id="fecha_vencimiento"
-                               name="fecha_vencimiento"
-                               value="{{ form.get('fecha_vencimiento', '') }}">
-                    </div>
+            <div class="row">
+                <div class="col-md-12 mb-3">
+                    <label class="form-label" for="fecha_fin">
+                        Fecha Fin
+                    </label>
+                    <input type="date"
+                           class="form-control"
+                           id="fecha_fin"
+                           name="fecha_fin"
+                           value="{{ ncf['fecha_fin'] if ncf and ncf['fecha_fin'] else form.get('fecha_fin', '') or form.get('fecha_vencimiento', '') }}">
+                    <small class="text-muted" id="fechaHelp">Fecha de vencimiento o fin de validez del NCF (opcional)</small>
                 </div>
             </div>
 
@@ -333,8 +251,8 @@
                     <input type="checkbox" id="activo" name="activo" value="1"
                            {% if form %}{% if form.get('activo', '1') == '1' %}checked{% endif %}{% elif not ncf or ncf['activo'] %}checked{% endif %}>
                     <div class="ars-active-check-copy">
-                        <label for="activo" id="activoLabel">NCF activo</label>
-                        <small id="activoHelp">Desmárcalo para impedir su uso al generar facturas.</small>
+                        <label for="activo">NCF activo</label>
+                        <small>Desmárcalo para impedir su uso al generar facturas.</small>
                     </div>
                 </div>
             </div>
@@ -361,8 +279,10 @@ document.addEventListener('DOMContentLoaded', function() {
     const tipo = document.getElementById('tipo');
     const prefijo = document.getElementById('prefijo');
     const tamano = document.getElementById('tamano_secuencia');
+    const tamanoHelp = document.getElementById('tamanoHelp');
+    const fechaHelp = document.getElementById('fechaHelp');
+    const fechaFin = document.getElementById('fecha_fin');
     const ultimoNumero = document.getElementById('ultimo_numero');
-    const ultimoNumeroEcf = document.getElementById('ultimo_numero_ecf');
     const numeroError = document.getElementById('ncfNumeroError');
     const customRow = document.getElementById('tipoPersonalizadoRow');
     const customType = document.getElementById('tipo_personalizado');
@@ -370,14 +290,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const ecfCustomRow = document.getElementById('tipoEcfPersonalizadoRow');
     const ecfCustomType = document.getElementById('tipo_ecf_personalizado');
     const ecfCustomDescription = document.getElementById('descripcion_tipo_ecf');
-    const camposTradicionales = document.getElementById('camposTradicionales');
-    const camposElectronicos = document.getElementById('camposElectronicos');
-    const secuenciaInicial = document.getElementById('secuencia_inicial');
-    const secuenciaFinal = document.getElementById('secuencia_final');
-    const fechaVencimiento = document.getElementById('fecha_vencimiento');
-    const vistaPrevia = document.getElementById('vistaPreviaEcf');
-    const activoLabel = document.getElementById('activoLabel');
-    const activoHelp = document.getElementById('activoHelp');
     const esEdicion = {{ 'true' if es_edicion else 'false' }};
     let validationTimer;
 
@@ -399,12 +311,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const upper = String(value || '').toUpperCase().trim();
         if (!upper) return '';
         const digits = upper.replace(/\D/g, '').slice(0, 2);
-        if (upper.startsWith('B')) {
-            return digits.length ? `B${digits}` : 'B';
-        }
-        if (/^\d+$/.test(upper.replace(/\s/g, ''))) {
-            return `B${digits}`;
-        }
+        if (upper.startsWith('B')) return digits.length ? `B${digits}` : 'B';
+        if (/^\d+$/.test(upper.replace(/\s/g, ''))) return `B${digits}`;
         return '';
     }
 
@@ -423,41 +331,22 @@ document.addEventListener('DOMContentLoaded', function() {
             ecfCustomDescription.required = customE;
         }
 
-        camposTradicionales.hidden = electronico;
-        camposElectronicos.hidden = !electronico;
-
-        tamano.required = !electronico;
-        if (secuenciaInicial) secuenciaInicial.required = electronico;
-        if (secuenciaFinal) secuenciaFinal.required = electronico;
-        if (fechaVencimiento) fechaVencimiento.required = electronico;
-
-        // Evitar dos campos name="ultimo_numero" activos a la vez
-        if (ultimoNumero) {
-            ultimoNumero.disabled = electronico;
-            if (electronico) ultimoNumero.removeAttribute('name');
-            else ultimoNumero.setAttribute('name', 'ultimo_numero');
-        }
-        if (ultimoNumeroEcf) {
-            ultimoNumeroEcf.disabled = !electronico;
-            if (!electronico) ultimoNumeroEcf.removeAttribute('name');
-            else ultimoNumeroEcf.setAttribute('name', 'ultimo_numero');
-        }
-
         prefijo.value = effectiveType();
-        const code = (prefijo.value || '').replace(/^E/, '');
-        if (vistaPrevia) {
-            vistaPrevia.textContent = /^\d{2}$/.test(code)
-                ? `E${code}0000000001`
-                : 'E--0000000001';
-        }
 
-        if (activoLabel) {
-            activoLabel.textContent = electronico ? 'Secuencia activa' : 'NCF activo';
-        }
-        if (activoHelp) {
-            activoHelp.textContent = electronico
-                ? 'Solo una secuencia vigente podrá reservar números al emitir.'
-                : 'Desmárcalo para impedir su uso al generar facturas.';
+        if (electronico) {
+            tamano.value = '10';
+            tamano.readOnly = true;
+            tamanoHelp.textContent = 'Fijo en 10 dígitos para e-NCF';
+            fechaFin.required = true;
+            fechaHelp.textContent = 'Fecha de vencimiento de la secuencia (obligatoria)';
+        } else {
+            tamano.readOnly = false;
+            tamanoHelp.textContent = 'Cantidad de dígitos del número';
+            fechaFin.required = false;
+            fechaHelp.textContent = 'Fecha de vencimiento o fin de validez del NCF (opcional)';
+            if (!esEdicion && (tamano.value === '10' || tamano.value === '')) {
+                // no forzar borrar si el usuario ya puso 10 en tradicional
+            }
         }
     }
 
@@ -522,21 +411,12 @@ document.addEventListener('DOMContentLoaded', function() {
             actualizarModo();
         });
     }
-    if (secuenciaInicial && ultimoNumeroEcf) {
-        secuenciaInicial.addEventListener('input', function () {
-            if (!ultimoNumeroEcf.dataset.edited) {
-                ultimoNumeroEcf.value = Math.max((parseInt(this.value, 10) || 1) - 1, 0);
-            }
-        });
-        ultimoNumeroEcf.addEventListener('input', function () {
-            this.dataset.edited = 'true';
-        });
-    }
 
     if (tipo.value === 'OTRO' && customType.value) {
         customType.value = normalizarCodigoPersonalizado(customType.value);
     }
     actualizarModo();
+    calcularProximo();
     ultimoNumero.addEventListener('input', function () {
         calcularProximo();
         verificarNumero();

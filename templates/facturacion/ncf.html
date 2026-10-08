@@ -248,12 +248,7 @@
                 {% for ncf in ncf_list %}
                 <tr>
                     <td><strong>{{ ncf['id'] }}</strong></td>
-                    <td>
-                        <strong>{{ ncf['tipo'] }}</strong>
-                        {% if ncf['descripcion'] %}
-                        <small class="text-muted d-block">{{ ncf['descripcion'] }}</small>
-                        {% endif %}
-                    </td>
+                    <td>{{ ncf['descripcion'] or ncf['tipo'] }}</td>
                     <td><span class="badge bg-info">{{ ncf['prefijo'] }}</span></td>
                     <td class="text-center">{{ ncf['tamano_secuencia'] }}</td>
                     <td class="text-center">{{ ncf['ultimo_numero'] }}</td>
