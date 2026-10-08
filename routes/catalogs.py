@@ -990,17 +990,24 @@ def obtener_catalogo_ecf_tenant(tenant_id):
             catalogo[codigo] = descripcion
     return dict(sorted(catalogo.items()))
 
-def obtener_tipo_ecf_formulario(catalogo):
-    selector = request.form.get('tipo_ecf', '').strip()
-    if selector == 'OTRO':
+def obtener_tipo_ecf_formulario(catalogo, selector=None):
+    if selector is None:
+        selector = request.form.get('tipo_ecf', '').strip()
+    selector = (selector or '').strip()
+    if selector.upper() in ('OTRO', 'OTRO_ECF'):
         codigo = request.form.get('tipo_ecf_personalizado', '').strip()
         descripcion = sanitize_input(
-            request.form.get('descripcion_tipo_ecf', ''), 150
+            request.form.get('descripcion_tipo_ecf')
+            or request.form.get('descripcion_personalizada', ''),
+            150,
         )
         if codigo in catalogo:
             return None, None, (
                 f'El tipo E{codigo} ya existe; selecciónalo en la lista'
             )
+    elif re.fullmatch(r'E\d{2}', selector.upper()):
+        codigo = selector.upper()[1:]
+        descripcion = catalogo.get(codigo, '')
     else:
         codigo = selector
         descripcion = catalogo.get(codigo, '')
@@ -1010,6 +1017,61 @@ def obtener_tipo_ecf_formulario(catalogo):
     if not descripcion:
         return None, None, 'La descripción del tipo e-CF es obligatoria'
     return codigo, descripcion, None
+
+
+def registrar_secuencia_ecf(tenant_id, tipo_ecf, descripcion_tipo):
+    """Valida y guarda un rango e-NCF. Devuelve mensaje de error o None."""
+    fecha_autorizacion = request.form.get('fecha_autorizacion') or None
+    fecha_vencimiento = request.form.get('fecha_vencimiento', '').strip()
+    activo = 1 if request.form.get('activo') == '1' else 0
+    try:
+        secuencia_inicial = int(request.form.get('secuencia_inicial', ''))
+        secuencia_final = int(request.form.get('secuencia_final', ''))
+        ultimo_numero = int(
+            request.form.get('ultimo_numero', str(secuencia_inicial - 1))
+        )
+        if not 1 <= secuencia_inicial <= 9999999999:
+            raise ValueError('La secuencia inicial no es válida')
+        if not secuencia_inicial <= secuencia_final <= 9999999999:
+            raise ValueError('La secuencia final no es válida')
+        if not secuencia_inicial - 1 <= ultimo_numero <= secuencia_final:
+            raise ValueError('El último número utilizado está fuera del rango')
+        if not fecha_vencimiento:
+            raise ValueError('La fecha de vencimiento es obligatoria')
+        fecha_fin = datetime.strptime(fecha_vencimiento, '%Y-%m-%d').date()
+        fecha_inicio = (
+            datetime.strptime(fecha_autorizacion, '%Y-%m-%d').date()
+            if fecha_autorizacion else None
+        )
+        if fecha_inicio and fecha_fin < fecha_inicio:
+            raise ValueError(
+                'La fecha de vencimiento no puede ser anterior a la autorización'
+            )
+    except (TypeError, ValueError) as error:
+        return str(error) or 'Los datos de la secuencia no son válidos'
+
+    overlapping = execute_query('''
+        SELECT id
+        FROM ecf_secuencias
+        WHERE tenant_id=%s AND tipo_ecf=%s
+          AND NOT (secuencia_final < %s OR secuencia_inicial > %s)
+        LIMIT 1
+    ''', (tenant_id, tipo_ecf, secuencia_inicial, secuencia_final))
+    if overlapping:
+        return 'El rango indicado se solapa con otra secuencia e-NCF'
+
+    execute_update('''
+        INSERT INTO ecf_secuencias
+        (tenant_id, tipo_ecf, descripcion_tipo, serie, secuencia_inicial,
+         secuencia_final, ultimo_numero, fecha_autorizacion,
+         fecha_vencimiento, activo)
+        VALUES (%s, %s, %s, 'E', %s, %s, %s, %s, %s, %s)
+    ''', (
+        tenant_id, tipo_ecf, descripcion_tipo, secuencia_inicial,
+        secuencia_final, ultimo_numero, fecha_autorizacion,
+        fecha_vencimiento, activo,
+    ))
+    return None
 
 def build_ncf_number(tipo, numero, tamano):
     """Construir el NCF completo usando el tipo y el tamaño de secuencia."""
@@ -1049,10 +1111,19 @@ def facturacion_ncf_verificar_numero():
 
 @login_required
 @permission_required('catalogos.ver')
+def _alinear_prefijo_ncf(tenant_id):
+    """El prefijo visible es el tipo (B01, B02…). Corrige filas viejas desfasadas."""
+    execute_update(
+        'UPDATE ncf SET prefijo = tipo WHERE tenant_id = %s AND prefijo <> tipo',
+        (tenant_id,),
+    )
+
+
 def facturacion_ncf():
     """Lista de NCF - Filtrado por tenant"""
     
     tenant_id = get_current_tenant_id()
+    _alinear_prefijo_ncf(tenant_id)
     ncf_list = execute_query(
         'SELECT * FROM ncf WHERE tenant_id = %s ORDER BY tipo, id DESC',
         (tenant_id,),
@@ -1076,95 +1147,8 @@ def facturacion_ncf():
 @login_required
 @permission_required('catalogos.crear')
 def facturacion_ecf_secuencia_nueva():
-    """Registrar un rango e-NCF autorizado por la DGII."""
-
-    tenant_id = get_current_tenant_id()
-    ecf_types = obtener_catalogo_ecf_tenant(tenant_id)
-    if request.method == 'POST':
-        tipo_ecf, descripcion_tipo, tipo_error = (
-            obtener_tipo_ecf_formulario(ecf_types)
-        )
-        fecha_autorizacion = request.form.get('fecha_autorizacion') or None
-        fecha_vencimiento = request.form.get('fecha_vencimiento', '').strip()
-        activo = 1 if request.form.get('activo') == '1' else 0
-        try:
-            if tipo_error:
-                raise ValueError(tipo_error)
-            secuencia_inicial = int(request.form.get('secuencia_inicial', ''))
-            secuencia_final = int(request.form.get('secuencia_final', ''))
-            ultimo_numero = int(
-                request.form.get('ultimo_numero', str(secuencia_inicial - 1))
-            )
-            if not 1 <= secuencia_inicial <= 9999999999:
-                raise ValueError('La secuencia inicial no es válida')
-            if not secuencia_inicial <= secuencia_final <= 9999999999:
-                raise ValueError('La secuencia final no es válida')
-            if not secuencia_inicial - 1 <= ultimo_numero <= secuencia_final:
-                raise ValueError('El último número utilizado está fuera del rango')
-            if not fecha_vencimiento:
-                raise ValueError('La fecha de vencimiento es obligatoria')
-            fecha_fin = datetime.strptime(fecha_vencimiento, '%Y-%m-%d').date()
-            fecha_inicio = (
-                datetime.strptime(fecha_autorizacion, '%Y-%m-%d').date()
-                if fecha_autorizacion else None
-            )
-            if fecha_inicio and fecha_fin < fecha_inicio:
-                raise ValueError(
-                    'La fecha de vencimiento no puede ser anterior a la autorización'
-                )
-        except (TypeError, ValueError) as error:
-            flash(str(error) or 'Los datos de la secuencia no son válidos', 'error')
-            return render_template(
-                'facturacion/ncf_electronico_form.html',
-                form=request.form,
-                ecf_types=ecf_types,
-            )
-
-        overlapping = execute_query('''
-            SELECT id
-            FROM ecf_secuencias
-            WHERE tenant_id=%s AND tipo_ecf=%s
-              AND NOT (secuencia_final < %s OR secuencia_inicial > %s)
-            LIMIT 1
-        ''', (
-            tenant_id,
-            tipo_ecf,
-            secuencia_inicial,
-            secuencia_final
-        ))
-        if overlapping:
-            flash('El rango indicado se solapa con otra secuencia e-NCF', 'error')
-            return render_template(
-                'facturacion/ncf_electronico_form.html',
-                form=request.form,
-                ecf_types=ecf_types,
-            )
-
-        execute_update('''
-            INSERT INTO ecf_secuencias
-            (tenant_id, tipo_ecf, descripcion_tipo, serie, secuencia_inicial,
-             secuencia_final, ultimo_numero, fecha_autorizacion,
-             fecha_vencimiento, activo)
-            VALUES (%s, %s, %s, 'E', %s, %s, %s, %s, %s, %s)
-        ''', (
-            tenant_id,
-            tipo_ecf,
-            descripcion_tipo,
-            secuencia_inicial,
-            secuencia_final,
-            ultimo_numero,
-            fecha_autorizacion,
-            fecha_vencimiento,
-            activo
-        ))
-        flash(f'Secuencia E{tipo_ecf} registrada correctamente', 'success')
-        return redirect(url_for('facturacion_ncf'))
-
-    return render_template(
-        'facturacion/ncf_electronico_form.html',
-        form={},
-        ecf_types=ecf_types,
-    )
+    """Compatibilidad: la secuencia e-NCF se crea desde Nuevo NCF."""
+    return redirect(url_for('facturacion_ncf_nuevo', modo='electronico'))
 
 @login_required
 @permission_required('catalogos.editar')
@@ -1202,9 +1186,49 @@ def facturacion_ecf_secuencia_estado(secuencia_id):
 @login_required
 @permission_required('catalogos.crear')
 def facturacion_ncf_nuevo():
-    """Crear nuevo NCF"""
-    
+    """Crear NCF tradicional o secuencia e-NCF desde el mismo formulario."""
+    tenant_id = get_current_tenant_id()
+    ncf_tipos = obtener_catalogo_ncf_tenant(tenant_id)
+    ecf_types = obtener_catalogo_ecf_tenant(tenant_id)
+    modo_inicial = request.args.get('modo', '')
+
     if request.method == 'POST':
+        selector = request.form.get('tipo', '').strip().upper()
+        es_electronico = (
+            selector == 'OTRO_ECF'
+            or bool(re.fullmatch(r'E\d{2}', selector))
+        )
+
+        if es_electronico:
+            tipo_ecf, descripcion_tipo, tipo_error = obtener_tipo_ecf_formulario(
+                ecf_types, selector=selector
+            )
+            if tipo_error:
+                flash(tipo_error, 'error')
+                return render_template(
+                    'facturacion/ncf_form.html',
+                    ncf=None,
+                    ncf_tipos=ncf_tipos,
+                    ecf_types=ecf_types,
+                    form=request.form,
+                    modo_inicial='electronico',
+                )
+            error = registrar_secuencia_ecf(
+                tenant_id, tipo_ecf, descripcion_tipo
+            )
+            if error:
+                flash(error, 'error')
+                return render_template(
+                    'facturacion/ncf_form.html',
+                    ncf=None,
+                    ncf_tipos=ncf_tipos,
+                    ecf_types=ecf_types,
+                    form=request.form,
+                    modo_inicial='electronico',
+                )
+            flash(f'Secuencia E{tipo_ecf} registrada correctamente', 'success')
+            return redirect(url_for('facturacion_ncf'))
+
         tipo, descripcion, tipo_error = obtener_tipo_ncf_formulario()
         if tipo_error:
             flash(tipo_error, 'error')
@@ -1213,11 +1237,12 @@ def facturacion_ncf_nuevo():
         tamano_secuencia = request.form.get('tamano_secuencia', '8')
         ultimo_numero = request.form.get('ultimo_numero', '0')
         fecha_fin = request.form.get('fecha_fin')
-        
+        activo = 1 if request.form.get('activo') == '1' else 0
+
         if not all([tipo, prefijo, tamano_secuencia]):
             flash('Tipo, Prefijo y Tamaño son obligatorios', 'error')
             return redirect(url_for('facturacion_ncf_nuevo'))
-        
+
         try:
             ultimo_numero_int = int(ultimo_numero or 0)
             tamano_secuencia_int = int(tamano_secuencia)
@@ -1227,7 +1252,6 @@ def facturacion_ncf_nuevo():
             flash('El último número y el tamaño de secuencia no son válidos', 'error')
             return redirect(url_for('facturacion_ncf_nuevo'))
 
-        tenant_id = get_current_tenant_id()
         exists, ncf_completo = invoice_has_ncf(
             tenant_id, tipo, ultimo_numero_int, tamano_secuencia_int
         )
@@ -1243,19 +1267,22 @@ def facturacion_ncf_nuevo():
             INSERT INTO ncf
                 (tenant_id, tipo, descripcion, prefijo, ultimo_numero,
                  proximo_numero, tamano_secuencia, fecha_fin, activo)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 1)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
         ''', (
             tenant_id, tipo, descripcion, prefijo, ultimo_numero_int,
-            proximo_numero, tamano_secuencia_int, fecha_fin
+            proximo_numero, tamano_secuencia_int, fecha_fin, activo
         ))
-        
+
         flash(f'NCF {tipo} creado exitosamente', 'success')
         return redirect(url_for('facturacion_ncf'))
-    
+
     return render_template(
         'facturacion/ncf_form.html',
         ncf=None,
-        ncf_tipos=obtener_catalogo_ncf_tenant(get_current_tenant_id()),
+        ncf_tipos=ncf_tipos,
+        ecf_types=ecf_types,
+        form={},
+        modo_inicial=modo_inicial,
     )
 
 @login_required
@@ -1264,6 +1291,7 @@ def facturacion_ncf_editar(ncf_id):
     """Editar NCF"""
     
     tenant_id = get_current_tenant_id()
+    _alinear_prefijo_ncf(tenant_id)
     ncf = execute_query(
         'SELECT * FROM ncf WHERE id = %s AND tenant_id = %s',
         (ncf_id, tenant_id),
@@ -1332,6 +1360,9 @@ def facturacion_ncf_editar(ncf_id):
         'facturacion/ncf_form.html',
         ncf=ncf,
         ncf_tipos=obtener_catalogo_ncf_tenant(tenant_id),
+        ecf_types={},
+        form={},
+        modo_inicial='',
     )
 
 @login_required
