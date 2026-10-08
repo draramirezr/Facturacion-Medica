@@ -51,6 +51,24 @@ class ECFCertificateMetadata:
     signer_ids: tuple
 
 
+def _signer_ids_from_certificate(certificate):
+    """RNC/cédula del sujeto: SERIAL_NUMBER y, si aplica, CN de 9 u 11 dígitos."""
+    identities = set()
+    for oid in (NameOID.SERIAL_NUMBER, NameOID.COMMON_NAME):
+        for attribute in certificate.subject.get_attributes_for_oid(oid):
+            raw = str(attribute.value or "")
+            digits = re.sub(r"\D", "", raw)
+            if not digits:
+                continue
+            if oid is NameOID.SERIAL_NUMBER:
+                identities.add(digits)
+                for match in re.finditer(r"\d{11}|\d{9}", digits):
+                    identities.add(match.group(0))
+            elif len(digits) in (9, 11):
+                identities.add(digits)
+    return {item for item in identities if item}
+
+
 class ECFSigner:
     """Firma el documento completo con RSA-SHA256 y certificado PKCS#12."""
 
@@ -129,18 +147,11 @@ class ECFSigner:
     def inspect_certificate(self, expected_signer_id):
         """Validar el certificado y devolver solo metadatos no secretos."""
         _, certificate = self._load_certificate(expected_signer_id)
-        signer_ids = tuple(sorted({
-            re.sub(r"\D", "", attribute.value)
-            for attribute in certificate.subject.get_attributes_for_oid(
-                NameOID.SERIAL_NUMBER
-            )
-            if re.sub(r"\D", "", attribute.value)
-        }))
         return ECFCertificateMetadata(
             fingerprint=certificate.fingerprint(hashes.SHA256()).hex(),
             valid_from=certificate.not_valid_before_utc,
             valid_until=certificate.not_valid_after_utc,
-            signer_ids=signer_ids,
+            signer_ids=tuple(sorted(_signer_ids_from_certificate(certificate))),
         )
 
     def _load_certificate(self, expected_signer_id):
@@ -192,16 +203,12 @@ class ECFSigner:
             pass
 
         expected = re.sub(r"\D", "", str(expected_signer_id or ""))
-        serial_attributes = certificate.subject.get_attributes_for_oid(
-            NameOID.SERIAL_NUMBER
-        )
-        certificate_ids = {
-            re.sub(r"\D", "", attribute.value)
-            for attribute in serial_attributes
-        }
+        certificate_ids = _signer_ids_from_certificate(certificate)
         if not expected or expected not in certificate_ids:
+            disponibles = ", ".join(sorted(certificate_ids)) or "ninguno"
             raise ECFSigningError(
-                "El SN del certificado no corresponde al RNC o cédula del emisor"
+                "El SN del certificado no corresponde al RNC o cédula del emisor "
+                f"(esperado {expected or 'vacío'}; en certificado: {disponibles})"
             )
 
         return private_key, certificate

@@ -128,14 +128,29 @@
                            value="{{ empresa['razon_social'] if empresa else '' }}" required maxlength="255">
                 </div>
                 
+                {% set es_medico_doc = empresa and empresa.get('tipo_empresa') == 'medico' %}
+                {% set doc_len = 11 if es_medico_doc else 9 %}
+                {% set doc_nombre = 'Cédula' if es_medico_doc else 'RNC' %}
                 <div class="col-md-6 mb-3">
                     <label for="rnc" class="form-label">
-                        <span id="documento-label">Documento</span> <span class="required-asterisk">*</span>
+                        <span id="documento-label">{{ doc_nombre }}</span> <span class="required-asterisk">*</span>
                     </label>
-                    <input type="text" class="form-control" id="rnc" name="rnc" 
+                    <input type="text" class="form-control" id="rnc" name="rnc"
                            value="{{ empresa['rnc'] if empresa else '' }}"
                            inputmode="numeric"
+                           minlength="9"
+                           maxlength="{{ doc_len }}"
+                           pattern="{{ '[0-9]{9}|[0-9]{11}' if es_medico_doc else '[0-9]{9}' }}"
+                           data-digits-only="{{ doc_len }}"
+                           title="{{ 'Cédula: 11 números (también se acepta RNC de 9)' if es_medico_doc else 'El RNC debe contener exactamente 9 números' }}"
                            required>
+                    <small class="text-muted" id="documento-ayuda">
+                        {% if es_medico_doc %}
+                        Cédula: exactamente 11 dígitos. Si factura con RNC, use 9 dígitos.
+                        {% else %}
+                        RNC: exactamente 9 dígitos.
+                        {% endif %}
+                    </small>
                 </div>
                 
                 <div class="col-md-6 mb-3">
@@ -301,23 +316,36 @@ document.addEventListener('DOMContentLoaded', function() {
     const tipoEmpresa = document.getElementById('tipo_empresa');
     const documento = document.getElementById('rnc');
     const documentoLabel = document.getElementById('documento-label');
+    const documentoAyuda = document.getElementById('documento-ayuda');
 
     function actualizarDocumento() {
         const esMedico = tipoEmpresa.value === 'medico';
-        const longitud = esMedico ? 11 : 9;
+        const longitudMax = esMedico ? 11 : 9;
         const nombre = esMedico ? 'Cédula' : 'RNC';
 
         documentoLabel.textContent = nombre;
-        documento.minLength = longitud;
-        documento.maxLength = longitud;
-        documento.pattern = `[0-9]{${longitud}}`;
-        documento.dataset.digitsOnly = longitud;
-        documento.title = `La ${nombre} debe contener exactamente ${longitud} números`;
-
-        if (documento.value.length > longitud) {
-            documento.value = documento.value.slice(0, longitud);
+        documento.minLength = 9;
+        documento.maxLength = longitudMax;
+        documento.setAttribute('maxlength', String(longitudMax));
+        documento.pattern = esMedico ? '[0-9]{9}|[0-9]{11}' : '[0-9]{9}';
+        documento.dataset.digitsOnly = String(longitudMax);
+        documento.title = esMedico
+            ? 'Cédula: 11 números (también se acepta RNC de 9)'
+            : 'El RNC debe contener exactamente 9 números';
+        if (documentoAyuda) {
+            documentoAyuda.textContent = esMedico
+                ? 'Cédula: exactamente 11 dígitos. Si factura con RNC, use 9 dígitos.'
+                : 'RNC: exactamente 9 dígitos.';
         }
+
+        const soloDigitos = (documento.value || '').replace(/\D/g, '');
+        documento.value = soloDigitos.slice(0, longitudMax);
     }
+
+    documento.addEventListener('input', function() {
+        const maxLen = Number.parseInt(documento.dataset.digitsOnly || '11', 10) || 11;
+        documento.value = (documento.value || '').replace(/\D/g, '').slice(0, maxLen);
+    });
 
     tipoEmpresa.addEventListener('change', actualizarDocumento);
     actualizarDocumento();

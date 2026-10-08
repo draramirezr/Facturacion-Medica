@@ -1,6 +1,7 @@
 """Administración de empresas y diagnóstico multiempresa."""
 
 import logging
+import re
 from datetime import date, datetime
 
 from flask import flash, jsonify, redirect, render_template, request, url_for
@@ -156,10 +157,14 @@ def _validate_company(values, editing=False):
         required += ('estado',)
     if any(values[key] in (None, '') for key in required):
         return 'Todos los campos son obligatorios'
-    document_length = 11 if values['tipo_empresa'] == 'medico' else 9
-    if not validate_digits(values['rnc'], document_length):
-        name = 'cédula' if document_length == 11 else 'RNC'
-        return f'La {name} debe contener exactamente {document_length} números'
+    rnc_digits = re.sub(r'\D', '', values['rnc'] or '')
+    values['rnc'] = rnc_digits
+    if values['tipo_empresa'] == 'medico':
+        # Médico/consultorio: cédula (11) o RNC personal (9), ambos válidos ante DGII.
+        if len(rnc_digits) not in (9, 11) or not rnc_digits.isdigit():
+            return 'La cédula debe tener 11 números (o RNC de 9 números)'
+    elif not validate_digits(rnc_digits, 9):
+        return 'El RNC debe contener exactamente 9 números'
     if not validate_digits(values['telefono'], 10):
         return 'El teléfono debe contener exactamente 10 números'
     if not validate_email(values['email']):

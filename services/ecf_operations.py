@@ -286,6 +286,15 @@ def obtener_firmante_ecf_tenant(tenant_id):
     )
     return resolved.signer()
 
+
+def rnc_emisor_para_dgii(tenant_id, empresa_info=None):
+    """Mismo RNC usado al firmar el XML: config e-CF con fallback a empresa."""
+    return re.sub(
+        r'\D',
+        '',
+        emisor_ecf_para_xml(tenant_id, empresa_info).get('rnc') or '',
+    )
+
 def procesar_envio_ecf_dgii(factura_ecf_id, tenant_id, usuario_id):
     """Procesar una sola entrega pendiente sin reintentos automáticos."""
     if not ecf_habilitado_para_tenant(tenant_id):
@@ -340,6 +349,23 @@ def procesar_envio_ecf_dgii(factura_ecf_id, tenant_id, usuario_id):
             conn.commit()
             return False, 'El documento no está firmado y listo para envío'
 
+        issuer_rnc = rnc_emisor_para_dgii(tenant_id)
+        if not issuer_rnc:
+            issuer_rnc = re.sub(r'\D', '', document.get('rnc_emisor') or '')
+        if not issuer_rnc:
+            mensaje_rnc = (
+                'No hay RNC del emisor configurado para autenticar con DGII. '
+                'Revise Configuración e-CF (RNC emisor) y el RNC de la empresa.'
+            )
+            cursor.execute('''
+                UPDATE ecf_outbox
+                SET estado='ERROR', ultimo_error=%s,
+                    bloqueado_en=NULL, bloqueado_por=NULL
+                WHERE clave_evento=%s AND tenant_id=%s
+            ''', (mensaje_rnc, outbox_key, tenant_id))
+            conn.commit()
+            return False, mensaje_rnc
+
         cursor.execute('''
             INSERT INTO ecf_eventos
             (tenant_id, factura_ecf_id, estado_anterior, estado_nuevo,
@@ -366,7 +392,7 @@ def procesar_envio_ecf_dgii(factura_ecf_id, tenant_id, usuario_id):
             signer=tenant_signer,
         ).submit_e31(
             document['xml_firmado'],
-            document['rnc_emisor'],
+            issuer_rnc,
             document['e_ncf']
         )
     except DGIIClientError as error:
@@ -508,17 +534,27 @@ def consultar_resultado_ecf_dgii(factura_ecf_id, tenant_id, usuario_id):
             'El documento todavía no está listo para consultar en DGII'
         )
 
+    issuer_rnc = rnc_emisor_para_dgii(tenant_id)
+    if not issuer_rnc:
+        issuer_rnc = re.sub(r'\D', '', document.get('rnc_emisor') or '')
+    if not issuer_rnc:
+        return (
+            False,
+            document.get('estado'),
+            'No hay RNC del emisor configurado para consultar en DGII',
+        )
+
     try:
         client = DGIIClient(
             current_app.config['ECF_CONFIG'],
             signer=obtener_firmante_ecf_tenant(tenant_id),
         )
-        token = client.authenticate(document['rnc_emisor'])
+        token = client.authenticate(issuer_rnc)
         track_id = str(document.get('track_id') or '').strip()
         recovered_track = False
         if not track_id:
             tracks = client.find_track_ids(
-                document['rnc_emisor'],
+                issuer_rnc,
                 document['e_ncf'],
                 token=token
             )
@@ -553,10 +589,10 @@ def consultar_resultado_ecf_dgii(factura_ecf_id, tenant_id, usuario_id):
 
         result = client.query_result(
             track_id,
-            document['rnc_emisor'],
+            issuer_rnc,
             token=token
         )
-        expected_rnc = re.sub(r'\D', '', document['rnc_emisor'] or '')
+        expected_rnc = issuer_rnc
         returned_rnc = re.sub(r'\D', '', result.rnc or '')
         if returned_rnc and returned_rnc != expected_rnc:
             raise DGIIClientError(
