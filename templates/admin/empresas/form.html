@@ -129,19 +129,19 @@
                 </div>
                 
                 {% set es_medico_doc = empresa and empresa.get('tipo_empresa') == 'medico' %}
-                {% set doc_len = 11 if es_medico_doc else 9 %}
                 {% set doc_nombre = 'Cédula' if es_medico_doc else 'RNC' %}
                 <div class="col-md-6 mb-3">
                     <label for="rnc" class="form-label">
                         <span id="documento-label">{{ doc_nombre }}</span> <span class="required-asterisk">*</span>
                     </label>
+                    {# Tope HTML 11: el JS ajusta a 9/11 según tipo. Evita que un handler global quede fijado en 9. #}
                     <input type="text" class="form-control" id="rnc" name="rnc"
                            value="{{ empresa['rnc'] if empresa else '' }}"
                            inputmode="numeric"
                            minlength="9"
-                           maxlength="{{ doc_len }}"
+                           maxlength="11"
                            pattern="{{ '[0-9]{9}|[0-9]{11}' if es_medico_doc else '[0-9]{9}' }}"
-                           data-digits-only="{{ doc_len }}"
+                           data-digits-only="11"
                            title="{{ 'Cédula: 11 números (también se acepta RNC de 9)' if es_medico_doc else 'El RNC debe contener exactamente 9 números' }}"
                            required>
                     <small class="text-muted" id="documento-ayuda">
@@ -312,18 +312,19 @@
 </div>
 
 <script nonce="{{ csp_nonce }}">
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
     const tipoEmpresa = document.getElementById('tipo_empresa');
     const documento = document.getElementById('rnc');
     const documentoLabel = document.getElementById('documento-label');
     const documentoAyuda = document.getElementById('documento-ayuda');
+    if (!tipoEmpresa || !documento) return;
 
     function actualizarDocumento() {
         const esMedico = tipoEmpresa.value === 'medico';
         const longitudMax = esMedico ? 11 : 9;
         const nombre = esMedico ? 'Cédula' : 'RNC';
 
-        documentoLabel.textContent = nombre;
+        if (documentoLabel) documentoLabel.textContent = nombre;
         documento.minLength = 9;
         documento.maxLength = longitudMax;
         documento.setAttribute('maxlength', String(longitudMax));
@@ -353,7 +354,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Validar que fecha_fin sea mayor que fecha_inicio
     const fechaInicio = document.getElementById('fecha_inicio');
     const fechaFin = document.getElementById('fecha_fin');
-    
+
     function validarFechas() {
         if (!fechaInicio || !fechaFin || fechaInicio.readOnly) {
             return;
@@ -361,7 +362,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (fechaInicio.value && fechaFin.value) {
             const inicio = new Date(fechaInicio.value);
             const fin = new Date(fechaFin.value);
-            
+
             if (fin <= inicio) {
                 fechaFin.setCustomValidity('La fecha de fin debe ser posterior a la fecha de inicio');
             } else {
@@ -369,47 +370,49 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
     }
-    
+
     if (fechaInicio && fechaFin && !fechaInicio.readOnly) {
         fechaInicio.addEventListener('change', validarFechas);
         fechaFin.addEventListener('change', validarFechas);
     }
-    
+
     // Calcular días restantes
     {% if empresa and empresa['fecha_fin'] %}
     const fechaFinEmpresa = new Date('{{ empresa["fecha_fin"] }}');
     const hoy = new Date();
     const diasRestantes = Math.ceil((fechaFinEmpresa - hoy) / (1000 * 60 * 60 * 24));
     const alerta = document.getElementById('alertaVencimiento');
-    
-    if (diasRestantes < 0) {
-        alerta.className = 'alert alert-danger';
-        alerta.innerHTML = `
-            <strong><i class="fas fa-exclamation-triangle me-2"></i>SUSCRIPCIÓN VENCIDA</strong><br>
-            La suscripción venció hace ${Math.abs(diasRestantes)} días.
-            El sistema suspenderá esta empresa automáticamente.
-        `;
-    } else if (diasRestantes <= 7) {
-        alerta.className = 'alert alert-danger';
-        alerta.innerHTML = `
-            <strong><i class="fas fa-exclamation-circle me-2"></i>URGENTE - Vence en ${diasRestantes} días</strong><br>
-            La suscripción está por vencer. Renueva cuanto antes.
-        `;
-    } else if (diasRestantes <= 30) {
-        alerta.className = 'alert alert-warning';
-        alerta.innerHTML = `
-            <strong><i class="fas fa-clock me-2"></i>ADVERTENCIA - Vence en ${diasRestantes} días</strong><br>
-            Considera renovar la suscripción pronto.
-        `;
-    } else {
-        alerta.className = 'alert alert-success';
-        alerta.innerHTML = `
-            <strong><i class="fas fa-check-circle me-2"></i>Suscripción activa</strong><br>
-            ${diasRestantes} días restantes hasta el vencimiento.
-        `;
+
+    if (alerta) {
+        if (diasRestantes < 0) {
+            alerta.className = 'alert alert-danger';
+            alerta.innerHTML = `
+                <strong><i class="fas fa-exclamation-triangle me-2"></i>SUSCRIPCIÓN VENCIDA</strong><br>
+                La suscripción venció hace ${Math.abs(diasRestantes)} días.
+                El sistema suspenderá esta empresa automáticamente.
+            `;
+        } else if (diasRestantes <= 7) {
+            alerta.className = 'alert alert-danger';
+            alerta.innerHTML = `
+                <strong><i class="fas fa-exclamation-circle me-2"></i>URGENTE - Vence en ${diasRestantes} días</strong><br>
+                La suscripción está por vencer. Renueva cuanto antes.
+            `;
+        } else if (diasRestantes <= 30) {
+            alerta.className = 'alert alert-warning';
+            alerta.innerHTML = `
+                <strong><i class="fas fa-clock me-2"></i>ADVERTENCIA - Vence en ${diasRestantes} días</strong><br>
+                Considera renovar la suscripción pronto.
+            `;
+        } else {
+            alerta.className = 'alert alert-success';
+            alerta.innerHTML = `
+                <strong><i class="fas fa-check-circle me-2"></i>Suscripción activa</strong><br>
+                ${diasRestantes} días restantes hasta el vencimiento.
+            `;
+        }
     }
     {% endif %}
-});
+})();
 </script>
 
 {% endblock %}

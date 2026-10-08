@@ -13,9 +13,8 @@
         }
 
         document.querySelectorAll('[data-digits-only]').forEach((input) => {
-            const maxLength = Number.parseInt(input.dataset.digitsOnly, 10);
-
             input.addEventListener('input', () => {
+                const maxLength = Number.parseInt(input.dataset.digitsOnly, 10);
                 const digits = input.value.replace(/\D/g, '');
                 input.value = Number.isFinite(maxLength)
                     ? digits.slice(0, maxLength)
