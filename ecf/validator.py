@@ -7,8 +7,9 @@ from pathlib import Path
 from lxml import etree
 
 
+# Hash del XSD oficial con finales de línea LF (como en el blob de git / Linux).
 OFFICIAL_E31_SCHEMA_SHA256 = (
-    "6f2909a93d84919518d2ae3c77fead4b35c3e8c95996b8af67b0040c2e2be298"
+    "cc66cbc418ceefaa6437c97607308c3e0814d73070fbbf9e9a2a331d12cb8abc"
 )
 MAX_XML_BYTES = 10 * 1024 * 1024
 
@@ -20,6 +21,11 @@ _REQUIRED_SIGNATURE_SLOT = (
 _OPTIONAL_SIGNATURE_SLOT = (
     b'<xs:any processContents="skip" minOccurs="0" maxOccurs="1"  />'
 )
+
+
+def _canonical_xsd_bytes(source: bytes) -> bytes:
+    """Normaliza CRLF/CR a LF para que Windows y Linux usen el mismo hash."""
+    return source.replace(b'\r\n', b'\n').replace(b'\r', b'\n')
 
 
 class ECFSchemaError(RuntimeError):
@@ -64,7 +70,7 @@ class ECFValidator:
 
     def _load_schema(self, unsigned):
         try:
-            source = self.schema_path.read_bytes()
+            source = _canonical_xsd_bytes(self.schema_path.read_bytes())
         except OSError as error:
             raise ECFSchemaError(
                 f"No se pudo leer el XSD oficial: {error}"

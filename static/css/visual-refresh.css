@@ -209,6 +209,52 @@
     white-space: nowrap !important;
 }
 
+/* Cancelar / Guardar del mismo tamaño en todos los formularios */
+.ars-app-body .ars-content .form-actions,
+.ars-app-body .ars-content .btn-container,
+.ars-app-body .ars-content .button-group {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 0.75rem !important;
+}
+
+.ars-app-body .ars-content .form-actions.right,
+.ars-app-body .ars-content .btn-container.right,
+.ars-app-body .ars-content .button-group.right {
+    justify-content: flex-end !important;
+}
+
+.ars-app-body .ars-content .form-actions > .btn-cancelar,
+.ars-app-body .ars-content .form-actions > .btn-guardar,
+.ars-app-body .ars-content .form-actions > .btn-guardar-cambios,
+.ars-app-body .ars-content .form-actions > .btn-volver,
+.ars-app-body .ars-content .form-actions > button[type="submit"],
+.ars-app-body .ars-content .btn-container > .btn-cancelar,
+.ars-app-body .ars-content .btn-container > .btn-guardar,
+.ars-app-body .ars-content .button-group > .btn-cancelar,
+.ars-app-body .ars-content .button-group > .btn-guardar,
+.ars-app-body .ars-content form .d-flex > .btn-cancelar,
+.ars-app-body .ars-content form .d-flex > .btn-guardar,
+.ars-app-body .ars-content form .d-flex > .btn-guardar-cambios,
+.ars-app-body .ars-content form .d-flex > button[type="submit"].btn-guardar {
+    flex: 0 0 240px !important;
+    width: 240px !important;
+    min-width: 240px !important;
+    max-width: 240px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    padding: 0.55rem 1rem !important;
+    margin: 0 !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    box-sizing: border-box !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+}
+
 .ars-app-body .ars-content .btn-outline-primary:hover,
 .ars-app-body .ars-content .btn-outline-secondary:hover,
 .ars-app-body .ars-content .btn-cancelar:hover,
@@ -226,7 +272,10 @@
 
 .ars-app-body .ars-content .btn-accion-editar,
 .ars-app-body .ars-content .btn-accion-ver,
-.ars-app-body .ars-content .btn-accion-eliminar {
+.ars-app-body .ars-content .btn-accion-eliminar,
+.ars-app-body .ars-content table form .btn-accion-editar,
+.ars-app-body .ars-content table form button.btn-accion-editar,
+.ars-app-body .ars-content table button[type="submit"].btn-accion-editar {
     font-size: 0 !important;
     line-height: 0 !important;
     width: 36px !important;
@@ -235,7 +284,17 @@
     height: 36px !important;
     min-height: 36px !important;
     padding: 0 !important;
+    margin: 0 !important;
     overflow: hidden;
+    flex: 0 0 36px !important;
+}
+
+.ars-app-body .ars-content table td form:has(.btn-accion-editar),
+.ars-app-body .ars-content table td form:has(.btn-accion-eliminar) {
+    display: inline-flex !important;
+    width: 36px !important;
+    margin: 0 !important;
+    padding: 0 !important;
 }
 
 .ars-app-body .ars-content .btn-accion-editar i,

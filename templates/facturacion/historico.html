@@ -154,17 +154,36 @@
 
     .tabla-historico .historico-acciones form {
         display: inline-flex !important;
+        width: 36px !important;
         margin: 0 !important;
+        padding: 0 !important;
     }
 
+    .tabla-historico .historico-acciones .btn,
     .tabla-historico .historico-acciones .btn-accion-editar,
     .tabla-historico .historico-acciones .btn-editar-factura,
-    .tabla-historico .historico-acciones .btn-ver-factura {
-        width: 2rem !important;
-        height: 2rem !important;
-        min-width: 2rem !important;
+    .tabla-historico .historico-acciones .btn-ver-factura,
+    .tabla-historico .historico-acciones button[type="submit"] {
+        width: 36px !important;
+        min-width: 36px !important;
+        max-width: 36px !important;
+        height: 36px !important;
+        min-height: 36px !important;
         padding: 0 !important;
         margin: 0 !important;
+        font-size: 0 !important;
+        line-height: 0 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+    }
+
+    .tabla-historico .historico-acciones .btn i,
+    .tabla-historico .historico-acciones button i {
+        margin: 0 !important;
+        font-size: 0.85rem !important;
+        line-height: 1 !important;
     }
     
     .btn-editar-factura:hover i {
@@ -422,7 +441,7 @@
                         {% endif %}
                         {% if acciones_factura and fila.get('editable') and can('facturacion.editar') %}
                         <a href="{{ url_for('facturacion_editar_factura', factura_id=fila['id']) }}"
-                           class="btn btn-editar-factura" title="Editar pacientes">
+                           class="btn btn-accion-editar" title="Editar pacientes">
                             <i class="fas fa-pen"></i>
                         </a>
                         {% endif %}
@@ -432,7 +451,7 @@
                               onsubmit="return confirm('¿Anular esta factura? Los pacientes volverán a pendientes.');">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="motivo_anulacion" value="Anulación desde histórico">
-                            <button type="submit" class="btn btn-editar-factura" title="Anular factura">
+                            <button type="submit" class="btn btn-accion-editar" title="Anular factura">
                                 <i class="fas fa-ban"></i>
                             </button>
                         </form>

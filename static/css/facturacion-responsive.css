@@ -275,13 +275,17 @@
     .form-card .btn-cancelar {
         padding: 0.6rem 1rem;
         font-size: 0.85rem;
-        flex: 1;
+        flex: 1 1 calc(50% - 0.5rem) !important;
+        width: auto !important;
+        min-width: 0 !important;
+        max-width: none !important;
     }
     
     .form-card .d-flex.justify-content-between,
     .form-card .form-actions {
         gap: 0.5rem;
         justify-content: flex-end !important;
+        width: 100%;
     }
     
     .form-label i {

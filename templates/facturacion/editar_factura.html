@@ -687,16 +687,16 @@
         </div>
 
         <!-- Botones de Acción -->
-        <div class="text-center mt-4 mb-5">
-            <button type="submit" class="btn-guardar-cambios" id="btnGuardarCambios" disabled>
-                <i class="fas fa-save"></i> Guardar Cambios
-            </button>
+        <div class="form-actions right mt-4 mb-5">
             <a href="{{ url_for('facturacion_historico') }}" class="btn btn-cancelar">
                 <i class="fas fa-times"></i> Cancelar
             </a>
-            <div class="mt-3">
-                <span id="resumenCambios" class="csp-u-004"></span>
-            </div>
+            <button type="submit" class="btn btn-guardar-cambios" id="btnGuardarCambios" disabled>
+                <i class="fas fa-save"></i> Guardar Cambios
+            </button>
+        </div>
+        <div class="text-end mb-3">
+            <span id="resumenCambios" class="csp-u-004"></span>
         </div>
     </form>
 </div>

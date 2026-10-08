@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import rsa
 from cryptography.hazmat.primitives.serialization import pkcs12
 
-from .validator import OFFICIAL_E31_SCHEMA_SHA256
+from .validator import OFFICIAL_E31_SCHEMA_SHA256, _canonical_xsd_bytes
 
 
 @dataclass(frozen=True)
@@ -120,7 +120,9 @@ def assess_readiness(config):
         / "e-CF-31-v1.0.xsd"
     )
     try:
-        schema_digest = hashlib.sha256(schema_path.read_bytes()).hexdigest()
+        schema_digest = hashlib.sha256(
+            _canonical_xsd_bytes(schema_path.read_bytes())
+        ).hexdigest()
     except OSError:
         schema_digest = ""
     checks.append(

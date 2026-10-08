@@ -5,11 +5,12 @@ Fuente: Dirección General de Impuestos Internos (DGII), República Dominicana.
 - Documento: `e-CF 31 v.1.0.xsd`
 - Publicación indicada por DGII: 16/10/2025
 - Página oficial: https://dgii.gov.do/cicloContribuyente/facturacion/comprobantesFiscalesElectronicosE-CF/Paginas/documentacionSobreE-CF.aspx
-- Tamaño descargado: 123019 bytes
-- SHA-256: `6f2909a93d84919518d2ae3c77fead4b35c3e8c95996b8af67b0040c2e2be298`
+- Tamaño (LF): 121323 bytes
+- SHA-256 (sobre bytes normalizados a LF): `cc66cbc418ceefaa6437c97607308c3e0814d73070fbbf9e9a2a331d12cb8abc`
 
-El archivo XSD debe conservarse sin modificaciones. Su integridad se verifica
-mediante el hash SHA-256 registrado después de la descarga.
+El archivo XSD debe conservarse sin modificaciones de contenido. Su integridad
+se verifica mediante el hash SHA-256 después de normalizar finales de línea a
+LF, para que Windows (CRLF) y Linux (LF) acepten la misma copia oficial.
 
 Nota: el archivo publicado contiene el nombre de tipo
 `" IndicadorServicioTodoIncluidoType"` con un espacio inicial. Esa errata

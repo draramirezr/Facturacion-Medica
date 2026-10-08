@@ -6,6 +6,7 @@ import unittest
 from lxml import etree
 
 from ecf.builder import ECFBuildError, ECFBuilder
+from ecf.validator import OFFICIAL_E31_SCHEMA_SHA256, _canonical_xsd_bytes
 
 
 class ECFBuilderTests(unittest.TestCase):
@@ -93,15 +94,15 @@ class ECFBuilderTests(unittest.TestCase):
             ECFBuilder().build_e31(**self.data)
 
     def test_official_schema_integrity_is_preserved(self):
-        schema = (
+        schema = _canonical_xsd_bytes((
             Path(__file__).resolve().parents[1]
             / "ecf"
             / "schemas"
             / "e-CF-31-v1.0.xsd"
-        ).read_bytes()
+        ).read_bytes())
         self.assertEqual(
             hashlib.sha256(schema).hexdigest(),
-            "6f2909a93d84919518d2ae3c77fead4b35c3e8c95996b8af67b0040c2e2be298",
+            OFFICIAL_E31_SCHEMA_SHA256,
         )
         self.assertIn(b'name=" IndicadorServicioTodoIncluidoType"', schema)
 

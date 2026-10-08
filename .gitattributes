@@ -1,0 +1,2 @@
+# Conservar el XSD oficial sin conversión CRLF/LF (rompe el hash SHA-256).
+ecf/schemas/*.xsd -text

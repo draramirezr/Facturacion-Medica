@@ -419,6 +419,25 @@ button.btn-accion-icono[type="submit"] {
     justify-content: flex-end !important;
 }
 
+/* Mismo tamaño fijo para Cancelar / Guardar */
+.form-actions > .btn-cancelar,
+.form-actions > .btn-guardar,
+.form-actions > .btn-guardar-cambios,
+.form-actions > .btn-volver,
+.form-actions > button[type="submit"],
+.btn-container > .btn-cancelar,
+.btn-container > .btn-guardar,
+.button-group > .btn-cancelar,
+.button-group > .btn-guardar {
+    flex: 0 0 240px !important;
+    width: 240px !important;
+    min-width: 240px !important;
+    max-width: 240px !important;
+    height: 44px !important;
+    min-height: 44px !important;
+    box-sizing: border-box !important;
+}
+
 /* ==========================================
    11. ESTADOS DE BOTONES
    ========================================== */
