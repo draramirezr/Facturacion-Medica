@@ -466,7 +466,7 @@
                                 <th class="csp-u-014">NSS</th>
                                 <th class="csp-u-015">Nombre</th>
                                 <th class="csp-u-016">Fecha de Consulta</th>
-                                <th class="csp-u-014">Autorización</th>
+                                <th class="csp-u-014">Autorización <span class="text-danger">*</span></th>
                                 <th class="csp-u-017">Servicio</th>
                                 <th class="csp-u-014">Monto</th>
                                 <th class="csp-u-018">Acciones</th>
@@ -732,8 +732,9 @@ function agregarLinea() {
             <input type="text" 
                    class="form-control form-control-sm csp-u-023"
                    data-campo="autorizacion" 
-                   placeholder="AUTORIZACIÓN" 
+                   placeholder="AUTORIZACIÓN *" 
                    maxlength="50"
+                   required
                    data-csp-blur="validarAutorizacionUnica"
                    data-csp-pass="element">
             <small class="error-autorizacion csp-u-024"></small>
@@ -1096,9 +1097,10 @@ async function procesarExcel(input) {
                     <input type="text" 
                            class="form-control form-control-sm csp-u-023"
                            data-campo="autorizacion" 
-                           placeholder="AUTORIZACIÓN" 
+                           placeholder="AUTORIZACIÓN *" 
                            value="${paciente.autorizacion || ''}"
                            maxlength="50"
+                           required
                            data-csp-blur="validarAutorizacionUnica"
                            data-csp-pass="element">
                     <small class="error-autorizacion csp-u-024"></small>
@@ -1231,14 +1233,15 @@ async function procesarExcel(input) {
 // Validar que la autorización sea única en toda la factura
 function validarAutorizacionUnica(input) {
     const autorizacion = input.value.trim();
-    
-    // Si está vacío, no validar
-    if (!autorizacion) {
-        return;
-    }
-    
     const filaActual = input.closest('tr');
     const errorElement = filaActual.querySelector('.error-autorizacion');
+
+    if (!autorizacion) {
+        input.classList.add('autorizacion-duplicada');
+        errorElement.innerHTML = '<i class="fas fa-exclamation-triangle me-1"></i>La autorización es obligatoria.';
+        errorElement.classList.add('error-autorizacion-visible');
+        return false;
+    }
     
     // Buscar si existe otra fila con la misma autorización
     let autorizacionDuplicada = false;
@@ -1266,11 +1269,14 @@ function validarAutorizacionUnica(input) {
             input.classList.remove('autorizacion-duplicada');
             errorElement.classList.remove('error-autorizacion-visible');
         }, 3000);
-    } else {
-        // Limpiar cualquier error previo
-        input.classList.remove('autorizacion-duplicada');
-        errorElement.classList.remove('error-autorizacion-visible');
+        return false;
     }
+
+    // Limpiar cualquier error previo
+    input.classList.remove('autorizacion-duplicada');
+    errorElement.classList.remove('error-autorizacion-visible');
+    errorElement.innerHTML = '';
+    return true;
 }
 
 document.getElementById('formFactura').addEventListener('submit', function(e) {
@@ -1304,6 +1310,16 @@ document.getElementById('formFactura').addEventListener('submit', function(e) {
             alert(`La línea ${i + 1} tiene campos vacíos. Complete NSS, Nombre, Servicio y Monto.`);
             return false;
         }
+        if (!lineas[i].autorizacion) {
+            alert(`La línea ${i + 1}: La autorización es obligatoria.`);
+            const fila = document.querySelectorAll('#tbody-lineas tr[id^="linea-"]')[i];
+            const inputAuth = fila && fila.querySelector('[data-campo="autorizacion"]');
+            if (inputAuth) {
+                validarAutorizacionUnica(inputAuth);
+                inputAuth.focus();
+            }
+            return false;
+        }
         if (!lineas[i].fecha) {
             alert(`La línea ${i + 1} no tiene fecha de consulta.`);
             return false;
@@ -1324,7 +1340,7 @@ document.getElementById('formFactura').addEventListener('submit', function(e) {
             alert(`La línea ${i + 1}: Servicio contiene caracteres no permitidos.`);
             return false;
         }
-        if (lineas[i].autorizacion && !/^[A-Z0-9\-]+$/.test(lineas[i].autorizacion)) {
+        if (!/^[A-Z0-9\-]+$/.test(lineas[i].autorizacion)) {
             alert(`La línea ${i + 1}: Autorización contiene caracteres no permitidos.`);
             return false;
         }

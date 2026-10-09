@@ -2819,7 +2819,7 @@ def registrar_consultas_pendientes_atomico(
                 'Autorización',
                 idx=idx,
                 max_len=50,
-                required=False,
+                required=True,
             )
         except ValueError as error:
             errores_validacion.append(str(error))
@@ -3445,7 +3445,7 @@ def descargar_plantilla_excel():
         )
         dv_autorizacion.error = "Esta autorización ya existe en la plantilla."
         dv_autorizacion.errorTitle = "Autorización duplicada"
-        dv_autorizacion.prompt = "Letras, números y guiones (opcional)"
+        dv_autorizacion.prompt = "Obligatoria. Letras, números y guiones"
         dv_autorizacion.promptTitle = "Autorización"
         ws.add_data_validation(dv_autorizacion)
         dv_autorizacion.add('D2:D1048576')
@@ -3688,7 +3688,7 @@ def facturacion_procesar_excel():
                     'Autorización',
                     idx=numero_fila,
                     max_len=50,
-                    required=False,
+                    required=True,
                 )
             except ValueError as error:
                 errores_fila.append(str(error).replace(f'Línea {numero_fila}:', f'Fila {numero_fila}:'))
