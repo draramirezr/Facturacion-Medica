@@ -3842,6 +3842,50 @@ def _flash_ecf_no_habilitado():
     flash('La cuenta no está habilitada para facturación electrónica', 'error')
 
 
+def _tipo_factura_por_defecto(tenant_id=None):
+    tid = tenant_id or get_current_tenant_id()
+    return 'ELECTRONICA' if ecf_habilitado_para_tenant(tid) else 'TRADICIONAL'
+
+
+def _medico_factura_defecto_id(empresa_info, medicos_list, usuario=None):
+    """Médico titular del consultorio (tipo_empresa=medico), no centro de salud."""
+    if not empresa_info or empresa_info.get('tipo_empresa') == 'centro_salud':
+        return None
+    if not medicos_list:
+        return None
+
+    def _digits(value):
+        return re.sub(r'\D', '', str(value or ''))
+
+    doc_empresa = _digits(empresa_info.get('rnc'))
+    if doc_empresa:
+        for medico in medicos_list:
+            if _digits(medico.get('cedula')) == doc_empresa:
+                return medico.get('id')
+
+    razon = (empresa_info.get('razon_social') or empresa_info.get('nombre') or '').strip().casefold()
+    if razon:
+        for medico in medicos_list:
+            if (medico.get('nombre') or '').strip().casefold() == razon:
+                return medico.get('id')
+
+    medico_usuario = getattr(usuario, 'medico_id', None) if usuario else None
+    if medico_usuario:
+        for medico in medicos_list:
+            if int(medico.get('id') or 0) == int(medico_usuario):
+                return medico.get('id')
+
+    facturadores = [
+        medico for medico in medicos_list
+        if int(medico.get('factura') or 0) == 1
+    ]
+    if len(facturadores) == 1:
+        return facturadores[0].get('id')
+    if len(medicos_list) == 1:
+        return medicos_list[0].get('id')
+    return None
+
+
 @login_required
 @permission_required('facturacion.crear')
 def facturacion_generar():
@@ -3850,7 +3894,10 @@ def facturacion_generar():
     # Si es POST, redirigir al step 2
     if request.method == 'POST':
         # Validar y sanitizar entrada
-        tipo_factura = request.form.get('tipo_factura', 'TRADICIONAL').strip().upper()
+        tenant_id = get_current_tenant_id()
+        tipo_factura = request.form.get(
+            'tipo_factura', _tipo_factura_por_defecto(tenant_id)
+        ).strip().upper()
         ars_id = validate_int(request.form.get('ars_id'), min_value=1)
         ncf_id = (
             validate_int(request.form.get('ncf_id'), min_value=1)
@@ -3864,7 +3911,7 @@ def facturacion_generar():
             return redirect(url_for('facturacion_generar'))
         if (
             tipo_factura == 'ELECTRONICA'
-            and not ecf_habilitado_para_tenant(get_current_tenant_id())
+            and not ecf_habilitado_para_tenant(tenant_id)
         ):
             _flash_ecf_no_habilitado()
             return redirect(url_for('facturacion_generar'))
@@ -3884,7 +3931,6 @@ def facturacion_generar():
             return redirect(url_for('facturacion_generar'))
         
         # Validar que los IDs pertenezcan al tenant
-        tenant_id = get_current_tenant_id()
         empresa_actual = get_empresa_info(tenant_id)
         es_centro_salud = (
             empresa_actual
@@ -3949,6 +3995,12 @@ def facturacion_generar():
             WHERE activo = 1 AND tenant_id = %s 
             ORDER BY nombre
         ''', (tenant_id,), fetch='all') or []
+
+    medico_factura_defecto_id = _medico_factura_defecto_id(
+        empresa_info,
+        medicos_habilitados,
+        current_user,
+    )
     
     pendientes = execute_query('''
         SELECT pp.*, a.nombre as ars_nombre
@@ -3968,6 +4020,7 @@ def facturacion_generar():
                           ars_list=ars_list,
                           ncf_list=ncf_list,
                           medicos_habilitados=medicos_habilitados,
+                          medico_factura_defecto_id=medico_factura_defecto_id,
                           fecha_actual=fecha_actual,
                           tipo_empresa=tipo_empresa,
                           ecf_habilitado=ecf_habilitado_para_tenant(tenant_id))
@@ -3979,7 +4032,10 @@ def facturacion_generar_step2():
     
     # Si es POST, redirigir a vista previa
     if request.method == 'POST':
-        tipo_factura = request.form.get('tipo_factura', 'TRADICIONAL').strip().upper()
+        tenant_id = get_current_tenant_id()
+        tipo_factura = request.form.get(
+            'tipo_factura', _tipo_factura_por_defecto(tenant_id)
+        ).strip().upper()
         pacientes_ids_json = request.form.get('pacientes_ids')
         ars_id = request.form.get('ars_id')
         ncf_id = request.form.get('ncf_id')
@@ -3991,7 +4047,7 @@ def facturacion_generar_step2():
             return redirect(url_for('facturacion_generar'))
         if (
             tipo_factura == 'ELECTRONICA'
-            and not ecf_habilitado_para_tenant(get_current_tenant_id())
+            and not ecf_habilitado_para_tenant(tenant_id)
         ):
             _flash_ecf_no_habilitado()
             return redirect(url_for('facturacion_generar'))
@@ -4028,7 +4084,10 @@ def facturacion_generar_step2():
                               fecha_factura=fecha_factura))
     
     # Obtener parámetros de la URL (GET)
-    tipo_factura = request.args.get('tipo_factura', 'TRADICIONAL').strip().upper()
+    tenant_id = get_current_tenant_id()
+    tipo_factura = request.args.get(
+        'tipo_factura', _tipo_factura_por_defecto(tenant_id)
+    ).strip().upper()
     ars_id = request.args.get('ars_id')
     ncf_id = request.args.get('ncf_id')
     medico_factura_id = request.args.get('medico_factura_id')
@@ -4039,7 +4098,7 @@ def facturacion_generar_step2():
         return redirect(url_for('facturacion_generar'))
     if (
         tipo_factura == 'ELECTRONICA'
-        and not ecf_habilitado_para_tenant(get_current_tenant_id())
+        and not ecf_habilitado_para_tenant(tenant_id)
     ):
         _flash_ecf_no_habilitado()
         return redirect(url_for('facturacion_generar'))
@@ -4050,7 +4109,6 @@ def facturacion_generar_step2():
         flash('Faltan parámetros obligatorios', 'error')
         return redirect(url_for('facturacion_generar'))
     
-    tenant_id = get_current_tenant_id()
     
     # Obtener ARS
     ars = execute_query('SELECT * FROM ars WHERE id = %s AND tenant_id = %s', (ars_id, tenant_id))
@@ -4149,7 +4207,10 @@ def facturacion_vista_previa():
     """Vista previa de factura antes de generar"""
     
     # Obtener parámetros
-    tipo_factura = request.args.get('tipo_factura', 'TRADICIONAL').strip().upper()
+    tenant_id = get_current_tenant_id()
+    tipo_factura = request.args.get(
+        'tipo_factura', _tipo_factura_por_defecto(tenant_id)
+    ).strip().upper()
     pacientes_ids_str = request.args.get('pacientes_ids', '')
     ars_id = request.args.get('ars_id')
     ncf_id = request.args.get('ncf_id')
@@ -4161,7 +4222,7 @@ def facturacion_vista_previa():
         return redirect(url_for('facturacion_generar'))
     if (
         tipo_factura == 'ELECTRONICA'
-        and not ecf_habilitado_para_tenant(get_current_tenant_id())
+        and not ecf_habilitado_para_tenant(tenant_id)
     ):
         _flash_ecf_no_habilitado()
         return redirect(url_for('facturacion_generar'))
@@ -4182,8 +4243,6 @@ def facturacion_vista_previa():
     if not pacientes_ids:
         flash('Debe seleccionar al menos un paciente', 'error')
         return redirect(url_for('facturacion_generar'))
-    
-    tenant_id = get_current_tenant_id()
     
     # Obtener datos de ARS, NCF y Médico
     ars = execute_query('SELECT * FROM ars WHERE id = %s AND tenant_id = %s', (ars_id, tenant_id))
@@ -4361,7 +4420,9 @@ def facturacion_generar_final():
     tenant_id = get_current_tenant_id()
     
     # Obtener datos del formulario
-    tipo_factura = request.form.get('tipo_factura', 'TRADICIONAL').strip().upper()
+    tipo_factura = request.form.get(
+        'tipo_factura', _tipo_factura_por_defecto(tenant_id)
+    ).strip().upper()
     pacientes_ids_str = request.form.get('pacientes_ids', '')
     ars_id = request.form.get('ars_id')
     ncf_id = request.form.get('ncf_id')

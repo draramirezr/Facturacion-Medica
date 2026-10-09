@@ -118,6 +118,13 @@ def login():
                 )
                 return _redirigir_login()
             if check_password_hash(user_data['password_hash'], password):
+                if user_data.get('email_verificado') in (0, False):
+                    flash(
+                        'Debe activar su cuenta con el enlace enviado a su correo '
+                        'antes de iniciar sesión con contraseña.',
+                        'error',
+                    )
+                    return _redirigir_login()
                 if user_data['password_temporal']:
                     session['cambio_password_usuario_id'] = user_data['id']
                     session['cambio_password_email'] = user_data['email']
@@ -650,6 +657,15 @@ def activar_cuenta(token):
     session['tenant_id'] = user.tenant_id
     session['empresa_nombre'] = user.empresa_nombre
     login_user(user, remember=True)
+    if usuario.get('password_temporal'):
+        session['cambio_password_usuario_id'] = usuario['id']
+        session['cambio_password_email'] = usuario['email']
+        session['cambio_password_tenant_id'] = usuario.get('tenant_id')
+        flash(
+            'Correo verificado. Defina su contraseña personal para continuar.',
+            'success',
+        )
+        return redirect(url_for('cambiar_password_obligatorio'))
     flash('Cuenta activada. Bienvenido a ClinicRD.', 'success')
     return redirect(url_for(destino_inicio_sesion(user)))
 

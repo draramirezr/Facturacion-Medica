@@ -211,6 +211,7 @@
             Configuración de la Factura
         </h3>
 
+        {% set tipo_factura_defecto = 'ELECTRONICA' if ecf_habilitado else 'TRADICIONAL' %}
         <!-- Tipo de Factura -->
         <fieldset class="form-group mb-4">
             <legend class="form-label">
@@ -220,7 +221,8 @@
             </legend>
             <div class="form-check mb-2">
                 <input class="form-check-input" type="radio" name="tipo_factura"
-                       id="tipo_tradicional" value="TRADICIONAL" checked
+                       id="tipo_tradicional" value="TRADICIONAL"
+                       {% if tipo_factura_defecto == 'TRADICIONAL' %}checked{% endif %}
                        data-csp-change="actualizarTipoFactura,checkForm">
                 <label class="form-check-label" for="tipo_tradicional">
                     Factura tradicional
@@ -229,6 +231,7 @@
             <div class="form-check">
                 <input class="form-check-input" type="radio" name="tipo_factura"
                        id="tipo_electronica" value="ELECTRONICA"
+                       {% if tipo_factura_defecto == 'ELECTRONICA' %}checked{% endif %}
                        data-csp-change="actualizarTipoFactura,checkForm">
                 <label class="form-check-label" for="tipo_electronica">
                     Factura electrónica (e-CF)
@@ -264,13 +267,13 @@
         </div>
 
         <!-- NCF -->
-        <div class="form-group mb-4" id="ncf-tradicional-group">
+        <div class="form-group mb-4" id="ncf-tradicional-group"{% if tipo_factura_defecto == 'ELECTRONICA' %} hidden{% endif %}>
             <label for="ncf_id">
                 <i class="fas fa-file-invoice"></i>
                 NCF tradicional
                 <span class="required">*</span>
             </label>
-            <select class="form-select" id="ncf_id" name="ncf_id" required data-csp-change="checkForm">
+            <select class="form-select" id="ncf_id" name="ncf_id"{% if tipo_factura_defecto != 'ELECTRONICA' %} required{% endif %} data-csp-change="checkForm">
                 <option value="">-- Seleccione un NCF --</option>
                 {% for ncf in ncf_list %}
                 <option value="{{ ncf['id'] }}" 
@@ -297,11 +300,13 @@
                     <option value="{{ medico['id'] }}" selected>{{ medico['nombre'] }}</option>
                     {% endfor %}
                 {% else %}
-                    {% if medicos_habilitados|length != 1 %}
+                    {% if not medico_factura_defecto_id and medicos_habilitados|length != 1 %}
                     <option value="">-- Seleccione el médico --</option>
                     {% endif %}
                     {% for medico in medicos_habilitados %}
-                    <option value="{{ medico['id'] }}" {% if medicos_habilitados|length == 1 %}selected{% endif %}>{{ medico['nombre'] }} - {{ medico['especialidad'] }}</option>
+                    <option value="{{ medico['id'] }}"
+                        {% if medico_factura_defecto_id and medico['id']|string == medico_factura_defecto_id|string %}selected
+                        {% elif not medico_factura_defecto_id and medicos_habilitados|length == 1 %}selected{% endif %}>{{ medico['nombre'] }} - {{ medico['especialidad'] }}</option>
                     {% endfor %}
                 {% endif %}
             </select>

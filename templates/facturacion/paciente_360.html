@@ -28,6 +28,25 @@
     .doctor-summary > span:first-child { text-align: left; }
     .doctor-summary--head { color: var(--ars-shell-muted); font-weight: 700; }
     .empty-record { padding: 2rem; color: var(--ars-shell-muted); text-align: center; }
+    /* Acciones de pestaña: mismo alto y ancho (Nueva consulta / Ver detalle, etc.) */
+    .patient-360-card .btn-p360 {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+        flex: 0 0 auto !important;
+        width: 12.5rem !important;
+        min-width: 12.5rem !important;
+        max-width: 12.5rem !important;
+        height: 38px !important;
+        min-height: 38px !important;
+        max-height: 38px !important;
+        padding: 0.35rem 0.65rem !important;
+        margin: 0 !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+    }
     @media (max-width: 991px) { .summary-grid { grid-template-columns: repeat(3, 1fr); } .patient-data { grid-template-columns: repeat(2, 1fr); } }
     @media (max-width: 767px) { .doctor-summary { grid-template-columns: 1fr repeat(2, 1fr); } .doctor-summary--head { display: none; } }
     @media (max-width: 575px) { .summary-grid, .patient-data { grid-template-columns: 1fr; } }
@@ -111,12 +130,12 @@
 
     <div class="tab-content">
         <section class="tab-pane fade show active patient-360-card" id="clinical">
-            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Historia clínica</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_historia_clinica_nueva', paciente_id=paciente['id']) }}">Nueva consulta</a></div>
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Historia clínica</h2>{% if can('historia_clinica.crear') %}<a class="btn btn-sm btn-primary btn-p360" href="{{ url_for('facturacion_historia_clinica_nueva', paciente_id=paciente['id']) }}">Nueva consulta</a>{% endif %}</div>
             {% for consulta in consultas %}
             <div class="record-row">
                 <div class="d-flex justify-content-between flex-wrap gap-2">
                     <div><strong>{{ consulta['fecha'] }} · {{ consulta['motivo_consulta'] }}</strong><span class="record-meta">{{ consulta['medico_nombre'] }}</span></div>
-                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_ver', consulta_id=consulta['id']) }}">Ver detalle</a>
+                    <a class="btn btn-sm btn-outline-primary btn-p360" href="{{ url_for('facturacion_historia_clinica_ver', consulta_id=consulta['id']) }}">Ver detalle</a>
                 </div>
                 <div class="row mt-2"><div class="col-md-6"><span class="record-meta">Diagnóstico</span>{{ consulta['diagnostico_principal'] }}</div><div class="col-md-6"><span class="record-meta">Próxima cita</span>{{ consulta['proxima_cita'] or 'No programada' }}</div></div>
             </div>
@@ -124,41 +143,41 @@
         </section>
 
         <section class="tab-pane fade patient-360-card" id="appointments">
-            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Agenda del paciente</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_citas_nueva', paciente_id=paciente['id']) }}">Programar cita</a></div>
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Agenda del paciente</h2><a class="btn btn-sm btn-primary btn-p360" href="{{ url_for('facturacion_citas_nueva', paciente_id=paciente['id']) }}">Programar cita</a></div>
             {% for cita in citas %}
             <div class="record-row d-flex justify-content-between flex-wrap gap-2">
                 <div><strong>{{ cita['fecha'] }} · {{ cita['hora']|hora_input }}</strong><span class="record-meta">{{ cita['medico_nombre'] }} · {{ cita['especialidad'] or 'Sin especialidad' }} · {{ cita['motivo'] }}</span><span class="record-status mt-2">{{ cita['estado'] }}</span></div>
                 <div class="d-flex gap-1 align-self-start">
-                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_cita_editar', cita_id=cita['id']) }}">Ver cita</a>
-                {% if can('citas.editar') and cita['estado'] != 'Completada' %}<a class="btn btn-sm btn-outline-secondary" href="{{ url_for('facturacion_cita_editar', cita_id=cita['id'], reagendar=1) }}">Reagendar</a>{% endif %}
+                <a class="btn btn-sm btn-outline-primary btn-p360" href="{{ url_for('facturacion_cita_editar', cita_id=cita['id']) }}">Ver cita</a>
+                {% if can('citas.editar') and cita['estado'] != 'Completada' %}<a class="btn btn-sm btn-outline-secondary btn-p360" href="{{ url_for('facturacion_cita_editar', cita_id=cita['id'], reagendar=1) }}">Reagendar</a>{% endif %}
                 </div>
             </div>
             {% else %}<div class="empty-record">No hay citas registradas para este paciente.</div>{% endfor %}
         </section>
 
         <section class="tab-pane fade patient-360-card" id="prescriptions">
-            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Recetas médicas</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_recetas_medicas_nueva', paciente_id=paciente['id']) }}">Nueva receta</a></div>
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Recetas médicas</h2><a class="btn btn-sm btn-primary btn-p360" href="{{ url_for('facturacion_recetas_medicas_nueva', paciente_id=paciente['id']) }}">Nueva receta</a></div>
             {% for receta in recetas %}
             <div class="record-row d-flex justify-content-between flex-wrap gap-2">
                 <div><strong>{{ receta['fecha'] }} · {{ receta['codigo'] or 'Receta médica' }}</strong><span class="record-meta">{{ receta['medico_nombre'] }} · {{ receta['medicamentos'] }} medicamento(s) · {{ receta['diagnostico'] or 'Sin diagnóstico' }}</span><span class="record-status mt-2">{{ receta['estado'] }}</span></div>
-                <a class="btn btn-sm btn-outline-primary align-self-start" href="{{ url_for('facturacion_receta_medica_ver',receta_id=receta['id']) }}">Ver receta</a>
+                <a class="btn btn-sm btn-outline-primary btn-p360 align-self-start" href="{{ url_for('facturacion_receta_medica_ver',receta_id=receta['id']) }}">Ver receta</a>
             </div>
             {% else %}<div class="empty-record">No hay recetas registradas para este paciente.</div>{% endfor %}
         </section>
 
         <section class="tab-pane fade patient-360-card" id="emergency">
-            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Historias de emergencia</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_historias_emergencia_nueva', paciente_id=paciente['id']) }}">Nueva emergencia</a></div>
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Historias de emergencia</h2><a class="btn btn-sm btn-primary btn-p360" href="{{ url_for('facturacion_historias_emergencia_nueva', paciente_id=paciente['id']) }}">Nueva emergencia</a></div>
             {% for emergencia in emergencias %}
             <div class="record-row d-flex justify-content-between flex-wrap gap-2">
                 <div><strong>{{ emergencia['fecha'] }} · {{ emergencia['motivo_emergencia'] or 'Atención de emergencia' }}</strong><span class="record-meta">{{ emergencia['medico_nombre'] }} · {{ emergencia['diagnostico_impresion'] }}</span><span class="record-status mt-2">{{ emergencia['estatus_paciente'] }}</span></div>
-                <a class="btn btn-sm btn-outline-primary align-self-start" href="{{ url_for('facturacion_historia_emergencia_ver', historia_id=emergencia['id']) }}">Ver detalle</a>
+                <a class="btn btn-sm btn-outline-primary btn-p360 align-self-start" href="{{ url_for('facturacion_historia_emergencia_ver', historia_id=emergencia['id']) }}">Ver detalle</a>
             </div>
             {% else %}<div class="empty-record">No hay historias de emergencia registradas.</div>{% endfor %}
         </section>
 
         {% if ver_facturacion %}
         <section class="tab-pane fade patient-360-card" id="registered">
-            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Consultas registradas</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_facturas_nueva', paciente_id=paciente['id']) }}">Registrar consulta</a></div>
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Consultas registradas</h2><a class="btn btn-sm btn-primary btn-p360" href="{{ url_for('facturacion_facturas_nueva', paciente_id=paciente['id']) }}">Registrar consulta</a></div>
             {% for registro in consultas_registradas %}
             <div class="record-row">
                 <div class="d-flex justify-content-between flex-wrap gap-2"><div><strong>{{ registro['fecha_servicio'] }}</strong><span class="record-meta">{{ registro['medico_nombre'] }} · {{ registro['servicios_realizados'] }}</span></div><div class="text-end"><strong>{{ registro['monto_estimado']|formato_moneda }}</strong><br><span class="record-status">{{ registro['estado'] }}</span></div></div>
@@ -168,11 +187,11 @@
         {% endif %}
 
         <section class="tab-pane fade patient-360-card" id="licenses">
-            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Licencias médicas</h2><a class="btn btn-sm btn-primary" href="{{ url_for('facturacion_licencias_medicas_nueva', paciente_id=paciente['id']) }}">Nueva licencia</a></div>
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Licencias médicas</h2><a class="btn btn-sm btn-primary btn-p360" href="{{ url_for('facturacion_licencias_medicas_nueva', paciente_id=paciente['id']) }}">Nueva licencia</a></div>
             {% for licencia in licencias %}
             <div class="record-row d-flex justify-content-between flex-wrap gap-2">
                 <div><strong>{{ licencia['fecha_emision'] }} · {{ licencia['diagnostico'] or 'Licencia médica' }}</strong><span class="record-meta">{{ licencia['fecha_inicio'] }} al {{ licencia['fecha_termino'] }} · {{ licencia['cantidad_dias'] }} día(s) · {{ licencia['medico_nombre'] }}</span><span class="record-status mt-2">{{ licencia['estado'] }}</span></div>
-                <a class="btn btn-sm btn-outline-primary align-self-start" href="{{ url_for('facturacion_licencia_medica_ver', licencia_id=licencia['id']) }}">Ver detalle</a>
+                <a class="btn btn-sm btn-outline-primary btn-p360 align-self-start" href="{{ url_for('facturacion_licencia_medica_ver', licencia_id=licencia['id']) }}">Ver detalle</a>
             </div>
             {% else %}<div class="empty-record">No hay licencias médicas registradas.</div>{% endfor %}
         </section>
@@ -182,7 +201,7 @@
             {% for factura in facturas %}
             <div class="record-row d-flex justify-content-between flex-wrap gap-2">
                 <div><strong>{{ factura['numero_factura'] or 'Factura' }} · {{ factura['fecha_emision'] }}</strong><span class="record-meta">NCF: {{ factura['ncf'] or 'N/D' }} · {{ factura['estado'] }}</span></div>
-                <div class="text-end"><strong>{{ factura['total']|formato_moneda }}</strong><br><a class="btn btn-sm btn-outline-primary mt-1" href="{{ url_for('facturacion_ver_factura', factura_id=factura['id']) }}">Ver factura</a></div>
+                <div class="text-end"><strong>{{ factura['total']|formato_moneda }}</strong><br><a class="btn btn-sm btn-outline-primary btn-p360 mt-1" href="{{ url_for('facturacion_ver_factura', factura_id=factura['id']) }}">Ver factura</a></div>
             </div>
             {% else %}<div class="empty-record">No hay facturas registradas para este paciente.</div>{% endfor %}
         </section>{% endif %}

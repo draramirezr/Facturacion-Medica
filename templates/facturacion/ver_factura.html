@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 
 {% block title %}Factura #{{ factura['id'] }}{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
@@ -346,6 +346,12 @@
     .tabla-factura .text-center {
         text-align: center;
     }
+
+    .tabla-factura .col-fecha {
+        white-space: nowrap;
+        min-width: 6.5rem;
+        width: 1%;
+    }
     
     .totales-section {
         margin-top: 2rem;
@@ -533,10 +539,55 @@
         align-items: center;
         gap: 0.75rem;
     }
-    .factura-acciones .btn-volver,
-    .factura-acciones .btn-accion,
-    .factura-acciones .btn-email {
-        margin: 0;
+    /* Evita choque con .btn-accion global (outline) y desalineación vertical. */
+    .factura-acciones > .btn-volver,
+    .factura-acciones > .btn-factura-primario,
+    .factura-acciones > .btn-email {
+        margin: 0 !important;
+        min-height: 44px !important;
+        height: 44px !important;
+        padding: 0.55rem 1.5rem !important;
+        border-radius: 12px !important;
+        font-weight: 600 !important;
+        font-size: 1rem !important;
+        line-height: 1.25 !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        box-sizing: border-box !important;
+        vertical-align: middle !important;
+        white-space: nowrap !important;
+    }
+    .factura-acciones > .btn-volver {
+        border: 1px solid {{ tema.primary }} !important;
+        background: color-mix(in srgb, {{ tema.primary }} 16%, #fff) !important;
+        color: {{ tema.primary_dark }} !important;
+        text-decoration: none !important;
+    }
+    .factura-acciones > .btn-volver i {
+        color: {{ tema.primary_dark }} !important;
+    }
+    .factura-acciones > .btn-factura-primario,
+    .factura-acciones > .btn-email {
+        border: none !important;
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
+        color: #fff !important;
+        text-decoration: none !important;
+        cursor: pointer;
+    }
+    .factura-acciones > .btn-factura-primario i,
+    .factura-acciones > .btn-email i {
+        color: #fff !important;
+    }
+    .factura-acciones > .btn-factura-primario:hover,
+    .factura-acciones > .btn-email:hover,
+    .factura-acciones > .btn-volver:hover {
+        color: #fff !important;
+    }
+    .factura-acciones > .btn-volver:hover i,
+    .factura-acciones > .btn-factura-primario:hover i,
+    .factura-acciones > .btn-email:hover i {
+        color: #fff !important;
     }
     .csp-u-002 { display: inline; }
     .csp-u-003 { max-width: 900px; margin: 0 auto 1.5rem auto; }
@@ -580,7 +631,7 @@
     .csp-u-009 { width: 4%; }
     .csp-u-010 { width: 30%; }
     .csp-u-011 { width: 10%; }
-    .csp-u-012 { width: 12%; white-space: nowrap; }
+    .csp-u-012 { width: 12%; }
     .csp-u-013 { width: 12%; }
     .csp-u-014 { width: 20%; }
     .csp-u-015 { background: {{ tema.primary }}15; padding: 0.25rem 0.5rem; border-radius: 5px; }
@@ -608,13 +659,13 @@
     </a>
     {% if factura_ecf and factura_ecf['estado'] == 'ACEPTADO' %}
     <a href="{{ url_for('facturacion_representacion_impresa_ecf', factura_id=factura['id']) }}"
-       target="_blank" class="btn-accion no-print">
+       target="_blank" class="btn-factura-primario no-print">
         <i class="fas fa-print me-2"></i>
         Imprimir
     </a>
     {% elif not factura_ecf %}
     <a href="{{ url_for('facturacion_descargar_pdf', factura_id=factura['id']) }}"
-       target="_blank" class="btn-accion no-print">
+       target="_blank" class="btn-factura-primario no-print">
         <i class="fas fa-print me-2"></i>
         Imprimir
     </a>
@@ -707,7 +758,7 @@
                     <th class="csp-u-009">No.</th>
                     <th class="csp-u-010">NOMBRES PACIENTE</th>
                     <th class="csp-u-011">NSS/CONTRATO</th>
-                    <th class="csp-u-012">FECHA</th>
+                    <th class="csp-u-012 col-fecha">FECHA</th>
                     <th class="csp-u-013">AUTORIZACIÓN</th>
                     <th class="csp-u-014">SERVICIO</th>
                     <th class="text-right csp-u-013">V/UNITARIO</th>
@@ -720,7 +771,7 @@
                     <td class="text-center">{{ loop.index }}</td>
                     <td><strong>{{ paciente['nombre_paciente'] }}</strong></td>
                     <td>{{ paciente['nss'] }}</td>
-                    <td>{{ paciente['fecha_servicio'] }}</td>
+                    <td class="col-fecha">{{ paciente['fecha_servicio'] }}</td>
                     <td><code class="csp-u-015">{{ paciente['autorizacion'] }}</code></td>
                     <td>{{ paciente['descripcion_servicio'] }}</td>
                     <td class="text-right"><strong>{{ monto_paciente|formato_moneda }}</strong></td>

@@ -198,7 +198,7 @@ def _validate_company(values, editing=False):
 
 
 def _conservar_suscripcion_si_no_es_dueno(values, empresa):
-    """Fechas, plan, licencias y estado solo los cambia el dueño del software."""
+    """Fechas, plan, licencias, estado y tipo solo los cambia el dueño del software."""
     if usuario_es_dueno_software(current_user) or not empresa:
         return values
     values['fecha_inicio'] = _fecha_iso(empresa.get('fecha_inicio'))
@@ -206,6 +206,7 @@ def _conservar_suscripcion_si_no_es_dueno(values, empresa):
     values['licencias_totales'] = empresa.get('licencias_totales')
     values['plan'] = empresa.get('plan') or values.get('plan')
     values['estado'] = empresa.get('estado') or values.get('estado')
+    values['tipo_empresa'] = empresa.get('tipo_empresa') or values.get('tipo_empresa')
     return values
 
 

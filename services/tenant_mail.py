@@ -109,6 +109,11 @@ def _enviar_smtp(empresa, destinatario, asunto, html, adjuntos=None):
     if not host or not remitente:
         return False, 'Falta el servidor o el correo remitente'
     password = descifrar_smtp_password(empresa.get('smtp_password_cifrado'))
+    if not password:
+        return False, (
+            'Falta la contraseña SMTP. Guárdela en el formulario '
+            '(Gmail: contraseña de aplicación de 16 caracteres).'
+        )
     puerto = int(empresa.get('smtp_port') or 587)
     usuario = (empresa.get('smtp_usuario') or remitente).strip()
     nombre = (empresa.get('smtp_nombre_remitente') or '').strip()
@@ -198,9 +203,10 @@ def enviar_correo_consultorio(
         try:
             return _enviar_smtp(empresa, destinatario, asunto, html, adjuntos)
         except Exception as error:
-            logger.error('SMTP del consultorio falló: %s', error)
+            logger.error('SMTP del consultorio falló: %s', error, exc_info=True)
             if not fallback_plataforma:
-                return False, 'No se pudo enviar con el correo del consultorio'
+                mensaje = str(error).strip() or 'Error de conexión SMTP'
+                return False, f'No se pudo enviar: {mensaje}'
     if fallback_plataforma:
         remitente = None
         if empresa:

@@ -6,9 +6,15 @@
 {% block content %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/admin-responsive.css') }}">
 <style nonce="{{ csp_nonce }}">
+    .admin-usuario-page {
+        padding: 1.25rem clamp(1rem, 2.5vw, 2rem) 2.5rem;
+        max-width: 920px;
+        margin: 0 auto;
+        box-sizing: border-box;
+    }
     .form-container {
         max-width: 800px;
-        margin: 50px auto;
+        margin: 0 auto;
         padding: 40px;
         background:var(--ars-shell-surface, #fff);
         border-radius: 15px;
@@ -252,6 +258,7 @@
     }
 </style>
 
+<div class="admin-usuario-page">
 <div class="form-container">
     <div class="form-header">
         <h1>
@@ -448,13 +455,12 @@
                             id="password_nuevo" 
                             name="password_nuevo" 
                             minlength="8"
-                            {% if not usuario %}required{% endif %}
                             placeholder="Mínimo 8 caracteres"
                             autocomplete="new-password"
                             readonly
                             class="password-input"
                         >
-                        <small id="password-hint-nuevo">{% if usuario %}Dejar vacío para mantener la contraseña actual{% else %}Haz clic en "Generar Contraseña" para crear una contraseña temporal segura{% endif %}</small>
+                        <small id="password-hint-nuevo">{% if usuario %}Dejar vacío para mantener la contraseña actual{% else %}Opcional: si no define contraseña, el usuario recibirá un enlace por correo para activar la cuenta y elegir su clave.{% endif %}</small>
                     </div>
                     {% if not usuario %}
                     <button type="button" class="btn btn-secondary password-generate" data-csp-click="generarPasswordTemporalNuevo">
@@ -470,7 +476,7 @@
                     <div class="password-display">
                         <span id="password-display-nuevo"></span>
                     </div>
-                    <small>⚠️ <strong>IMPORTANTE:</strong> Guarda esta contraseña y envíala al usuario de forma segura. El usuario deberá cambiarla en su primer inicio de sesión.</small>
+                    <small>⚠️ <strong>IMPORTANTE:</strong> Si define contraseña manualmente, compártala de forma segura. Si no, se enviará un enlace de activación al correo del usuario.</small>
                 </div>
             {% endif %}
         {% endif %}
@@ -488,6 +494,7 @@
             </a>
         </div>
     </form>
+</div>
 </div>
 
 <script nonce="{{ csp_nonce }}">
@@ -638,14 +645,6 @@
                 alert('❌ Debes generar una contraseña temporal para el usuario.');
                 return;
             }
-        }
-        {% else %}
-        // Para nuevo usuario: validar siempre
-        const password = document.getElementById('password_nuevo').value;
-        if (!password) {
-            e.preventDefault();
-            alert('❌ Debes generar una contraseña temporal para el nuevo usuario.');
-            return;
         }
         {% endif %}
     });

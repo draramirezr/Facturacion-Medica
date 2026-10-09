@@ -144,13 +144,6 @@
                            data-digits-only="11"
                            title="{{ 'Cédula: 11 números (también se acepta RNC de 9)' if es_medico_doc else 'El RNC debe contener exactamente 9 números' }}"
                            required>
-                    <small class="text-muted" id="documento-ayuda">
-                        {% if es_medico_doc %}
-                        Cédula: exactamente 11 dígitos. Si factura con RNC, use 9 dígitos.
-                        {% else %}
-                        RNC: exactamente 9 dígitos.
-                        {% endif %}
-                    </small>
                 </div>
                 
                 <div class="col-md-6 mb-3">
@@ -181,7 +174,8 @@
                     <label for="tipo_empresa" class="form-label">
                         Tipo de Empresa <span class="required-asterisk">*</span>
                     </label>
-                    <select class="form-select" id="tipo_empresa" name="tipo_empresa" required>
+                    <select class="form-select" id="tipo_empresa" name="tipo_empresa" required
+                            {% if empresa and not es_dueno_software %}disabled{% endif %}>
                         <option value="">-- Seleccione un tipo --</option>
                         <option value="medico" {{ 'selected' if empresa and empresa.get('tipo_empresa') == 'medico' else '' }}>
                             Médico
@@ -190,7 +184,9 @@
                             Centro de Salud
                         </option>
                     </select>
-                    <small class="text-muted">Este campo determina las funcionalidades disponibles para la empresa</small>
+                    {% if empresa and not es_dueno_software %}
+                    <input type="hidden" name="tipo_empresa" value="{{ empresa.get('tipo_empresa') or 'medico' }}">
+                    {% endif %}
                 </div>
             </div>
             
@@ -202,9 +198,6 @@
                 <i class="fas fa-calendar-alt me-2"></i>
                 Período de Suscripción
             </h5>
-            {% if not puede_editar_suscripcion %}
-            <p class="text-muted mb-3" style="font-size:.8rem;">Solo el dueño de ClinicRD puede cambiar fechas, licencias, plan y estado.</p>
-            {% endif %}
             
             <div class="row">
                 <div class="col-md-6 mb-3">
@@ -323,7 +316,6 @@
     const tipoEmpresa = document.getElementById('tipo_empresa');
     const documento = document.getElementById('rnc');
     const documentoLabel = document.getElementById('documento-label');
-    const documentoAyuda = document.getElementById('documento-ayuda');
     if (!tipoEmpresa || !documento) return;
 
     function actualizarDocumento() {
@@ -340,11 +332,6 @@
         documento.title = esMedico
             ? 'Cédula: 11 números (también se acepta RNC de 9)'
             : 'El RNC debe contener exactamente 9 números';
-        if (documentoAyuda) {
-            documentoAyuda.textContent = esMedico
-                ? 'Cédula: exactamente 11 dígitos. Si factura con RNC, use 9 dígitos.'
-                : 'RNC: exactamente 9 dígitos.';
-        }
 
         const soloDigitos = (documento.value || '').replace(/\D/g, '');
         documento.value = soloDigitos.slice(0, longitudMax);

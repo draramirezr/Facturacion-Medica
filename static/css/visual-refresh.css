@@ -237,7 +237,12 @@
 .ars-app-body .ars-content form .d-flex > .btn-cancelar,
 .ars-app-body .ars-content form .d-flex > .btn-guardar,
 .ars-app-body .ars-content form .d-flex > .btn-guardar-cambios,
-.ars-app-body .ars-content form .d-flex > button[type="submit"].btn-guardar {
+.ars-app-body .ars-content form .d-flex > button[type="submit"].btn-guardar,
+.ars-app-body .ars-content form > .d-flex > .btn-cancelar,
+.ars-app-body .ars-content form > .d-flex > .btn-guardar,
+.ars-app-body .ars-content form > .d-flex > .btn-outline-secondary,
+.ars-app-body .ars-content form > .d-flex > button[type="submit"].btn-primary,
+.ars-app-body .ars-content form > .d-flex > button[type="submit"].btn-guardar {
     flex: 0 0 240px !important;
     width: 240px !important;
     min-width: 240px !important;
@@ -380,24 +385,42 @@
 .ars-app-body .ars-content .lm-filters .form-control,
 .ars-app-body .ars-content .lm-filters .form-select,
 .ars-app-body .ars-content .lm-filters .btn,
+.ars-app-body .ars-content .pago-ars-filter .form-control,
+.ars-app-body .ars-content .pago-ars-filter .form-select,
+.ars-app-body .ars-content .pago-ars-filter .btn,
 .ars-app-body .ars-content .filtros-card .form-control,
 .ars-app-body .ars-content .filtros-card .form-select,
 .ars-app-body .ars-content .filtros-card .btn,
+.ars-app-body .ars-content .filtros-card .d-flex .btn,
 .ars-app-body .ars-content .csp-u-002 .form-select,
 .ars-app-body .ars-content .csp-u-002 .btn,
 .ars-app-body .ars-content form .row.align-items-end > [class*="col"] > .btn,
 .ars-app-body .ars-content form .row.g-3 > [class*="col"] > .btn-primary,
-.ars-app-body .ars-content form .row.g-3 > [class*="col"] > .btn-buscar {
+.ars-app-body .ars-content form .row.g-3 > [class*="col"] > .btn-buscar,
+.ars-app-body .ars-content form.d-flex > .form-select,
+.ars-app-body .ars-content form.d-flex > .form-control,
+.ars-app-body .ars-content form.d-flex > .btn {
     margin: 0 !important;
     height: 38px !important;
     min-height: 38px !important;
+    max-height: 38px !important;
+    padding-top: 0.375rem !important;
+    padding-bottom: 0.375rem !important;
+    box-sizing: border-box !important;
+}
+
+.ars-app-body .ars-content form.d-flex {
+    align-items: center !important;
 }
 
 .ars-app-body .ars-content .search-box .row > [class*="col-md-2"] > .btn,
 .ars-app-body .ars-content .nursing-filter .row > [class*="col"] > .btn,
 .ars-app-body .ars-content .rx-filter .row > [class*="col"] > .btn,
-.ars-app-body .ars-content .lm-filters .row > [class*="col"] > .btn {
+.ars-app-body .ars-content .lm-filters .row > [class*="col"] > .btn,
+.ars-app-body .ars-content .pago-ars-filter .row > [class*="col"] > .btn {
     width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
 }
 
 .ars-app-body .ars-content .report-360-search {

@@ -498,8 +498,15 @@
         <p class="settings-card-subtitle">
             Los avisos de citas, recetas, facturas y recuperación de clave salen desde este correo.
             Use los datos SMTP de su proveedor (Gmail, Microsoft 365, Hostinger, etc.).
+            {% if current_user.email %}
+            La prueba se envía a <strong>{{ current_user.email }}</strong>.
+            {% else %}
+            <strong class="text-danger">Su usuario no tiene correo:</strong> agregue uno en Usuarios para poder usar «Enviar prueba».
+            {% endif %}
+            Con Gmail active verificación en 2 pasos y use una <strong>contraseña de aplicación</strong> en el campo Contraseña.
         </p>
         <form method="POST" action="{{ url_for('perfil_configuracion') }}" class="mt-3">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="accion" value="correo_smtp">
             <div class="row g-3">
                 <div class="col-md-8"><label class="form-label">Servidor SMTP</label><input class="form-control" name="smtp_host" value="{{ correo_smtp.smtp_host }}" placeholder="smtp.tudominio.com"></div>

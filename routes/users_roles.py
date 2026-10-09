@@ -2,6 +2,7 @@
 
 import json
 import logging
+import secrets
 
 from flask import (
     Response, current_app, flash, jsonify, redirect, render_template, request,
@@ -445,18 +446,26 @@ def admin_usuarios_nuevo():
         rol_id = request.form.get('rol_id', type=int)
         medico_id = request.form.get('medico_id', type=int)
         
-        if not nombre or not email or not password or not rol_id:
-            flash('Todos los campos son obligatorios', 'error')
+        if not nombre or not email or not rol_id:
+            flash('Nombre, correo y rol son obligatorios', 'error')
             return redirect(url_for('admin_usuarios_nuevo'))
         
         if not validate_email(email):
             flash('Email inválido', 'error')
             return redirect(url_for('admin_usuarios_nuevo'))
-        
-        password_errors = validar_password_segura(password)
-        if password_errors:
-            flash(f'Contraseña no válida: {", ".join(password_errors)}', 'error')
-            return redirect(url_for('admin_usuarios_nuevo'))
+
+        from services.account_activation import (
+            enviar_invitacion_activacion,
+            registrar_activacion_pendiente,
+        )
+
+        if not password:
+            password = secrets.token_urlsafe(32)
+        else:
+            password_errors = validar_password_segura(password)
+            if password_errors:
+                flash(f'Contraseña no válida: {", ".join(password_errors)}', 'error')
+                return redirect(url_for('admin_usuarios_nuevo'))
         
         tenant_id = get_current_tenant_id()
         if not tenant_id:
@@ -512,8 +521,28 @@ def admin_usuarios_nuevo():
             rol_id,
             medico_id if requiere_medico else None,
         )
-        
-        flash(f'Usuario {nombre} creado exitosamente ({licencias_disponibles - 1} licencias restantes)', 'success')
+        token = registrar_activacion_pendiente(usuario_id, tenant_id)
+        enviado, detalle = enviar_invitacion_activacion(
+            tenant_id, nombre, email, token,
+        )
+        restantes = licencias_disponibles - 1
+        if enviado:
+            if isinstance(detalle, str) and detalle.startswith('http'):
+                flash(
+                    f'Usuario {nombre} creado. Enlace de activación (desarrollo): {detalle}',
+                    'info',
+                )
+            else:
+                flash(
+                    f'Usuario {nombre} creado. Se envió un correo a {email} '
+                    f'para activar la cuenta ({restantes} licencias restantes).',
+                    'success',
+                )
+        else:
+            flash(
+                f'Usuario {nombre} creado, pero no se pudo enviar el correo: {detalle}',
+                'warning',
+            )
         return redirect(url_for('admin_usuarios'))
     
     tenant_id = get_current_tenant_id()
@@ -847,53 +876,95 @@ def perfil_configuracion():
     
     if request.method == 'POST':
         if request.form.get('accion') == 'correo_smtp':
+            redirect_correo = redirect(
+                url_for('perfil_configuracion', _anchor='correo-consultorio')
+            )
             if not user_has_permission(current_user, 'configuracion.editar'):
                 flash('No tienes permiso para configurar el correo', 'error')
-                return redirect(url_for('perfil_configuracion'))
+                return redirect_correo
             tenant_id = get_current_tenant_id()
             if not tenant_id:
                 flash('No hay una empresa asociada a tu usuario.', 'error')
-                return redirect(url_for('perfil_configuracion'))
+                return redirect_correo
             from services.tenant_mail import (
-                enviar_correo_consultorio, guardar_correo_empresa,
+                enviar_correo_consultorio,
+                guardar_correo_empresa,
+                resumen_correo_empresa,
             )
+            enviar_prueba = request.form.get('enviar_prueba') == '1'
             puerto = validate_int(
                 request.form.get('smtp_port'), min_value=1,
                 max_value=65535, default=587,
             )
+            host = sanitize_input(request.form.get('smtp_host', ''), 255)
             remitente = sanitize_input(request.form.get('smtp_remitente', ''), 255)
+            usuario_smtp = sanitize_input(request.form.get('smtp_usuario', ''), 255)
+            password_nueva = (request.form.get('smtp_password') or '').strip() or None
             if remitente and not validate_email(remitente):
                 flash('El correo remitente no es válido', 'error')
-                return redirect(url_for('perfil_configuracion'))
+                return redirect_correo
+            if enviar_prueba:
+                if not host or not remitente:
+                    flash(
+                        'Complete servidor SMTP y correo remitente antes de la prueba.',
+                        'error',
+                    )
+                    return redirect_correo
+                destino_prueba = (getattr(current_user, 'email', None) or '').strip()
+                if not destino_prueba or not validate_email(destino_prueba):
+                    flash(
+                        'Su usuario no tiene un correo válido. Actualice el email '
+                        'del usuario en Administración → Usuarios y vuelva a probar.',
+                        'error',
+                    )
+                    return redirect_correo
+                resumen_previo = resumen_correo_empresa(get_empresa_info(tenant_id))
+                if not password_nueva and not resumen_previo.get('tiene_password'):
+                    flash(
+                        'Indique la contraseña SMTP (en Gmail use una contraseña '
+                        'de aplicación, no la clave normal de la cuenta).',
+                        'error',
+                    )
+                    return redirect_correo
             guardar_correo_empresa(
                 tenant_id,
                 {
-                    'smtp_host': sanitize_input(request.form.get('smtp_host', ''), 255),
+                    'smtp_host': host,
                     'smtp_port': puerto,
-                    'smtp_usuario': sanitize_input(request.form.get('smtp_usuario', ''), 255),
+                    'smtp_usuario': usuario_smtp,
                     'smtp_remitente': remitente,
                     'smtp_nombre_remitente': sanitize_input(
                         request.form.get('smtp_nombre_remitente', ''), 150
                     ),
                     'smtp_usar_tls': request.form.get('smtp_usar_tls') == '1',
                 },
-                password_nueva=request.form.get('smtp_password') or None,
+                password_nueva=password_nueva,
             )
-            if request.form.get('enviar_prueba') == '1' and current_user.email:
+            if enviar_prueba:
+                logger.info(
+                    'Enviando correo SMTP de prueba tenant=%s destino=%s host=%s',
+                    tenant_id,
+                    destino_prueba,
+                    host,
+                )
                 ok, detalle = enviar_correo_consultorio(
                     tenant_id,
-                    current_user.email,
+                    destino_prueba,
                     'Prueba de correo ClinicRD',
                     '<p>Si lees esto, el correo del consultorio ya envía mensajes.</p>',
                     fallback_plataforma=False,
                 )
-                flash(
-                    'Correo de prueba enviado a tu usuario.' if ok else detalle,
-                    'success' if ok else 'error',
-                )
+                if ok:
+                    flash(
+                        f'Correo de prueba enviado a {destino_prueba}. '
+                        'Revise bandeja de entrada y spam.',
+                        'success',
+                    )
+                else:
+                    flash(detalle or 'No se pudo enviar el correo de prueba.', 'error')
             else:
                 flash('Correo del consultorio guardado', 'success')
-            return redirect(url_for('perfil_configuracion'))
+            return redirect_correo
 
         if request.form.get('accion') in {
             'certificado_ecf',

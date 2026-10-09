@@ -31,14 +31,14 @@
 
     <form class="lm-filters" method="GET">
         <div class="row g-3 align-items-end">
-            <div class="col-lg-3"><label class="form-label">Buscar</label><input class="form-control" name="buscar" value="{{ filtros.get('buscar','') }}" placeholder="Paciente, teléfono, código o diagnóstico"></div>
+            <div class="{{ 'col-lg-4' if licencias_restringidas else 'col-lg-2' }}"><label class="form-label">Buscar</label><input class="form-control" name="buscar" value="{{ filtros.get('buscar','') }}" placeholder="Paciente, teléfono, código o diagnóstico"></div>
             <div class="col-lg-2"><label class="form-label">Fecha</label><input type="date" class="form-control" name="fecha" value="{{ filtros.get('fecha','') }}"></div>
             {% if not licencias_restringidas %}
             <div class="col-lg-2"><label class="form-label">Médico</label><select class="form-select" name="medico_id"><option value="">Todos</option>{% for medico in medicos %}<option value="{{ medico['id'] }}" {% if filtros.get('medico_id')|string == medico['id']|string %}selected{% endif %}>{{ medico['nombre'] }}</option>{% endfor %}</select></div>
             {% endif %}
             <div class="col-lg-2"><label class="form-label">Estado</label><select class="form-select" name="estado"><option value="">Todos</option>{% for estado in ['Borrador','Emitida','Anulada','Vencida'] %}<option value="{{ estado }}" {% if filtros.get('estado') == estado %}selected{% endif %}>{{ estado }}</option>{% endfor %}</select></div>
             <div class="col-lg-2"><label class="form-label">Ordenar</label><select class="form-select" name="orden">{% for value, label in [('recientes','Más recientes'),('antiguas','Más antiguas'),('paciente','Paciente'),('medico','Médico'),('estado','Estado')] %}<option value="{{ value }}" {% if filtros.get('orden','recientes') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-            <div class="col-lg-1"><button class="btn btn-primary w-100" type="submit" title="Aplicar filtros">Aplicar</button></div>
+            <div class="col-lg-2"><button class="btn btn-primary w-100" type="submit" title="Aplicar filtros"><i class="fas fa-filter me-2"></i>Aplicar</button></div>
         </div>
     </form>
 
