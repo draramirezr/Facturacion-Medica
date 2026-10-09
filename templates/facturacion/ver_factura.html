@@ -506,7 +506,20 @@
     }
 
     /* Utilidades locales migradas desde atributos style para CSP. */
-    .csp-u-001 { max-width: 900px; margin: 0 auto 2rem auto; text-align: center; }
+    .factura-acciones {
+        max-width: 900px;
+        margin: 2rem auto;
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    .factura-acciones .btn-volver,
+    .factura-acciones .btn-accion,
+    .factura-acciones .btn-email {
+        margin: 0;
+    }
     .csp-u-002 { display: inline; }
     .csp-u-003 { max-width: 900px; margin: 0 auto 1.5rem auto; }
     /* QR DGII: sin marco decorativo; solo el código con zona silenciosa blanca (ISO). */
@@ -579,11 +592,6 @@
             <i class="fas fa-check-circle me-1"></i>
             {% if factura_ecf %}{{ factura_ecf['estado']|replace('_', ' ') }}{% else %}FACTURA GENERADA{% endif %}
         </span>
-    </div>
-
-    <!-- Botones de Acción ARRIBA (Header) -->
-    <div class="no-print csp-u-001">
-        {{ acciones_factura_ver() }}
     </div>
 
     {% if factura_ecf %}
@@ -783,8 +791,7 @@
         </div>
     </div>
 
-    <!-- Botones de Acción ABAJO (Pie de página) -->
-    <div class="no-print csp-u-016">
+    <div class="no-print factura-acciones">
         {{ acciones_factura_ver() }}
     </div>
 </div>
