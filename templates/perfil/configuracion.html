@@ -242,6 +242,26 @@
         transition: width .25s ease;
     }
     .backup-progress.is-error .backup-progress-bar { background: #b91c1c; }
+    .backup-progress.is-success .backup-progress-bar { background: #198754; }
+    .correo-prueba-result {
+        display: none;
+        margin-top: 1rem;
+        padding: .85rem 1rem;
+        border-radius: 10px;
+        font-size: .85rem;
+        line-height: 1.45;
+    }
+    .correo-prueba-result.is-on { display: block; }
+    .correo-prueba-result.is-ok {
+        border: 1px solid #19875455;
+        background: #19875412;
+        color: #14532d;
+    }
+    .correo-prueba-result.is-error {
+        border: 1px solid #b91c1c55;
+        background: #b91c1c12;
+        color: #7f1d1d;
+    }
     {% for key, item in temas_disponibles.items() %}
     .theme-swatch--{{ key }} {
         background: linear-gradient(135deg, {{ item.gradient_start }}, {{ item.gradient_end }});
@@ -505,7 +525,7 @@
             {% endif %}
             Con Gmail active verificación en 2 pasos y use una <strong>contraseña de aplicación</strong> en el campo Contraseña.
         </p>
-        <form method="POST" action="{{ url_for('perfil_configuracion') }}" class="mt-3">
+        <form method="POST" action="{{ url_for('perfil_configuracion') }}" class="mt-3" id="correoSmtpForm">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <input type="hidden" name="accion" value="correo_smtp">
             <div class="row g-3">
@@ -519,8 +539,19 @@
             </div>
             <div class="d-flex flex-wrap gap-2 mt-3">
                 <button class="btn btn-primary" type="submit">Guardar correo</button>
-                <button class="btn btn-outline-primary" type="submit" name="enviar_prueba" value="1">Enviar prueba a mi usuario</button>
+                <button class="btn btn-outline-primary" type="button" id="correoPruebaBtn"
+                        data-url="{{ url_for('perfil_correo_prueba') }}">Enviar prueba a mi usuario</button>
             </div>
+            <div class="backup-progress" id="correoPruebaProgress" aria-live="polite">
+                <div class="backup-progress-top">
+                    <span class="backup-progress-label" id="correoPruebaProgressLabel">Preparando envío…</span>
+                    <span id="correoPruebaProgressPct">0%</span>
+                </div>
+                <div class="backup-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="correoPruebaProgressTrack">
+                    <div class="backup-progress-bar" id="correoPruebaProgressBar"></div>
+                </div>
+            </div>
+            <div class="correo-prueba-result" id="correoPruebaResult" role="alert"></div>
         </form>
         </div>
         </details>
@@ -701,6 +732,82 @@ if (idioma) {
                 campo.setAttribute('lang', valor);
             }
         });
+    });
+}
+const correoForm = document.getElementById('correoSmtpForm');
+const correoPruebaBtn = document.getElementById('correoPruebaBtn');
+if (correoForm && correoPruebaBtn) {
+    const panel = document.getElementById('correoPruebaProgress');
+    const bar = document.getElementById('correoPruebaProgressBar');
+    const label = document.getElementById('correoPruebaProgressLabel');
+    const pct = document.getElementById('correoPruebaProgressPct');
+    const track = document.getElementById('correoPruebaProgressTrack');
+    const resultBox = document.getElementById('correoPruebaResult');
+    let tickTimer = null;
+    let progressValue = 0;
+    function paintCorreo(percent, text, state) {
+        const value = Math.max(0, Math.min(100, percent));
+        progressValue = value;
+        bar.style.width = value + '%';
+        pct.textContent = value + '%';
+        label.textContent = text;
+        track.setAttribute('aria-valuenow', String(value));
+        panel.classList.remove('is-error', 'is-success');
+        if (state === 'error') panel.classList.add('is-error');
+        if (state === 'success') panel.classList.add('is-success');
+    }
+    function showResult(ok, mensaje) {
+        resultBox.textContent = mensaje || (ok ? 'Correo enviado.' : 'Error al enviar.');
+        resultBox.className = 'correo-prueba-result is-on ' + (ok ? 'is-ok' : 'is-error');
+    }
+    function stopTick() {
+        if (tickTimer) {
+            clearInterval(tickTimer);
+            tickTimer = null;
+        }
+    }
+    correoPruebaBtn.addEventListener('click', async () => {
+        if (correoPruebaBtn.dataset.busy === '1') return;
+        resultBox.classList.remove('is-on', 'is-ok', 'is-error');
+        resultBox.textContent = '';
+        correoPruebaBtn.dataset.busy = '1';
+        panel.classList.add('is-on');
+        paintCorreo(8, 'Guardando datos SMTP…');
+        stopTick();
+        tickTimer = setInterval(() => {
+            if (progressValue >= 88) return;
+            paintCorreo(progressValue + 4, 'Conectando con el servidor SMTP…');
+        }, 450);
+        const data = new FormData(correoForm);
+        data.set('accion', 'correo_smtp');
+        try {
+            const response = await fetch(correoPruebaBtn.dataset.url, {
+                method: 'POST',
+                body: data,
+                credentials: 'same-origin',
+                headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            let payload = {};
+            try {
+                payload = await response.json();
+            } catch (ignore) {
+                payload = { ok: false, mensaje: 'Respuesta inválida del servidor.' };
+            }
+            stopTick();
+            if (payload.ok) {
+                paintCorreo(100, 'Correo enviado', 'success');
+                showResult(true, payload.mensaje);
+            } else {
+                paintCorreo(100, 'No se pudo enviar', 'error');
+                showResult(false, payload.mensaje || 'No se pudo enviar el correo de prueba.');
+            }
+        } catch (error) {
+            stopTick();
+            paintCorreo(100, 'Error de red', 'error');
+            showResult(false, error.message || 'Error de conexión con la aplicación.');
+        } finally {
+            correoPruebaBtn.dataset.busy = '0';
+        }
     });
 }
 const backupBtn = document.getElementById('backupDownloadBtn');

@@ -76,6 +76,43 @@ def resumen_correo_empresa(empresa):
     }
 
 
+def describir_error_smtp(error):
+    """Mensaje legible para el usuario (sin traceback)."""
+    if isinstance(error, smtplib.SMTPAuthenticationError):
+        return (
+            'Usuario o contraseña SMTP incorrectos. '
+            'En Gmail use una contraseña de aplicación de 16 caracteres.'
+        )
+    if isinstance(error, (TimeoutError,)):
+        return (
+            'Tiempo de espera agotado al conectar al servidor SMTP. '
+            'Revise host, puerto y firewall.'
+        )
+    if isinstance(error, OSError):
+        errno = getattr(error, 'errno', None)
+        texto = str(error).lower()
+        if errno in (101, 51, 113) or 'unreachable' in texto or 'network' in texto:
+            return (
+                'No se puede abrir conexión SMTP desde este servidor '
+                '(red bloqueada o sin salida al puerto de correo). '
+                'En hosting en la nube (p. ej. Railway) suele estar bloqueado '
+                'el SMTP directo a Gmail; pruebe desde su PC en local o use '
+                'SendGrid configurado en la plataforma.'
+            )
+    mensaje = str(error).strip()
+    if 'timed out' in mensaje.lower():
+        return (
+            'Tiempo de espera agotado al conectar al servidor SMTP. '
+            'Revise host y puerto.'
+        )
+    if '535' in mensaje or 'authentication' in mensaje.lower():
+        return (
+            'Usuario o contraseña SMTP incorrectos. '
+            'En Gmail use contraseña de aplicación.'
+        )
+    return f'No se pudo enviar el correo: {mensaje or "error SMTP"}'
+
+
 def guardar_correo_empresa(tenant_id, datos, password_nueva=None):
     asegurar_esquema_correo()
     password_sql = ''
@@ -133,19 +170,23 @@ def _enviar_smtp(empresa, destinatario, asunto, html, adjuntos=None):
             subtype=subtype or 'octet-stream',
             filename=nombre_archivo,
         )
-    contexto = ssl.create_default_context()
-    if puerto == 465:
-        with smtplib.SMTP_SSL(host, puerto, context=contexto, timeout=20) as servidor:
-            if password:
-                servidor.login(usuario, password)
-            servidor.send_message(mensaje)
-    else:
-        with smtplib.SMTP(host, puerto, timeout=20) as servidor:
-            if empresa.get('smtp_usar_tls', 1):
-                servidor.starttls(context=contexto)
-            if password:
-                servidor.login(usuario, password)
-            servidor.send_message(mensaje)
+    try:
+        contexto = ssl.create_default_context()
+        if puerto == 465:
+            with smtplib.SMTP_SSL(host, puerto, context=contexto, timeout=20) as servidor:
+                if password:
+                    servidor.login(usuario, password)
+                servidor.send_message(mensaje)
+        else:
+            with smtplib.SMTP(host, puerto, timeout=20) as servidor:
+                if empresa.get('smtp_usar_tls', 1):
+                    servidor.starttls(context=contexto)
+                if password:
+                    servidor.login(usuario, password)
+                servidor.send_message(mensaje)
+    except Exception as error:
+        logger.error('SMTP del consultorio falló: %s', error, exc_info=True)
+        return False, describir_error_smtp(error)
     return True, 'Correo enviado'
 
 
@@ -200,13 +241,9 @@ def enviar_correo_consultorio(
             (tenant_id,),
         )
     if empresa and empresa.get('smtp_host') and empresa.get('smtp_remitente'):
-        try:
-            return _enviar_smtp(empresa, destinatario, asunto, html, adjuntos)
-        except Exception as error:
-            logger.error('SMTP del consultorio falló: %s', error, exc_info=True)
-            if not fallback_plataforma:
-                mensaje = str(error).strip() or 'Error de conexión SMTP'
-                return False, f'No se pudo enviar: {mensaje}'
+        ok, detalle = _enviar_smtp(empresa, destinatario, asunto, html, adjuntos)
+        if ok or not fallback_plataforma:
+            return ok, detalle
     if fallback_plataforma:
         remitente = None
         if empresa:

@@ -865,6 +865,91 @@ def admin_usuarios_eliminar(usuario_id):
     flash('Eliminación deshabilitada. Desactiva el usuario en su lugar.', 'warning')
     return redirect(url_for('admin_usuarios'))
 
+def _guardar_y_probar_correo_smtp(enviar_prueba=False):
+    """Valida formulario SMTP, guarda en empresa y opcionalmente envía prueba."""
+    from services.tenant_mail import enviar_correo_consultorio, guardar_correo_empresa
+
+    if not user_has_permission(current_user, 'configuracion.editar'):
+        return False, 'No tienes permiso para configurar el correo'
+    tenant_id = get_current_tenant_id()
+    if not tenant_id:
+        return False, 'No hay una empresa asociada a tu usuario.'
+    puerto = validate_int(
+        request.form.get('smtp_port'), min_value=1,
+        max_value=65535, default=587,
+    )
+    host = sanitize_input(request.form.get('smtp_host', ''), 255)
+    remitente = sanitize_input(request.form.get('smtp_remitente', ''), 255)
+    usuario_smtp = sanitize_input(request.form.get('smtp_usuario', ''), 255)
+    password_nueva = (request.form.get('smtp_password') or '').strip() or None
+    if remitente and not validate_email(remitente):
+        return False, 'El correo remitente no es válido'
+    destino_prueba = None
+    if enviar_prueba:
+        if not host or not remitente:
+            return False, (
+                'Complete servidor SMTP y correo remitente antes de la prueba.'
+            )
+        destino_prueba = (getattr(current_user, 'email', None) or '').strip()
+        if not destino_prueba or not validate_email(destino_prueba):
+            return False, (
+                'Su usuario no tiene un correo válido. Actualice el email '
+                'del usuario en Administración → Usuarios y vuelva a probar.'
+            )
+        resumen_previo = resumen_correo_empresa(get_empresa_info(tenant_id))
+        if not password_nueva and not resumen_previo.get('tiene_password'):
+            return False, (
+                'Indique la contraseña SMTP (en Gmail use una contraseña '
+                'de aplicación, no la clave normal de la cuenta).'
+            )
+    guardar_correo_empresa(
+        tenant_id,
+        {
+            'smtp_host': host,
+            'smtp_port': puerto,
+            'smtp_usuario': usuario_smtp,
+            'smtp_remitente': remitente,
+            'smtp_nombre_remitente': sanitize_input(
+                request.form.get('smtp_nombre_remitente', ''), 150
+            ),
+            'smtp_usar_tls': request.form.get('smtp_usar_tls') == '1',
+        },
+        password_nueva=password_nueva,
+    )
+    if not enviar_prueba:
+        return True, 'Correo del consultorio guardado'
+    logger.info(
+        'Enviando correo SMTP de prueba tenant=%s destino=%s host=%s',
+        tenant_id,
+        destino_prueba,
+        host,
+    )
+    ok, detalle = enviar_correo_consultorio(
+        tenant_id,
+        destino_prueba,
+        'Prueba de correo ClinicRD',
+        '<p>Si lees esto, el correo del consultorio ya envía mensajes.</p>',
+        fallback_plataforma=False,
+    )
+    if ok:
+        return True, (
+            f'Correo de prueba enviado a {destino_prueba}. '
+            'Revise bandeja de entrada y spam.'
+        )
+    return False, detalle or 'No se pudo enviar el correo de prueba.'
+
+
+@login_required
+@permission_required('configuracion.editar')
+def perfil_correo_prueba():
+    """Envío de prueba SMTP (JSON) para mostrar progreso y errores en pantalla."""
+    if request.method != 'POST':
+        return jsonify(ok=False, mensaje='Método no permitido'), 405
+    ok, mensaje = _guardar_y_probar_correo_smtp(enviar_prueba=True)
+    status = 200 if ok else 422
+    return jsonify(ok=ok, mensaje=mensaje), status
+
+
 @login_required
 @permission_required('configuracion.ver')
 def perfil_configuracion():
@@ -879,90 +964,9 @@ def perfil_configuracion():
             redirect_correo = redirect(
                 url_for('perfil_configuracion', _anchor='correo-consultorio')
             )
-            if not user_has_permission(current_user, 'configuracion.editar'):
-                flash('No tienes permiso para configurar el correo', 'error')
-                return redirect_correo
-            tenant_id = get_current_tenant_id()
-            if not tenant_id:
-                flash('No hay una empresa asociada a tu usuario.', 'error')
-                return redirect_correo
-            from services.tenant_mail import (
-                enviar_correo_consultorio,
-                guardar_correo_empresa,
-            )
             enviar_prueba = request.form.get('enviar_prueba') == '1'
-            puerto = validate_int(
-                request.form.get('smtp_port'), min_value=1,
-                max_value=65535, default=587,
-            )
-            host = sanitize_input(request.form.get('smtp_host', ''), 255)
-            remitente = sanitize_input(request.form.get('smtp_remitente', ''), 255)
-            usuario_smtp = sanitize_input(request.form.get('smtp_usuario', ''), 255)
-            password_nueva = (request.form.get('smtp_password') or '').strip() or None
-            if remitente and not validate_email(remitente):
-                flash('El correo remitente no es válido', 'error')
-                return redirect_correo
-            if enviar_prueba:
-                if not host or not remitente:
-                    flash(
-                        'Complete servidor SMTP y correo remitente antes de la prueba.',
-                        'error',
-                    )
-                    return redirect_correo
-                destino_prueba = (getattr(current_user, 'email', None) or '').strip()
-                if not destino_prueba or not validate_email(destino_prueba):
-                    flash(
-                        'Su usuario no tiene un correo válido. Actualice el email '
-                        'del usuario en Administración → Usuarios y vuelva a probar.',
-                        'error',
-                    )
-                    return redirect_correo
-                resumen_previo = resumen_correo_empresa(get_empresa_info(tenant_id))
-                if not password_nueva and not resumen_previo.get('tiene_password'):
-                    flash(
-                        'Indique la contraseña SMTP (en Gmail use una contraseña '
-                        'de aplicación, no la clave normal de la cuenta).',
-                        'error',
-                    )
-                    return redirect_correo
-            guardar_correo_empresa(
-                tenant_id,
-                {
-                    'smtp_host': host,
-                    'smtp_port': puerto,
-                    'smtp_usuario': usuario_smtp,
-                    'smtp_remitente': remitente,
-                    'smtp_nombre_remitente': sanitize_input(
-                        request.form.get('smtp_nombre_remitente', ''), 150
-                    ),
-                    'smtp_usar_tls': request.form.get('smtp_usar_tls') == '1',
-                },
-                password_nueva=password_nueva,
-            )
-            if enviar_prueba:
-                logger.info(
-                    'Enviando correo SMTP de prueba tenant=%s destino=%s host=%s',
-                    tenant_id,
-                    destino_prueba,
-                    host,
-                )
-                ok, detalle = enviar_correo_consultorio(
-                    tenant_id,
-                    destino_prueba,
-                    'Prueba de correo ClinicRD',
-                    '<p>Si lees esto, el correo del consultorio ya envía mensajes.</p>',
-                    fallback_plataforma=False,
-                )
-                if ok:
-                    flash(
-                        f'Correo de prueba enviado a {destino_prueba}. '
-                        'Revise bandeja de entrada y spam.',
-                        'success',
-                    )
-                else:
-                    flash(detalle or 'No se pudo enviar el correo de prueba.', 'error')
-            else:
-                flash('Correo del consultorio guardado', 'success')
+            ok, mensaje = _guardar_y_probar_correo_smtp(enviar_prueba=enviar_prueba)
+            flash(mensaje, 'success' if ok else 'error')
             return redirect_correo
 
         if request.form.get('accion') in {
@@ -1246,6 +1250,12 @@ def register_user_role_routes(app):
     app.add_url_rule('/admin/usuarios/<int:usuario_id>/editar', endpoint='admin_usuarios_editar', view_func=admin_usuarios_editar, methods=['GET', 'POST'])
     app.add_url_rule('/admin/usuarios/<int:usuario_id>/eliminar', endpoint='admin_usuarios_eliminar', view_func=admin_usuarios_eliminar, methods=['POST'])
     app.add_url_rule('/perfil/configuracion', endpoint='perfil_configuracion', view_func=perfil_configuracion, methods=['GET', 'POST'])
+    app.add_url_rule(
+        '/perfil/configuracion/correo-prueba',
+        endpoint='perfil_correo_prueba',
+        view_func=perfil_correo_prueba,
+        methods=['POST'],
+    )
     app.add_url_rule(
         '/perfil/modo-color',
         endpoint='perfil_modo_color',
