@@ -889,7 +889,6 @@ def perfil_configuracion():
             from services.tenant_mail import (
                 enviar_correo_consultorio,
                 guardar_correo_empresa,
-                resumen_correo_empresa,
             )
             enviar_prueba = request.form.get('enviar_prueba') == '1'
             puerto = validate_int(
