@@ -59,6 +59,11 @@ class ECFBuilderTests(unittest.TestCase):
             root.findtext("Encabezado/IdDoc/FechaVencimientoSecuencia"),
             "31-12-2027",
         )
+        self.assertEqual(root.findtext("Encabezado/IdDoc/TipoPago"), "2")
+        self.assertEqual(
+            root.findtext("Encabezado/IdDoc/FechaLimitePago"),
+            "11-10-2026",
+        )
         self.assertEqual(
             root.findtext("Encabezado/Emisor/RNCEmisor"), "123456789"
         )
@@ -92,6 +97,20 @@ class ECFBuilderTests(unittest.TestCase):
             ECFBuildError, "total de los detalles no coincide"
         ):
             ECFBuilder().build_e31(**self.data)
+
+    def test_credit_requires_payment_limit_not_before_issue_date(self):
+        self.data["electronic"]["fecha_limite_pago"] = date(2026, 9, 10)
+        with self.assertRaisesRegex(
+            ECFBuildError, "Fecha límite de pago debe ser mayor o igual"
+        ):
+            ECFBuilder().build_e31(**self.data)
+
+    def test_contado_omits_fecha_limite_pago(self):
+        self.data["electronic"]["tipo_pago"] = "1"
+        result = ECFBuilder().build_e31(**self.data)
+        root = etree.fromstring(result.xml.encode("utf-8"))
+        self.assertEqual(root.findtext("Encabezado/IdDoc/TipoPago"), "1")
+        self.assertIsNone(root.find("Encabezado/IdDoc/FechaLimitePago"))
 
     def test_official_schema_integrity_is_preserved(self):
         schema = _canonical_xsd_bytes((

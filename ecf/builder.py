@@ -5,12 +5,15 @@ en la fase de firmado digital.
 """
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import hashlib
 import re
 
 from lxml import etree
+
+# Plazo por defecto (días) cuando TipoPago=2 (crédito) y no viene fecha límite.
+DIAS_CREDITO_DEFAULT = 30
 
 
 class ECFBuildError(ValueError):
@@ -46,17 +49,21 @@ def _rnc(value, field):
     return number
 
 
-def _date(value, field):
+def _as_date(value, field):
     if isinstance(value, datetime):
-        value = value.date()
+        return value.date()
     if isinstance(value, str):
         try:
-            value = datetime.strptime(value, "%Y-%m-%d").date()
+            return datetime.strptime(value, "%Y-%m-%d").date()
         except ValueError as error:
             raise ECFBuildError([f"{field} no es una fecha válida"]) from error
     if not isinstance(value, date):
         raise ECFBuildError([f"{field} es obligatorio"])
-    return value.strftime("%d-%m-%Y")
+    return value
+
+
+def _date(value, field):
+    return _as_date(value, field).strftime("%d-%m-%Y")
 
 
 def _decimal(value, field, places=2, allow_zero=True):
@@ -108,11 +115,46 @@ class ECFBuilder:
         if payment_type not in {"1", "2", "3"}:
             errors.append("Tipo de pago inválido para e-CF")
 
+        payment_limit_date = None
         try:
-            issue_date = _date(invoice.get("fecha_emision"), "Fecha de emisión")
+            issue_date_obj = _as_date(
+                invoice.get("fecha_emision"), "Fecha de emisión"
+            )
+            issue_date = issue_date_obj.strftime("%d-%m-%Y")
             expiration_date = _date(
                 sequence_expires_at, "Fecha de vencimiento de la secuencia"
             )
+            # DGII: con TipoPago=2 (crédito), FechaLimitePago es obligatoria
+            # y debe ser >= FechaEmision (formato dd-MM-yyyy).
+            if payment_type == "2":
+                limit_raw = electronic.get("fecha_limite_pago")
+                if limit_raw not in (None, ""):
+                    payment_limit_date = _as_date(
+                        limit_raw, "Fecha límite de pago"
+                    )
+                else:
+                    try:
+                        credit_days = int(
+                            electronic.get("dias_credito") or DIAS_CREDITO_DEFAULT
+                        )
+                    except (TypeError, ValueError) as error:
+                        raise ECFBuildError(
+                            ["Días de crédito no es un número válido"]
+                        ) from error
+                    if credit_days < 0:
+                        raise ECFBuildError(
+                            ["Días de crédito no puede ser negativo"]
+                        )
+                    payment_limit_date = issue_date_obj + timedelta(
+                        days=credit_days
+                    )
+                if payment_limit_date < issue_date_obj:
+                    raise ECFBuildError(
+                        [
+                            "Fecha límite de pago debe ser mayor o igual "
+                            "a la fecha de emisión"
+                        ]
+                    )
             issuer_rnc = _rnc(issuer.get("rnc"), "RNC del emisor")
             issuer_name = _required_text(
                 issuer.get("razon_social") or issuer.get("nombre"),
@@ -223,6 +265,12 @@ class ECFBuilder:
             "TipoPago",
             payment_type,
         )
+        if payment_type == "2" and payment_limit_date is not None:
+            _element(
+                document_id,
+                "FechaLimitePago",
+                payment_limit_date.strftime("%d-%m-%Y"),
+            )
 
         issuer_node = etree.SubElement(header, "Emisor")
         _element(issuer_node, "RNCEmisor", issuer_rnc)
