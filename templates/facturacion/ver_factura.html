@@ -172,6 +172,19 @@
             font-weight: 600 !important;
         }
         
+        /* Pie e-CF: QR abajo a la izquierda (DGII) */
+        .factura-pie-inferior {
+            display: flex !important;
+            flex-wrap: nowrap;
+            align-items: flex-end;
+            justify-content: flex-start;
+            page-break-inside: avoid;
+        }
+        .ecf-qr-block {
+            flex: 0 0 auto;
+            text-align: left;
+        }
+
         /* Footer para impresión */
         .footer-factura {
             text-align: center;
@@ -180,6 +193,11 @@
             border-top: 1px solid #ddd;
             font-size: 0.7rem !important;
             page-break-inside: avoid;
+        }
+        .factura-pie-inferior .footer-factura {
+            margin-top: 0;
+            border-top: none;
+            flex: 1 1 auto;
         }
         
         .footer-factura p {
@@ -524,7 +542,7 @@
     .csp-u-003 { max-width: 900px; margin: 0 auto 1.5rem auto; }
     /* QR DGII: sin marco decorativo; solo el código con zona silenciosa blanca (ISO). */
     .ecf-qr-img {
-        display: inline-block;
+        display: block;
         width: 140px;
         height: 140px;
         padding: 0;
@@ -532,6 +550,28 @@
         border: none;
         background: transparent;
         box-shadow: none;
+    }
+    /* DGII: QR en la parte inferior izquierda de la representación. */
+    .factura-pie-inferior {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-end;
+        justify-content: flex-start;
+        gap: 1.25rem;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 2px solid #eee;
+    }
+    .ecf-qr-block {
+        flex: 0 0 auto;
+        text-align: left;
+        max-width: 160px;
+    }
+    .factura-pie-inferior .footer-factura {
+        flex: 1 1 240px;
+        margin-top: 0;
+        padding-top: 0;
+        border-top: none;
     }
     .csp-u-005 { width: 120px; }
     .csp-u-006 { white-space: nowrap; }
@@ -594,44 +634,23 @@
         </span>
     </div>
 
-    {% if factura_ecf %}
-    <div class="no-print alert {{ 'alert-success' if factura_ecf['estado'] == 'ACEPTADO' else ('alert-danger' if factura_ecf['estado'] in ['RECHAZADO', 'ERROR_ENVIO', 'ERROR_FIRMA', 'ERROR_VALIDACION'] else 'alert-info') }} csp-u-003">
+    {% if factura_ecf and factura_ecf['estado'] in ['RECHAZADO', 'ERROR_ENVIO', 'ERROR_FIRMA', 'ERROR_VALIDACION'] %}
+    <div class="no-print alert alert-danger csp-u-003">
         <strong>Estado e-CF:</strong> {{ factura_ecf['estado']|replace('_', ' ') }}
         <br>
         <span>
-            {% if factura_ecf['estado'] == 'ACEPTADO' %}
-                DGII confirmó que el comprobante {{ factura_ecf['e_ncf'] }}
-                tiene validez fiscal.
-                {% if factura_ecf.get('track_id') %}TrackID: <strong>{{ factura_ecf.get('track_id') }}</strong>.{% endif %}
-                {% if factura_ecf.get('mensaje_respuesta') %}<br>{{ factura_ecf.get('mensaje_respuesta') }}{% endif %}
-            {% elif factura_ecf['estado'] == 'RECHAZADO' %}
+            {% if factura_ecf['estado'] == 'RECHAZADO' %}
                 DGII rechazó el comprobante {{ factura_ecf['e_ncf'] }}.
                 {% if factura_ecf.get('codigo_respuesta') %}Código: <strong>{{ factura_ecf.get('codigo_respuesta') }}</strong>.{% endif %}
                 {% if factura_ecf.get('mensaje_respuesta') %}<br>{{ factura_ecf.get('mensaje_respuesta') }}{% endif %}
-            {% elif factura_ecf['estado'] == 'ENVIADO' %}
-                DGII recibió el XML E31 para {{ factura_ecf['e_ncf'] }}.
-                TrackID: <strong>{{ factura_ecf.get('track_id') }}</strong>.
-                Esto todavía no significa que el documento fue aceptado.
             {% elif factura_ecf['estado'] == 'ERROR_ENVIO' %}
                 No se confirmó el envío a DGII:
                 {{ factura_ecf.get('ultimo_error', 'revise la trazabilidad del documento') }}.
                 No se generará otro e-NCF.
-            {% elif factura_ecf['estado'] == 'FIRMADO' %}
-                El XML E31 para {{ factura_ecf['e_ncf'] }} fue validado y firmado
-                digitalmente. Todavía no ha sido enviado a la DGII.
             {% elif factura_ecf['estado'] == 'ERROR_FIRMA' %}
                 No fue posible firmar el XML: {{ factura_ecf.get('ultimo_error', 'revise el certificado digital') }}.
-            {% elif factura_ecf['estado'] == 'XML_VALIDADO' %}
-                El XML E31 para {{ factura_ecf['e_ncf'] }} fue generado y validado
-                contra la estructura oficial. Todavía no ha sido firmado ni enviado a la DGII.
-            {% elif factura_ecf['estado'] == 'XML_GENERADO' %}
-                El XML E31 para {{ factura_ecf['e_ncf'] }} fue generado localmente.
-                Todavía no ha sido validado contra el XSD, firmado ni enviado a la DGII.
             {% elif factura_ecf['estado'] == 'ERROR_VALIDACION' %}
                 No fue posible construir el XML: {{ factura_ecf.get('ultimo_error', 'revise los datos fiscales') }}.
-            {% else %}
-                El e-NCF {{ factura_ecf['e_ncf'] }} fue reservado localmente.
-                Todavía no ha sido firmado ni enviado a la DGII.
             {% endif %}
         </span>
     </div>
@@ -728,16 +747,15 @@
 
         <!-- Footer -->
         {% include 'partials/_documento_pie.html' %}
-        {% if mostrar_qr_ecf %}
-        <div class="ecf-qr-print text-center my-3">
-            <p class="mb-1"><strong>e-NCF:</strong> {{ factura_ecf['e_ncf'] }}</p>
-            <img src="{{ url_for('facturacion_qr_ecf', factura_id=factura['id']) }}"
-                 alt="QR de consulta timbre DGII para {{ factura_ecf['e_ncf'] }}"
-                 width="140" height="140" class="ecf-qr-img">
-            <p class="small mb-0">Escanee para validar este e-CF en DGII.</p>
-        </div>
-        {% endif %}
-        <div class="footer-factura">
+        <div class="factura-pie-inferior">
+            {% if mostrar_qr_ecf %}
+            <div class="ecf-qr-block">
+                <img src="{{ url_for('facturacion_qr_ecf', factura_id=factura['id']) }}"
+                     alt="QR timbre DGII"
+                     width="140" height="140" class="ecf-qr-img">
+            </div>
+            {% endif %}
+            <div class="footer-factura">
             {% if tipo_empresa == 'centro_salud' %}
                 <p><strong>{{ empresa_info.get('razon_social', empresa_info.get('nombre', 'N/A')) }}</strong></p>
                 <div class="footer-info">
@@ -788,6 +806,7 @@
                     {% endif %}
                 </div>
             {% endif %}
+            </div>
         </div>
     </div>
 
