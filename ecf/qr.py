@@ -155,6 +155,9 @@ def generate_qr(stamp):
     La biblioteca aumenta la versión únicamente cuando la URL oficial no cabe
     en versión 8 (principalmente por el prefijo más largo de precertificación).
     Nunca se eliminan ni truncan parámetros fiscales para forzar la capacidad.
+
+    ``border=4`` es la zona silenciosa mínima (4 módulos blancos, ISO 18004),
+    no un marco gráfico. La RI DGII muestra el QR sin recuadro adicional.
     """
     qr = qrcode.QRCode(
         version=8,

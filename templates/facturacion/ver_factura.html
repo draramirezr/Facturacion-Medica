@@ -509,7 +509,17 @@
     .csp-u-001 { max-width: 900px; margin: 0 auto 2rem auto; text-align: center; }
     .csp-u-002 { display: inline; }
     .csp-u-003 { max-width: 900px; margin: 0 auto 1.5rem auto; }
-    .csp-u-004 { display: block; background:var(--ars-shell-surface, #fff); padding: 6px; border: 1px solid #b8c4cc; }
+    /* QR DGII: sin marco decorativo; solo el código con zona silenciosa blanca (ISO). */
+    .ecf-qr-img {
+        display: inline-block;
+        width: 140px;
+        height: 140px;
+        padding: 0;
+        margin: 0;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+    }
     .csp-u-005 { width: 120px; }
     .csp-u-006 { white-space: nowrap; }
     .csp-u-007 { margin-bottom: 0.1rem; }
@@ -538,6 +548,30 @@
     .csp-u-030 { background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%); color: white; border: none; font-weight: 600; min-width: 120px; padding: 0.7rem 1.5rem; border-radius: 12px; }
 </style>
 
+{% macro acciones_factura_ver() %}
+    <a href="{{ url_for('facturacion_historico') }}" class="btn-volver no-print">
+        <i class="fas fa-arrow-left me-2"></i>
+        Volver atrás
+    </a>
+    {% if factura_ecf and factura_ecf['estado'] == 'ACEPTADO' %}
+    <a href="{{ url_for('facturacion_representacion_impresa_ecf', factura_id=factura['id']) }}"
+       target="_blank" class="btn-accion no-print">
+        <i class="fas fa-print me-2"></i>
+        Imprimir
+    </a>
+    {% elif not factura_ecf %}
+    <a href="{{ url_for('facturacion_descargar_pdf', factura_id=factura['id']) }}"
+       target="_blank" class="btn-accion no-print">
+        <i class="fas fa-print me-2"></i>
+        Imprimir
+    </a>
+    {% endif %}
+    <button type="button" data-csp-click="abrirModalEmail" class="btn-email no-print">
+        <i class="fas fa-envelope me-2"></i>
+        Enviar por mail
+    </button>
+{% endmacro %}
+
 <div class="container-fluid mt-4">
     <!-- Badge de Estado -->
     <div class="no-print text-center mb-3">
@@ -549,62 +583,7 @@
 
     <!-- Botones de Acción ARRIBA (Header) -->
     <div class="no-print csp-u-001">
-        <a href="{{ url_for('facturacion_historico') }}" class="btn-volver no-print">
-            <i class="fas fa-arrow-left me-2"></i>
-            Volver al Histórico
-        </a>
-        {% if factura_editable and can('facturacion.editar') %}
-        <a href="{{ url_for('facturacion_editar_factura', factura_id=factura['id']) }}" class="btn-accion no-print">
-            <i class="fas fa-pen me-2"></i>
-            Editar pacientes
-        </a>
-        {% endif %}
-        {% if factura_anulable and can('facturacion.anular') %}
-        <form method="POST" action="{{ url_for('facturacion_anular_factura', factura_id=factura['id']) }}"
-              class="d-inline no-print"
-              onsubmit="var m=prompt('Motivo de anulación:'); if(!m){return false;} this.motivo_anulacion.value=m; return confirm('¿Anular esta factura?');">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="motivo_anulacion" value="">
-            <button type="submit" class="btn-accion no-print">
-                <i class="fas fa-ban me-2"></i>
-                Anular
-            </button>
-        </form>
-        {% endif %}
-        {% if not factura_ecf %}
-        <a href="{{ url_for('facturacion_descargar_pdf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
-            <i class="fas fa-print me-2"></i>
-            Imprimir
-        </a>
-        <a href="{{ url_for('facturacion_descargar_pdf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
-            <i class="fas fa-file-pdf me-2"></i>
-            Descargar PDF
-        </a>
-        <button data-csp-click="abrirModalEmail" class="btn-email no-print">
-            <i class="fas fa-envelope me-2"></i>
-            Enviar por Email
-        </button>
-        {% endif %}
-        {% if factura_ecf and factura_ecf.get('xml_generado') %}
-        <a href="{{ url_for('facturacion_ver_xml_ecf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
-            <i class="fas fa-code me-2"></i>
-            {{ 'Ver XML firmado' if factura_ecf.get('xml_firmado') else 'Ver XML' }}
-        </a>
-        {% endif %}
-        {% if factura_ecf and factura_ecf['estado'] == 'ACEPTADO' %}
-        <a href="{{ url_for('facturacion_representacion_impresa_ecf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
-            <i class="fas fa-file-pdf me-2"></i>
-            Representación impresa
-        </a>
-        {% endif %}
-        {% if factura_ecf and factura_ecf['estado'] in ['ENVIADO', 'ERROR_ENVIO', 'ACEPTADO', 'RECHAZADO'] %}
-        <form method="POST" action="{{ url_for('facturacion_consultar_estado_ecf', factura_id=factura['id']) }}" class="csp-u-002">
-            <button type="submit" class="btn-accion no-print">
-                <i class="fas fa-sync-alt me-2"></i>
-                Consultar estado DGII
-            </button>
-        </form>
-        {% endif %}
+        {{ acciones_factura_ver() }}
     </div>
 
     {% if factura_ecf %}
@@ -656,9 +635,7 @@
         <div class="factura-header">
             <div class="csp-u-005">{% include 'partials/_documento_membrete.html' %}</div>
             <div class="factura-title-center">
-                <h1 class="factura-title">
-                    {{ 'FACTURA ELECTRÓNICA' if factura_ecf else 'FACTURA' }}
-                </h1>
+                <h1 class="factura-title">FACTURA</h1>
             </div>
             <div class="csp-u-005"></div>
         </div>
@@ -748,7 +725,7 @@
             <p class="mb-1"><strong>e-NCF:</strong> {{ factura_ecf['e_ncf'] }}</p>
             <img src="{{ url_for('facturacion_qr_ecf', factura_id=factura['id']) }}"
                  alt="QR de consulta timbre DGII para {{ factura_ecf['e_ncf'] }}"
-                 width="140" height="140" class="csp-u-004">
+                 width="140" height="140" class="ecf-qr-img">
             <p class="small mb-0">Escanee para validar este e-CF en DGII.</p>
         </div>
         {% endif %}
@@ -808,47 +785,7 @@
 
     <!-- Botones de Acción ABAJO (Pie de página) -->
     <div class="no-print csp-u-016">
-        <a href="{{ url_for('facturacion_historico') }}" class="btn-volver no-print">
-            <i class="fas fa-arrow-left me-2"></i>
-            Volver al Histórico
-        </a>
-        {% if factura_editable and can('facturacion.editar') %}
-        <a href="{{ url_for('facturacion_editar_factura', factura_id=factura['id']) }}" class="btn-accion no-print">
-            <i class="fas fa-pen me-2"></i>
-            Editar pacientes
-        </a>
-        {% endif %}
-        {% if factura_anulable and can('facturacion.anular') %}
-        <form method="POST" action="{{ url_for('facturacion_anular_factura', factura_id=factura['id']) }}"
-              class="d-inline no-print"
-              onsubmit="var m=prompt('Motivo de anulación:'); if(!m){return false;} this.motivo_anulacion.value=m; return confirm('¿Anular esta factura?');">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-            <input type="hidden" name="motivo_anulacion" value="">
-            <button type="submit" class="btn-accion no-print">
-                <i class="fas fa-ban me-2"></i>
-                Anular
-            </button>
-        </form>
-        {% endif %}
-        {% if not factura_ecf %}
-        <a href="{{ url_for('facturacion_descargar_pdf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
-            <i class="fas fa-print me-2"></i>
-            Imprimir
-        </a>
-        <a href="{{ url_for('facturacion_descargar_pdf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
-            <i class="fas fa-file-pdf me-2"></i>
-            Descargar PDF
-        </a>
-        <button data-csp-click="abrirModalEmail" class="btn-email no-print">
-            <i class="fas fa-envelope me-2"></i>
-            Enviar por Email
-        </button>
-        {% elif factura_ecf['estado'] == 'ACEPTADO' %}
-        <a href="{{ url_for('facturacion_representacion_impresa_ecf', factura_id=factura['id']) }}" target="_blank" class="btn-accion no-print">
-            <i class="fas fa-print me-2"></i>
-            Imprimir e-CF
-        </a>
-        {% endif %}
+        {{ acciones_factura_ver() }}
     </div>
 </div>
 

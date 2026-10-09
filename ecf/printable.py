@@ -307,7 +307,7 @@ def generate_e31_pdf(
             qr_size,
             qr_size,
             preserveAspectRatio=True,
-            mask="auto",
+            anchor="sw",
         )
         canvas.setFillColor(colors.HexColor("#222222"))
         canvas.setFont("Helvetica-Bold", 7)
