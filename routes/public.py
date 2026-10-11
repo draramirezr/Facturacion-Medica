@@ -18,14 +18,6 @@ from services.platform import registrar_vista_pagina
 
 logger = logging.getLogger(__name__)
 
-try:
-    from sendgrid import SendGridAPIClient
-    from sendgrid.helpers.mail import Mail
-
-    SENDGRID_AVAILABLE = True
-except ImportError:
-    SENDGRID_AVAILABLE = False
-
 
 @csrf.exempt
 @rate_limit(max_requests=120, window=60)
@@ -160,32 +152,32 @@ def enviar_contacto():
         flash('Ingresa un correo electrónico válido.', 'error')
         return redirect(url_for('index', _anchor='contacto'))
     soporte = obtener_soporte()
-    if not SENDGRID_AVAILABLE or not os.getenv('SENDGRID_API_KEY', '').strip():
-        logger.warning('Contacto de %s no enviado: falta SendGrid', email)
+    from services.platform_mail import enviar_correo_plataforma, plataforma_correo_configurado
+
+    if not plataforma_correo_configurado():
+        logger.warning('Contacto de %s no enviado: falta Zoho plataforma', email)
         flash(
             f'Ahora mismo no se pudo enviar el correo. Escríbenos a '
             f'{soporte["email"]} o llama al {soporte["telefono"]}.',
             'error',
         )
         return redirect(url_for('index', _anchor='contacto'))
-    try:
-        cuerpo = (
-            f'<p><strong>Nombre:</strong> {escape(nombre)}</p>'
-            f'<p><strong>Correo:</strong> {escape(email)}</p>'
-            f'<p><strong>Mensaje:</strong></p>'
-            f'<p>{escape(mensaje).replace(chr(10), "<br>")}</p>'
-        )
-        correo = Mail(
-            from_email=os.getenv('SENDGRID_FROM_EMAIL', 'noreply@clinicrd.com'),
-            to_emails=soporte['email'],
-            subject=f'Contacto ClinicRD · {nombre}',
-            html_content=cuerpo,
-        )
-        correo.reply_to = email
-        SendGridAPIClient(os.getenv('SENDGRID_API_KEY')).send(correo)
+    cuerpo = (
+        f'<p><strong>Nombre:</strong> {escape(nombre)}</p>'
+        f'<p><strong>Correo:</strong> {escape(email)}</p>'
+        f'<p><strong>Mensaje:</strong></p>'
+        f'<p>{escape(mensaje).replace(chr(10), "<br>")}</p>'
+    )
+    ok, detalle = enviar_correo_plataforma(
+        soporte['email'],
+        f'Contacto ClinicRD · {nombre}',
+        cuerpo,
+        reply_to=email,
+    )
+    if ok:
         flash('Recibimos tu mensaje. Te escribimos pronto.', 'success')
-    except Exception as error:
-        logger.error('Error enviando contacto: %s', error)
+    else:
+        logger.error('Error enviando contacto: %s', detalle)
         flash(
             f'No se pudo enviar el mensaje. Escríbenos a {soporte["email"]} '
             f'o llama al {soporte["telefono"]}.',

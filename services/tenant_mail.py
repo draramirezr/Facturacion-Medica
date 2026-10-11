@@ -97,7 +97,7 @@ def describir_error_smtp(error):
                 '(red bloqueada o sin salida al puerto de correo). '
                 'En hosting en la nube (p. ej. Railway) suele estar bloqueado '
                 'el SMTP directo a Gmail; pruebe desde su PC en local o use '
-                'SendGrid configurado en la plataforma.'
+                'el correo Zoho configurado en la plataforma.'
             )
     mensaje = str(error).strip()
     if 'timed out' in mensaje.lower():
@@ -190,38 +190,6 @@ def _enviar_smtp(empresa, destinatario, asunto, html, adjuntos=None):
     return True, 'Correo enviado'
 
 
-def _enviar_sendgrid(destinatario, asunto, html, adjuntos=None, remitente=None):
-    api_key = os.getenv('SENDGRID_API_KEY', '').strip()
-    if not api_key:
-        return False, 'No hay SMTP del consultorio ni SendGrid de la plataforma'
-    try:
-        from sendgrid import SendGridAPIClient
-        from sendgrid.helpers.mail import (
-            Attachment, Disposition, FileContent, FileName, FileType, Mail,
-        )
-        import base64
-    except ImportError:
-        return False, 'SendGrid no está instalado'
-    origen = remitente or os.getenv('SENDGRID_FROM_EMAIL', 'noreply@clinicrd.com')
-    mensaje = Mail(
-        from_email=origen,
-        to_emails=destinatario,
-        subject=asunto,
-        html_content=html,
-    )
-    for adjunto in adjuntos or []:
-        nombre_archivo, contenido, mime = adjunto
-        archivo = Attachment(
-            FileContent(base64.b64encode(contenido).decode()),
-            FileName(nombre_archivo),
-            FileType(mime or 'application/octet-stream'),
-            Disposition('attachment'),
-        )
-        mensaje.add_attachment(archivo)
-    SendGridAPIClient(api_key).send(mensaje)
-    return True, 'Correo enviado'
-
-
 def enviar_correo_consultorio(
     tenant_id,
     destinatario,
@@ -240,21 +208,20 @@ def enviar_correo_consultorio(
             'SELECT * FROM empresas WHERE id=%s',
             (tenant_id,),
         )
-    if empresa and empresa.get('smtp_host') and empresa.get('smtp_remitente'):
+    if (
+        empresa
+        and empresa.get('smtp_host')
+        and empresa.get('smtp_remitente')
+        and empresa.get('smtp_password_cifrado')
+    ):
         ok, detalle = _enviar_smtp(empresa, destinatario, asunto, html, adjuntos)
         if ok or not fallback_plataforma:
             return ok, detalle
     if fallback_plataforma:
-        remitente = None
-        if empresa:
-            remitente = empresa.get('smtp_remitente') or None
-        try:
-            return _enviar_sendgrid(
-                destinatario, asunto, html, adjuntos, remitente=remitente
-            )
-        except Exception as error:
-            logger.error('SendGrid falló: %s', error)
-            return False, 'No se pudo enviar el correo'
+        from services.platform_mail import enviar_correo_plataforma
+        return enviar_correo_plataforma(
+            destinatario, asunto, html, adjuntos=adjuntos,
+        )
     return False, 'Configure el correo del consultorio en Configuración'
 
 

@@ -18,9 +18,13 @@ echo.
 echo # Seguridad
 echo SECRET_KEY=a8f5f167f44f4964e6c998dee827110c
 echo.
-echo # SendGrid ^(Opcional^)
-echo SENDGRID_API_KEY=
-echo SENDGRID_FROM_EMAIL=noreply@facturacion.com
+echo # Zoho — correo de ClinicRD
+echo ZOHO_SMTP_HOST=smtp.zoho.com
+echo ZOHO_SMTP_PORT=587
+echo ZOHO_SMTP_USER=
+echo ZOHO_SMTP_PASSWORD=
+echo ZOHO_FROM_EMAIL=
+echo ZOHO_FROM_NAME=ClinicRD
 echo.
 echo # Servidor
 echo FLASK_ENV=development

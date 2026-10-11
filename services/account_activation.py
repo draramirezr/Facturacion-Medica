@@ -13,13 +13,6 @@ from core.database import execute_query, execute_update
 
 logger = logging.getLogger(__name__)
 
-try:
-    from sendgrid import SendGridAPIClient
-    from sendgrid.helpers.mail import Mail
-    SENDGRID_AVAILABLE = True
-except ImportError:
-    SENDGRID_AVAILABLE = False
-
 
 def asegurar_columnas_activacion_usuario():
     if not execute_query("SHOW COLUMNS FROM usuarios LIKE 'email_verificado'"):
@@ -71,7 +64,7 @@ def registrar_activacion_pendiente(usuario_id, tenant_id, horas_validez=72):
 
 
 def enviar_invitacion_activacion(tenant_id, nombre, email, token):
-    """Envía el enlace de activación (SMTP del consultorio o SendGrid)."""
+    """Envía el enlace de activación (SMTP del consultorio o Zoho plataforma)."""
     try:
         enlace = url_activacion_cuenta(token)
     except Exception as error:
@@ -91,6 +84,7 @@ def enviar_invitacion_activacion(tenant_id, nombre, email, token):
 
     if tenant_id:
         from services.tenant_mail import enviar_correo_consultorio
+
         ok, detalle = enviar_correo_consultorio(
             tenant_id,
             email,
@@ -98,32 +92,19 @@ def enviar_invitacion_activacion(tenant_id, nombre, email, token):
             html,
             fallback_plataforma=True,
         )
-        if ok:
-            return True, detalle
+    else:
+        from services.platform_mail import enviar_correo_plataforma
 
-    if SENDGRID_AVAILABLE and os.getenv('SENDGRID_API_KEY'):
-        try:
-            mensaje = Mail(
-                from_email=os.getenv(
-                    'SENDGRID_FROM_EMAIL',
-                    os.getenv('EMAIL_FROM', 'noreply@clinicrd.com'),
-                ),
-                to_emails=email,
-                subject=asunto,
-                html_content=html,
-            )
-            SendGridAPIClient(os.getenv('SENDGRID_API_KEY')).send(mensaje)
-            return True, 'Correo enviado'
-        except Exception as error:
-            logger.error('SendGrid activación falló: %s', error, exc_info=True)
-            return False, f'No se pudo enviar el correo: {error}'
+        ok, detalle = enviar_correo_plataforma(email, asunto, html)
+    if ok:
+        return True, detalle
 
     if (
         ENVIRONMENT == 'development'
         and os.getenv('ALLOW_INSECURE_DEV_RESET_TOKEN', '').lower() == 'true'
     ):
         return True, enlace
-    return False, (
-        'Configure el correo SMTP del consultorio o SendGrid para enviar '
-        'la invitación.'
+    return False, detalle or (
+        'Configure el correo SMTP del consultorio o Zoho (ZOHO_SMTP_*) '
+        'para enviar la invitación.'
     )

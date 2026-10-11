@@ -521,38 +521,26 @@ def enviar_factura_plataforma_por_correo(factura, destinatario=None):
     correo = (destinatario or factura.get('empresa_email') or '').strip()
     if not correo:
         return False, 'La empresa no tiene correo para enviar la factura'
-    try:
-        from sendgrid import SendGridAPIClient
-        from sendgrid.helpers.mail import Mail
-    except ImportError:
-        return False, 'El envío de correo no está disponible'
-    api_key = os.getenv('SENDGRID_API_KEY', '').strip()
-    if not api_key:
-        return False, 'Falta configurar SENDGRID_API_KEY'
+    from services.platform_mail import enviar_correo_plataforma
+
     pdf = generar_pdf_factura_plataforma(factura).getvalue()
     numero = factura.get('numero') or factura.get('id')
-    mensaje = Mail(
-        from_email=os.getenv('SENDGRID_FROM_EMAIL', 'noreply@clinicrd.com'),
-        to_emails=correo,
-        subject=f'Factura {numero} · ClinicRD',
-        html_content=(
-            f"<p>Hola,</p>"
-            f"<p>Adjuntamos la factura <strong>{numero}</strong> de "
-            f"{PRODUCTO['nombre']} para {factura.get('empresa_nombre') or 'su empresa'}.</p>"
-            f"<p>Periodo: {factura.get('periodo_inicio')} · {factura.get('periodo_fin')}<br>"
-            f"Monto: RD$ {float(factura.get('monto') or 0):,.2f}</p>"
-            f"<p>Gracias.</p>"
-        ),
+    html = (
+        f"<p>Hola,</p>"
+        f"<p>Adjuntamos la factura <strong>{numero}</strong> de "
+        f"{PRODUCTO['nombre']} para {factura.get('empresa_nombre') or 'su empresa'}.</p>"
+        f"<p>Periodo: {factura.get('periodo_inicio')} · {factura.get('periodo_fin')}<br>"
+        f"Monto: RD$ {float(factura.get('monto') or 0):,.2f}</p>"
+        f"<p>Gracias.</p>"
     )
-    mensaje.attachment = {
-        'content': base64.b64encode(pdf).decode(),
-        'filename': f'{numero}.pdf',
-        'type': 'application/pdf',
-        'disposition': 'attachment',
-    }
-    respuesta = SendGridAPIClient(api_key).send(mensaje)
-    if respuesta.status_code not in (200, 202):
-        return False, f'No se pudo enviar el correo ({respuesta.status_code})'
+    ok, detalle = enviar_correo_plataforma(
+        correo,
+        f'Factura {numero} · ClinicRD',
+        html,
+        adjuntos=[(f'{numero}.pdf', pdf, 'application/pdf')],
+    )
+    if not ok:
+        return False, detalle
     return True, correo
 
 

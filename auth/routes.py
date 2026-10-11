@@ -29,13 +29,6 @@ from services.subscriptions import (
 
 logger = logging.getLogger(__name__)
 
-try:
-    from sendgrid import SendGridAPIClient
-    from sendgrid.helpers.mail import Mail
-    SENDGRID_AVAILABLE = True
-except ImportError:
-    SENDGRID_AVAILABLE = False
-
 
 def _redirigir_login():
     siguiente = request.values.get('volver') or request.values.get('next') or ''
@@ -584,40 +577,40 @@ def _enviar_correo_activacion(usuario, email):
             ''',
             (token, datetime.now() + timedelta(hours=48), email),
         )
-    if not SENDGRID_AVAILABLE:
+    try:
+        enlace = _url_absoluta('activar_cuenta', token=token)
+    except Exception as error:
+        logger.error('URL activación: %s', error)
         if (
             ENVIRONMENT == 'development'
             and os.getenv('ALLOW_INSECURE_DEV_RESET_TOKEN', '').lower() == 'true'
         ):
-            try:
-                enlace = _url_absoluta('activar_cuenta', token=token)
-            except Exception:
-                enlace = token
-            flash(f'Enlace de activación (solo desarrollo): {enlace}', 'info')
+            flash(f'Enlace de activación (solo desarrollo): {token}', 'info')
             return True
-        logger.error('Registro sin proveedor de correo para activar la cuenta.')
         return False
-    try:
-        enlace = _url_absoluta('activar_cuenta', token=token)
-        mensaje = Mail(
-            from_email=os.getenv(
-                'SENDGRID_FROM_EMAIL',
-                os.getenv('EMAIL_FROM', 'noreply@clinicrd.com'),
-            ),
-            to_emails=email,
-            subject='Activa tu cuenta de ClinicRD',
-            html_content=(
-                f'<p>Hola {usuario.get("nombre") or ""},</p>'
-                '<p>Para entrar la primera vez, abre este enlace:</p>'
-                f'<p><a href="{enlace}">Activar mi cuenta</a></p>'
-                '<p>El enlace vence en 48 horas. Sin abrirlo no podrás iniciar sesión.</p>'
-            ),
-        )
-        SendGridAPIClient(os.getenv('SENDGRID_API_KEY')).send(mensaje)
+    from services.platform_mail import enviar_correo_plataforma
+
+    html = (
+        f'<p>Hola {usuario.get("nombre") or ""},</p>'
+        '<p>Para entrar la primera vez, abre este enlace:</p>'
+        f'<p><a href="{enlace}">Activar mi cuenta</a></p>'
+        '<p>El enlace vence en 48 horas. Sin abrirlo no podrás iniciar sesión.</p>'
+    )
+    ok, detalle = enviar_correo_plataforma(
+        email,
+        'Activa tu cuenta de ClinicRD',
+        html,
+    )
+    if ok:
         return True
-    except Exception as error:
-        logger.error('Error enviando correo de activación: %s', error)
-        return False
+    logger.error('Error enviando correo de activación: %s', detalle)
+    if (
+        ENVIRONMENT == 'development'
+        and os.getenv('ALLOW_INSECURE_DEV_RESET_TOKEN', '').lower() == 'true'
+    ):
+        flash(f'Enlace de activación (solo desarrollo): {enlace}', 'info')
+        return True
+    return False
 
 
 @rate_limit(max_requests=10, window=300)

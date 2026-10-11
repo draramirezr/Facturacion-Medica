@@ -23,7 +23,7 @@ Sistema completo de gestión de facturación médica con control de usuarios, pa
 
 - Python 3.8+
 - MySQL 5.7+ o MariaDB 10.3+
-- Cuenta de SendGrid (opcional, para envío de emails)
+- Buzón Zoho Mail de ClinicRD (SMTP) para correo de plataforma
 
 ## 🔧 Instalación
 
@@ -74,10 +74,13 @@ MYSQL_DATABASE=facturacion_medica
 # O usando URL completa:
 # MYSQL_URL=mysql://usuario:password@host:3306/database
 
-# Email (SendGrid)
-SENDGRID_API_KEY=tu_api_key_de_sendgrid
-EMAIL_FROM=tu_email@ejemplo.com
-EMAIL_DESTINATARIO=destinatario@ejemplo.com
+# Email (Zoho — ClinicRD)
+ZOHO_SMTP_HOST=smtp.zoho.com
+ZOHO_SMTP_PORT=587
+ZOHO_SMTP_USER=noreply@tudominio.com
+ZOHO_SMTP_PASSWORD=contraseña_o_app_password
+ZOHO_FROM_EMAIL=noreply@tudominio.com
+ZOHO_FROM_NAME=ClinicRD
 
 # Entorno
 FLASK_ENV=development
@@ -186,15 +189,11 @@ Filtros disponibles:
 
 ## 📧 Envío de Emails
 
-Para habilitar el envío de facturas por email:
+Correo de plataforma (activaciones, contacto, facturas de suscripción, fallback si el consultorio no tiene SMTP):
 
-1. Crear cuenta en SendGrid (https://sendgrid.com)
-2. Obtener API Key
-3. Configurar en `.env`:
-```env
-SENDGRID_API_KEY=tu_api_key
-EMAIL_FROM=tu_email_verificado@dominio.com
-```
+1. Configurar Zoho Mail con dominio verificado (SPF/DKIM).
+2. Variables en `.env` o Railway: `ZOHO_SMTP_*` (ver `.env.example`).
+3. Cada consultorio puede usar su propio SMTP en **Configuración → Correo del consultorio**.
 
 ## 🚀 Despliegue a Producción
 
