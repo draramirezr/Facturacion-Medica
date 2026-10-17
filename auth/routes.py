@@ -212,7 +212,48 @@ def registro():
     if password_errors:
         flash(f'Contraseña no válida: {", ".join(password_errors)}', 'error')
         return render_template('registro.html')
-    if execute_query('SELECT id FROM usuarios WHERE email=%s', (email,)):
+    usuario_existente = execute_query(
+        '''
+        SELECT u.id AS user_id, u.nombre, u.email_verificado,
+               e.id AS empresa_id, e.es_demo
+        FROM usuarios u
+        INNER JOIN empresas e ON e.id = u.tenant_id
+        WHERE u.email = %s
+        LIMIT 1
+        ''',
+        (email,),
+    )
+    if usuario_existente:
+        if (
+            not usuario_existente.get('email_verificado')
+            and usuario_existente.get('es_demo')
+        ):
+            from services.account_activation import (
+                enviar_correo_activacion_demo,
+                registrar_activacion_pendiente,
+            )
+
+            token = registrar_activacion_pendiente(
+                usuario_existente['user_id'],
+                usuario_existente['empresa_id'],
+                horas_validez=72,
+            )
+            ok_correo, detalle_correo = enviar_correo_activacion_demo(
+                usuario_existente['nombre'], email, token,
+            )
+            if ok_correo:
+                flash(
+                    f'Ya había una demo pendiente con ese correo. '
+                    f'Enviamos de nuevo el enlace de activación a {email}.',
+                    'success',
+                )
+                return redirect(url_for('login'))
+            flash(
+                f'Existe una demo pendiente pero no pudimos reenviar el correo: '
+                f'{detalle_correo}. Contacte soporte o espere unos minutos.',
+                'error',
+            )
+            return render_template('registro.html')
         flash(
             'Ya existe una cuenta con ese correo. Inicia sesión o recupera '
             'tu contraseña.',
@@ -268,11 +309,22 @@ def registro():
             nombre, email, token,
         )
         if not ok_correo:
-            flash(
-                f'No pudimos enviar el correo de activación: {detalle_correo}. '
-                'Confirme su dirección o contacte soporte.',
-                'error',
-            )
+            from services.tenant_cleanup import eliminar_empresa_demo_vacia
+
+            eliminada, detalle_limpieza = eliminar_empresa_demo_vacia(empresa_id)
+            if eliminada:
+                flash(
+                    f'No pudimos enviar el correo de activación: {detalle_correo}. '
+                    'No se guardó la cuenta; puede intentar registrarse de nuevo.',
+                    'error',
+                )
+            else:
+                flash(
+                    f'No pudimos enviar el correo de activación: {detalle_correo}. '
+                    f'La cuenta quedó creada pero sin activar ({detalle_limpieza}). '
+                    'Contacte soporte para liberar el correo.',
+                    'error',
+                )
             return render_template('registro.html')
         flash(
             f'Revisamos su solicitud. Abra el enlace que enviamos a {email} '

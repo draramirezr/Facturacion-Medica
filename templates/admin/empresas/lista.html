@@ -308,6 +308,16 @@
                                         <i class="fas fa-hourglass-start"></i> Demo 7 días
                                     </button>
                                 </form>
+                                {% if empresa.get('puede_eliminar_demo') %}
+                                <form method="post"
+                                      action="{{ url_for('admin_empresas_eliminar_demo', empresa_id=empresa['id']) }}"
+                                      onsubmit="return confirm('¿Eliminar la demo «{{ empresa['nombre']|e }}»? Libera el correo para un nuevo registro.');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button class="btn btn-accion-editar text-danger" type="submit" title="Eliminar demo sin uso">
+                                        <i class="fas fa-trash-alt"></i> Eliminar
+                                    </button>
+                                </form>
+                                {% endif %}
                                 {% endif %}
                             </div>
                         </td>

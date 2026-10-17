@@ -23,6 +23,10 @@ from services.subscriptions import (
     inactivar_demos_vencidos,
     verificar_suscripciones_vencidas,
 )
+from services.tenant_cleanup import (
+    eliminar_empresa_demo_vacia,
+    motivo_no_eliminar_demo,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +79,17 @@ def admin_empresas():
         )
     for empresa in empresas:
         _decorate_subscription(empresa)
-    return render_template('admin/empresas/lista.html', empresas=empresas)
+        if _es_super_administrador() and empresa.get('es_demo'):
+            empresa['puede_eliminar_demo'] = (
+                motivo_no_eliminar_demo(empresa['id']) is None
+            )
+        else:
+            empresa['puede_eliminar_demo'] = False
+    return render_template(
+        'admin/empresas/lista.html',
+        empresas=empresas,
+        es_dueno_software=_es_super_administrador(),
+    )
 
 
 def _decorate_subscription(empresa):
@@ -307,6 +321,16 @@ def admin_empresas_editar(empresa_id):
 
 
 @login_required
+def admin_empresas_eliminar_demo(empresa_id):
+    if not _es_super_administrador():
+        flash('No tienes permisos', 'error')
+        return redirect(url_for('admin_empresas'))
+    ok, mensaje = eliminar_empresa_demo_vacia(empresa_id)
+    flash(mensaje, 'success' if ok else 'error')
+    return redirect(url_for('admin_empresas'))
+
+
+@login_required
 def verificar_multitenant():
     if not _es_super_administrador():
         return jsonify({'error': 'No tienes permisos'}), 403
@@ -451,6 +475,12 @@ def register_admin_company_routes(app):
     app.add_url_rule(
         '/admin/empresas/editar/<int:empresa_id>', 'admin_empresas_editar',
         admin_empresas_editar, methods=['GET', 'POST'],
+    )
+    app.add_url_rule(
+        '/admin/empresas/eliminar-demo/<int:empresa_id>',
+        'admin_empresas_eliminar_demo',
+        admin_empresas_eliminar_demo,
+        methods=['POST'],
     )
     app.add_url_rule(
         '/admin/verificar-multitenant', 'verificar_multitenant',
