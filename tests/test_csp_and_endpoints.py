@@ -447,6 +447,14 @@ class CSPAndEndpointTests(unittest.TestCase):
                 ),
                 patch.object(auth_routes, 'sembrar_ars_tenant'),
                 patch.object(auth_routes, '_asegurar_columnas_activacion'),
+                patch(
+                    'services.account_activation.registrar_activacion_pendiente',
+                    return_value='token-demo',
+                ),
+                patch(
+                    'services.account_activation.enviar_correo_activacion_demo',
+                    return_value=(True, 'ok'),
+                ),
             ):
                 response = handler()
 
@@ -455,7 +463,7 @@ class CSPAndEndpointTests(unittest.TestCase):
         self.assertIn('telefono', company_insert)
         self.assertIn('8095551234', company_params)
 
-    def test_login_allows_unverified_registration_until_email_is_ready(self):
+    def test_login_blocks_unverified_until_activation_link(self):
         handler = auth_routes.login
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
@@ -489,18 +497,12 @@ class CSPAndEndpointTests(unittest.TestCase):
                 patch.object(auth_routes, 'execute_update'),
                 patch.object(auth_routes, '_build_user', return_value=built),
                 patch.object(auth_routes, 'login_user') as login_user,
-                patch.object(
-                    auth_routes, 'destino_inicio_sesion',
-                    return_value='facturacion_menu',
-                ),
-                patch.object(
-                    auth_routes, 'url_retorno_segura',
-                    return_value='/facturacion',
-                ),
+                patch.object(auth_routes, 'flash') as flash_msg,
             ):
                 response = handler()
         self.assertEqual(response.status_code, 302)
-        login_user.assert_called_once()
+        login_user.assert_not_called()
+        flash_msg.assert_called()
 
     def test_activation_link_logs_in_first_time(self):
         handler = auth_routes.activar_cuenta

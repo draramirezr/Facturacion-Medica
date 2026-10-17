@@ -243,14 +243,35 @@ def registro():
                 INSERT INTO usuarios (
                     tenant_id, nombre, email, password_hash, perfil,
                     activo, password_temporal, email_verificado
-                ) VALUES (%s,%s,%s,%s,'Administrador',1,0,1)
+                ) VALUES (%s,%s,%s,%s,'Administrador',1,0,0)
                 """,
                 (empresa_id, nombre, email, generate_password_hash(password)),
             )
             if not user_id:
                 raise RuntimeError('No se pudo crear el usuario administrador')
             sembrar_ars_tenant(empresa_id)
-        flash('Demo de 7 días activado. Ya puedes iniciar sesión.', 'success')
+        from services.account_activation import (
+            enviar_correo_activacion_demo,
+            registrar_activacion_pendiente,
+        )
+
+        token = registrar_activacion_pendiente(user_id, empresa_id, horas_validez=72)
+        ok_correo, detalle_correo = enviar_correo_activacion_demo(
+            nombre, email, token,
+        )
+        if not ok_correo:
+            flash(
+                f'No pudimos enviar el correo de activación: {detalle_correo}. '
+                'Confirme su dirección o contacte soporte.',
+                'error',
+            )
+            return render_template('registro.html')
+        flash(
+            f'Revisamos su solicitud. Abra el enlace que enviamos a {email} '
+            '(desde noreply@clinicrd.com) para activar su demo. '
+            'Hasta entonces no podrá iniciar sesión con contraseña.',
+            'success',
+        )
         return redirect(url_for('login'))
     except Exception as error:
         logger.error('Error en registro público: %s', error, exc_info=True)

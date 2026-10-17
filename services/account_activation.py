@@ -108,3 +108,38 @@ def enviar_invitacion_activacion(tenant_id, nombre, email, token):
         'Configure el correo SMTP del consultorio o Zoho (ZOHO_SMTP_*) '
         'para enviar la invitación.'
     )
+
+
+def enviar_correo_activacion_demo(nombre, email, token, horas_validez=72):
+    """Demo público: siempre desde el buzón Zoho de ClinicRD (noreply@clinicrd.com)."""
+    from services.platform_mail import enviar_correo_plataforma
+
+    try:
+        enlace = url_activacion_cuenta(token)
+    except Exception as error:
+        logger.error('No se pudo construir URL de activación demo: %s', error)
+        return False, 'Falta APP_BASE_URL para generar el enlace de activación.'
+
+    asunto = 'Active su demo de 7 días en ClinicRD'
+    html = (
+        f'<p>Hola {nombre or ""},</p>'
+        '<p>Recibimos su solicitud de demo gratuito de ClinicRD.</p>'
+        '<p>Para <strong>validar su correo</strong> y entrar la primera vez, '
+        'use este enlace (es la única forma de acceder hasta activar):</p>'
+        f'<p><a href="{enlace}">Activar mi demo y entrar</a></p>'
+        f'<p>El enlace vence en {horas_validez} horas.</p>'
+        '<p>Si no solicitó este demo, ignore este mensaje.</p>'
+        '<p>— ClinicRD</p>'
+    )
+    ok, detalle = enviar_correo_plataforma(email, asunto, html)
+    if ok:
+        return True, detalle
+    if (
+        ENVIRONMENT == 'development'
+        and os.getenv('ALLOW_INSECURE_DEV_RESET_TOKEN', '').lower() == 'true'
+    ):
+        return True, enlace
+    return False, detalle or (
+        'No se pudo enviar el correo de activación. '
+        'Revise la configuración Zoho (ZOHO_SMTP_*).'
+    )
