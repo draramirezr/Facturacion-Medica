@@ -19,7 +19,11 @@ from core.config import ENVIRONMENT, IS_PRODUCTION, url_publica_base
 from core.database import database_transaction, execute_query, execute_update
 from core.security import rate_limit, rate_limit_lock, request_counts
 from routes.support import (
-    sanitize_input, validar_password_segura, validate_digits, validate_email,
+    sanitize_input,
+    validar_nombre_empresa,
+    validar_password_segura,
+    validate_digits,
+    validate_email,
 )
 from services.catalogos_ars import sembrar_ars_tenant
 from services.platform import asegurar_tablas_plataforma, registrar_vista_pagina
@@ -190,6 +194,10 @@ def registro():
         return render_template('registro.html')
     if tipo_empresa not in ('medico', 'centro_salud'):
         flash('Selecciona un tipo de empresa válido', 'error')
+        return render_template('registro.html')
+    error_nombre_empresa = validar_nombre_empresa(nombre_empresa)
+    if error_nombre_empresa:
+        flash(error_nombre_empresa, 'error')
         return render_template('registro.html')
     if not validate_email(email):
         flash('Ingresa un correo electrónico válido', 'error')

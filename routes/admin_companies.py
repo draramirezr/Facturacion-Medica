@@ -11,7 +11,13 @@ from core.config import REQUIRED_TENANT_TABLES
 from core.database import execute_query, execute_update
 from auth.helpers import usuario_es_dueno_software
 from core.tenant import get_current_tenant_id
-from routes.support import sanitize_input, validate_digits, validate_email, validate_int
+from routes.support import (
+    sanitize_input,
+    validar_nombre_empresa,
+    validate_digits,
+    validate_email,
+    validate_int,
+)
 from services.catalogos_ars import sembrar_ars_tenant
 from services.subscriptions import (
     inactivar_demos_vencidos,
@@ -157,6 +163,9 @@ def _validate_company(values, editing=False):
         required += ('estado',)
     if any(values[key] in (None, '') for key in required):
         return 'Todos los campos son obligatorios'
+    error_nombre = validar_nombre_empresa(values.get('nombre'))
+    if error_nombre:
+        return error_nombre
     rnc_digits = re.sub(r'\D', '', values['rnc'] or '')
     values['rnc'] = rnc_digits
     telefono_digits = re.sub(r'\D', '', values['telefono'] or '')

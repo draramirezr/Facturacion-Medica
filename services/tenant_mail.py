@@ -86,7 +86,8 @@ def describir_error_smtp(error):
     if isinstance(error, (TimeoutError,)):
         return (
             'Tiempo de espera agotado al conectar al servidor SMTP. '
-            'Revise host, puerto y firewall.'
+            'En servidores en la nube (Railway) el puerto 587 suele estar bloqueado; '
+            'use ZeptoMail (ZEPTOMAIL_API_KEY) o pruebe ZOHO_SMTP_PORT=465.'
         )
     if isinstance(error, OSError):
         errno = getattr(error, 'errno', None)

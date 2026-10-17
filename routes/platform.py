@@ -8,7 +8,12 @@ from flask_login import current_user, login_required
 
 from auth.helpers import usuario_es_dueno_software
 from core.security import rate_limit
-from routes.support import sanitize_input, validate_digits, validate_email
+from routes.support import (
+    sanitize_input,
+    validar_nombre_empresa,
+    validate_digits,
+    validate_email,
+)
 from services.platform import (
     DEMO_DIAS,
     PLAN_LICENCIAS,
@@ -62,6 +67,10 @@ def solicitar_demo():
         return redirect(url_for('index', _anchor='contacto'))
     if not validate_email(email):
         flash('Ingresa un correo electrónico válido.', 'error')
+        return redirect(url_for('index', _anchor='contacto'))
+    error_nombre_empresa = validar_nombre_empresa(nombre_empresa)
+    if error_nombre_empresa:
+        flash(error_nombre_empresa, 'error')
         return redirect(url_for('index', _anchor='contacto'))
     if not validate_digits(telefono, 10):
         flash('El teléfono debe tener 10 números.', 'error')

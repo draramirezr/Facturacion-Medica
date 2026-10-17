@@ -119,7 +119,8 @@
                 <div class="col-md-12 mb-3">
                     <label for="nombre" class="form-label">Nombre de la Empresa <span class="required-asterisk">*</span></label>
                     <input type="text" class="form-control" id="nombre" name="nombre" 
-                           value="{{ empresa['nombre'] if empresa else '' }}" required maxlength="255">
+                           value="{{ empresa['nombre'] if empresa else '' }}" required maxlength="255"
+                           pattern="[^\d]+" title="El nombre de la empresa no puede contener números">
                 </div>
                 
                 <div class="col-md-12 mb-3">

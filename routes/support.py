@@ -50,6 +50,16 @@ def validate_email(email):
 def validate_digits(value, length):
     return bool(re.fullmatch(rf'\d{{{length}}}', value or ''))
 
+
+def validar_nombre_empresa(nombre):
+    """Nombre comercial del consultorio: sin dígitos."""
+    texto = (nombre or '').strip()
+    if not texto:
+        return 'El nombre de la empresa es obligatorio'
+    if re.search(r'\d', texto):
+        return 'El nombre de la empresa no puede contener números'
+    return None
+
 def calcular_edad_clinica(fecha_nacimiento, fecha_referencia=None):
     if not fecha_nacimiento:
         return None
