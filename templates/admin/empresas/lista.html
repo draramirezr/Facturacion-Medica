@@ -26,17 +26,25 @@
         box-shadow: 0 4px 20px {{ tema.primary }}25;
         overflow: hidden;
     }
+
+    .table-empresas .table {
+        width: 100%;
+        table-layout: fixed;
+        margin: 0;
+    }
     
     .table-empresas th {
         background: {{ tema.primary_dark }} !important;
         color: #FFFFFF !important;
         font-weight: 600;
-        padding: 1rem;
+        padding: 0.85rem 0.75rem;
         border: none;
+        white-space: nowrap;
+        vertical-align: middle;
     }
     
     .table-empresas td {
-        padding: 1rem;
+        padding: 0.85rem 0.75rem;
         vertical-align: middle;
         border-bottom: 1px solid {{ tema.primary }}15;
     }
@@ -108,11 +116,12 @@
     }
     
     .licencias-bar {
-        width: 100px;
-        height: 8px;
+        width: 72px;
+        height: 6px;
         background: #E0E0E0;
         border-radius: 10px;
         overflow: hidden;
+        flex: 0 0 72px;
     }
     
     .licencias-fill {
@@ -142,8 +151,8 @@
         display: flex;
         flex-wrap: nowrap;
         align-items: center;
-        justify-content: center;
-        gap: 0.4rem;
+        justify-content: flex-end;
+        gap: 0.35rem;
     }
 
     .acciones-fila form {
@@ -159,29 +168,45 @@
         margin-bottom: 0.5rem;
     }
 
-    .empresas-page { max-width: 1400px; }
-    .col-razon { width: 24%; }
-    .col-licencias { width: 10%; }
-    .col-usuarios { width: 7%; }
-    .col-login { width: 14%; }
-    .col-meta { width: 32%; }
-    .col-acciones { width: 13%; }
-    .licencias-count { font-size: 0.85rem; font-weight: 600; }
+    .empresas-page { max-width: 1280px; margin: 0 auto; }
+    .col-razon { width: 20%; }
+    .col-licencias { width: 14%; }
+    .col-usuarios { width: 9%; }
+    .col-login { width: 12%; }
+    .col-meta { width: 27%; }
+    .col-acciones { width: 18%; }
+    .razon-nombre {
+        display: block;
+        font-weight: 700;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+    .licencias-count { font-size: 0.85rem; font-weight: 700; min-width: 2.6rem; }
+    .login-fecha, .login-hora { display: block; line-height: 1.25; }
+    .login-fecha { font-weight: 600; }
+    .login-hora { color: var(--text-muted, #6b7280); font-size: 0.8rem; }
     .empty-icon { font-size: 3rem; color: var(--text-muted); opacity: 0.5; }
     .empresa-meta {
         display: flex;
-        flex-wrap: nowrap;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.3rem;
+        min-width: 0;
+    }
+    .meta-linea {
+        display: flex;
+        flex-wrap: wrap;
         align-items: center;
-        gap: 0.45rem;
+        gap: 0.35rem;
     }
     .empresa-meta .meta-chip {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        height: 32px;
-        padding: 0 0.75rem;
+        height: 26px;
+        padding: 0 0.65rem;
         border-radius: 999px;
-        font-size: 0.78rem;
+        font-size: 0.75rem;
         font-weight: 600;
         white-space: nowrap;
         line-height: 1;
@@ -189,10 +214,15 @@
         color: {{ tema.primary_dark }};
         border: 1px solid {{ tema.primary }}40;
     }
-    .meta-chip-estado { min-width: 6.8rem; }
-    .meta-chip-plan { min-width: 7.4rem; }
-    .meta-chip-vence { min-width: 9.6rem; }
-    .meta-chip-tipo { min-width: 4.6rem; }
+    .meta-chip-plan {
+        background: transparent;
+    }
+    .meta-detalle {
+        color: var(--text-muted, #6b7280);
+        font-size: 0.78rem;
+        line-height: 1.3;
+        white-space: nowrap;
+    }
 
     {% for empresa in empresas %}
     .licencias-fill-{{ empresa['id'] }} {
@@ -237,16 +267,16 @@
                     <tr>
                         <th class="col-razon">Razón Social</th>
                         <th class="col-licencias">Licencias</th>
-                        <th class="col-usuarios">Usuarios</th>
+                        <th class="col-usuarios text-center">Usuarios</th>
                         <th class="col-login">Último login</th>
                         <th class="col-meta">Plan y estado</th>
-                        <th class="text-center col-acciones">Acciones</th>
+                        <th class="text-end col-acciones">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for empresa in empresas %}
                     <tr>
-                        <td><strong>{{ empresa['razon_social'] or empresa['nombre'] }}</strong></td>
+                        <td><span class="razon-nombre">{{ empresa['razon_social'] or empresa['nombre'] }}</span></td>
                         <td>
                             <div class="licencias-info">
                                 <span class="licencias-count">
@@ -260,51 +290,54 @@
                         <td class="text-center">
                             <strong>{{ empresa['total_usuarios'] }}</strong>
                         </td>
-                        <td class="text-nowrap">
+                        <td>
                             {% if empresa.get('ultimo_login') %}
-                            {{ empresa['ultimo_login'].strftime('%Y-%m-%d %H:%M') if empresa['ultimo_login'] is not string else empresa['ultimo_login'][:16] }}
+                            {% set acceso = empresa['ultimo_login'] %}
+                            <span class="login-fecha">{{ acceso.strftime('%d/%m/%Y') if acceso is not string else acceso[:10] }}</span>
+                            <span class="login-hora">{{ acceso.strftime('%H:%M') if acceso is not string else acceso[11:16] }}</span>
                             {% else %}
                             <span class="text-muted">Nunca</span>
                             {% endif %}
                         </td>
                         <td>
                             <div class="empresa-meta">
-                                <span class="meta-chip meta-chip-estado">
-                                    <i class="fas fa-{{ empresa['estado_icono'] }} me-1"></i>{{ empresa['estado_texto'] }}
-                                </span>
-                                <span class="meta-chip meta-chip-plan">{{ empresa['plan']|title }}</span>
-                                <span class="meta-chip meta-chip-vence">
+                                <div class="meta-linea">
+                                    <span class="meta-chip meta-chip-estado">
+                                        <i class="fas fa-{{ empresa['estado_icono'] }} me-1"></i>{{ empresa['estado_texto'] }}
+                                    </span>
+                                    <span class="meta-chip meta-chip-plan">{{ empresa['plan']|title }}</span>
+                                </div>
+                                <div class="meta-detalle">
                                     {% if empresa.get('fecha_fin') %}
-                                    Vence {{ empresa['fecha_fin'] }}
+                                    {% set fin = empresa['fecha_fin'] %}
+                                    Vence {{ fin.strftime('%d/%m/%Y') if fin is not string else (fin[:10]) }}
                                     {% else %}
                                     Sin fecha
                                     {% endif %}
-                                </span>
-                                <span class="meta-chip meta-chip-tipo">
-                                    {{ 'Demo' if empresa.get('es_demo') else empresa['estado']|title }}
-                                </span>
+                                    · {{ 'Demo' if empresa.get('es_demo') else empresa['estado']|title }}
+                                </div>
                             </div>
                         </td>
-                        <td class="text-center col-acciones">
+                        <td class="col-acciones">
                             <div class="acciones-fila">
                                 <a href="{{ url_for('admin_empresas_editar', empresa_id=empresa['id']) }}"
-                                   class="btn btn-accion-editar">
+                                   class="btn btn-accion-editar" title="Editar">
                                     <i class="fas fa-edit"></i> Editar
                                 </a>
                                 {% if es_dueno_software %}
                                 <a href="{{ url_for('plataforma_factura_nueva', empresa_id=empresa['id']) }}"
-                                   class="btn btn-accion-editar">
+                                   class="btn btn-accion-editar" title="Facturar">
                                     <i class="fas fa-file-invoice-dollar"></i> Facturar
                                 </a>
                                 {% if empresa.get('es_demo') %}
                                 <a href="{{ url_for('plataforma_empresa_alta', empresa_id=empresa['id']) }}"
-                                   class="btn btn-accion-editar">
+                                   class="btn btn-accion-editar" title="Dar de alta">
                                     <i class="fas fa-handshake"></i> Dar de alta
                                 </a>
                                 {% endif %}
                                 <form method="post" action="{{ url_for('plataforma_empresa_demo', empresa_id=empresa['id']) }}">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button class="btn btn-accion-editar" type="submit">
+                                    <button class="btn btn-accion-editar" type="submit" title="Demo 7 días">
                                         <i class="fas fa-hourglass-start"></i> Demo 7 días
                                     </button>
                                 </form>
