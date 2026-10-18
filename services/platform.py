@@ -525,18 +525,18 @@ def enviar_factura_plataforma_por_correo(factura, destinatario=None):
 
     pdf = generar_pdf_factura_plataforma(factura).getvalue()
     numero = factura.get('numero') or factura.get('id')
-    html = (
-        f"<p>Hola,</p>"
-        f"<p>Adjuntamos la factura <strong>{numero}</strong> de "
-        f"{PRODUCTO['nombre']} para {factura.get('empresa_nombre') or 'su empresa'}.</p>"
-        f"<p>Periodo: {factura.get('periodo_inicio')} · {factura.get('periodo_fin')}<br>"
-        f"Monto: RD$ {float(factura.get('monto') or 0):,.2f}</p>"
-        f"<p>Gracias.</p>"
+    from services.email_content import correo_factura_suscripcion
+
+    monto = f'{float(factura.get("monto") or 0):,.2f}'
+    periodo = f"{factura.get('periodo_inicio')} · {factura.get('periodo_fin')}"
+    asunto, texto, html = correo_factura_suscripcion(
+        factura.get('empresa_nombre'), numero, periodo, monto,
     )
     ok, detalle = enviar_correo_plataforma(
         correo,
-        f'Factura {numero} · ClinicRD',
+        asunto,
         html,
+        texto=texto,
         adjuntos=[(f'{numero}.pdf', pdf, 'application/pdf')],
     )
     if not ok:

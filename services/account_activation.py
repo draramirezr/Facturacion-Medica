@@ -64,7 +64,7 @@ def registrar_activacion_pendiente(usuario_id, tenant_id, horas_validez=72):
 
 
 def enviar_invitacion_activacion(tenant_id, nombre, email, token):
-    """Envía el enlace de activación (SMTP del consultorio o Zoho plataforma)."""
+    """Envía el enlace de activación desde soporte@clinicrd.com."""
     try:
         enlace = url_activacion_cuenta(token)
     except Exception as error:
@@ -72,25 +72,13 @@ def enviar_invitacion_activacion(tenant_id, nombre, email, token):
         return False, 'Falta APP_BASE_URL para generar el enlace de activación.'
 
     from services.email_content import correo_invitacion_usuario
+    from services.platform_mail import enviar_desde_soporte
 
+    logger.debug('Invitación de activación tenant=%s', tenant_id)
     asunto, texto, html = correo_invitacion_usuario(nombre, enlace)
-
-    if tenant_id:
-        from services.tenant_mail import enviar_correo_consultorio
-
-        ok, detalle = enviar_correo_consultorio(
-            tenant_id,
-            email,
-            asunto,
-            html,
-            fallback_plataforma=True,
-        )
-    else:
-        from services.platform_mail import enviar_correo_plataforma
-
-        ok, detalle = enviar_correo_plataforma(
-            email, asunto, html, texto=texto,
-        )
+    ok, detalle = enviar_desde_soporte(
+        email, asunto, html, texto=texto, nombre_destinatario=nombre or email,
+    )
     if ok:
         return True, detalle
 

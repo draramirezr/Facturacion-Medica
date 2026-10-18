@@ -2541,22 +2541,21 @@ def facturacion_enviar_email(factura_id):
             
             pdf_data = buffer.getvalue()
             from services.tenant_mail import enviar_correo_consultorio
-            asunto = (
-                f"Factura #{factura.get('numero_factura', factura_id)} - "
-                f"{factura.get('nombre_ars', 'N/A')}"
+            from services.email_content import correo_factura_clinica
+
+            asunto, texto, html = correo_factura_clinica(
+                factura.get('numero_factura', factura_id),
+                factura.get('fecha_emision', ''),
+                factura.get('ncf', ''),
+                f"{float(factura.get('total') or 0):,.2f}",
+                factura.get('medico_nombre') or factura.get('nombre_ars'),
             )
-            html = f"""
-                <p>Factura #{factura.get('numero_factura', factura_id)}</p>
-                <p><strong>Fecha:</strong> {factura.get('fecha_emision', '')}</p>
-                <p><strong>NCF:</strong> {factura.get('ncf', '')}</p>
-                <p><strong>Total:</strong> RD$ {factura.get('total', 0):,.2f}</p>
-                <p>Se adjunta el PDF de la factura.</p>
-            """
             ok, detalle = enviar_correo_consultorio(
                 tenant_id,
                 destinatario,
                 asunto,
                 html,
+                texto=texto,
                 adjuntos=[(
                     f"factura_{factura_id}_{factura.get('numero_factura', '')}.pdf",
                     pdf_data,

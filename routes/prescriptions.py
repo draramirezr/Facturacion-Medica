@@ -18,6 +18,15 @@ from services.subscriptions import get_empresa_info
 from services.tenant_mail import notificar_paciente
 
 
+def _avisar_receta_por_correo(tenant_id, paciente_id):
+    from services.email_content import correo_receta
+
+    asunto, texto, html = correo_receta()
+    return notificar_paciente(
+        tenant_id, paciente_id, asunto, html, texto=texto,
+    )
+
+
 def clave_nombre_medicamento(nombre):
     """Normalizar el nombre para comparar duplicados sin mayúsculas ni espacios extra."""
     return ' '.join(str(nombre or '').split()).casefold()
@@ -140,12 +149,7 @@ def emitir_receta_desde_consulta(
         medicamentos,
     )
     flash('Receta médica emitida. Imprímala para entregársela al paciente.', 'success')
-    ok, _detalle = notificar_paciente(
-        tenant_id,
-        paciente_id,
-        'Su receta médica',
-        '<p>Se emitió una receta médica a su nombre. Consulte al consultorio si necesita el detalle.</p>',
-    )
+    ok, _detalle = _avisar_receta_por_correo(tenant_id, paciente_id)
     if ok:
         flash('Se envió un aviso al correo del paciente.', 'info')
     return receta_id
@@ -380,12 +384,7 @@ def facturacion_recetas_medicas_nueva():
                     medicamentos,
                 )
                 flash('Receta médica emitida correctamente', 'success')
-                ok, _detalle = notificar_paciente(
-                    tenant_id,
-                    paciente_id,
-                    'Su receta médica',
-                    '<p>Se emitió una receta médica a su nombre. Consulte al consultorio si necesita el detalle.</p>',
-                )
+                ok, _detalle = _avisar_receta_por_correo(tenant_id, paciente_id)
                 if ok:
                     flash('Se envió un aviso al correo del paciente.', 'info')
                 volver = id_consulta_retorno()

@@ -290,8 +290,8 @@
     {% if not usuario %}
         <div class="info-box">
             <strong><i class="fas fa-circle-info me-1"></i>Información:</strong><br>
-            Los usuarios podrán acceder al panel administrativo con sus credenciales.<br>
-            Recuerda enviar las credenciales de forma segura al usuario.
+            El usuario nuevo recibe un correo de validación desde soporte@clinicrd.com.<br>
+            No podrá iniciar sesión hasta abrir ese enlace.
         </div>
     {% endif %}
     
@@ -380,7 +380,7 @@
             
             <div class="warning-box">
                 <strong><i class="fas fa-key me-1"></i>Cambio de contraseña:</strong><br>
-                Por defecto, la contraseña actual se mantiene. Solo ingresa una nueva contraseña si deseas cambiarla.
+                La contraseña actual se mantiene hasta que la persona abra el enlace de validación que enviaremos desde soporte a su correo.
             </div>
             
             <div class="form-group">
@@ -460,7 +460,7 @@
                             readonly
                             class="password-input"
                         >
-                        <small id="password-hint-nuevo">{% if usuario %}Dejar vacío para mantener la contraseña actual{% else %}Opcional: si no define contraseña, el usuario recibirá un enlace por correo para activar la cuenta y elegir su clave.{% endif %}</small>
+                        <small id="password-hint-nuevo">{% if usuario %}Dejar vacío para mantener la contraseña actual{% else %}Se enviará un enlace de validación desde soporte@clinicrd.com. Si no define contraseña, la elegirá al activar la cuenta.{% endif %}</small>
                     </div>
                     {% if not usuario %}
                     <button type="button" class="btn btn-secondary password-generate" data-csp-click="generarPasswordTemporalNuevo">

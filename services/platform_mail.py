@@ -15,12 +15,13 @@ from services.tenant_mail import describir_error_smtp
 logger = logging.getLogger(__name__)
 
 
-def _reply_to_plataforma(explicito):
-    if explicito:
-        return explicito
+def _datos_respuesta(reply_to, nombre_reply):
+    """Correo y nombre del Reply-To. Si no hay, responde a soporte."""
+    if reply_to:
+        return reply_to, (nombre_reply or reply_to)
     return (
-        os.getenv('SOPORTE_EMAIL', '').strip()
-        or SOPORTE_EMAIL_PREDETERMINADO
+        os.getenv('SOPORTE_EMAIL', '').strip() or SOPORTE_EMAIL_PREDETERMINADO,
+        'Soporte ClinicRD',
     )
 
 ZEPTOMAIL_API_DEFAULT = 'https://cpaas.zoho.com/v1.1/email'
@@ -117,11 +118,15 @@ def _mensaje_smtp(mensaje, cfg, destinatario, reply_to):
 
 def _build_email_message(
     destinatario, asunto, html, cfg, adjuntos=None, reply_to=None, texto=None,
+    nombre_reply=None,
 ):
     mensaje = EmailMessage()
     mensaje['Subject'] = asunto
-    reply = _reply_to_plataforma(reply_to)
-    _mensaje_smtp(mensaje, cfg, destinatario, reply)
+    reply, nombre = _datos_respuesta(reply_to, nombre_reply)
+    _mensaje_smtp(
+        mensaje, cfg, destinatario,
+        f'{nombre} <{reply}>' if nombre and nombre != reply else reply,
+    )
     mensaje.set_content(
         texto or 'Este mensaje está en HTML. Ábrelo en un cliente de correo moderno.',
     )
@@ -182,18 +187,24 @@ def _enviar_smtp(mensaje, cfg, host, puerto, ssl_directo):
 
 def _enviar_zeptomail(
     destinatario, asunto, html, cfg, adjuntos=None, reply_to=None, texto=None,
+    nombre_destinatario=None, nombre_reply=None,
 ):
     token = _zeptomail_token()
     if not token:
         return False, 'ZeptoMail no configurado'
-    reply = _reply_to_plataforma(reply_to)
+    reply, nombre_respuesta = _datos_respuesta(reply_to, nombre_reply)
     payload = {
         'from': {
             'address': cfg['remitente'],
             'name': cfg['nombre_remitente'] or 'ClinicRD',
         },
         'to': [
-            {'email_address': {'address': destinatario, 'name': destinatario}},
+            {
+                'email_address': {
+                    'address': destinatario,
+                    'name': nombre_destinatario or destinatario,
+                },
+            },
         ],
         'subject': asunto,
         'htmlbody': html,
@@ -203,7 +214,10 @@ def _enviar_zeptomail(
     if texto:
         payload['textbody'] = texto
     if reply:
-        payload['reply_to'] = [{'address': reply, 'name': 'Soporte ClinicRD'}]
+        payload['reply_to'] = [{
+            'address': reply,
+            'name': nombre_respuesta,
+        }]
     if adjuntos:
         payload['attachments'] = [
             {
@@ -263,11 +277,20 @@ def enviar_correo_plataforma(
     adjuntos=None,
     reply_to=None,
     texto=None,
+    nombre_destinatario=None,
+    nombre_reply=None,
+    remitente=None,
+    nombre_remitente=None,
 ):
     """Envía correo desde ClinicRD (ZeptoMail API o SMTP Zoho)."""
     if not destinatario:
         return False, 'No hay destinatario'
     cfg = _config_zoho()
+    if remitente:
+        cfg = dict(cfg)
+        cfg['remitente'] = remitente.strip()
+        if nombre_remitente:
+            cfg['nombre_remitente'] = nombre_remitente
     if not cfg['remitente']:
         return False, (
             'Falta ZOHO_FROM_EMAIL (p. ej. noreply@clinicrd.com).'
@@ -278,6 +301,8 @@ def enviar_correo_plataforma(
         ok, detalle = _enviar_zeptomail(
             destinatario, asunto, html, cfg,
             adjuntos=adjuntos, reply_to=reply_to, texto=texto,
+            nombre_destinatario=nombre_destinatario,
+            nombre_reply=nombre_reply,
         )
         if ok:
             return True, detalle
@@ -293,6 +318,7 @@ def enviar_correo_plataforma(
     mensaje = _build_email_message(
         destinatario, asunto, html, cfg,
         adjuntos=adjuntos, reply_to=reply_to, texto=texto,
+        nombre_reply=nombre_reply,
     )
     ultimo_error = None
     for host, puerto, ssl_directo in _smtp_attempts(cfg['host'], cfg['port']):
@@ -310,6 +336,8 @@ def enviar_correo_plataforma(
         ok, detalle = _enviar_zeptomail(
             destinatario, asunto, html, cfg,
             adjuntos=adjuntos, reply_to=reply_to, texto=texto,
+            nombre_destinatario=nombre_destinatario,
+            nombre_reply=nombre_reply,
         )
         if ok:
             return True, detalle
@@ -321,3 +349,23 @@ def enviar_correo_plataforma(
             'desde https://www.zoho.com/zeptomail/'
         )
     return False, detalle
+
+
+def enviar_desde_soporte(
+    destinatario, asunto, html, texto=None, nombre_destinatario=None,
+):
+    """Correos de cuenta: salen de soporte@clinicrd.com."""
+    remitente = (
+        os.getenv('SOPORTE_EMAIL', '').strip() or SOPORTE_EMAIL_PREDETERMINADO
+    )
+    return enviar_correo_plataforma(
+        destinatario,
+        asunto,
+        html,
+        texto=texto,
+        remitente=remitente,
+        nombre_remitente='Soporte ClinicRD',
+        nombre_destinatario=nombre_destinatario or destinatario,
+        reply_to=remitente,
+        nombre_reply='Soporte ClinicRD',
+    )

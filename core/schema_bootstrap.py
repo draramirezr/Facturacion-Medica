@@ -268,6 +268,25 @@ def _asegurar_columnas_centro_contexto(cursor, database):
     )
 
 
+def _asegurar_columnas_cambio_password(cursor, database):
+    for columna, definicion in (
+        ('password_pendiente_hash', 'VARCHAR(255) NULL'),
+        ('password_cambio_token', 'VARCHAR(255) NULL'),
+        ('password_cambio_expira', 'DATETIME NULL'),
+        ('password_pendiente_temporal', 'TINYINT(1) NULL'),
+    ):
+        _asegurar_columna(cursor, database, 'usuarios', columna, definicion)
+
+
+def _asegurar_columnas_cambio_correo_empresa(cursor, database):
+    for columna, definicion in (
+        ('email_pendiente', 'VARCHAR(255) NULL'),
+        ('email_cambio_token', 'VARCHAR(255) NULL'),
+        ('email_cambio_expira', 'DATETIME NULL'),
+    ):
+        _asegurar_columna(cursor, database, 'empresas', columna, definicion)
+
+
 def _asegurar_columnas_factura_edicion(cursor, database):
     """Vínculo detalle↔pendiente y auditoría de anulación."""
     _asegurar_columna(
@@ -320,6 +339,8 @@ def bootstrap_required_schema(connection_factory=None):
             _asegurar_columnas_ars(cursor, database)
             _asegurar_columnas_centro_contexto(cursor, database)
             _asegurar_columnas_factura_edicion(cursor, database)
+            _asegurar_columnas_cambio_correo_empresa(cursor, database)
+            _asegurar_columnas_cambio_password(cursor, database)
         connection.commit()
     except Exception:
         try:

@@ -162,18 +162,31 @@ def enviar_contacto():
             'error',
         )
         return redirect(url_for('index', _anchor='contacto'))
+    destino = soporte['email']
     cuerpo = (
+        f'<p>Nuevo mensaje desde el formulario de clinicrd.com.</p>'
         f'<p><strong>Nombre:</strong> {escape(nombre)}</p>'
         f'<p><strong>Correo:</strong> {escape(email)}</p>'
         f'<p><strong>Mensaje:</strong></p>'
         f'<p>{escape(mensaje).replace(chr(10), "<br>")}</p>'
+        f'<p>Responda a este correo para escribirle a {escape(email)}.</p>'
+    )
+    texto = (
+        'Nuevo mensaje desde el formulario de clinicrd.com.\n\n'
+        f'Nombre: {nombre}\n'
+        f'Correo: {email}\n\n'
+        f'{mensaje}\n'
     )
     ok, detalle = enviar_correo_plataforma(
-        soporte['email'],
+        destino,
         f'Contacto ClinicRD · {nombre}',
         cuerpo,
+        texto=texto,
         reply_to=email,
+        nombre_destinatario='Soporte ClinicRD',
+        nombre_reply=nombre,
     )
+    logger.info('Contacto de %s hacia %s: %s', email, destino, 'ok' if ok else detalle)
     if ok:
         flash('Recibimos tu mensaje. Te escribimos pronto.', 'success')
     else:

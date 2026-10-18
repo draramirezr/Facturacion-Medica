@@ -10,6 +10,7 @@ from flask_login import current_user, login_required
 from core.config import REQUIRED_TENANT_TABLES
 from core.database import execute_query, execute_update
 from auth.helpers import usuario_es_dueno_software
+from core.security import rate_limit
 from core.tenant import get_current_tenant_id
 from routes.support import (
     sanitize_input,
@@ -293,7 +294,13 @@ def admin_empresas_editar(empresa_id):
             'error',
         )
         return redirect(url_for('admin_empresas'))
+    from services.company_email_change import asegurar_columnas_cambio_correo
+
+    asegurar_columnas_cambio_correo()
     if request.method == 'GET':
+        empresa = execute_query(
+            'SELECT * FROM empresas WHERE id=%s', (empresa_id,),
+        ) or empresa
         return render_template('admin/empresas/form.html', empresa=empresa)
     values = _company_form_values()
     values = _conservar_suscripcion_si_no_es_dueno(values, empresa)
@@ -301,6 +308,7 @@ def admin_empresas_editar(empresa_id):
     if error:
         flash(error, 'error')
         return redirect(url_for('admin_empresas_editar', empresa_id=empresa_id))
+    email_vigente = (empresa.get('email') or '').strip().lower()
     execute_update(
         """
         UPDATE empresas SET nombre=%s, razon_social=%s, rnc=%s,
@@ -310,14 +318,42 @@ def admin_empresas_editar(empresa_id):
         """,
         (
             values['nombre'], values['razon_social'], values['rnc'],
-            values['telefono'], values['email'], values['direccion'],
+            values['telefono'], email_vigente, values['direccion'],
             values['fecha_inicio'], values['fecha_fin'],
             values['licencias_totales'], values['plan'], values['estado'],
             values['tipo_empresa'], empresa_id,
         ),
     )
-    flash(f'Empresa "{values["nombre"]}" actualizada exitosamente', 'success')
+    from services.company_email_change import solicitar_cambio_correo_empresa
+
+    estado, detalle = solicitar_cambio_correo_empresa(
+        empresa_id, email_vigente, values['email'], values['nombre'],
+    )
+    if estado == 'enviado':
+        flash(
+            f'Empresa "{values["nombre"]}" actualizada. El correo sigue siendo '
+            f'{email_vigente} hasta que abran el enlace enviado a {detalle}.',
+            'success',
+        )
+    elif estado == 'fallo':
+        flash(
+            f'Los demás datos se guardaron, pero el correo no cambió: {detalle}',
+            'error',
+        )
+    else:
+        flash(f'Empresa "{values["nombre"]}" actualizada exitosamente', 'success')
     return redirect(url_for('admin_empresas'))
+
+
+@rate_limit(max_requests=10, window=300)
+def confirmar_correo_empresa(token):
+    from services.company_email_change import confirmar_cambio_correo_empresa
+
+    ok, mensaje = confirmar_cambio_correo_empresa(token)
+    flash(mensaje, 'success' if ok else 'error')
+    if current_user.is_authenticated:
+        return redirect(url_for('admin_empresas'))
+    return redirect(url_for('login'))
 
 
 @login_required
@@ -475,6 +511,11 @@ def register_admin_company_routes(app):
     app.add_url_rule(
         '/admin/empresas/editar/<int:empresa_id>', 'admin_empresas_editar',
         admin_empresas_editar, methods=['GET', 'POST'],
+    )
+    app.add_url_rule(
+        '/confirmar-correo-empresa/<token>',
+        'confirmar_correo_empresa',
+        confirmar_correo_empresa,
     )
     app.add_url_rule(
         '/admin/empresas/eliminar-demo/<int:empresa_id>',

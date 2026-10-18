@@ -410,7 +410,7 @@ def cambiar_mi_password():
     password_nuevo = request.form.get('password_nuevo', '')
     password_confirm = request.form.get('password_confirm', '')
     usuario = execute_query(
-        'SELECT id, password_hash FROM usuarios '
+        'SELECT id, nombre, email, password_hash FROM usuarios '
         'WHERE id=%s AND tenant_id <=> %s AND activo=1',
         (current_user.id, current_user.tenant_id),
     )
@@ -431,20 +431,28 @@ def cambiar_mi_password():
         flash(f'Contraseña no válida: {", ".join(errors)}', 'error')
         return _formulario_cambiar_password(volver_url)
 
-    actualizado = execute_update(
-        'UPDATE usuarios SET password_hash=%s, password_temporal=0, '
-        'reset_token=NULL, reset_token_expiracion=NULL '
-        'WHERE id=%s AND tenant_id <=> %s',
-        (
-            generate_password_hash(password_nuevo),
-            current_user.id,
-            current_user.tenant_id,
-        ),
+    from services.password_change import solicitar_cambio_password
+
+    ok_clave, detalle_clave = solicitar_cambio_password(
+        current_user.id,
+        current_user.tenant_id,
+        usuario['email'],
+        usuario.get('nombre'),
+        generate_password_hash(password_nuevo),
+        temporal=False,
     )
-    if actualizado is None:
-        flash('No se pudo actualizar la contraseña. Inténtalo de nuevo.', 'error')
+    if not ok_clave:
+        flash(
+            f'No se pudo enviar la validación y la contraseña no cambió: '
+            f'{detalle_clave}',
+            'error',
+        )
         return _formulario_cambiar_password(volver_url)
-    flash('Tu contraseña fue actualizada correctamente', 'success')
+    flash(
+        f'Enviamos desde soporte a {usuario["email"]} el enlace para confirmar '
+        'la nueva contraseña. Hasta abrirlo sigue la actual.',
+        'success',
+    )
     return redirect(volver_url)
 
 
@@ -541,16 +549,17 @@ def _send_recovery_email(usuario, email, token):
             )
         else:
             raise RuntimeError('APP_BASE_URL no está configurada')
-        html = (
-            f'<p>Hola {usuario["nombre"]},</p>'
-            f'<p><a href="{reset_url}">Recuperar Contraseña</a></p>'
-            '<p>Este enlace expirará en 1 hora.</p>'
+        from services.email_content import correo_recuperar_password
+
+        asunto, texto, html = correo_recuperar_password(
+            usuario.get('nombre'), reset_url, horas_validez=1,
         )
         ok, detalle = enviar_correo_consultorio(
             usuario.get('tenant_id'),
             email,
-            'Recuperación de Contraseña - ClinicRD',
+            asunto,
             html,
+            texto=texto,
         )
         if ok:
             flash(
@@ -669,18 +678,15 @@ def _enviar_correo_activacion(usuario, email):
             flash(f'Enlace de activación (solo desarrollo): {token}', 'info')
             return True
         return False
-    from services.platform_mail import enviar_correo_plataforma
+    from services.email_content import correo_invitacion_usuario
+    from services.platform_mail import enviar_desde_soporte
 
-    html = (
-        f'<p>Hola {usuario.get("nombre") or ""},</p>'
-        '<p>Para entrar la primera vez, abre este enlace:</p>'
-        f'<p><a href="{enlace}">Activar mi cuenta</a></p>'
-        '<p>El enlace vence en 48 horas. Sin abrirlo no podrás iniciar sesión.</p>'
+    asunto, texto, html = correo_invitacion_usuario(
+        usuario.get('nombre'), enlace, horas_validez=48,
     )
-    ok, detalle = enviar_correo_plataforma(
-        email,
-        'Activa tu cuenta de ClinicRD',
-        html,
+    ok, detalle = enviar_desde_soporte(
+        email, asunto, html, texto=texto,
+        nombre_destinatario=usuario.get('nombre') or email,
     )
     if ok:
         return True
@@ -744,6 +750,15 @@ def activar_cuenta(token):
     return redirect(url_for(destino_inicio_sesion(user)))
 
 
+@rate_limit(max_requests=10, window=300)
+def confirmar_cambio_password(token):
+    from services.password_change import confirmar_cambio_password as aplicar
+
+    ok, mensaje = aplicar(token)
+    flash(mensaje, 'success' if ok else 'error')
+    return redirect(url_for('login'))
+
+
 def register_auth_routes(app):
     app.add_url_rule('/login', 'login', login, methods=['GET', 'POST'])
     app.add_url_rule('/registro', 'registro', registro, methods=['GET', 'POST'])
@@ -751,6 +766,11 @@ def register_auth_routes(app):
         '/activar-cuenta/<token>',
         'activar_cuenta',
         activar_cuenta,
+    )
+    app.add_url_rule(
+        '/confirmar-cambio-password/<token>',
+        'confirmar_cambio_password',
+        confirmar_cambio_password,
     )
     app.add_url_rule('/logout', 'logout', logout)
     app.add_url_rule(

@@ -8,7 +8,7 @@ from flask import (
     Response, current_app, flash, jsonify, redirect, render_template, request,
     send_file, stream_with_context, url_for,
 )
-from flask_login import current_user, login_required, logout_user
+from flask_login import current_user, login_required
 from werkzeug.security import generate_password_hash
 
 from auth import permission_required, user_has_permission
@@ -585,7 +585,7 @@ def _admin_usuarios_plataforma_nuevo():
             flash('Ya existe un usuario con ese correo', 'error')
             return redirect(url_for('admin_usuarios_nuevo'))
         password_hash = generate_password_hash(password)
-        execute_update(
+        usuario_id = execute_update(
             '''
             INSERT INTO usuarios (
                 tenant_id, nombre, email, password_hash, perfil, activo,
@@ -594,11 +594,24 @@ def _admin_usuarios_plataforma_nuevo():
             ''',
             (nombre, email, password_hash, 'Administrador'),
         )
-        flash(
-            f'{nombre} ya puede entrar al panel de ClinicRD. '
-            'Entrégarle la contraseña de forma segura.',
-            'success',
+        from services.account_activation import (
+            enviar_invitacion_activacion,
+            registrar_activacion_pendiente,
         )
+
+        token = registrar_activacion_pendiente(usuario_id, None)
+        enviado, detalle = enviar_invitacion_activacion(None, nombre, email, token)
+        if enviado:
+            flash(
+                f'{nombre} creado. Se envió la validación desde soporte a {email}. '
+                'No podrá entrar hasta abrir ese enlace.',
+                'success',
+            )
+        else:
+            flash(
+                f'{nombre} creado, pero no se pudo enviar la validación: {detalle}',
+                'warning',
+            )
         return redirect(url_for('admin_usuarios'))
     return render_template(
         'usuarios/form.html',
@@ -650,20 +663,30 @@ def _admin_usuarios_plataforma_editar(usuario_id):
             execute_update(
                 '''
                 UPDATE usuarios
-                SET nombre=%s, email=%s, password_hash=%s, activo=%s,
-                    password_temporal=1
+                SET nombre=%s, email=%s, activo=%s
                 WHERE id=%s AND tenant_id IS NULL
                 ''',
-                (
-                    nombre, email, generate_password_hash(password),
-                    activo, usuario_id,
-                ),
+                (nombre, email, activo, usuario_id),
             )
-            if usuario_id == current_user.id:
-                logout_user()
-                flash('Tu contraseña ha sido cambiada.', 'warning')
-                return redirect(url_for('login'))
-            flash(f'Usuario {nombre} actualizado con nueva contraseña', 'success')
+            from services.password_change import solicitar_cambio_password
+
+            ok_clave, detalle_clave = solicitar_cambio_password(
+                usuario_id, None, email, nombre,
+                generate_password_hash(password),
+                temporal=True,
+            )
+            if ok_clave:
+                flash(
+                    f'Usuario {nombre} actualizado. Enviamos desde soporte a {email} '
+                    'el enlace para confirmar la nueva contraseña.',
+                    'success',
+                )
+            else:
+                flash(
+                    f'Usuario {nombre} actualizado, pero la contraseña no cambió: '
+                    f'{detalle_clave}',
+                    'error',
+                )
         else:
             execute_update(
                 '''
@@ -801,15 +824,13 @@ def admin_usuarios_editar(usuario_id):
                 flash('La contraseña debe tener al menos 8 caracteres', 'error')
                 return redirect(url_for('admin_usuarios_editar', usuario_id=usuario_id))
             
-            password_hash = generate_password_hash(password)
             execute_update('''
                 UPDATE usuarios 
-                SET nombre = %s, email = %s, password_hash = %s, perfil = %s, activo = %s, password_temporal = 1
+                SET nombre = %s, email = %s, perfil = %s, activo = %s
                 WHERE id = %s AND tenant_id = %s
             ''', (
                 nombre,
                 email,
-                password_hash,
                 perfil,
                 activo,
                 usuario_id,
@@ -821,13 +842,25 @@ def admin_usuarios_editar(usuario_id):
                 rol_id,
                 medico_id if requiere_medico else None,
             )
-            
-            if usuario_id == current_user.id:
-                logout_user()
-                flash('Tu contraseña ha sido cambiada.', 'warning')
-                return redirect(url_for('login'))
-            
-            flash(f'Usuario {nombre} actualizado con nueva contraseña', 'success')
+            from services.password_change import solicitar_cambio_password
+
+            ok_clave, detalle_clave = solicitar_cambio_password(
+                usuario_id, tenant_id, email, nombre,
+                generate_password_hash(password),
+                temporal=True,
+            )
+            if ok_clave:
+                flash(
+                    f'Usuario {nombre} actualizado. Enviamos desde soporte a {email} '
+                    'el enlace para confirmar la nueva contraseña.',
+                    'success',
+                )
+            else:
+                flash(
+                    f'Usuario {nombre} actualizado, pero la contraseña no cambió: '
+                    f'{detalle_clave}',
+                    'error',
+                )
         else:
             execute_update('''
                 UPDATE usuarios 

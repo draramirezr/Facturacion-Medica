@@ -15,7 +15,6 @@ from core.database import execute_query, execute_update
 from core.security import rate_limit
 from core.tenant import get_current_tenant_id
 from core.presentation import hora_input
-from markupsafe import escape
 from routes.support import sanitize_input, validate_int
 from services.centro_contexto import centro_para_nuevo_registro
 from services.tenant_mail import notificar_paciente
@@ -234,32 +233,21 @@ def emitir_enlace_confirmacion(cita_id, tenant_id, fecha, hora):
 def _avisar_cita_paciente(tenant_id, cita_id, paciente_id, fecha, hora, tipo):
     fecha_txt = fecha.strftime('%d/%m/%Y') if hasattr(fecha, 'strftime') else fecha
     hora_txt = hora.strftime('%H:%M') if hasattr(hora, 'strftime') else hora_input(hora)
-    if tipo == 'reagendada':
-        verbo = 'reagendó'
-    elif tipo == 'recordatorio':
-        verbo = 'recuerda'
-    else:
-        verbo = 'programó'
     try:
         token = emitir_enlace_confirmacion(cita_id, tenant_id, fecha, hora)
         enlace = _url_absoluta_cita(token)
     except Exception as error:
         logger.error('No se pudo armar el enlace de confirmación: %s', error)
         enlace = None
-    html = (
-        f'<p>Su cita se {verbo} para el <strong>{escape(str(fecha_txt))}</strong> '
-        f'a las <strong>{escape(str(hora_txt))}</strong>.</p>'
-    )
-    if enlace:
-        html += (
-            '<p>Confirme o cancele con un toque (no hace falta llamar):</p>'
-            f'<p><a href="{escape(enlace)}">Confirmar o cancelar mi cita</a></p>'
-        )
+    from services.email_content import correo_cita
+
+    asunto, texto, html = correo_cita(fecha_txt, hora_txt, tipo, enlace)
     ok, detalle = notificar_paciente(
         tenant_id,
         paciente_id,
-        'Confirme su cita',
+        asunto,
         html,
+        texto=texto,
     )
     if tipo == 'recordatorio':
         return ok

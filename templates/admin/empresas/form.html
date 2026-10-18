@@ -164,6 +164,18 @@
                     <label for="email" class="form-label">Email <span class="required-asterisk">*</span></label>
                     <input type="email" class="form-control" id="email" name="email" 
                            value="{{ empresa['email'] if empresa else '' }}" maxlength="255" required>
+                    {% if empresa and empresa.get('email_pendiente') %}
+                    <div class="form-text">
+                        Cambio pendiente hacia {{ empresa['email_pendiente'] }}.
+                        El correo vigente sigue siendo {{ empresa['email'] }} hasta que
+                        abran el enlace de validación.
+                    </div>
+                    {% elif empresa %}
+                    <div class="form-text">
+                        Si cambia el correo, se guarda solo después de abrir el enlace
+                        que enviaremos a la dirección nueva.
+                    </div>
+                    {% endif %}
                 </div>
                 
                 <div class="col-md-12 mb-3">

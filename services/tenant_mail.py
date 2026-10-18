@@ -141,7 +141,7 @@ def guardar_correo_empresa(tenant_id, datos, password_nueva=None):
     )
 
 
-def _enviar_smtp(empresa, destinatario, asunto, html, adjuntos=None):
+def _enviar_smtp(empresa, destinatario, asunto, html, adjuntos=None, texto=None):
     host = (empresa.get('smtp_host') or '').strip()
     remitente = (empresa.get('smtp_remitente') or '').strip()
     if not host or not remitente:
@@ -160,7 +160,9 @@ def _enviar_smtp(empresa, destinatario, asunto, html, adjuntos=None):
     mensaje['Subject'] = asunto
     mensaje['From'] = origen
     mensaje['To'] = destinatario
-    mensaje.set_content('Este mensaje está en HTML. Ábrelo en un cliente de correo moderno.')
+    mensaje.set_content(
+        texto or 'Este mensaje está en HTML. Ábrelo en un cliente de correo moderno.'
+    )
     mensaje.add_alternative(html, subtype='html')
     for adjunto in adjuntos or []:
         nombre_archivo, contenido, mime = adjunto
@@ -198,6 +200,7 @@ def enviar_correo_consultorio(
     html,
     adjuntos=None,
     fallback_plataforma=True,
+    texto=None,
 ):
     """Enviar desde el SMTP de la empresa; si falta, usa el correo de ClinicRD."""
     if not destinatario:
@@ -215,18 +218,20 @@ def enviar_correo_consultorio(
         and empresa.get('smtp_remitente')
         and empresa.get('smtp_password_cifrado')
     ):
-        ok, detalle = _enviar_smtp(empresa, destinatario, asunto, html, adjuntos)
+        ok, detalle = _enviar_smtp(
+            empresa, destinatario, asunto, html, adjuntos, texto=texto,
+        )
         if ok or not fallback_plataforma:
             return ok, detalle
     if fallback_plataforma:
         from services.platform_mail import enviar_correo_plataforma
         return enviar_correo_plataforma(
-            destinatario, asunto, html, adjuntos=adjuntos,
+            destinatario, asunto, html, adjuntos=adjuntos, texto=texto,
         )
     return False, 'Configure el correo del consultorio en Configuración'
 
 
-def notificar_paciente(tenant_id, paciente_id, asunto, html):
+def notificar_paciente(tenant_id, paciente_id, asunto, html, texto=None):
     paciente = execute_query(
         'SELECT email, nombre FROM pacientes WHERE id=%s AND tenant_id=%s',
         (paciente_id, tenant_id),
@@ -234,4 +239,6 @@ def notificar_paciente(tenant_id, paciente_id, asunto, html):
     correo = (paciente or {}).get('email') or ''
     if '@' not in correo:
         return False, 'El paciente no tiene correo'
-    return enviar_correo_consultorio(tenant_id, correo.strip(), asunto, html)
+    return enviar_correo_consultorio(
+        tenant_id, correo.strip(), asunto, html, texto=texto,
+    )
