@@ -33,6 +33,12 @@ def destino_inicio_sesion(user=None):
     if usuario_es_dueno_software(user):
         return 'admin_empresas'
     try:
+        from services.onboarding import perfil_inicial_pendiente
+        if perfil_inicial_pendiente(user):
+            return 'completar_perfil_inicial'
+    except Exception:
+        pass
+    try:
         from services.centro_contexto import (
             debe_elegir_centro,
             preparar_contexto_al_login,

@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+
+{% block title %}Complete su perfil - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container py-4" style="max-width: 760px;">
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            {% if pendiente == 'medico' %}
+            <h1 class="h3 mb-2">Datos del médico</h1>
+            <p class="text-muted">
+                Creó la cuenta como médico. Antes de usar ClinicRD debe registrar
+                su ficha. Ese médico quedará vinculado al usuario con el que entró.
+            </p>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <label class="form-label" for="nombre">Nombre completo</label>
+                    <input class="form-control" id="nombre" name="nombre" required maxlength="200"
+                           value="{{ nombre_usuario }}">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="especialidad">Especialidad</label>
+                    <select class="form-select" id="especialidad" name="especialidad" required>
+                        <option value="">Selecciona una especialidad</option>
+                        {% for especialidad in especialidades %}
+                        <option value="{{ especialidad }}">{{ especialidad }}</option>
+                        {% endfor %}
+                        <option value="__otra__">Otra especialidad</option>
+                    </select>
+                    <input class="form-control mt-2" id="especialidad_otra" name="especialidad_otra"
+                           maxlength="100" placeholder="Escriba la especialidad" hidden>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="cedula">Cédula</label>
+                        <input class="form-control" id="cedula" name="cedula" required
+                               inputmode="numeric" minlength="11" maxlength="11" pattern="[0-9]{11}"
+                               placeholder="00100000000">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="exequatur">Exequátur</label>
+                        <input class="form-control" id="exequatur" name="exequatur" required maxlength="50"
+                               placeholder="123456">
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="telefono">Teléfono</label>
+                        <input class="form-control" id="telefono" name="telefono" required
+                               inputmode="numeric" minlength="10" maxlength="10" pattern="[0-9]{10}"
+                               value="{{ empresa.telefono or '' }}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="email">Correo</label>
+                        <input class="form-control" id="email" value="{{ email_usuario }}" readonly>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="direccion">Dirección del consultorio</label>
+                    <textarea class="form-control" id="direccion" name="direccion" rows="2" required maxlength="500">{{ empresa.direccion or '' }}</textarea>
+                </div>
+                <button class="btn btn-primary" type="submit">Guardar y empezar</button>
+            </form>
+            {% else %}
+            <h1 class="h3 mb-2">Datos del centro</h1>
+            <p class="text-muted">
+                Antes de facturar o atender pacientes, complete el RNC y la dirección del centro.
+            </p>
+            <form method="post">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <div class="mb-3">
+                    <label class="form-label" for="razon_social">Razón social</label>
+                    <input class="form-control" id="razon_social" name="razon_social" required maxlength="255"
+                           value="{{ empresa.razon_social or empresa.nombre or '' }}">
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="rnc">RNC</label>
+                        <input class="form-control" id="rnc" name="rnc" required
+                               inputmode="numeric" minlength="9" maxlength="9" pattern="[0-9]{9}"
+                               value="{{ empresa.rnc or '' }}">
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="telefono">Teléfono</label>
+                        <input class="form-control" id="telefono" name="telefono" required
+                               inputmode="numeric" minlength="10" maxlength="10" pattern="[0-9]{10}"
+                               value="{{ empresa.telefono or '' }}">
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="direccion">Dirección</label>
+                    <textarea class="form-control" id="direccion" name="direccion" rows="2" required maxlength="500">{{ empresa.direccion or '' }}</textarea>
+                </div>
+                <button class="btn btn-primary" type="submit">Guardar y empezar</button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+<script nonce="{{ csp_nonce }}">
+document.addEventListener('DOMContentLoaded', function () {
+    const select = document.getElementById('especialidad');
+    const otra = document.getElementById('especialidad_otra');
+    if (!select || !otra) return;
+    select.addEventListener('change', function () {
+        const usar = select.value === '__otra__';
+        otra.hidden = !usar;
+        otra.required = usar;
+    });
+});
+</script>
+{% endblock %}
