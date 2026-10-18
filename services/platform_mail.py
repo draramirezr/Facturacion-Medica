@@ -9,9 +9,19 @@ from email.message import EmailMessage
 
 import requests
 
+from core.presentation import SOPORTE_EMAIL_PREDETERMINADO
 from services.tenant_mail import describir_error_smtp
 
 logger = logging.getLogger(__name__)
+
+
+def _reply_to_plataforma(explicito):
+    if explicito:
+        return explicito
+    return (
+        os.getenv('SOPORTE_EMAIL', '').strip()
+        or SOPORTE_EMAIL_PREDETERMINADO
+    )
 
 ZEPTOMAIL_API_DEFAULT = 'https://cpaas.zoho.com/v1.1/email'
 ZEPTOMAIL_SMTP_HOST = 'smtp.zeptomail.com'
@@ -105,12 +115,15 @@ def _mensaje_smtp(mensaje, cfg, destinatario, reply_to):
         mensaje['Reply-To'] = reply_to
 
 
-def _build_email_message(destinatario, asunto, html, cfg, adjuntos=None, reply_to=None):
+def _build_email_message(
+    destinatario, asunto, html, cfg, adjuntos=None, reply_to=None, texto=None,
+):
     mensaje = EmailMessage()
     mensaje['Subject'] = asunto
-    _mensaje_smtp(mensaje, cfg, destinatario, reply_to)
+    reply = _reply_to_plataforma(reply_to)
+    _mensaje_smtp(mensaje, cfg, destinatario, reply)
     mensaje.set_content(
-        'Este mensaje está en HTML. Ábrelo en un cliente de correo moderno.'
+        texto or 'Este mensaje está en HTML. Ábrelo en un cliente de correo moderno.',
     )
     mensaje.add_alternative(html, subtype='html')
     for adjunto in adjuntos or []:
@@ -167,10 +180,13 @@ def _enviar_smtp(mensaje, cfg, host, puerto, ssl_directo):
         servidor.send_message(mensaje)
 
 
-def _enviar_zeptomail(destinatario, asunto, html, cfg, adjuntos=None, reply_to=None):
+def _enviar_zeptomail(
+    destinatario, asunto, html, cfg, adjuntos=None, reply_to=None, texto=None,
+):
     token = _zeptomail_token()
     if not token:
         return False, 'ZeptoMail no configurado'
+    reply = _reply_to_plataforma(reply_to)
     payload = {
         'from': {
             'address': cfg['remitente'],
@@ -181,9 +197,13 @@ def _enviar_zeptomail(destinatario, asunto, html, cfg, adjuntos=None, reply_to=N
         ],
         'subject': asunto,
         'htmlbody': html,
+        'track_clicks': False,
+        'track_opens': False,
     }
-    if reply_to:
-        payload['reply_to'] = [{'address': reply_to}]
+    if texto:
+        payload['textbody'] = texto
+    if reply:
+        payload['reply_to'] = [{'address': reply, 'name': 'Soporte ClinicRD'}]
     if adjuntos:
         payload['attachments'] = [
             {
@@ -242,6 +262,7 @@ def enviar_correo_plataforma(
     html,
     adjuntos=None,
     reply_to=None,
+    texto=None,
 ):
     """Envía correo desde ClinicRD (ZeptoMail API o SMTP Zoho)."""
     if not destinatario:
@@ -256,7 +277,7 @@ def enviar_correo_plataforma(
     if token and (_preferir_api() or not cfg['password']):
         ok, detalle = _enviar_zeptomail(
             destinatario, asunto, html, cfg,
-            adjuntos=adjuntos, reply_to=reply_to,
+            adjuntos=adjuntos, reply_to=reply_to, texto=texto,
         )
         if ok:
             return True, detalle
@@ -271,7 +292,7 @@ def enviar_correo_plataforma(
 
     mensaje = _build_email_message(
         destinatario, asunto, html, cfg,
-        adjuntos=adjuntos, reply_to=reply_to,
+        adjuntos=adjuntos, reply_to=reply_to, texto=texto,
     )
     ultimo_error = None
     for host, puerto, ssl_directo in _smtp_attempts(cfg['host'], cfg['port']):
@@ -288,7 +309,7 @@ def enviar_correo_plataforma(
     if token:
         ok, detalle = _enviar_zeptomail(
             destinatario, asunto, html, cfg,
-            adjuntos=adjuntos, reply_to=reply_to,
+            adjuntos=adjuntos, reply_to=reply_to, texto=texto,
         )
         if ok:
             return True, detalle

@@ -71,16 +71,9 @@ def enviar_invitacion_activacion(tenant_id, nombre, email, token):
         logger.error('No se pudo construir URL de activación: %s', error)
         return False, 'Falta APP_BASE_URL para generar el enlace de activación.'
 
-    asunto = 'Active su cuenta de ClinicRD'
-    html = (
-        f'<p>Hola {nombre or ""},</p>'
-        '<p>Le crearon un usuario en ClinicRD. Para validar su correo '
-        'y entrar la primera vez, abra este enlace:</p>'
-        f'<p><a href="{enlace}">Activar mi cuenta</a></p>'
-        '<p>El enlace vence en 72 horas. Después deberá definir '
-        'su contraseña personal.</p>'
-        '<p>Si no solicitó esta cuenta, ignore este mensaje.</p>'
-    )
+    from services.email_content import correo_invitacion_usuario
+
+    asunto, texto, html = correo_invitacion_usuario(nombre, enlace)
 
     if tenant_id:
         from services.tenant_mail import enviar_correo_consultorio
@@ -95,7 +88,9 @@ def enviar_invitacion_activacion(tenant_id, nombre, email, token):
     else:
         from services.platform_mail import enviar_correo_plataforma
 
-        ok, detalle = enviar_correo_plataforma(email, asunto, html)
+        ok, detalle = enviar_correo_plataforma(
+            email, asunto, html, texto=texto,
+        )
     if ok:
         return True, detalle
 
@@ -120,18 +115,14 @@ def enviar_correo_activacion_demo(nombre, email, token, horas_validez=72):
         logger.error('No se pudo construir URL de activación demo: %s', error)
         return False, 'Falta APP_BASE_URL para generar el enlace de activación.'
 
-    asunto = 'Active su demo de 7 días en ClinicRD'
-    html = (
-        f'<p>Hola {nombre or ""},</p>'
-        '<p>Recibimos su solicitud de demo gratuito de ClinicRD.</p>'
-        '<p>Para <strong>validar su correo</strong> y entrar la primera vez, '
-        'use este enlace (es la única forma de acceder hasta activar):</p>'
-        f'<p><a href="{enlace}">Activar mi demo y entrar</a></p>'
-        f'<p>El enlace vence en {horas_validez} horas.</p>'
-        '<p>Si no solicitó este demo, ignore este mensaje.</p>'
-        '<p>— ClinicRD</p>'
+    from services.email_content import correo_activacion_demo
+
+    asunto, texto, html = correo_activacion_demo(
+        nombre, enlace, horas_validez=horas_validez,
     )
-    ok, detalle = enviar_correo_plataforma(email, asunto, html)
+    ok, detalle = enviar_correo_plataforma(
+        email, asunto, html, texto=texto,
+    )
     if ok:
         return True, detalle
     if (
