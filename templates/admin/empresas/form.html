@@ -321,6 +321,40 @@
                 </button>
             </div>
         </form>
+        {% if es_dueno_software and empresa %}
+        <hr class="my-4">
+        <h2 class="h5">Contraseña del administrador</h2>
+        <p class="text-muted">
+            Si el administrador olvidó su clave, envíele una temporal a su correo.
+            La anterior deja de servir y, al entrar, el sistema le obliga a crear una propia.
+        </p>
+        {% if administradores %}
+        <ul class="list-group">
+            {% for admin in administradores %}
+            <li class="list-group-item d-flex justify-content-between align-items-center gap-3">
+                <span>
+                    <strong>{{ admin.nombre }}</strong><br>
+                    <small class="text-muted">{{ admin.email }}</small>
+                    {% if not admin.activo %}
+                    <small class="text-danger d-block">Usuario inactivo</small>
+                    {% endif %}
+                </span>
+                {% if admin.activo %}
+                <form method="post"
+                      action="{{ url_for('admin_empresa_clave_temporal', empresa_id=empresa.id, usuario_id=admin.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                    <button class="btn btn-outline-primary" type="submit">
+                        Enviar contraseña temporal
+                    </button>
+                </form>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-muted mb-0">Esta empresa no tiene un administrador activo.</p>
+        {% endif %}
+        {% endif %}
     </div>
 </div>
 

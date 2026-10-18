@@ -675,18 +675,15 @@ def _admin_usuarios_plataforma_editar(usuario_id):
                 ''',
                 (nombre, email, activo, usuario_id),
             )
-            from services.password_change import solicitar_cambio_password
+            from services.password_change import asignar_clave_temporal
 
-            ok_clave, detalle_clave = solicitar_cambio_password(
-                usuario_id, None, email, nombre,
-                generate_password_hash(password),
-                temporal=True,
+            ok_clave, detalle_clave = asignar_clave_temporal(
+                usuario_id, None, email, nombre, password,
             )
             if ok_clave:
                 flash(
-                    f'Usuario {nombre} actualizado. La contraseña anterior ya no '
-                    f'sirve. Enviamos desde soporte a {email} el enlace para '
-                    'activar la nueva.',
+                    f'Usuario {nombre} actualizado. Enviamos la contraseña '
+                    f'temporal a {email}. Al entrar, el sistema le obliga a cambiarla.',
                     'success',
                 )
             else:
@@ -850,18 +847,15 @@ def admin_usuarios_editar(usuario_id):
                 rol_id,
                 medico_id if requiere_medico else None,
             )
-            from services.password_change import solicitar_cambio_password
+            from services.password_change import asignar_clave_temporal
 
-            ok_clave, detalle_clave = solicitar_cambio_password(
-                usuario_id, tenant_id, email, nombre,
-                generate_password_hash(password),
-                temporal=True,
+            ok_clave, detalle_clave = asignar_clave_temporal(
+                usuario_id, tenant_id, email, nombre, password,
             )
             if ok_clave:
                 flash(
-                    f'Usuario {nombre} actualizado. La contraseña anterior ya no '
-                    f'sirve. Enviamos desde soporte a {email} el enlace para '
-                    'activar la nueva.',
+                    f'Usuario {nombre} actualizado. Enviamos la contraseña '
+                    f'temporal a {email}. Al entrar, el sistema le obliga a cambiarla.',
                     'success',
                 )
             else:

@@ -55,6 +55,75 @@ def _limpiar(usuario_id, tenant_id):
     )
 
 
+def generar_clave_temporal():
+    """12 caracteres con mayúscula, minúscula y número."""
+    import string
+
+    letras = string.ascii_letters + string.digits
+    while True:
+        clave = ''.join(secrets.choice(letras) for _ in range(12))
+        if (
+            any(c.isupper() for c in clave)
+            and any(c.islower() for c in clave)
+            and any(c.isdigit() for c in clave)
+        ):
+            return clave
+
+
+def asignar_clave_temporal(usuario_id, tenant_id, email, nombre, password_plano):
+    """
+    Deja la clave generada por el administrador como temporal y la envía por correo.
+    Al entrar, el sistema obliga a cambiarla. Si el correo falla, queda la anterior.
+    """
+    asegurar_columnas_cambio_password()
+    anterior = execute_query(
+        '''
+        SELECT password_hash, password_temporal
+        FROM usuarios
+        WHERE id=%s AND tenant_id <=> %s
+        ''',
+        (usuario_id, tenant_id),
+    )
+    if not anterior:
+        return False, 'Usuario no encontrado'
+    execute_update(
+        '''
+        UPDATE usuarios
+        SET password_hash=%s,
+            password_temporal=1,
+            password_pendiente_hash=NULL,
+            password_cambio_token=NULL,
+            password_cambio_expira=NULL,
+            password_pendiente_temporal=NULL
+        WHERE id=%s AND tenant_id <=> %s
+        ''',
+        (generate_password_hash(password_plano), usuario_id, tenant_id),
+    )
+    from services.email_content import correo_clave_temporal
+    from services.platform_mail import enviar_desde_soporte
+
+    asunto, texto, html = correo_clave_temporal(nombre, password_plano)
+    ok, detalle = enviar_desde_soporte(
+        email, asunto, html, texto=texto, nombre_destinatario=nombre or email,
+    )
+    if ok:
+        return True, email
+    execute_update(
+        '''
+        UPDATE usuarios
+        SET password_hash=%s, password_temporal=%s
+        WHERE id=%s AND tenant_id <=> %s
+        ''',
+        (
+            anterior.get('password_hash'),
+            1 if anterior.get('password_temporal') else 0,
+            usuario_id,
+            tenant_id,
+        ),
+    )
+    return False, detalle or 'No se pudo enviar la contraseña temporal.'
+
+
 def solicitar_cambio_password(
     usuario_id, tenant_id, email, nombre, password_hash, temporal=True,
 ):

@@ -171,6 +171,43 @@ def correo_cambio_email_empresa(nombre_empresa, enlace, horas_validez=48):
     return asunto, texto, html_body
 
 
+def correo_clave_temporal(nombre, clave):
+    """El administrador generó una clave: el correo la trae y el primer ingreso obliga a cambiarla."""
+    saludo = (nombre or '').strip() or 'Hola'
+    clave_visible = (clave or '').strip()
+    asunto = 'Su contraseña temporal de ClinicRD'
+    texto = (
+        f'{saludo},\n\n'
+        'Un administrador generó una contraseña temporal para su usuario ClinicRD.\n'
+        'La contraseña anterior ya no sirve.\n\n'
+        f'Contraseña temporal: {clave_visible}\n\n'
+        'Entre en ClinicRD con esa clave. El sistema le pedirá crear una propia '
+        'antes de poder trabajar. No comparta este correo.\n\n'
+        f'Ayuda: {_reply_soporte()}\n'
+        f'— {PRODUCTO["nombre"]}\n'
+    )
+    clave_html = html.escape(clave_visible)
+    parrafos = [
+        f'Hola {html.escape(saludo)},',
+        'Un administrador generó una contraseña temporal porque no podía entrar. '
+        'La contraseña anterior ya no sirve.',
+        'Use esta clave para iniciar sesión:',
+        (
+            '<span style="display:inline-block;padding:10px 14px;background:#f4f7f8;'
+            'border:1px dashed #0d6e6e;border-radius:8px;font-family:Consolas,monospace;'
+            f'font-size:18px;letter-spacing:0.04em;">{clave_html}</span>'
+        ),
+        'Al entrar, ClinicRD le obliga a cambiarla por una contraseña suya. '
+        'Hasta ese cambio no puede operar. No reenvíe este correo.',
+    ]
+    html_body = _cuerpo_html(
+        'Entre con esta clave temporal',
+        parrafos,
+        objetivo='El primer inicio de sesión le pedirá crear una contraseña nueva.',
+    )
+    return asunto, texto, html_body
+
+
 def correo_cambio_password(nombre, enlace, horas_validez=48, bloquea_actual=False):
     """Confirmación antes de reemplazar la contraseña."""
     saludo = (nombre or '').strip() or 'Hola'

@@ -310,7 +310,11 @@ def admin_empresas_editar(empresa_id):
         empresa = execute_query(
             'SELECT * FROM empresas WHERE id=%s', (empresa_id,),
         ) or empresa
-        return render_template('admin/empresas/form.html', empresa=empresa)
+        return render_template(
+            'admin/empresas/form.html',
+            empresa=empresa,
+            administradores=_administradores_de_empresa(empresa_id),
+        )
     values = _company_form_values()
     values = _conservar_suscripcion_si_no_es_dueno(values, empresa)
     values['empresa_id'] = empresa_id
@@ -512,6 +516,81 @@ def admin():
     return redirect(url_for(destino_inicio_sesion(current_user)))
 
 
+def _administradores_de_empresa(empresa_id):
+    return execute_query(
+        '''
+        SELECT u.id, u.nombre, u.email, u.activo
+        FROM usuarios u
+        WHERE u.tenant_id=%s
+          AND (
+            u.perfil='Administrador'
+            OR EXISTS (
+                SELECT 1
+                FROM usuario_roles ur
+                JOIN roles r
+                  ON r.id=ur.rol_id AND r.tenant_id=ur.tenant_id
+                WHERE ur.usuario_id=u.id
+                  AND ur.tenant_id=u.tenant_id
+                  AND r.nombre='Administrador'
+                  AND r.activo=1
+            )
+          )
+        ORDER BY u.nombre, u.id
+        ''',
+        (empresa_id,),
+        fetch='all',
+    ) or []
+
+
+@login_required
+def admin_empresa_clave_temporal(empresa_id, usuario_id):
+    """El dueño envía una clave temporal al administrador que olvidó la suya."""
+    if not _es_super_administrador():
+        flash('Solo el dueño de ClinicRD puede reponer esa contraseña.', 'error')
+        return redirect(url_for('admin_empresas'))
+    usuario = execute_query(
+        '''
+        SELECT id, nombre, email, activo, tenant_id
+        FROM usuarios
+        WHERE id=%s AND tenant_id=%s
+        ''',
+        (usuario_id, empresa_id),
+    )
+    if not usuario or usuario['id'] not in {
+        fila['id'] for fila in _administradores_de_empresa(empresa_id)
+    }:
+        flash('Ese usuario no es administrador de esta empresa.', 'error')
+        return redirect(url_for('admin_empresas_editar', empresa_id=empresa_id))
+    if not usuario.get('activo'):
+        flash('Active el usuario antes de enviarle una contraseña.', 'error')
+        return redirect(url_for('admin_empresas_editar', empresa_id=empresa_id))
+    from services.password_change import (
+        asignar_clave_temporal,
+        generar_clave_temporal,
+    )
+
+    clave = generar_clave_temporal()
+    ok, detalle = asignar_clave_temporal(
+        usuario['id'],
+        usuario['tenant_id'],
+        usuario['email'],
+        usuario.get('nombre'),
+        clave,
+    )
+    if ok:
+        flash(
+            f'Enviamos una contraseña temporal a {usuario["email"]}. '
+            'La anterior ya no sirve. Al entrar deberá crear una propia.',
+            'success',
+        )
+    else:
+        flash(
+            f'No se envió la contraseña y la anterior sigue igual: {detalle}',
+            'error',
+        )
+    return redirect(url_for('admin_empresas_editar', empresa_id=empresa_id))
+
+
 def register_admin_company_routes(app):
     app.add_url_rule('/admin/empresas', 'admin_empresas', admin_empresas)
     app.add_url_rule(
@@ -521,6 +600,12 @@ def register_admin_company_routes(app):
     app.add_url_rule(
         '/admin/empresas/editar/<int:empresa_id>', 'admin_empresas_editar',
         admin_empresas_editar, methods=['GET', 'POST'],
+    )
+    app.add_url_rule(
+        '/admin/empresas/<int:empresa_id>/clave-temporal/<int:usuario_id>',
+        'admin_empresa_clave_temporal',
+        admin_empresa_clave_temporal,
+        methods=['POST'],
     )
     app.add_url_rule(
         '/confirmar-correo-empresa/<token>',
