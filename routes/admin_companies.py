@@ -273,6 +273,8 @@ def admin_empresas_nueva():
         ),
     )
     sembrar_ars_tenant(empresa_id)
+    from services.tenant_roles import sembrar_roles_sistema
+    sembrar_roles_sistema(empresa_id)
     flash(f'Empresa "{values["nombre"]}" creada exitosamente', 'success')
     return redirect(url_for('admin_empresas'))
 

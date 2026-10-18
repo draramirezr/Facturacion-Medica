@@ -267,6 +267,8 @@ def activar_demo_solicitud(solicitud_id):
             if not empresa_id:
                 raise RuntimeError('No se pudo crear la empresa demo')
             sembrar_ars_tenant(empresa_id)
+            from services.tenant_roles import sembrar_roles_sistema
+            sembrar_roles_sistema(empresa_id)
             if not usuario:
                 clave = _clave_temporal_demo()
                 from werkzeug.security import generate_password_hash
@@ -284,6 +286,8 @@ def activar_demo_solicitud(solicitud_id):
                 )
                 if not user_id:
                     raise RuntimeError('No se pudo crear el usuario demo')
+                from services.tenant_roles import asignar_rol_administrador
+                asignar_rol_administrador(user_id, empresa_id)
         execute_update(
             '''
             UPDATE solicitudes_demo

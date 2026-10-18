@@ -299,6 +299,8 @@ def registro():
             if not user_id:
                 raise RuntimeError('No se pudo crear el usuario administrador')
             sembrar_ars_tenant(empresa_id)
+            from services.tenant_roles import asignar_rol_administrador
+            asignar_rol_administrador(user_id, empresa_id)
         from services.account_activation import (
             enviar_correo_activacion_demo,
             registrar_activacion_pendiente,

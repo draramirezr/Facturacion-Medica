@@ -91,6 +91,9 @@ def guardar_permisos_rol(rol_id, tenant_id, codigos):
 @permission_required('roles.ver')
 def admin_roles():
     tenant_id = get_current_tenant_id()
+    if tenant_id:
+        from services.tenant_roles import asegurar_roles_del_tenant
+        asegurar_roles_del_tenant(tenant_id)
     roles = execute_query('''
         SELECT r.*, COUNT(DISTINCT rp.permiso_id) AS total_permisos,
                COUNT(DISTINCT ur.usuario_id) AS total_usuarios
@@ -341,6 +344,8 @@ def admin_usuarios():
             'error',
         )
         return redirect(url_for('admin_empresas'))
+    from services.tenant_roles import asegurar_roles_del_tenant
+    asegurar_roles_del_tenant(tenant_id)
     return render_template(
         'usuarios/lista.html',
         usuarios=listar_usuarios_del_tenant(tenant_id),
@@ -349,6 +354,8 @@ def admin_usuarios():
     )
 
 def obtener_contexto_usuario_form(tenant_id, usuario_id=None):
+    from services.tenant_roles import asegurar_roles_del_tenant
+    asegurar_roles_del_tenant(tenant_id)
     roles = execute_query(
         '''
         SELECT r.id, r.nombre, r.descripcion,
