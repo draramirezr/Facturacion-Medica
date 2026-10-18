@@ -144,7 +144,7 @@ def _guardar_centro(tenant_id):
         flash('Complete los datos del centro para empezar.', 'error')
         return redirect(url_for('completar_perfil_inicial'))
     if not validate_digits(rnc, 9):
-        flash('El RNC debe tener 9 números.', 'error')
+        flash('El RNC debe tener 9 números, sin guiones.', 'error')
         return redirect(url_for('completar_perfil_inicial'))
     if not validate_digits(telefono, 10):
         flash('El teléfono debe tener 10 números.', 'error')

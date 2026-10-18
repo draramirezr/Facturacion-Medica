@@ -135,7 +135,7 @@ def facturacion_ars_nuevo():
 
     if request.method == 'POST':
         nombre_ars = sanitize_input(request.form.get('nombre_ars', ''), 50)
-        rnc = sanitize_input(request.form.get('rnc', ''), 50)
+        rnc = re.sub(r'\D', '', request.form.get('rnc', '') or '')
         tipo_ncf, tipo_error = _leer_tipo_ncf_ars_formulario(tenant_id)
         activo = 1 if request.form.get('activo') == '1' else 0
         
@@ -144,7 +144,7 @@ def facturacion_ars_nuevo():
             return redirect(url_for('facturacion_ars_nuevo'))
 
         if not validate_digits(rnc, 9):
-            flash('El RNC debe contener exactamente 9 números', 'error')
+            flash('El RNC debe tener 9 números, sin guiones.', 'error')
             return redirect(url_for('facturacion_ars_nuevo'))
 
         if _rnc_ars_ya_existe(tenant_id, rnc):
@@ -197,7 +197,7 @@ def facturacion_ars_editar(ars_id):
     
     if request.method == 'POST':
         nombre_ars = sanitize_input(request.form.get('nombre_ars', ''), 50)
-        rnc = sanitize_input(request.form.get('rnc', ''), 50)
+        rnc = re.sub(r'\D', '', request.form.get('rnc', '') or '')
         tipo_ncf, tipo_error = _leer_tipo_ncf_ars_formulario(tenant_id)
         activo = 1 if request.form.get('activo') == '1' else 0
         
@@ -206,7 +206,7 @@ def facturacion_ars_editar(ars_id):
             return redirect(url_for('facturacion_ars_editar', ars_id=ars_id))
 
         if not validate_digits(rnc, 9):
-            flash('El RNC debe contener exactamente 9 números', 'error')
+            flash('El RNC debe tener 9 números, sin guiones.', 'error')
             return redirect(url_for('facturacion_ars_editar', ars_id=ars_id))
 
         if _rnc_ars_ya_existe(tenant_id, rnc, excluir_ars_id=ars_id):
@@ -436,8 +436,8 @@ def facturacion_centros_medicos_nuevo():
         nombre = sanitize_input(request.form.get('nombre', ''), 200)
         codigo = sanitize_input(request.form.get('codigo', ''), 50)
         direccion = sanitize_input(request.form.get('direccion', ''), 500)
-        rnc = sanitize_input(request.form.get('rnc', ''), 20)
-        telefono = sanitize_input(request.form.get('telefono', ''), 20)
+        rnc = re.sub(r'\D', '', request.form.get('rnc', '') or '')
+        telefono = re.sub(r'\D', '', request.form.get('telefono', '') or '')
         
         if not nombre or not telefono or not rnc:
             flash('El nombre, el teléfono y el RNC son obligatorios', 'error')
@@ -448,7 +448,7 @@ def facturacion_centros_medicos_nuevo():
             return redirect(url_for('facturacion_centros_medicos_nuevo'))
 
         if not validate_digits(rnc, 9):
-            flash('El RNC debe contener exactamente 9 números', 'error')
+            flash('El RNC debe tener 9 números, sin guiones.', 'error')
             return redirect(url_for('facturacion_centros_medicos_nuevo'))
         
         tenant_id = get_current_tenant_id()
@@ -477,8 +477,8 @@ def facturacion_centros_medicos_editar(centro_id):
         nombre = sanitize_input(request.form.get('nombre', ''), 200)
         codigo = sanitize_input(request.form.get('codigo', ''), 50)
         direccion = sanitize_input(request.form.get('direccion', ''), 500)
-        rnc = sanitize_input(request.form.get('rnc', ''), 20)
-        telefono = sanitize_input(request.form.get('telefono', ''), 20)
+        rnc = re.sub(r'\D', '', request.form.get('rnc', '') or '')
+        telefono = re.sub(r'\D', '', request.form.get('telefono', '') or '')
         activo = 1 if request.form.get('activo') == '1' else 0
         
         if not nombre or not telefono or not rnc:
@@ -490,7 +490,7 @@ def facturacion_centros_medicos_editar(centro_id):
             return redirect(url_for('facturacion_centros_medicos_editar', centro_id=centro_id))
 
         if not validate_digits(rnc, 9):
-            flash('El RNC debe contener exactamente 9 números', 'error')
+            flash('El RNC debe tener 9 números, sin guiones.', 'error')
             return redirect(url_for('facturacion_centros_medicos_editar', centro_id=centro_id))
         
         tenant_id = get_current_tenant_id()

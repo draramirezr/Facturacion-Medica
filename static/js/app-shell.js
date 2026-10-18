@@ -8,19 +8,21 @@
         const searchInput = document.getElementById('arsModuleSearch');
         const searchResults = document.getElementById('arsSearchResults');
 
-        if (!sidebar) {
-            return;
-        }
-
         document.querySelectorAll('[data-digits-only]').forEach((input) => {
-            input.addEventListener('input', () => {
+            const keepDigits = () => {
                 const maxLength = Number.parseInt(input.dataset.digitsOnly, 10);
                 const digits = input.value.replace(/\D/g, '');
                 input.value = Number.isFinite(maxLength)
                     ? digits.slice(0, maxLength)
                     : digits;
-            });
+            };
+            input.addEventListener('input', keepDigits);
+            keepDigits();
         });
+
+        if (!sidebar) {
+            return;
+        }
 
         const phoneInputs = Array.from(document.querySelectorAll(
             'input[name*="telefono" i], input[id*="telefono" i]'

@@ -190,7 +190,7 @@ def _validate_company(values, editing=False):
         if len(rnc_digits) not in (9, 11) or not rnc_digits.isdigit():
             return 'La cédula debe tener 11 números (o RNC de 9 números)'
     elif not validate_digits(rnc_digits, 9):
-        return 'El RNC debe contener exactamente 9 números'
+        return 'El RNC debe tener 9 números, sin guiones.'
     if not validate_digits(telefono_digits, 10):
         return 'El teléfono debe contener exactamente 10 números'
     if not validate_email(values['email']):

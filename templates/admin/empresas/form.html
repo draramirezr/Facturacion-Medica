@@ -143,7 +143,7 @@
                            maxlength="11"
                            pattern="{{ '[0-9]{9}|[0-9]{11}' if es_medico_doc else '[0-9]{9}' }}"
                            data-digits-only="11"
-                           title="{{ 'Cédula: 11 números (también se acepta RNC de 9)' if es_medico_doc else 'El RNC debe contener exactamente 9 números' }}"
+                           title="{{ 'Cédula: 11 números, sin guiones (también se acepta RNC de 9)' if es_medico_doc else 'El RNC debe tener 9 números, sin guiones ni otros caracteres' }}"
                            required>
                 </div>
                 
@@ -343,8 +343,8 @@
         documento.pattern = esMedico ? '[0-9]{9}|[0-9]{11}' : '[0-9]{9}';
         documento.dataset.digitsOnly = String(longitudMax);
         documento.title = esMedico
-            ? 'Cédula: 11 números (también se acepta RNC de 9)'
-            : 'El RNC debe contener exactamente 9 números';
+            ? 'Cédula: 11 números, sin guiones. RNC: 9 números, sin guiones'
+            : 'El RNC debe tener 9 números, sin guiones ni otros caracteres';
 
         const soloDigitos = (documento.value || '').replace(/\D/g, '');
         documento.value = soloDigitos.slice(0, longitudMax);
