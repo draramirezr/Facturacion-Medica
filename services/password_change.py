@@ -102,7 +102,9 @@ def asignar_clave_temporal(usuario_id, tenant_id, email, nombre, password_plano)
     from services.email_content import correo_clave_temporal
     from services.platform_mail import enviar_desde_soporte
 
-    asunto, texto, html = correo_clave_temporal(nombre, password_plano)
+    asunto, texto, html = correo_clave_temporal(
+        nombre, password_plano, email=email,
+    )
     ok, detalle = enviar_desde_soporte(
         email, asunto, html, texto=texto, nombre_destinatario=nombre or email,
     )

@@ -5,6 +5,14 @@ import html
 from core.presentation import PRODUCTO, SOPORTE_EMAIL_PREDETERMINADO
 
 
+def _enlace_ingreso():
+    """Página de entrada del sistema, para pegarla en cualquier correo."""
+    from core.config import url_publica_base
+
+    base = (url_publica_base() or 'https://www.clinicrd.com').rstrip('/')
+    return f'{base}/login'
+
+
 def _reply_soporte():
     import os
     return (
@@ -171,18 +179,23 @@ def correo_cambio_email_empresa(nombre_empresa, enlace, horas_validez=48):
     return asunto, texto, html_body
 
 
-def correo_clave_temporal(nombre, clave):
-    """El administrador generó una clave: el correo la trae y el primer ingreso obliga a cambiarla."""
+def correo_clave_temporal(nombre, clave, email=None):
+    """El administrador generó una clave: el correo la trae, con el enlace para entrar."""
     saludo = (nombre or '').strip() or 'Hola'
     clave_visible = (clave or '').strip()
+    correo = (email or '').strip()
+    ingreso = _enlace_ingreso()
+    cuenta = f'Correo de la cuenta: {correo}\n' if correo else ''
     asunto = 'Su contraseña temporal de ClinicRD'
     texto = (
         f'{saludo},\n\n'
         'Un administrador generó una contraseña temporal para su usuario ClinicRD.\n'
         'La contraseña anterior ya no sirve.\n\n'
+        f'Entre aquí: {ingreso}\n'
+        f'{cuenta}'
         f'Contraseña temporal: {clave_visible}\n\n'
-        'Entre en ClinicRD con esa clave. El sistema le pedirá crear una propia '
-        'antes de poder trabajar. No comparta este correo.\n\n'
+        'Al entrar, el sistema le pedirá crear una propia antes de poder trabajar. '
+        'No comparta este correo.\n\n'
         f'Ayuda: {_reply_soporte()}\n'
         f'— {PRODUCTO["nombre"]}\n'
     )
@@ -191,7 +204,12 @@ def correo_clave_temporal(nombre, clave):
         f'Hola {html.escape(saludo)},',
         'Un administrador generó una contraseña temporal porque no podía entrar. '
         'La contraseña anterior ya no sirve.',
-        'Use esta clave para iniciar sesión:',
+        (
+            f'Entre con el correo <strong>{html.escape(correo)}</strong>.'
+            if correo else
+            'Entre con el correo de su cuenta.'
+        ),
+        'Use esta clave:',
         (
             '<span style="display:inline-block;padding:10px 14px;background:#f4f7f8;'
             'border:1px dashed #0d6e6e;border-radius:8px;font-family:Consolas,monospace;'
@@ -203,6 +221,8 @@ def correo_clave_temporal(nombre, clave):
     html_body = _cuerpo_html(
         'Entre con esta clave temporal',
         parrafos,
+        enlace=ingreso,
+        etiqueta_boton='Entrar a ClinicRD',
         objetivo='El primer inicio de sesión le pedirá crear una contraseña nueva.',
     )
     return asunto, texto, html_body
