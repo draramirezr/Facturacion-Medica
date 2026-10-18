@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from urllib.parse import urljoin
 
 from flask import url_for
+from werkzeug.security import generate_password_hash
 
 from core.config import IS_PRODUCTION, url_publica_base
 from core.database import execute_query, execute_update
@@ -85,7 +86,10 @@ def solicitar_cambio_password(
     from services.platform_mail import enviar_desde_soporte
 
     asunto, texto, html = correo_cambio_password(
-        nombre, enlace, horas_validez=HORAS_VALIDEZ,
+        nombre,
+        enlace,
+        horas_validez=HORAS_VALIDEZ,
+        bloquea_actual=temporal,
     )
     ok, detalle = enviar_desde_soporte(
         email, asunto, html, texto=texto, nombre_destinatario=nombre or email,
@@ -93,7 +97,35 @@ def solicitar_cambio_password(
     if not ok:
         _limpiar(usuario_id, tenant_id)
         return False, detalle or 'No se pudo enviar el correo de validación.'
+    if temporal:
+        execute_update(
+            '''
+            UPDATE usuarios
+            SET password_hash=%s
+            WHERE id=%s AND tenant_id <=> %s
+            ''',
+            (
+                generate_password_hash(secrets.token_urlsafe(32)),
+                usuario_id,
+                tenant_id,
+            ),
+        )
     return True, email
+
+
+def cambio_admin_vigente(usuario):
+    """True si un administrador dejó una clave nueva y la anterior ya no sirve."""
+    if not usuario or not usuario.get('password_pendiente_temporal'):
+        return False
+    if not usuario.get('password_cambio_token') or not usuario.get('password_pendiente_hash'):
+        return False
+    expira = usuario.get('password_cambio_expira')
+    if isinstance(expira, str):
+        try:
+            expira = datetime.strptime(expira[:19], '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            return False
+    return bool(expira and expira > datetime.now())
 
 
 def confirmar_cambio_password(token):

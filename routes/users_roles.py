@@ -684,8 +684,9 @@ def _admin_usuarios_plataforma_editar(usuario_id):
             )
             if ok_clave:
                 flash(
-                    f'Usuario {nombre} actualizado. Enviamos desde soporte a {email} '
-                    'el enlace para confirmar la nueva contraseña.',
+                    f'Usuario {nombre} actualizado. La contraseña anterior ya no '
+                    f'sirve. Enviamos desde soporte a {email} el enlace para '
+                    'activar la nueva.',
                     'success',
                 )
             else:
@@ -858,8 +859,9 @@ def admin_usuarios_editar(usuario_id):
             )
             if ok_clave:
                 flash(
-                    f'Usuario {nombre} actualizado. Enviamos desde soporte a {email} '
-                    'el enlace para confirmar la nueva contraseña.',
+                    f'Usuario {nombre} actualizado. La contraseña anterior ya no '
+                    f'sirve. Enviamos desde soporte a {email} el enlace para '
+                    'activar la nueva.',
                     'success',
                 )
             else:

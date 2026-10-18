@@ -171,35 +171,62 @@ def correo_cambio_email_empresa(nombre_empresa, enlace, horas_validez=48):
     return asunto, texto, html_body
 
 
-def correo_cambio_password(nombre, enlace, horas_validez=48):
+def correo_cambio_password(nombre, enlace, horas_validez=48, bloquea_actual=False):
     """Confirmación antes de reemplazar la contraseña."""
     saludo = (nombre or '').strip() or 'Hola'
     asunto = 'Confirme el cambio de su contraseña'
-    texto = (
-        f'{saludo},\n\n'
-        'Se pidió reemplazar la contraseña de su usuario ClinicRD.\n'
-        'La clave con la que entra hoy sigue funcionando hasta que confirme.\n\n'
-        f'{enlace}\n\n'
-        f'El enlace vence en {horas_validez} horas y es de un solo uso.\n'
-        'No comparta este correo. Si usted no pidió el cambio, ignórelo.\n\n'
-        f'Ayuda: {_reply_soporte()}\n'
-        f'— {PRODUCTO["nombre"]}\n'
-    )
-    parrafos = [
-        f'Hola {html.escape(saludo)},',
-        'Este mensaje no contiene su contraseña. Sirve para autorizar '
-        'el reemplazo que se guardó como pendiente en ClinicRD.',
-        'Si confirma, la próxima vez deberá entrar con la clave nueva. '
-        'Si no confirma, seguirá usando la actual.',
-        f'El enlace vence en {horas_validez} horas. '
-        'Si no reconoce la solicitud, no lo abra y avise a soporte.',
-    ]
+    if bloquea_actual:
+        texto = (
+            f'{saludo},\n\n'
+            'Un administrador cambió la contraseña de su usuario ClinicRD.\n'
+            'La clave anterior ya no sirve. Para entrar debe abrir este enlace '
+            'y confirmar la nueva.\n\n'
+            f'{enlace}\n\n'
+            f'El enlace vence en {horas_validez} horas y es de un solo uso.\n'
+            'No comparta este correo. Si usted no reconoce el cambio, avise a soporte.\n\n'
+            f'Ayuda: {_reply_soporte()}\n'
+            f'— {PRODUCTO["nombre"]}\n'
+        )
+        parrafos = [
+            f'Hola {html.escape(saludo)},',
+            'Un administrador guardó una contraseña nueva para su usuario. '
+            'Este mensaje no trae esa clave.',
+            'La contraseña anterior ya no permite entrar. '
+            'Abra el enlace para activar la nueva y úsela en el próximo inicio de sesión.',
+            f'El enlace vence en {horas_validez} horas. '
+            'Si no reconoce el cambio, no lo abra y avise a soporte.',
+        ]
+        objetivo = (
+            'La clave anterior quedó bloqueada. '
+            'Solo el enlace activa la contraseña nueva.'
+        )
+    else:
+        texto = (
+            f'{saludo},\n\n'
+            'Se pidió reemplazar la contraseña de su usuario ClinicRD.\n'
+            'La clave con la que entra hoy sigue funcionando hasta que confirme.\n\n'
+            f'{enlace}\n\n'
+            f'El enlace vence en {horas_validez} horas y es de un solo uso.\n'
+            'No comparta este correo. Si usted no pidió el cambio, ignórelo.\n\n'
+            f'Ayuda: {_reply_soporte()}\n'
+            f'— {PRODUCTO["nombre"]}\n'
+        )
+        parrafos = [
+            f'Hola {html.escape(saludo)},',
+            'Este mensaje no contiene su contraseña. Sirve para autorizar '
+            'el reemplazo que se guardó como pendiente en ClinicRD.',
+            'Si confirma, la próxima vez deberá entrar con la clave nueva. '
+            'Si no confirma, seguirá usando la actual.',
+            f'El enlace vence en {horas_validez} horas. '
+            'Si no reconoce la solicitud, no lo abra y avise a soporte.',
+        ]
+        objetivo = 'Su contraseña actual no cambia hasta que abra este enlace.'
     html_body = _cuerpo_html(
         'Autorice la clave nueva',
         parrafos,
         enlace,
         'Confirmar la contraseña nueva',
-        objetivo='Su contraseña actual no cambia hasta que abra este enlace.',
+        objetivo=objetivo,
     )
     return asunto, texto, html_body
 

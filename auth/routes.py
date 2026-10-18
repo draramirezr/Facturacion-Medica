@@ -114,6 +114,15 @@ def login():
                     'error',
                 )
                 return _redirigir_login()
+            from services.password_change import cambio_admin_vigente
+
+            if cambio_admin_vigente(user_data):
+                flash(
+                    'La contraseña anterior ya no sirve. Abra el enlace que '
+                    'enviamos a su correo para activar la nueva.',
+                    'error',
+                )
+                return _redirigir_login()
             if check_password_hash(user_data['password_hash'], password):
                 if user_data.get('email_verificado') in (0, False):
                     flash(
