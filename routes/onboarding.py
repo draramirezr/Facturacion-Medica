@@ -84,8 +84,7 @@ def _guardar_medico(tenant_id):
     exequatur = sanitize_input(request.form.get('exequatur', ''), 50)
     telefono = re.sub(r'\D', '', request.form.get('telefono', '') or '')
     email = (getattr(current_user, 'email', '') or '').strip().lower()
-    direccion = sanitize_input(request.form.get('direccion', ''), 500)
-    if not all((nombre, especialidad, cedula, exequatur, telefono, email, direccion)):
+    if not all((nombre, especialidad, cedula, exequatur, telefono, email)):
         flash('Complete todos los datos del médico para empezar.', 'error')
         return redirect(url_for('completar_perfil_inicial'))
     if not validate_digits(cedula, 11):
@@ -96,6 +95,17 @@ def _guardar_medico(tenant_id):
         return redirect(url_for('completar_perfil_inicial'))
     if not validate_email(email):
         flash('El correo del usuario no es válido.', 'error')
+        return redirect(url_for('completar_perfil_inicial'))
+    from services.identificadores import (
+        error_medico_identificadores,
+        error_rnc_en_otra_empresa,
+    )
+    repetido = (
+        error_medico_identificadores(tenant_id, cedula, exequatur)
+        or error_rnc_en_otra_empresa(cedula, tenant_id)
+    )
+    if repetido:
+        flash(repetido, 'error')
         return redirect(url_for('completar_perfil_inicial'))
     medico_id = execute_update(
         '''
@@ -113,10 +123,10 @@ def _guardar_medico(tenant_id):
     execute_update(
         '''
         UPDATE empresas
-        SET rnc=%s, direccion=%s, telefono=%s, email=%s
+        SET rnc=%s, telefono=%s, email=%s
         WHERE id=%s
         ''',
-        (cedula, direccion, telefono, email, tenant_id),
+        (cedula, telefono, email, tenant_id),
     )
     flash(
         'Médico registrado y vinculado a su usuario. Ya puede operar.',
@@ -138,6 +148,11 @@ def _guardar_centro(tenant_id):
         return redirect(url_for('completar_perfil_inicial'))
     if not validate_digits(telefono, 10):
         flash('El teléfono debe tener 10 números.', 'error')
+        return redirect(url_for('completar_perfil_inicial'))
+    from services.identificadores import error_rnc_en_otra_empresa
+    repetido = error_rnc_en_otra_empresa(rnc, tenant_id)
+    if repetido:
+        flash(repetido, 'error')
         return redirect(url_for('completar_perfil_inicial'))
     execute_update(
         '''

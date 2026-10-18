@@ -195,6 +195,13 @@ def _validate_company(values, editing=False):
         return 'El teléfono debe contener exactamente 10 números'
     if not validate_email(values['email']):
         return 'Debe introducir un email válido'
+    from services.identificadores import error_rnc_en_otra_empresa
+    error_rnc = error_rnc_en_otra_empresa(
+        rnc_digits,
+        values.get('empresa_id'),
+    )
+    if error_rnc:
+        return error_rnc
     if values['plan'] not in ('basico', 'profesional', 'empresarial'):
         return 'Debe seleccionar un plan válido'
     if editing and values['estado'] not in ('activo', 'suspendido', 'inactivo'):
@@ -306,6 +313,7 @@ def admin_empresas_editar(empresa_id):
         return render_template('admin/empresas/form.html', empresa=empresa)
     values = _company_form_values()
     values = _conservar_suscripcion_si_no_es_dueno(values, empresa)
+    values['empresa_id'] = empresa_id
     error = _validate_company(values, editing=True)
     if error:
         flash(error, 'error')

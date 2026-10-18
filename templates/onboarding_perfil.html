@@ -12,6 +12,8 @@
             <p class="text-muted">
                 Creó la cuenta como médico. Antes de usar ClinicRD debe registrar
                 su ficha. Ese médico quedará vinculado al usuario con el que entró.
+                La dirección de cada consultorio se registra en el centro médico:
+                un médico puede atender en más de un centro.
             </p>
             <form method="post">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
@@ -56,10 +58,6 @@
                         <label class="form-label" for="email">Correo</label>
                         <input class="form-control" id="email" value="{{ email_usuario }}" readonly>
                     </div>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label" for="direccion">Dirección del consultorio</label>
-                    <textarea class="form-control" id="direccion" name="direccion" rows="2" required maxlength="500">{{ empresa.direccion or '' }}</textarea>
                 </div>
                 <button class="btn btn-primary" type="submit">Guardar y empezar</button>
             </form>

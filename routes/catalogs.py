@@ -309,8 +309,13 @@ def facturacion_medicos_nuevo():
         if not validate_email(email):
             flash('Ingresa un correo electrónico válido', 'error')
             return redirect(url_for('facturacion_medicos_nuevo'))
-        
+
         tenant_id = get_current_tenant_id()
+        from services.identificadores import error_medico_identificadores
+        repetido = error_medico_identificadores(tenant_id, cedula, exequatur)
+        if repetido:
+            flash(repetido, 'error')
+            return redirect(url_for('facturacion_medicos_nuevo'))
         execute_update('''
             INSERT INTO medicos (tenant_id, nombre, exequatur, especialidad, telefono, email, cedula, activo, factura)
             VALUES (%s, %s, %s, %s, %s, %s, %s, 1, %s)
@@ -361,8 +366,15 @@ def facturacion_medicos_editar(medico_id):
         if not validate_email(email):
             flash('Ingresa un correo electrónico válido', 'error')
             return redirect(url_for('facturacion_medicos_editar', medico_id=medico_id))
-        
+
         tenant_id = get_current_tenant_id()
+        from services.identificadores import error_medico_identificadores
+        repetido = error_medico_identificadores(
+            tenant_id, cedula, exequatur, medico_id=medico_id,
+        )
+        if repetido:
+            flash(repetido, 'error')
+            return redirect(url_for('facturacion_medicos_editar', medico_id=medico_id))
         execute_update('''
             UPDATE medicos 
             SET nombre = %s, exequatur = %s, especialidad = %s, telefono = %s, email = %s, cedula = %s, activo = %s, factura = %s
