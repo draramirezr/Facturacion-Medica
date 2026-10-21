@@ -17,7 +17,7 @@
                 <option value="{{ empresa.id }}" {{ 'selected' if empresa_id==empresa.id }}
                         data-plan="{{ empresa.plan }}"
                         data-licencias="{{ empresa.licencias_totales }}"
-                        data-precio="{{ precios.get(empresa.plan, 20) }}">
+                        data-precio="{{ precios.planes[empresa.plan].dop if empresa.plan in precios.planes and precios.planes[empresa.plan].dop is not none else '' }}">
                     {{ empresa.nombre }} · {{ empresa.plan|title }}
                 </option>
                 {% endfor %}
@@ -39,9 +39,9 @@
             <div class="col-md-4">
                 <label class="form-label" for="plan">Plan</label>
                 <select class="form-select" id="plan" name="plan">
-                    <option value="basico" {{ 'selected' if valores.plan=='basico' }}>Independiente · RD$ 1,195</option>
-                    <option value="profesional" {{ 'selected' if valores.plan=='profesional' }}>Consultorio · RD$ 1,795</option>
-                    <option value="empresarial" {{ 'selected' if valores.plan=='empresarial' }}>Centro médico · RD$ 3,695</option>
+                    <option value="basico" {{ 'selected' if valores.plan=='basico' }}>Independiente · {{ precios.planes.basico.mensual_usd }} · {{ precios.planes.basico.mensual_dop }}</option>
+                    <option value="profesional" {{ 'selected' if valores.plan=='profesional' }}>Consultorio · {{ precios.planes.profesional.mensual_usd }} · {{ precios.planes.profesional.mensual_dop }}</option>
+                    <option value="empresarial" {{ 'selected' if valores.plan=='empresarial' }}>Centro médico · {{ precios.planes.empresarial.mensual_usd }} · {{ precios.planes.empresarial.mensual_dop }}</option>
                 </select>
             </div>
             <div class="col-md-4">

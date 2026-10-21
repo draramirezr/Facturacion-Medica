@@ -11,7 +11,8 @@ from auth import permission_required
 from core.database import execute_query, execute_update
 from core.tenant import get_current_tenant_id
 from routes.support import (
-    execute_paginated_query, sanitize_input, validate_digits, validate_email,
+    error_cedula, execute_paginated_query, sanitize_input, validate_digits,
+    validate_email,
     validate_int,
 )
 
@@ -107,6 +108,9 @@ def facturacion_pacientes_nuevo():
         if cedula and not validate_digits(cedula, 11):
             flash('La cédula debe contener exactamente 11 números', 'error')
             return redirect(url_for('facturacion_pacientes_nuevo'))
+        if cedula and error_cedula(cedula):
+            flash(error_cedula(cedula), 'error')
+            return redirect(url_for('facturacion_pacientes_nuevo'))
         if not validate_digits(telefono, 10):
             flash('El teléfono debe contener exactamente 10 números', 'error')
             return redirect(url_for('facturacion_pacientes_nuevo'))
@@ -136,6 +140,9 @@ def facturacion_pacientes_nuevo():
                 return redirect(url_for('facturacion_pacientes_nuevo'))
             if not validate_digits(cedula_pariente, 11):
                 flash('La cédula del pariente debe contener exactamente 11 números', 'error')
+                return redirect(url_for('facturacion_pacientes_nuevo'))
+            if error_cedula(cedula_pariente):
+                flash('La cédula del pariente no es válida. Revise los 11 números.', 'error')
                 return redirect(url_for('facturacion_pacientes_nuevo'))
             if not validate_digits(telefono_pariente, 10):
                 flash('El teléfono del pariente debe contener exactamente 10 números', 'error')
@@ -273,6 +280,9 @@ def facturacion_paciente_actualizar_cedula(paciente_id):
     if not validate_digits(cedula, 11):
         flash('La cédula del paciente debe contener exactamente 11 números', 'error')
         return redirect(url_for('facturacion_paciente_acciones', paciente_id=paciente_id))
+    if error_cedula(cedula):
+        flash(error_cedula(cedula), 'error')
+        return redirect(url_for('facturacion_paciente_acciones', paciente_id=paciente_id))
     existente = execute_query(
         'SELECT id FROM pacientes WHERE cedula=%s AND tenant_id=%s AND id<>%s',
         (cedula, tenant_id, paciente_id)
@@ -330,6 +340,9 @@ def facturacion_pacientes_editar(paciente_id):
         if cedula and not validate_digits(cedula, 11):
             flash('La cédula debe contener exactamente 11 números', 'error')
             return redirect(url_for('facturacion_pacientes_editar', paciente_id=paciente_id))
+        if cedula and error_cedula(cedula):
+            flash(error_cedula(cedula), 'error')
+            return redirect(url_for('facturacion_pacientes_editar', paciente_id=paciente_id))
 
         if not validate_digits(telefono, 10):
             flash('El teléfono debe contener exactamente 10 números', 'error')
@@ -362,6 +375,9 @@ def facturacion_pacientes_editar(paciente_id):
                 return redirect(url_for('facturacion_pacientes_editar', paciente_id=paciente_id))
             if not validate_digits(cedula_pariente, 11):
                 flash('La cédula del pariente debe contener exactamente 11 números', 'error')
+                return redirect(url_for('facturacion_pacientes_editar', paciente_id=paciente_id))
+            if error_cedula(cedula_pariente):
+                flash('La cédula del pariente no es válida. Revise los 11 números.', 'error')
                 return redirect(url_for('facturacion_pacientes_editar', paciente_id=paciente_id))
             if not validate_digits(telefono_pariente, 10):
                 flash('El teléfono del pariente debe contener exactamente 10 números', 'error')

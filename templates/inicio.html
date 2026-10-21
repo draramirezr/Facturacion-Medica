@@ -173,12 +173,22 @@
         .plans-intro { max-width:720px; margin:0 auto 34px; text-align:center; }
         .plans-intro h2 { margin:10px 0 12px; }
         .plans-intro p { margin:0; color:var(--muted); line-height:1.7; }
-        .billing-switch { width:max-content; max-width:100%; display:flex; gap:5px; margin:24px auto 0; padding:5px; border:1px solid var(--border); border-radius:10px; background:var(--ars-shell-surface, #fff); }
+        .plans-switches { display:flex; flex-wrap:wrap; justify-content:center; gap:10px; margin-top:24px; }
+        .billing-switch { width:max-content; max-width:100%; display:flex; gap:5px; margin:0; padding:5px; border:1px solid var(--border); border-radius:10px; background:var(--ars-shell-surface, #fff); }
+        .tasa-nota { max-width:640px; margin:14px auto 0; text-align:center; color:#64748b; font-size:.78rem; line-height:1.5; }
         .billing-option { min-height:35px; padding:0 13px; border:0; border-radius:7px; background:transparent; color:#64748b; font:700 .73rem "Inter",sans-serif; cursor:pointer; }
         .billing-option.active { background:var(--primary); color:white; }
         .billing-option small { margin-left:5px; font-size:.62rem; }
         .plan-options { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; }
-        .plan-option { padding:24px 22px; border:1px solid var(--border); border-radius:16px; background:var(--ars-shell-surface, #fff); }
+        .plan-option { padding:24px 22px; border:1px solid var(--border); border-radius:16px; background:var(--ars-shell-surface, #fff); cursor:pointer; text-align:left; }
+        .plan-option:hover, .plan-option:focus-visible { border-color:var(--primary); box-shadow:0 10px 28px rgba(8,145,178,.12); outline:none; }
+        .plan-cta { display:inline-flex; align-items:center; gap:8px; margin-top:16px; color:var(--primary-dark); font-weight:700; font-size:.86rem; }
+        .plan-pregunta { position:fixed; inset:0; z-index:80; display:grid; place-items:center; padding:20px; background:rgba(15,23,42,.45); }
+        .plan-pregunta[hidden] { display:none; }
+        .plan-pregunta-card { width:min(100%,420px); padding:24px; border-radius:16px; background:var(--ars-shell-surface, #fff); box-shadow:0 20px 50px rgba(15,23,42,.2); }
+        .plan-pregunta-card h3 { margin:0 0 8px; color:#21304c; }
+        .plan-pregunta-card p { margin:0 0 18px; color:var(--muted); }
+        .plan-pregunta-acciones { display:flex; justify-content:flex-end; gap:10px; }
         .plan-option-icon { width:46px; height:46px; display:grid; place-items:center; margin-bottom:16px; border-radius:11px; background:var(--primary-soft); color:var(--primary-dark); }
         .plan-option h3 { margin:0 0 8px; color:#21304c; font-size:1.05rem; }
         .plan-star { margin-left:4px; color:#f5c518 !important; }
@@ -220,7 +230,7 @@
         html[data-color-mode="dark"] .trust-strip { background:#101929 !important; border-color:var(--border) !important; }
         html[data-color-mode="dark"] .hero { background:linear-gradient(145deg,#102128,#0b1220 58%,#10231f) !important; }
         html[data-color-mode="dark"] :is(.hero h1,.section h2,.feature h3,.step h3,.result-card strong,.integration-item strong,.security-card h3,.plan-option h3,.plan-price strong,.cta h2,.footer-title,.check-list strong) { color:#edf3fa; }
-        html[data-color-mode="dark"] :is(.nav-links,.hero-note,.plan-limits li,.footer-links a,.footer-brand,.footer-bottom) { color:#9eacbd; }
+        html[data-color-mode="dark"] :is(.nav-links,.hero-note,.plan-limits li,.footer-links a,.footer-brand,.footer-bottom,.tasa-nota) { color:#9eacbd; }
         html[data-color-mode="dark"] :is(.app-preview,.preview-sidebar,.preview-card,.preview-chart,.preview-table,.feature,.step,.result-card,.integration-item,.security-card,.plan-option,.billing-switch,.coming) { background:#111a2b !important; border-color:var(--border); }
         html[data-color-mode="dark"] .preview-content { background:#0d1625 !important; }
         html[data-color-mode="dark"] .preview-layout,
@@ -242,6 +252,7 @@
         .demo-form, .demo-aside { padding:24px; border:1px solid var(--border); border-radius:16px; background:var(--surface); }
         .demo-form { display:grid; gap:14px; }
         .demo-form label { display:grid; gap:6px; color:#334155; font-size:.84rem; font-weight:600; }
+        .demo-form .field-hint { font-size:.75rem; font-weight:500; color:#64748b; }
         .demo-form input, .demo-form select, .demo-form textarea { width:100%; padding:12px 14px; border:1px solid var(--border); border-radius:10px; font:inherit; }
         .demo-aside h3 { margin:0 0 10px; }
         .contact-phone { display:flex; align-items:center; gap:14px; margin:0 0 18px; padding:16px 18px; border:1px solid var(--border); border-radius:14px; background:var(--primary-soft); text-decoration:none; }
@@ -257,6 +268,7 @@
         html[data-color-mode="dark"] .demo-aside,
         html[data-color-mode="dark"] .contact-phone { background:#111a2b; border-color:#29374c; }
         html[data-color-mode="dark"] .contact-phone strong { color:#edf3fa; }
+        html[data-color-mode="dark"] .demo-form .field-hint { color:#9eacbd; }
         html[data-color-mode="dark"] .demo-form input,
         html[data-color-mode="dark"] .demo-form select,
         html[data-color-mode="dark"] .demo-form textarea { background:#0d1625; border-color:#344258; color:#e7edf6; }
@@ -352,17 +364,30 @@
                     <span class="section-label">Propuesta de planes</span>
                     <h2>Una renta según el tamaño de tu operación</h2>
                     <p>Todos los planes incluyen 7 días gratis, pacientes ilimitados y facturación electrónica. El pago anual tiene 15% de descuento.</p>
-                    <div class="billing-switch" aria-label="Modalidad de pago">
-                        <button class="billing-option active" type="button" data-period="monthly">Pago mensual</button>
-                        <button class="billing-option" type="button" data-period="annual">Pago anual <small>15% menos</small></button>
+                    <div class="plans-switches">
+                        <div class="billing-switch" aria-label="Modalidad de pago">
+                            <button class="billing-option active" type="button" data-period="monthly" aria-pressed="true">Pago mensual</button>
+                            <button class="billing-option" type="button" data-period="annual" aria-pressed="false">Pago anual <small>15% menos</small></button>
+                        </div>
+                        <div class="billing-switch" aria-label="Moneda">
+                            <button class="billing-option active" type="button" data-currency="dop" aria-pressed="true">Pesos</button>
+                            <button class="billing-option" type="button" data-currency="usd" aria-pressed="false">Dólares</button>
+                        </div>
                     </div>
+                    <p class="tasa-nota">
+                        {% if precios.tasa %}
+                        El precio fijo está en dólares. En pesos se convierte con la tasa de compra del Banco Central del {{ precios.tasa.fecha }}: RD$ {{ precios.compra_texto }} por US$ 1.
+                        {% else %}
+                        El precio fijo está en dólares. Ahora no se pudo leer la tasa del Banco Central, así que el monto en pesos no está disponible.
+                        {% endif %}
+                    </p>
                 </div>
                 <div class="plan-options" id="pricingOptions">
-                    <article class="plan-option">
+                    <article class="plan-option" data-plan="basico" data-plan-nombre="Independiente" tabindex="0" role="button" aria-label="Probar el plan Independiente">
                         <div class="plan-option-icon"><i class="fas fa-user-doctor"></i></div>
                         <h3>Independiente</h3>
                         <p>Para un profesional que gestiona directamente su consulta.</p>
-                        <div class="plan-price" data-monthly="RD$ 1,195" data-annual="RD$ 1,016"><strong>RD$ 1,195</strong> <span>/ mes</span><div class="annual-detail">RD$ 12,189 facturados anualmente</div></div>
+                        <div class="plan-price" data-monthly-dop="{{ precios.planes.basico.mensual_dop }}" data-annual-dop="{{ precios.planes.basico.anual_dop }}" data-monthly-usd="{{ precios.planes.basico.mensual_usd }}" data-annual-usd="{{ precios.planes.basico.anual_usd }}" data-detail-dop="{{ precios.planes.basico.detalle_dop }}" data-detail-usd="{{ precios.planes.basico.detalle_usd }}"><strong>{{ precios.planes.basico.mensual_dop }}</strong> <span>/ mes</span><div class="annual-detail">{{ precios.planes.basico.detalle_dop }}</div></div>
                         <ul class="plan-limits">
                             <li><i class="fas fa-user-doctor"></i>1 usuario incluido</li>
                             <li><i class="fas fa-hospital-user"></i>Pacientes ilimitados</li>
@@ -376,24 +401,26 @@
                             <li><i class="fas fa-file-excel"></i>Respaldo y exportación de datos</li>
                             <li><i class="fas fa-gift"></i>7 días gratis</li>
                         </ul>
+                        <span class="plan-cta">Probar 7 días <i class="fas fa-arrow-right"></i></span>
                     </article>
-                    <article class="plan-option">
+                    <article class="plan-option" data-plan="profesional" data-plan-nombre="Consultorio" tabindex="0" role="button" aria-label="Probar el plan Consultorio">
                         <div class="plan-option-icon"><i class="fas fa-house-medical"></i></div>
                         <h3>Consultorio <i class="fas fa-star plan-star" aria-hidden="true"></i></h3>
                         <p>Para equipos pequeños con varios profesionales y/o secretaria.</p>
-                        <div class="plan-price" data-monthly="RD$ 1,795" data-annual="RD$ 1,526"><strong>RD$ 1,795</strong> <span>/ mes</span><div class="annual-detail">RD$ 18,309 facturados anualmente</div></div>
+                        <div class="plan-price" data-monthly-dop="{{ precios.planes.profesional.mensual_dop }}" data-annual-dop="{{ precios.planes.profesional.anual_dop }}" data-monthly-usd="{{ precios.planes.profesional.mensual_usd }}" data-annual-usd="{{ precios.planes.profesional.anual_usd }}" data-detail-dop="{{ precios.planes.profesional.detalle_dop }}" data-detail-usd="{{ precios.planes.profesional.detalle_usd }}"><strong>{{ precios.planes.profesional.mensual_dop }}</strong> <span>/ mes</span><div class="annual-detail">{{ precios.planes.profesional.detalle_dop }}</div></div>
                         <ul class="plan-limits">
                             <li><i class="fas fa-users"></i>2 usuarios incluidos</li>
                             <li><i class="fas fa-layer-group"></i>Todo lo del plan Independiente</li>
                             <li><i class="fas fa-user-shield"></i>Roles y permisos</li>
                             <li><i class="fas fa-user-plus"></i>Usuarios adicionales disponibles</li>
                         </ul>
+                        <span class="plan-cta">Probar 7 días <i class="fas fa-arrow-right"></i></span>
                     </article>
-                    <article class="plan-option">
+                    <article class="plan-option" data-plan="empresarial" data-plan-nombre="Centro médico" tabindex="0" role="button" aria-label="Probar el plan Centro médico">
                         <div class="plan-option-icon"><i class="fas fa-hospital"></i></div>
                         <h3>Centro médico</h3>
                         <p>Para centros con mayor volumen clínico y administrativo.</p>
-                        <div class="plan-price" data-monthly="RD$ 3,695" data-annual="RD$ 3,141"><strong>RD$ 3,695</strong> <span>/ mes</span><div class="annual-detail">RD$ 37,689 facturados anualmente</div></div>
+                        <div class="plan-price" data-monthly-dop="{{ precios.planes.empresarial.mensual_dop }}" data-annual-dop="{{ precios.planes.empresarial.anual_dop }}" data-monthly-usd="{{ precios.planes.empresarial.mensual_usd }}" data-annual-usd="{{ precios.planes.empresarial.anual_usd }}" data-detail-dop="{{ precios.planes.empresarial.detalle_dop }}" data-detail-usd="{{ precios.planes.empresarial.detalle_usd }}"><strong>{{ precios.planes.empresarial.mensual_dop }}</strong> <span>/ mes</span><div class="annual-detail">{{ precios.planes.empresarial.detalle_dop }}</div></div>
                         <ul class="plan-limits">
                             <li><i class="fas fa-users"></i>5 usuarios incluidos</li>
                             <li><i class="fas fa-layer-group"></i>Todo lo del plan Consultorio</li>
@@ -404,9 +431,20 @@
                             <li><i class="fas fa-comments"></i>Mensajería interna</li>
                             <li><i class="fas fa-user-plus"></i>Usuarios adicionales disponibles</li>
                         </ul>
+                        <span class="plan-cta">Probar 7 días <i class="fas fa-arrow-right"></i></span>
                     </article>
                 </div>
-                <p class="hero-copy" style="text-align:center;margin-top:18px">Usuario adicional: <strong>RD$ 450</strong> / mes. Independiente no admite usuarios extra.</p>
+                <div class="plan-pregunta" id="planPregunta" hidden>
+                    <div class="plan-pregunta-card" role="dialog" aria-modal="true" aria-labelledby="planPreguntaTitulo">
+                        <h3 id="planPreguntaTitulo">¿Quiere probar este plan?</h3>
+                        <p id="planPreguntaTexto"></p>
+                        <div class="plan-pregunta-acciones">
+                            <button class="button button-secondary" type="button" id="planPreguntaNo">No</button>
+                            <a class="button button-primary" id="planPreguntaSi" href="{{ url_for('registro') }}">Sí, probar 7 días</a>
+                        </div>
+                    </div>
+                </div>
+                <p class="hero-copy" id="precioUsuarioNota" style="text-align:center;margin-top:18px" data-dop="{{ precios.usuario_dop }}" data-usd="{{ precios.usuario_usd }}">Usuario adicional: <strong id="precioUsuario">{{ precios.usuario_dop }}</strong> / mes. Independiente no admite usuarios extra.</p>
                 <div class="plans-action"><a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Probar 7 días' }} <i class="fas fa-arrow-right"></i></a></div>
             </div>
         </section>
@@ -431,7 +469,12 @@
                     <form class="demo-form" method="POST" action="{{ url_for('enviar_contacto') }}">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <label>Nombre
-                            <input type="text" name="nombre" maxlength="100" required autocomplete="name">
+                            <input type="text" id="contacto_nombre" name="nombre" maxlength="100" required
+                                   autocomplete="name" inputmode="text" data-solo-letras="1"
+                                   pattern="[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+"
+                                   title="Solo letras y espacios, sin números ni signos"
+                                   placeholder="Tu nombre">
+                            <span class="field-hint">Solo letras y espacios, sin números ni signos</span>
                         </label>
                         <label>Tu correo
                             <input type="email" name="email" maxlength="120" required autocomplete="email">
@@ -472,19 +515,80 @@
     <script src="{{ url_for('static', filename='js/color-mode.js') }}?v=1"></script>
     <script nonce="{{ csp_nonce }}">
         (() => {
-            const buttons = document.querySelectorAll('.billing-option');
+            document.querySelectorAll('[data-solo-letras]').forEach((input) => {
+                const soloLetras = () => {
+                    const limpio = input.value
+                        .replace(/[^A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]/g, '')
+                        .replace(/ {2,}/g, ' ');
+                    if (limpio !== input.value) input.value = limpio;
+                };
+                input.addEventListener('input', soloLetras);
+                input.addEventListener('paste', () => requestAnimationFrame(soloLetras));
+            });
             const pricing = document.getElementById('pricingOptions');
-            buttons.forEach(button => button.addEventListener('click', () => {
-                const annual = button.dataset.period === 'annual';
-                buttons.forEach(option => {
-                    option.classList.toggle('active', option === button);
-                    option.setAttribute('aria-pressed', option === button ? 'true' : 'false');
-                });
+            const periodButtons = document.querySelectorAll('[data-period]');
+            const currencyButtons = document.querySelectorAll('[data-currency]');
+            const usuarioNota = document.getElementById('precioUsuarioNota');
+            const usuarioPrecio = document.getElementById('precioUsuario');
+            let annual = false;
+            let currency = 'dop';
+            const pintarPrecios = () => {
                 pricing.classList.toggle('annual-mode', annual);
-                pricing.querySelectorAll('.plan-price').forEach(price => {
-                    price.querySelector('strong').textContent = annual ? price.dataset.annual : price.dataset.monthly;
+                pricing.querySelectorAll('.plan-price').forEach((price) => {
+                    const monto = annual
+                        ? (currency === 'usd' ? price.dataset.annualUsd : price.dataset.annualDop)
+                        : (currency === 'usd' ? price.dataset.monthlyUsd : price.dataset.monthlyDop);
+                    const detalle = currency === 'usd' ? price.dataset.detailUsd : price.dataset.detailDop;
+                    price.querySelector('strong').textContent = monto;
+                    const linea = price.querySelector('.annual-detail');
+                    if (linea) linea.textContent = detalle;
                 });
+                if (usuarioPrecio && usuarioNota) {
+                    usuarioPrecio.textContent = currency === 'usd' ? usuarioNota.dataset.usd : usuarioNota.dataset.dop;
+                }
+            };
+            const activar = (botones, elegido) => {
+                botones.forEach((option) => {
+                    const activo = option === elegido;
+                    option.classList.toggle('active', activo);
+                    option.setAttribute('aria-pressed', activo ? 'true' : 'false');
+                });
+            };
+            periodButtons.forEach((button) => button.addEventListener('click', () => {
+                annual = button.dataset.period === 'annual';
+                activar(periodButtons, button);
+                pintarPrecios();
             }));
+            currencyButtons.forEach((button) => button.addEventListener('click', () => {
+                currency = button.dataset.currency === 'usd' ? 'usd' : 'dop';
+                activar(currencyButtons, button);
+                pintarPrecios();
+            }));
+            const pregunta = document.getElementById('planPregunta');
+            const texto = document.getElementById('planPreguntaTexto');
+            const enlace = document.getElementById('planPreguntaSi');
+            const registro = {{ url_for('registro')|tojson }};
+            const abrirPregunta = (card) => {
+                const nombre = card.dataset.planNombre || 'este plan';
+                texto.textContent = 'La demo de ' + nombre + ' dura 7 días. Si acepta, abre el registro con ese plan ya elegido.';
+                enlace.href = registro + '?plan=' + encodeURIComponent(card.dataset.plan);
+                pregunta.hidden = false;
+            };
+            document.querySelectorAll('.plan-option[data-plan]').forEach((card) => {
+                card.addEventListener('click', () => abrirPregunta(card));
+                card.addEventListener('keydown', (event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        abrirPregunta(card);
+                    }
+                });
+            });
+            document.getElementById('planPreguntaNo').addEventListener('click', () => {
+                pregunta.hidden = true;
+            });
+            pregunta.addEventListener('click', (event) => {
+                if (event.target === pregunta) pregunta.hidden = true;
+            });
         })();
     </script>
 </body>

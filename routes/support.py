@@ -51,6 +51,48 @@ def validate_digits(value, length):
     return bool(re.fullmatch(rf'\d{{{length}}}', value or ''))
 
 
+def cedula_digito_valido(cedula):
+    """Dígito verificador de la cédula dominicana (11 números, módulo 10)."""
+    if not validate_digits(cedula, 11) or cedula.startswith('000'):
+        return False
+    suma = 0
+    for indice, caracter in enumerate(cedula[:10]):
+        producto = int(caracter) * (1 if indice % 2 == 0 else 2)
+        if producto > 9:
+            producto = (producto // 10) + (producto % 10)
+        suma += producto
+    esperado = (10 - (suma % 10)) % 10
+    return esperado == int(cedula[10])
+
+
+def rnc_digito_valido(rnc):
+    """Dígito verificador del RNC (9 números, módulo 11 de la DGII)."""
+    if not validate_digits(rnc, 9):
+        return False
+    pesos = (7, 9, 8, 6, 5, 4, 3, 2)
+    suma = sum(int(rnc[indice]) * pesos[indice] for indice in range(8))
+    residuo = suma % 11
+    if residuo == 0:
+        esperado = 2
+    elif residuo == 1:
+        esperado = 1
+    else:
+        esperado = 11 - residuo
+    return esperado == int(rnc[8])
+
+
+def error_cedula(cedula):
+    if cedula_digito_valido(cedula):
+        return None
+    return 'La cédula no es válida. Revise los 11 números.'
+
+
+def error_rnc(rnc):
+    if rnc_digito_valido(rnc):
+        return None
+    return 'El RNC no es válido. Revise los 9 números.'
+
+
 def validar_nombre_empresa(nombre):
     """Nombre comercial del consultorio: sin dígitos."""
     texto = (nombre or '').strip()
@@ -58,6 +100,19 @@ def validar_nombre_empresa(nombre):
         return 'El nombre de la empresa es obligatorio'
     if re.search(r'\d', texto):
         return 'El nombre de la empresa no puede contener números'
+    return None
+
+
+_NOMBRE_PERSONA = re.compile(r'^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+(?: [A-Za-zÁÉÍÓÚÜÑáéíóúüñ]+)*$')
+
+
+def error_nombre_persona(nombre):
+    """Nombre de una persona: letras (con acentos) y espacios."""
+    texto = re.sub(r'\s+', ' ', (nombre or '').strip())
+    if not texto:
+        return 'El nombre es obligatorio'
+    if not _NOMBRE_PERSONA.fullmatch(texto):
+        return 'El nombre solo puede tener letras y espacios, sin números ni signos.'
     return None
 
 def calcular_edad_clinica(fecha_nacimiento, fecha_referencia=None):

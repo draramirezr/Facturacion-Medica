@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 from datetime import datetime
 
 from flask import Response, flash, jsonify, redirect, render_template, request, url_for
@@ -13,8 +14,9 @@ from auth.helpers import usuario_es_dueno_software
 from core.config import url_publica_base
 from core.presentation import datos_seo, obtener_soporte, SEO_PAGINAS
 from core.security import rate_limit
-from routes.support import sanitize_input, validate_email
+from routes.support import error_nombre_persona, sanitize_input, validate_email
 from services.platform import registrar_vista_pagina
+from services.tipo_cambio import catalogo_precios
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +38,11 @@ def receive_csp_report():
 
 def index():
     registrar_vista_pagina('index')
-    return render_template('inicio.html', current_year=datetime.now().year)
+    return render_template(
+        'inicio.html',
+        current_year=datetime.now().year,
+        precios=catalogo_precios(),
+    )
 
 
 def redirects():
@@ -142,11 +148,15 @@ def enviar_contacto():
     """Recibir un mensaje público y enviarlo al correo de soporte."""
     if request.method == 'GET':
         return redirect(url_for('index', _anchor='contacto'))
-    nombre = sanitize_input(request.form.get('nombre', ''), 100)
+    nombre = re.sub(r'\s+', ' ', sanitize_input(request.form.get('nombre', ''), 100)).strip()
     email = (request.form.get('email') or '').strip().lower()
     mensaje = sanitize_input(request.form.get('mensaje', ''), 2000)
     if not all((nombre, email, mensaje)):
         flash('Completa nombre, correo y mensaje para escribirnos.', 'error')
+        return redirect(url_for('index', _anchor='contacto'))
+    error_nombre = error_nombre_persona(nombre)
+    if error_nombre:
+        flash(error_nombre, 'error')
         return redirect(url_for('index', _anchor='contacto'))
     if not validate_email(email):
         flash('Ingresa un correo electrónico válido.', 'error')

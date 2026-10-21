@@ -114,6 +114,22 @@
             color: #94A3B8;
             margin-top: 6px;
         }
+        .password-field { position: relative; }
+        .password-field input { padding-right: 48px; }
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 8px;
+            width: 36px;
+            height: 36px;
+            transform: translateY(-50%);
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #718096;
+            cursor: pointer;
+        }
+        .password-toggle:hover { background: #f2f5f8; color: #0891B2; }
     </style>
     <link href="{{ url_for('static', filename='css/auth-refresh.css') }}?v=2.2" rel="stylesheet">
     <style nonce="{{ csp_nonce }}">
@@ -129,6 +145,8 @@
         html[data-color-mode="dark"] .form-group select { background:#0d1625 !important; border-color:#344258 !important; color:#e7edf6 !important; }
         html[data-color-mode="dark"] .login-prompt,
         html[data-color-mode="dark"] .hint { color:#9eacbd; }
+        html[data-color-mode="dark"] .password-toggle { color:#9eacbd; }
+        html[data-color-mode="dark"] .password-toggle:hover { background:#1a2740; color:#e7edf6; }
         html[data-color-mode="dark"] .register-theme-toggle { background:#111a2b; border-color:#344258; color:#e7edf6; }
     </style>
     <link href="{{ url_for('static', filename='css/public-theme.css') }}?v=2" rel="stylesheet">
@@ -165,9 +183,21 @@
                     <label for="tipo_empresa">Tipo</label>
                     <select id="tipo_empresa" name="tipo_empresa" required>
                         <option value="">Selecciona una opción</option>
-                        <option value="medico">Médico / Consultorio</option>
-                        <option value="centro_salud">Centro de salud</option>
+                        <option value="medico" {% if request.form.get('tipo_empresa') == 'medico' %}selected{% endif %}>Médico / Consultorio</option>
+                        <option value="centro_salud" {% if request.form.get('tipo_empresa') == 'centro_salud' %}selected{% endif %}>Centro de salud</option>
                     </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="plan">Plan</label>
+                    {% set plan_actual = request.form.get('plan') or plan_elegido|default('') %}
+                    <select id="plan" name="plan" required>
+                        <option value="">Selecciona un plan</option>
+                        <option value="basico" {% if plan_actual == 'basico' %}selected{% endif %}>Independiente (1 usuario)</option>
+                        <option value="profesional" {% if plan_actual == 'profesional' %}selected{% endif %}>Consultorio (hasta 2 usuarios)</option>
+                        <option value="empresarial" {% if plan_actual == 'empresarial' %}selected{% endif %}>Centro médico (hasta 5 usuarios)</option>
+                    </select>
+                    <p class="hint">La demo de 7 días usa el plan que elija. Ese mismo plan queda al pasar a cliente.</p>
                 </div>
 
                 <div class="form-group">
@@ -194,15 +224,25 @@
 
                 <div class="form-group">
                     <label for="password">Contraseña</label>
-                    <input type="password" id="password" name="password" required minlength="8"
-                           placeholder="Crea una contraseña segura" autocomplete="new-password">
+                    <div class="password-field">
+                        <input type="password" id="password" name="password" required minlength="8"
+                               placeholder="Crea una contraseña segura" autocomplete="new-password">
+                        <button class="password-toggle" type="button" data-password-target="password" aria-label="Mostrar contraseña">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
                     <p class="hint">Mínimo 8 caracteres, con mayúscula, minúscula y número</p>
                 </div>
 
                 <div class="form-group">
                     <label for="password_confirm">Confirmar contraseña</label>
-                    <input type="password" id="password_confirm" name="password_confirm" required
-                           placeholder="Repite la contraseña" autocomplete="new-password">
+                    <div class="password-field">
+                        <input type="password" id="password_confirm" name="password_confirm" required
+                               placeholder="Repite la contraseña" autocomplete="new-password">
+                        <button class="password-toggle" type="button" data-password-target="password_confirm" aria-label="Mostrar contraseña">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-register">Crear cuenta gratis</button>
@@ -230,6 +270,44 @@
                 requestAnimationFrame(soloNumeros);
             });
             soloNumeros();
+        });
+
+        (function () {
+            const empresa = document.getElementById('nombre_empresa');
+            const tipo = document.getElementById('tipo_empresa');
+            const nombre = document.getElementById('nombre');
+            if (!empresa || !tipo || !nombre) {
+                return;
+            }
+            let ultimoCopiado = '';
+            const copiarSiMedico = () => {
+                if (tipo.value !== 'medico') {
+                    return;
+                }
+                const actual = nombre.value.trim();
+                if (actual && actual !== ultimoCopiado) {
+                    return;
+                }
+                nombre.value = empresa.value;
+                ultimoCopiado = nombre.value.trim();
+            };
+            empresa.addEventListener('input', copiarSiMedico);
+            tipo.addEventListener('change', copiarSiMedico);
+        })();
+
+        document.querySelectorAll('[data-password-target]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const input = document.getElementById(button.dataset.passwordTarget);
+                if (!input) {
+                    return;
+                }
+                const visible = input.type === 'text';
+                input.type = visible ? 'password' : 'text';
+                button.innerHTML = visible
+                    ? '<i class="far fa-eye"></i>'
+                    : '<i class="far fa-eye-slash"></i>';
+                button.setAttribute('aria-label', visible ? 'Mostrar contraseña' : 'Ocultar contraseña');
+            });
         });
     </script>
 </body>

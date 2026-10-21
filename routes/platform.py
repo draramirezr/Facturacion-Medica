@@ -14,10 +14,10 @@ from routes.support import (
     validate_digits,
     validate_email,
 )
+from services.tipo_cambio import PLAN_USD, catalogo_precios, monto_plan_dop
 from services.platform import (
     DEMO_DIAS,
     PLAN_LICENCIAS,
-    PLAN_PRECIOS,
     activar_demo_solicitud,
     alertas_licencias,
     asegurar_tablas_plataforma,
@@ -163,10 +163,13 @@ def plataforma_empresa_alta(empresa_id):
         return render_template(
             'admin/plataforma/alta.html',
             empresa=empresa,
-            precios=PLAN_PRECIOS,
+            precios=catalogo_precios(),
             licencias=PLAN_LICENCIAS,
         )
     plan = request.form.get('plan', empresa.get('plan') or 'basico').strip()
+    if plan not in PLAN_USD:
+        flash('Selecciona un plan válido.', 'error')
+        return redirect(url_for('plataforma_empresa_alta', empresa_id=empresa_id))
     meses = 12 if request.form.get('meses') == '12' else 1
     crear_factura = request.form.get('crear_factura') == '1'
     resultado = dar_de_alta_empresa(
@@ -177,7 +180,10 @@ def plataforma_empresa_alta(empresa_id):
         creado_por=current_user.id,
     )
     if not resultado:
-        flash('No se pudo dar de alta a esa empresa.', 'error')
+        flash(
+            'No se pudo dar de alta. Revise el plan o la tasa de compra del Banco Central.',
+            'error',
+        )
         return redirect(url_for('admin_empresas'))
     flash(
         f"{empresa['nombre']} quedó de alta hasta {resultado['fecha_fin']}.",
@@ -204,7 +210,7 @@ def plataforma_facturas():
         facturas=facturas,
         resumen=resumen,
         filtros=filtros,
-        precios=PLAN_PRECIOS,
+        precios=catalogo_precios(),
     )
 
 
@@ -216,6 +222,8 @@ def plataforma_factura_nueva():
         empresa = next((item for item in empresas if item['id'] == empresa_id), None)
         plan = (empresa or {}).get('plan') or 'basico'
         hoy = date.today()
+        precios = catalogo_precios()
+        monto = (precios['planes'].get(plan) or {}).get('dop')
         return render_template(
             'admin/plataforma/factura_form.html',
             empresas=empresas,
@@ -226,18 +234,19 @@ def plataforma_factura_nueva():
                 'periodo_fin': hoy.isoformat(),
                 'plan': plan,
                 'licencias': PLAN_LICENCIAS.get(plan, 1),
-                'monto': PLAN_PRECIOS.get(plan, 1195),
+                'monto': '' if monto is None else format(monto, 'f'),
                 'notas': '',
             },
-            precios=PLAN_PRECIOS,
+            precios=precios,
         )
     empresa_id = request.form.get('empresa_id', type=int)
     plan = request.form.get('plan', 'basico').strip()
-    if plan not in PLAN_PRECIOS or not empresa_id:
+    if plan not in PLAN_USD or not empresa_id:
         flash('Selecciona una empresa y un plan válidos.', 'error')
         return redirect(url_for('plataforma_factura_nueva'))
     try:
-        monto = float(request.form.get('monto') or PLAN_PRECIOS[plan])
+        monto_escrito = (request.form.get('monto') or '').strip()
+        monto = float(monto_escrito) if monto_escrito else float(monto_plan_dop(plan))
         licencias = int(request.form.get('licencias') or PLAN_LICENCIAS[plan])
     except (TypeError, ValueError):
         flash('Monto o licencias inválidos.', 'error')

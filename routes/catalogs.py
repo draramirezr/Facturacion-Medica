@@ -12,7 +12,7 @@ from core.tenant import get_current_tenant_id, validate_tenant_access
 from ecf import ECF_TYPE_CATALOG
 from routes.support import (
     ESPECIALIDADES_MEDICAS, get_especialidad_form, sanitize_input,
-    validate_digits, validate_email,
+    error_cedula, error_rnc, validate_digits, validate_email,
 )
 from services.catalogos_ars import sembrar_ars_tenant
 from services.subscriptions import get_empresa_info
@@ -146,6 +146,9 @@ def facturacion_ars_nuevo():
         if not validate_digits(rnc, 9):
             flash('El RNC debe tener 9 números, sin guiones.', 'error')
             return redirect(url_for('facturacion_ars_nuevo'))
+        if error_rnc(rnc):
+            flash(error_rnc(rnc), 'error')
+            return redirect(url_for('facturacion_ars_nuevo'))
 
         if _rnc_ars_ya_existe(tenant_id, rnc):
             flash(
@@ -207,6 +210,9 @@ def facturacion_ars_editar(ars_id):
 
         if not validate_digits(rnc, 9):
             flash('El RNC debe tener 9 números, sin guiones.', 'error')
+            return redirect(url_for('facturacion_ars_editar', ars_id=ars_id))
+        if error_rnc(rnc):
+            flash(error_rnc(rnc), 'error')
             return redirect(url_for('facturacion_ars_editar', ars_id=ars_id))
 
         if _rnc_ars_ya_existe(tenant_id, rnc, excluir_ars_id=ars_id):
@@ -301,6 +307,9 @@ def facturacion_medicos_nuevo():
         if not validate_digits(cedula, 11):
             flash('La cédula debe contener exactamente 11 números', 'error')
             return redirect(url_for('facturacion_medicos_nuevo'))
+        if error_cedula(cedula):
+            flash(error_cedula(cedula), 'error')
+            return redirect(url_for('facturacion_medicos_nuevo'))
 
         if not validate_digits(telefono, 10):
             flash('El teléfono debe contener exactamente 10 números', 'error')
@@ -357,6 +366,9 @@ def facturacion_medicos_editar(medico_id):
 
         if not validate_digits(cedula, 11):
             flash('La cédula debe contener exactamente 11 números', 'error')
+            return redirect(url_for('facturacion_medicos_editar', medico_id=medico_id))
+        if error_cedula(cedula):
+            flash(error_cedula(cedula), 'error')
             return redirect(url_for('facturacion_medicos_editar', medico_id=medico_id))
 
         if not validate_digits(telefono, 10):
@@ -450,6 +462,9 @@ def facturacion_centros_medicos_nuevo():
         if not validate_digits(rnc, 9):
             flash('El RNC debe tener 9 números, sin guiones.', 'error')
             return redirect(url_for('facturacion_centros_medicos_nuevo'))
+        if error_rnc(rnc):
+            flash(error_rnc(rnc), 'error')
+            return redirect(url_for('facturacion_centros_medicos_nuevo'))
         
         tenant_id = get_current_tenant_id()
         execute_update('''
@@ -491,6 +506,9 @@ def facturacion_centros_medicos_editar(centro_id):
 
         if not validate_digits(rnc, 9):
             flash('El RNC debe tener 9 números, sin guiones.', 'error')
+            return redirect(url_for('facturacion_centros_medicos_editar', centro_id=centro_id))
+        if error_rnc(rnc):
+            flash(error_rnc(rnc), 'error')
             return redirect(url_for('facturacion_centros_medicos_editar', centro_id=centro_id))
         
         tenant_id = get_current_tenant_id()

@@ -26,7 +26,9 @@ from routes.support import (
     validate_email,
 )
 from services.catalogos_ars import sembrar_ars_tenant
-from services.platform import asegurar_tablas_plataforma, registrar_vista_pagina
+from services.platform import (
+    PLAN_LICENCIAS, asegurar_tablas_plataforma, registrar_vista_pagina,
+)
 from services.subscriptions import (
     check_license_available, verificar_suscripciones_vencidas,
 )
@@ -190,9 +192,13 @@ def registro():
         return redirect(url_for(destino_inicio_sesion(current_user)))
     if request.method == 'GET':
         registrar_vista_pagina('registro')
-        return render_template('registro.html')
+        plan_elegido = request.args.get('plan', '').strip()
+        if plan_elegido not in PLAN_LICENCIAS:
+            plan_elegido = ''
+        return render_template('registro.html', plan_elegido=plan_elegido)
     nombre_empresa = sanitize_input(request.form.get('nombre_empresa', ''), 255)
     tipo_empresa = request.form.get('tipo_empresa', '').strip()
+    plan = request.form.get('plan', '').strip()
     nombre = sanitize_input(request.form.get('nombre', ''), 255)
     email = request.form.get('email', '').strip().lower()
     telefono = sanitize_input(request.form.get('telefono', ''), 20)
@@ -203,6 +209,9 @@ def registro():
         return render_template('registro.html')
     if tipo_empresa not in ('medico', 'centro_salud'):
         flash('Selecciona un tipo de empresa válido', 'error')
+        return render_template('registro.html')
+    if plan not in PLAN_LICENCIAS:
+        flash('Selecciona un plan', 'error')
         return render_template('registro.html')
     error_nombre_empresa = validar_nombre_empresa(nombre_empresa)
     if error_nombre_empresa:
@@ -287,11 +296,12 @@ def registro():
                     nombre, razon_social, telefono, email, fecha_inicio, fecha_fin,
                     licencias_totales, licencias_usadas, plan, estado, tipo_empresa,
                     es_demo
-                ) VALUES (%s,%s,%s,%s,%s,%s,5,1,'basico','activo',%s,1)
+                ) VALUES (%s,%s,%s,%s,%s,%s,%s,1,%s,'activo',%s,1)
                 """,
                 (
                     nombre_empresa, nombre_empresa, telefono, email,
-                    fecha_inicio, fecha_fin, tipo_empresa,
+                    fecha_inicio, fecha_fin, PLAN_LICENCIAS[plan], plan,
+                    tipo_empresa,
                 ),
             )
             if not empresa_id:

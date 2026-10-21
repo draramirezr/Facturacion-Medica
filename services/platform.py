@@ -10,21 +10,16 @@ from io import BytesIO
 from core.database import execute_query, execute_update, database_transaction
 from core.presentation import PRODUCTO, SOPORTE_EMAIL_PREDETERMINADO
 from services.catalogos_ars import sembrar_ars_tenant
+from services.tipo_cambio import PLAN_USD, monto_plan_dop
 
 logger = logging.getLogger(__name__)
 
 DEMO_DIAS = 7
-PLAN_PRECIOS = {
-    'basico': 1195,
-    'profesional': 1795,
-    'empresarial': 3695,
-}
 PLAN_LICENCIAS = {
     'basico': 1,
     'profesional': 2,
     'empresarial': 5,
 }
-PRECIO_USUARIO_ADICIONAL = 450
 
 
 def asegurar_tablas_plataforma():
@@ -179,16 +174,18 @@ def habilitar_demo_empresa(empresa_id):
 
 def dar_de_alta_empresa(empresa_id, plan='basico', meses=1, crear_factura=True, creado_por=None):
     """Convierte un demo en cliente de alta al cerrar la negociación."""
-    if plan not in PLAN_PRECIOS:
+    if plan not in PLAN_USD:
         return None
     meses = 12 if int(meses or 1) >= 12 else 1
     empresa = execute_query('SELECT * FROM empresas WHERE id=%s', (empresa_id,))
     if not empresa:
         return None
+    monto = monto_plan_dop(plan, meses)
+    if monto is None:
+        return None
     hoy = date.today()
     dias = 365 if meses == 12 else 30
     licencias = PLAN_LICENCIAS.get(plan, empresa.get('licencias_totales') or 1)
-    monto = PLAN_PRECIOS[plan] * (meses * 0.85 if meses == 12 else 1)
     execute_update(
         '''
         UPDATE empresas

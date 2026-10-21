@@ -16,9 +16,9 @@
         <div class="mb-3">
             <label class="form-label" for="plan">Plan acordado</label>
             <select class="form-select" id="plan" name="plan">
-                <option value="basico" {{ 'selected' if empresa.plan=='basico' }}>Independiente · RD$ 1,195 / mes · 1 usuario</option>
-                <option value="profesional" {{ 'selected' if empresa.plan=='profesional' }}>Consultorio · RD$ 1,795 / mes · 2 usuarios</option>
-                <option value="empresarial" {{ 'selected' if empresa.plan=='empresarial' }}>Centro médico · RD$ 3,695 / mes · 5 usuarios</option>
+                <option value="basico" {{ 'selected' if empresa.plan=='basico' }}>Independiente · {{ precios.planes.basico.mensual_usd }} · {{ precios.planes.basico.mensual_dop }} / mes · 1 usuario</option>
+                <option value="profesional" {{ 'selected' if empresa.plan=='profesional' }}>Consultorio · {{ precios.planes.profesional.mensual_usd }} · {{ precios.planes.profesional.mensual_dop }} / mes · 2 usuarios</option>
+                <option value="empresarial" {{ 'selected' if empresa.plan=='empresarial' }}>Centro médico · {{ precios.planes.empresarial.mensual_usd }} · {{ precios.planes.empresarial.mensual_dop }} / mes · 5 usuarios</option>
             </select>
         </div>
         <div class="mb-3">
@@ -28,6 +28,7 @@
                 <option value="12">12 meses · 15% menos</option>
             </select>
         </div>
+        <p class="text-muted">El dólar es el precio fijo. El peso de la factura usa la tasa de compra del Banco Central{% if precios.tasa %} del {{ precios.tasa.fecha }} (RD$ {{ precios.compra_texto }}){% endif %}.</p>
         <div class="form-check mb-4">
             <input class="form-check-input" type="checkbox" value="1" id="crear_factura" name="crear_factura" checked>
             <label class="form-check-label" for="crear_factura">Crear factura de cobro ahora</label>

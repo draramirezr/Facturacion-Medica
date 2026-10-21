@@ -11,6 +11,8 @@ from routes.support import (
     ESPECIALIDADES_MEDICAS,
     get_especialidad_form,
     sanitize_input,
+    error_cedula,
+    error_rnc,
     validate_digits,
     validate_email,
 )
@@ -90,6 +92,9 @@ def _guardar_medico(tenant_id):
     if not validate_digits(cedula, 11):
         flash('La cédula debe tener 11 números.', 'error')
         return redirect(url_for('completar_perfil_inicial'))
+    if error_cedula(cedula):
+        flash(error_cedula(cedula), 'error')
+        return redirect(url_for('completar_perfil_inicial'))
     if not validate_digits(telefono, 10):
         flash('El teléfono debe tener 10 números.', 'error')
         return redirect(url_for('completar_perfil_inicial'))
@@ -145,6 +150,9 @@ def _guardar_centro(tenant_id):
         return redirect(url_for('completar_perfil_inicial'))
     if not validate_digits(rnc, 9):
         flash('El RNC debe tener 9 números, sin guiones.', 'error')
+        return redirect(url_for('completar_perfil_inicial'))
+    if error_rnc(rnc):
+        flash(error_rnc(rnc), 'error')
         return redirect(url_for('completar_perfil_inicial'))
     if not validate_digits(telefono, 10):
         flash('El teléfono debe tener 10 números.', 'error')

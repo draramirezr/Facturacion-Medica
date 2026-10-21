@@ -15,6 +15,8 @@ from core.tenant import get_current_tenant_id
 from routes.support import (
     sanitize_input,
     validar_nombre_empresa,
+    error_cedula,
+    error_rnc,
     validate_digits,
     validate_email,
     validate_int,
@@ -187,21 +189,29 @@ def _validate_company(values, editing=False):
     values['telefono'] = telefono_digits
     if values['tipo_empresa'] == 'medico':
         # Médico/consultorio: cédula (11) o RNC personal (9), ambos válidos ante DGII.
-        if len(rnc_digits) not in (9, 11) or not rnc_digits.isdigit():
+        if len(rnc_digits) == 11:
+            if error_cedula(rnc_digits):
+                return error_cedula(rnc_digits)
+        elif len(rnc_digits) == 9:
+            if error_rnc(rnc_digits):
+                return error_rnc(rnc_digits)
+        else:
             return 'La cédula debe tener 11 números (o RNC de 9 números)'
     elif not validate_digits(rnc_digits, 9):
         return 'El RNC debe tener 9 números, sin guiones.'
+    elif error_rnc(rnc_digits):
+        return error_rnc(rnc_digits)
     if not validate_digits(telefono_digits, 10):
         return 'El teléfono debe contener exactamente 10 números'
     if not validate_email(values['email']):
         return 'Debe introducir un email válido'
     from services.identificadores import error_rnc_en_otra_empresa
-    error_rnc = error_rnc_en_otra_empresa(
+    duplicado = error_rnc_en_otra_empresa(
         rnc_digits,
         values.get('empresa_id'),
     )
-    if error_rnc:
-        return error_rnc
+    if duplicado:
+        return duplicado
     if values['plan'] not in ('basico', 'profesional', 'empresarial'):
         return 'Debe seleccionar un plan válido'
     if editing and values['estado'] not in ('activo', 'suspendido', 'inactivo'):
