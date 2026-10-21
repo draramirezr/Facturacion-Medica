@@ -136,9 +136,15 @@
                 <p class="text-muted mb-0">Registro de médicos</p>
             </div>
             <div class="d-flex gap-2">
+                {% if puede_crear_medico %}
                 <a href="{{ url_for('facturacion_medicos_nuevo') }}" class="btn btn-cancelar">
                     <i class="fas fa-plus me-2"></i>Nuevo Médico
                 </a>
+                {% else %}
+                <span class="btn btn-cancelar disabled opacity-75" title="Límite de licencias alcanzado">
+                    <i class="fas fa-plus me-2"></i>Nuevo Médico
+                </span>
+                {% endif %}
                 <a href="{{ url_for('facturacion_menu') }}" class="btn btn-cancelar">
                     <i class="fas fa-arrow-left me-2"></i>Volver
                 </a>
@@ -146,17 +152,20 @@
         </div>
     </div>
 
+    {% if not puede_crear_medico %}
+    <div class="alert alert-warning">
+        <i class="fas fa-id-card me-2"></i>
+        Has usado todas las licencias de médicos ({{ medicos_usados }}/{{ medicos_cupo }}).
+        Para registrar otro médico, amplía el plan o contacta a soporte.
+    </div>
+    {% endif %}
+
     <!-- Búsqueda -->
     <div class="search-box">
         <form method="GET" action="{{ url_for('facturacion_medicos') }}">
             <div class="row g-3 align-items-end">
-                <div class="col-md-10">
+                <div class="col-12">
                     <input type="text" name="search" class="form-control fi-medicos-inline-2" placeholder="Buscar por nombre, especialidad o teléfono..." value="{{ search }}">
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-buscar w-100 fi-medicos-inline-3">
-                        <i class="fas fa-search me-2"></i>Buscar
-                    </button>
                 </div>
             </div>
         </form>

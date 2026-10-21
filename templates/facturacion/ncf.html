@@ -215,13 +215,8 @@
     <div class="search-box">
         <form method="GET" action="{{ url_for('facturacion_ncf') }}">
             <div class="row align-items-end g-3">
-                <div class="col-md-10">
+                <div class="col-12">
                     <input type="text" name="search" class="form-control fi-ncf-inline-3" placeholder="Buscar por tipo o prefijo..." value="{{ search }}">
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-buscar w-100 fi-ncf-inline-4">
-                        <i class="fas fa-search me-2"></i>Buscar
-                    </button>
                 </div>
             </div>
         </form>

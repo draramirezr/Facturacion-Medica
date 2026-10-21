@@ -11,6 +11,7 @@ from core.database import execute_query, execute_update
 from core.tenant import get_current_tenant_id
 from routes.patients import paciente_adulto_sin_cedula
 from routes.support import sanitize_input, validate_int
+from services.plan_features import requiere_plan_centro_medico
 
 
 def medico_id_emergencias_restringido():
@@ -30,6 +31,7 @@ def medico_id_emergencias_restringido():
 
 @login_required
 @permission_required('emergencia.ver')
+@requiere_plan_centro_medico
 def facturacion_historias_emergencia():
     """Listado de historias clínicas de emergencia del tenant."""
     tenant_id = get_current_tenant_id()
@@ -55,6 +57,7 @@ def facturacion_historias_emergencia():
 
 @login_required
 @permission_required('emergencia.crear')
+@requiere_plan_centro_medico
 def facturacion_historias_emergencia_nueva():
     """Registrar una historia clínica de emergencia."""
     tenant_id = get_current_tenant_id()
@@ -72,7 +75,10 @@ def facturacion_historias_emergencia_nueva():
         autorizacion = sanitize_input(request.form.get('autorizacion', ''), 100)
         numero_afiliado = sanitize_input(request.form.get('numero_afiliado', ''), 100)
         edad = validate_int(request.form.get('edad'), min_value=0, max_value=130, default=None)
-        sexo_historia = request.form.get('sexo_historia', '').strip()
+        sexo_historia = (request.form.get('sexo_historia', '').strip().upper())
+        ars_id_form = validate_int(
+            request.form.get('ars_id'), min_value=1, default=None,
+        )
         motivo = sanitize_input(request.form.get('motivo_emergencia', ''), 4000)
         historia_actual = sanitize_input(request.form.get('historia_enfermedad', ''), 8000)
         diagnostico = sanitize_input(request.form.get('diagnostico_impresion', ''), 4000)
@@ -114,9 +120,18 @@ def facturacion_historias_emergencia_nueva():
         estatus_validos = ['Dado de alta', 'Referido', 'Alta a petición', 'Admitido', 'Fallecido']
         origenes_validos = ['Enfermedad común', 'Accidente de tránsito', 'Maternidad', 'Accidente laboral']
         if (estatus not in estatus_validos or origen not in origenes_validos
-                or sexo_historia not in ['M', 'F', 'Otro']):
+                or sexo_historia not in ('M', 'F')):
             flash('Seleccione un estatus y origen válidos', 'error')
             return redirect(url_for('facturacion_historias_emergencia_nueva'))
+
+        ars_nombre_guardar = paciente.get('ars_nombre')
+        if ars_id_form:
+            ars_elegida = execute_query(
+                'SELECT nombre FROM ars WHERE id=%s AND tenant_id=%s AND activo=1',
+                (ars_id_form, tenant_id),
+            )
+            if ars_elegida:
+                ars_nombre_guardar = ars_elegida['nombre']
 
         pruebas_validas = {'Hemograma', 'Examen de orina', 'HCG suero', 'Glucosa',
                            'Radiografía', 'Sonografía', 'EKG'}
@@ -161,7 +176,7 @@ def facturacion_historias_emergencia_nueva():
         ''', (
             tenant_id, paciente['id'], medico['id'], fecha, hora_servicio,
             autorizacion or None, paciente['nombre'], edad, sexo_historia,
-            paciente.get('ars_nombre'), numero_afiliado or None, paciente.get('nss'),
+            ars_nombre_guardar, numero_afiliado or None, paciente.get('nss'),
             motivo, historia_actual, json.dumps(datos_clinicos, ensure_ascii=False),
             diagnostico, estatus, origen, observaciones or None, medico['nombre'],
             current_user.id
@@ -169,6 +184,18 @@ def facturacion_historias_emergencia_nueva():
         flash('Historia de emergencia registrada exitosamente', 'success')
         return redirect(url_for('facturacion_historia_emergencia_ver', historia_id=historia_id))
 
+    from services.catalogos_ars import sembrar_ars_tenant
+
+    sembrar_ars_tenant(tenant_id)
+    ars_list = execute_query(
+        '''
+        SELECT id, nombre FROM ars
+        WHERE tenant_id=%s AND activo=1
+        ORDER BY nombre
+        ''',
+        (tenant_id,),
+        fetch='all',
+    ) or []
     pacientes = execute_query('''
         SELECT p.id, p.nombre, p.fecha_nacimiento, p.sexo, p.cedula, p.nss,
                p.ars_id, a.nombre AS ars_nombre
@@ -209,6 +236,7 @@ def facturacion_historias_emergencia_nueva():
         'facturacion/historia_emergencia_form.html',
         pacientes=pacientes,
         medicos=medicos,
+        ars_list=ars_list,
         paciente_preseleccionado=paciente_preseleccionado,
         fecha_actual=datetime.now().strftime('%Y-%m-%d'),
         hora_actual=datetime.now().strftime('%H:%M'),
@@ -240,6 +268,7 @@ def obtener_historia_emergencia(
 
 @login_required
 @permission_required('emergencia.ver')
+@requiere_plan_centro_medico
 def facturacion_historia_emergencia_ver(historia_id):
     historia = obtener_historia_emergencia(
         historia_id,
@@ -253,6 +282,7 @@ def facturacion_historia_emergencia_ver(historia_id):
 
 @login_required
 @permission_required('emergencia.imprimir')
+@requiere_plan_centro_medico
 def facturacion_historia_emergencia_imprimir(historia_id):
     historia = obtener_historia_emergencia(
         historia_id,

@@ -15,6 +15,11 @@ from routes.support import (
     validate_email,
 )
 from services.tipo_cambio import PLAN_USD, catalogo_precios, monto_plan_dop
+from services.plan_upgrades import (
+    UPGRADE_GRACIA_DIAS,
+    contar_upgrades_pendientes,
+    listar_upgrades_pendientes,
+)
 from services.platform import (
     DEMO_DIAS,
     PLAN_LICENCIAS,
@@ -98,6 +103,15 @@ def plataforma_alertas():
         'admin/plataforma/alertas.html',
         alertas=alertas_licencias(),
         demo_dias=DEMO_DIAS,
+    )
+
+
+@_solo_dueno
+def plataforma_upgrades():
+    return render_template(
+        'admin/plataforma/upgrades.html',
+        solicitudes=listar_upgrades_pendientes(),
+        gracia_dias=UPGRADE_GRACIA_DIAS,
     )
 
 
@@ -352,6 +366,9 @@ def register_platform_routes(app):
     )
     app.add_url_rule(
         '/admin/plataforma/demos', 'plataforma_demos', plataforma_demos,
+    )
+    app.add_url_rule(
+        '/admin/plataforma/upgrades', 'plataforma_upgrades', plataforma_upgrades,
     )
     app.add_url_rule(
         '/admin/plataforma/demos/<int:solicitud_id>/activar',

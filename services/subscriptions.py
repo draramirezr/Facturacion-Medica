@@ -9,6 +9,51 @@ from core.tenant import get_current_tenant_id
 logger = logging.getLogger(__name__)
 
 
+def _medicos_que_cuentan_licencia_sql():
+    """Médicos de guía (Ejemplo) no consumen cupo de licencia."""
+    return """
+        SELECT COUNT(*) AS total FROM medicos
+        WHERE tenant_id=%s AND activo=1
+          AND nombre NOT LIKE '(Ejemplo)%'
+    """
+
+
+def check_medico_catalog_limit(tenant_id):
+    """
+    Cada licencia de la empresa permite un médico operativo en catálogo.
+    Retorna (ok, usados, totales, mensaje).
+    """
+    empresa = execute_query(
+        """
+        SELECT licencias_totales
+        FROM empresas WHERE id=%s AND estado='activo'
+        """,
+        (tenant_id,),
+    )
+    if not empresa:
+        return False, 0, 0, 'Empresa no encontrada o inactiva'
+    totales = int(empresa['licencias_totales'] or 0)
+    if totales <= 0:
+        return False, 0, 0, 'La empresa no tiene licencias configuradas'
+    fila = execute_query(_medicos_que_cuentan_licencia_sql(), (tenant_id,))
+    usados = int((fila or {}).get('total') or 0)
+    if usados >= totales:
+        return (
+            False,
+            usados,
+            totales,
+            f'Has alcanzado el límite de médicos ({usados}/{totales} licencias). '
+            'Solicite más licencias a soporte o al administrador de su plan.',
+        )
+    restantes = totales - usados
+    return (
+        True,
+        usados,
+        totales,
+        f'{restantes} cupo(s) disponible(s) para registrar médicos',
+    )
+
+
 def check_license_available(tenant_id):
     empresa = execute_query(
         """
@@ -67,6 +112,9 @@ def inactivar_demos_vencidos():
 def verificar_suscripciones_vencidas():
     try:
         inactivar_demos_vencidos()
+        from services.plan_upgrades import vencer_upgrades_sin_pago
+
+        vencer_upgrades_sin_pago()
         return execute_update(
             """
             UPDATE empresas SET estado='suspendido'

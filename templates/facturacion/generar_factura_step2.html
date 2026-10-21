@@ -385,10 +385,6 @@
             </div>
         </div>
         <div class="text-end">
-            <button class="filter-btn clear" data-csp-click="limpiarFiltros">
-                <i class="fas fa-times-circle me-1"></i>
-                Limpiar Filtros
-            </button>
             <button class="filter-btn" data-csp-click="toggleSelectAll">
                 <i class="fas fa-check-double me-1"></i>
                 Seleccionar Todos (Filtrados)
@@ -520,16 +516,6 @@ function aplicarFiltros() {
     });
     
     // Recalcular total después de filtrar
-    calcularTotal();
-}
-
-function limpiarFiltros() {
-    document.getElementById('filtroMedico').value = '';
-    
-    todasLasFilas.forEach(fila => {
-        fila.classList.remove('fila-filtrada');
-    });
-    
     calcularTotal();
 }
 

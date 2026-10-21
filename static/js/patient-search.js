@@ -9,6 +9,7 @@
             sexo: patient?.sexo || '',
             direccion: patient?.direccion || '',
             arsNombre: patient?.ars_nombre || '',
+            arsId: patient?.ars_id != null ? String(patient.ars_id) : '',
             nombrePariente: patient?.nombre_pariente || '',
             telefonoPariente: patient?.telefono_pariente || '',
         };
@@ -206,6 +207,7 @@
             initial.id = hidden.value;
             initial.fecha_nacimiento = initial.fechaNacimiento;
             initial.ars_nombre = initial.arsNombre;
+            initial.ars_id = initial.arsId;
             initial.nombre_pariente = initial.nombrePariente;
             initial.telefono_pariente = initial.telefonoPariente;
             setPatient(hidden, initial);
@@ -332,6 +334,7 @@
             clear.hidden = true;
             closeResults();
             input.focus();
+            form?.requestSubmit();
         });
 
         document.addEventListener('click', (event) => {

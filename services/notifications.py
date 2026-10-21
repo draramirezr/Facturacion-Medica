@@ -9,6 +9,7 @@ from auth import user_has_permission
 from auth.helpers import usuario_es_dueno_software
 from core.database import execute_query
 from core.tenant import get_current_tenant_id
+from services.plan_upgrades import contar_upgrades_pendientes
 from services.platform import (
     alertas_licencias,
     asegurar_tablas_plataforma,
@@ -45,6 +46,15 @@ def _notificaciones_dueno():
                 'detalle': f'{pendientes} pendiente(s) de activar',
                 'fecha': '',
                 'url': url_for('plataforma_demos', estado='pendiente'),
+            })
+        upgrades = contar_upgrades_pendientes()
+        if upgrades:
+            notificaciones.append({
+                'tipo': 'upgrade',
+                'titulo': 'Upgrades de plan',
+                'detalle': f'{upgrades} pendiente(s) de pago',
+                'fecha': '',
+                'url': url_for('plataforma_upgrades'),
             })
         for empresa in alertas_licencias(8):
             dias = empresa.get('dias_restantes')

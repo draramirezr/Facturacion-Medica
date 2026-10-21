@@ -17,6 +17,7 @@ from routes.support import (
     validate_email,
 )
 from services.onboarding import perfil_inicial_pendiente
+from services.subscriptions import check_medico_catalog_limit
 
 _ENDPOINTS_LIBRES = frozenset({
     'completar_perfil_inicial',
@@ -83,11 +84,14 @@ def _guardar_medico(tenant_id):
     nombre = sanitize_input(request.form.get('nombre', ''), 200)
     especialidad = get_especialidad_form(request.form)
     cedula = re.sub(r'\D', '', request.form.get('cedula', '') or '')
-    exequatur = sanitize_input(request.form.get('exequatur', ''), 50)
+    exequatur = sanitize_input(request.form.get('exequatur', ''), 10)
     telefono = re.sub(r'\D', '', request.form.get('telefono', '') or '')
     email = (getattr(current_user, 'email', '') or '').strip().lower()
     if not all((nombre, especialidad, cedula, exequatur, telefono, email)):
         flash('Complete todos los datos del médico para empezar.', 'error')
+        return redirect(url_for('completar_perfil_inicial'))
+    if len(exequatur) > 10:
+        flash('El exequátur puede tener como máximo 10 caracteres.', 'error')
         return redirect(url_for('completar_perfil_inicial'))
     if not validate_digits(cedula, 11):
         flash('La cédula debe tener 11 números.', 'error')
@@ -111,6 +115,10 @@ def _guardar_medico(tenant_id):
     )
     if repetido:
         flash(repetido, 'error')
+        return redirect(url_for('completar_perfil_inicial'))
+    ok_medico, _, _, msg_medico = check_medico_catalog_limit(tenant_id)
+    if not ok_medico:
+        flash(msg_medico, 'error')
         return redirect(url_for('completar_perfil_inicial'))
     medico_id = execute_update(
         '''

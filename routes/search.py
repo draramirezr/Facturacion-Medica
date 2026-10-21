@@ -27,7 +27,7 @@ def api_buscar_pacientes():
     query = """
         SELECT p.id, p.nombre, p.cedula, p.nss, p.telefono,
                p.fecha_nacimiento, p.sexo, p.direccion,
-               p.nombre_pariente, p.telefono_pariente,
+               p.nombre_pariente, p.telefono_pariente, p.ars_id,
                a.nombre AS ars_nombre
         FROM pacientes p
         LEFT JOIN ars a
@@ -84,6 +84,7 @@ def api_buscar_pacientes():
                 'sexo': paciente.get('sexo') or '',
                 'direccion': paciente.get('direccion') or '',
                 'ars_nombre': paciente.get('ars_nombre') or '',
+                'ars_id': paciente.get('ars_id') or '',
                 'nombre_pariente': paciente.get('nombre_pariente') or '',
                 'telefono_pariente': paciente.get('telefono_pariente') or '',
             }

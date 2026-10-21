@@ -222,9 +222,11 @@
                 {% if medico.especialidad %} · {{ medico.especialidad }}{% endif %}
             </p>
         </div>
+        {% if plan_centro_medico %}
         <a class="btn btn-primary" href="{{ url_for('turnos_mi_cola') }}">
             <i class="fas fa-users me-2"></i>Ver mi cola
         </a>
+        {% endif %}
     </header>
 
     <section class="doctor-dashboard__filters" aria-label="Filtros del dashboard">
@@ -238,9 +240,6 @@
                     <label for="fecha_hasta">Hasta</label>
                     <input id="fecha_hasta" name="fecha_hasta" type="date" value="{{ fecha_hasta }}" required>
                 </div>
-                <button class="btn btn-primary" type="submit">
-                    <i class="fas fa-filter me-2"></i>Aplicar
-                </button>
             </div>
         </form>
     </section>
@@ -268,7 +267,7 @@
             <i class="fas fa-prescription"></i>
             <strong>{{ recetas.total or 0 }}</strong>
             <span>Recetas emitidas</span>
-            <small>{{ turnos.total or 0 }} turnos finalizados</small>
+            {% if plan_centro_medico %}<small>{{ turnos.total or 0 }} turnos finalizados</small>{% endif %}
         </article>
     </section>
 

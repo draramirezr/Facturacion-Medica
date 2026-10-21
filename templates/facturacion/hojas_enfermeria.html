@@ -7,7 +7,8 @@
 <style nonce="{{ csp_nonce }}">
     .nursing-hero { padding:1.6rem; margin-bottom:1.2rem; border:1px solid {{ tema.primary }}20; border-radius:17px; background:linear-gradient(135deg,{{ tema.primary }}12, var(--ars-shell-surface, #fff)); }
     .nursing-surface { margin-bottom:1.2rem; border:1px solid var(--ars-shell-border); border-radius:15px; background:var(--ars-shell-surface, #fff); overflow:hidden; }
-    .nursing-filter { padding:1rem; }
+    .nursing-filter { padding:1rem 1rem 0.75rem; }
+    .nursing-filter-hint { margin:0.5rem 0 0; color:#888; font-size:0.875rem; }
     .nursing-table th { background:var(--primary-dark)!important; color:white!important; }
 </style>
 <div class="container py-4">
@@ -15,11 +16,12 @@
         <div><h1 class="h3 mb-1"><i class="fas fa-clipboard-list me-2"></i>Hojas de Enfermería</h1><p class="text-muted mb-0">Medicamentos y materiales suministrados durante el servicio de emergencia.</p></div>
         <a class="btn btn-primary" href="{{ url_for('facturacion_hojas_enfermeria_nueva') }}"><i class="fas fa-plus me-2"></i>Nueva hoja</a>
     </header>
-    <form class="nursing-surface nursing-filter" method="GET">
-        <div class="row g-2 align-items-end">
-            <div class="col-md-9"><label class="form-label">Buscar paciente</label><input class="form-control" name="buscar" value="{{ buscar }}" placeholder="Nombre, cédula, NSS o teléfono"></div>
-            <div class="col-md-3"><button class="btn btn-primary w-100" type="submit"><i class="fas fa-search me-2"></i>Buscar</button></div>
-        </div>
+    <form class="nursing-surface nursing-filter" method="GET" action="{{ url_for('facturacion_hojas_enfermeria') }}">
+        <label class="form-label" for="buscar_enfermeria">Buscar paciente</label>
+        <input class="form-control" type="search" id="buscar_enfermeria" name="buscar"
+               value="{{ buscar }}" placeholder="Nombre, cédula, NSS o teléfono" autocomplete="off"
+               enterkeyhint="search">
+        <p class="nursing-filter-hint"><i class="fas fa-bolt me-1"></i>La lista se filtra sola mientras escribe.</p>
     </form>
     <div class="nursing-surface table-responsive">
         {% if hojas %}

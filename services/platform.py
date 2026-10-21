@@ -10,6 +10,7 @@ from io import BytesIO
 from core.database import execute_query, execute_update, database_transaction
 from core.presentation import PRODUCTO, SOPORTE_EMAIL_PREDETERMINADO
 from services.catalogos_ars import sembrar_ars_tenant
+from services.datos_guia import sembrar_datos_guia_tenant
 from services.tipo_cambio import PLAN_USD, monto_plan_dop
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,9 @@ PLAN_LICENCIAS = {
 
 def asegurar_tablas_plataforma():
     """Crear tablas del dueño si aún no existen."""
+    from services.plan_upgrades import asegurar_tabla_upgrades
+
+    asegurar_tabla_upgrades()
     execute_update(
         '''
         CREATE TABLE IF NOT EXISTS solicitudes_demo (
@@ -264,6 +268,12 @@ def activar_demo_solicitud(solicitud_id):
             if not empresa_id:
                 raise RuntimeError('No se pudo crear la empresa demo')
             sembrar_ars_tenant(empresa_id)
+            sembrar_datos_guia_tenant(
+                empresa_id,
+                solicitud['tipo_empresa'],
+                solicitud['telefono'],
+                solicitud['email'],
+            )
             from services.tenant_roles import sembrar_roles_sistema
             sembrar_roles_sistema(empresa_id)
             if not usuario:
@@ -421,6 +431,10 @@ def cambiar_estado_factura_plataforma(factura_id, estado):
         'UPDATE facturas_plataforma SET estado=%s WHERE id=%s',
         (estado, factura_id),
     )
+    if estado == 'pagada':
+        from services.plan_upgrades import marcar_upgrade_pagado_por_factura
+
+        marcar_upgrade_pagado_por_factura(factura_id)
     return True
 
 

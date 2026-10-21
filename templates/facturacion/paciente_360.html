@@ -85,7 +85,7 @@
         <div class="summary-item"><i class="fas fa-notes-medical"></i><strong>{{ resumen['consultas_clinicas'] }}</strong><span>Historias clínicas</span></div>
         <div class="summary-item"><i class="fas fa-calendar-days"></i><strong>{{ resumen['citas'] }}</strong><span>Citas médicas</span></div>
         <div class="summary-item"><i class="fas fa-prescription"></i><strong>{{ resumen['recetas'] }}</strong><span>Recetas</span></div>
-        <div class="summary-item"><i class="fas fa-truck-medical"></i><strong>{{ resumen['emergencias'] }}</strong><span>Emergencias</span></div>
+        {% if plan_centro_medico %}<div class="summary-item"><i class="fas fa-truck-medical"></i><strong>{{ resumen['emergencias'] }}</strong><span>Emergencias</span></div>{% endif %}
         {% if ver_facturacion %}<div class="summary-item"><i class="fas fa-stethoscope"></i><strong>{{ resumen['consultas_registradas'] }}</strong><span>Consultas registradas</span></div>{% endif %}
         <div class="summary-item"><i class="fas fa-file-medical"></i><strong>{{ resumen['licencias'] }}</strong><span>Licencias médicas</span></div>
         {% if ver_facturacion %}<div class="summary-item"><i class="fas fa-file-invoice-dollar"></i><strong>{{ resumen['facturas'] }}</strong><span>Facturas</span></div>{% endif %}
@@ -95,7 +95,7 @@
     <section class="patient-360-card">
         <h2 class="h5 mb-3">Actividad por médico</h2>
         <div class="doctor-summary doctor-summary--head">
-            <span>Profesional</span><span>Historias</span><span>Citas</span><span>Recetas</span><span>Emergencias</span>{% if ver_facturacion %}<span>Consultas</span>{% endif %}<span>Licencias</span>
+            <span>Profesional</span><span>Historias</span><span>Citas</span><span>Recetas</span>{% if plan_centro_medico %}<span>Emergencias</span>{% endif %}{% if ver_facturacion %}<span>Consultas</span>{% endif %}<span>Licencias</span>
         </div>
         {% for actividad in actividad_por_medico %}
         <div class="doctor-summary">
@@ -103,7 +103,7 @@
             <span>{{ actividad['historias'] }} historias</span>
             <span>{{ actividad['citas'] }} citas</span>
             <span>{{ actividad['recetas'] }} recetas</span>
-            <span>{{ actividad['emergencias'] }} emergencias</span>
+            {% if plan_centro_medico %}<span>{{ actividad['emergencias'] }} emergencias</span>{% endif %}
             {% if ver_facturacion %}<span>{{ actividad['consultas_registradas'] }} consultas</span>{% endif %}
             <span>{{ actividad['licencias'] }} licencias</span>
         </div>
@@ -122,7 +122,7 @@
         <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#clinical" type="button">Historia clínica</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#appointments" type="button">Citas</button></li>
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#prescriptions" type="button">Recetas</button></li>
-        <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#emergency" type="button">Emergencias</button></li>
+        {% if plan_centro_medico %}<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#emergency" type="button">Emergencias</button></li>{% endif %}
         {% if ver_facturacion %}<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#registered" type="button">Consultas registradas</button></li>{% endif %}
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#licenses" type="button">Licencias</button></li>
         {% if ver_facturacion %}<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#invoices" type="button">Facturación</button></li>{% endif %}
@@ -165,7 +165,7 @@
             {% else %}<div class="empty-record">No hay recetas registradas para este paciente.</div>{% endfor %}
         </section>
 
-        <section class="tab-pane fade patient-360-card" id="emergency">
+        {% if plan_centro_medico %}<section class="tab-pane fade patient-360-card" id="emergency">
             <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Historias de emergencia</h2><a class="btn btn-sm btn-primary btn-p360" href="{{ url_for('facturacion_historias_emergencia_nueva', paciente_id=paciente['id']) }}">Nueva emergencia</a></div>
             {% for emergencia in emergencias %}
             <div class="record-row d-flex justify-content-between flex-wrap gap-2">
@@ -173,7 +173,7 @@
                 <a class="btn btn-sm btn-outline-primary btn-p360 align-self-start" href="{{ url_for('facturacion_historia_emergencia_ver', historia_id=emergencia['id']) }}">Ver detalle</a>
             </div>
             {% else %}<div class="empty-record">No hay historias de emergencia registradas.</div>{% endfor %}
-        </section>
+        </section>{% endif %}
 
         {% if ver_facturacion %}
         <section class="tab-pane fade patient-360-card" id="registered">

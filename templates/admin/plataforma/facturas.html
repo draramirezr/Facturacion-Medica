@@ -42,7 +42,7 @@
     </div>
 
     <form class="row g-2 mb-3" method="get">
-        <div class="col-md-3">
+        <div class="col-md-4">
             <select name="estado" class="form-select">
                 <option value="">Todos los estados</option>
                 <option value="pendiente" {{ 'selected' if filtros.estado=='pendiente' }}>Pendiente</option>
@@ -50,9 +50,8 @@
                 <option value="anulada" {{ 'selected' if filtros.estado=='anulada' }}>Anulada</option>
             </select>
         </div>
-        <div class="col-md-3"><input class="form-control" type="date" name="desde" value="{{ filtros.desde }}"></div>
-        <div class="col-md-3"><input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}"></div>
-        <div class="col-md-3"><button class="btn btn-outline-primary w-100" type="submit">Filtrar</button></div>
+        <div class="col-md-4"><input class="form-control" type="date" name="desde" value="{{ filtros.desde }}"></div>
+        <div class="col-md-4"><input class="form-control" type="date" name="hasta" value="{{ filtros.hasta }}"></div>
     </form>
 
     <div class="table-empresas" style="background:var(--ars-shell-surface,#fff);border-radius:15px;overflow:hidden;">

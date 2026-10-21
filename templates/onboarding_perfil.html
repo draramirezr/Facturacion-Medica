@@ -45,8 +45,11 @@
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label" for="exequatur">Exequátur</label>
-                        <input class="form-control" id="exequatur" name="exequatur" required maxlength="50"
+                        <input class="form-control" id="exequatur" name="exequatur" required maxlength="10"
+                               data-max-chars="10"
+                               title="Máximo 10 caracteres"
                                placeholder="123456">
+                        <small class="text-muted">Máximo 10 caracteres</small>
                     </div>
                 </div>
                 <div class="row">
@@ -127,6 +130,23 @@ document.addEventListener('DOMContentLoaded', function () {
             setTimeout(dejarSoloNumeros, 0);
         });
         dejarSoloNumeros();
+    });
+
+    document.querySelectorAll('[data-max-chars]').forEach(function (input) {
+        const maximo = Number.parseInt(input.dataset.maxChars, 10);
+        if (!Number.isFinite(maximo) || maximo <= 0) {
+            return;
+        }
+        const limitar = function () {
+            if (input.value.length > maximo) {
+                input.value = input.value.slice(0, maximo);
+            }
+        };
+        input.addEventListener('input', limitar);
+        input.addEventListener('paste', function () {
+            setTimeout(limitar, 0);
+        });
+        limitar();
     });
 
     const select = document.getElementById('especialidad');

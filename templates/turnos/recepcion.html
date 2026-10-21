@@ -83,7 +83,6 @@
                     <option value="">Todos los médicos</option>
                     {% for medico in medicos %}<option value="{{ medico['id'] }}" {% if medico_id == medico['id'] %}selected{% endif %}>{{ medico['nombre'] }}</option>{% endfor %}
                 </select>
-                <button class="btn btn-outline-secondary" type="submit">Filtrar</button>
             </form>
         </div>
         <div class="table-responsive">

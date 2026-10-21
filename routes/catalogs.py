@@ -15,7 +15,7 @@ from routes.support import (
     error_cedula, error_rnc, validate_digits, validate_email,
 )
 from services.catalogos_ars import sembrar_ars_tenant
-from services.subscriptions import get_empresa_info
+from services.subscriptions import check_medico_catalog_limit, get_empresa_info
 
 NCF_TIPOS_TRADICIONALES = {
     'B01': 'Factura de Crédito Fiscal',
@@ -280,20 +280,35 @@ def facturacion_medicos():
             (tenant_id,), fetch='all'
         ) or []
 
+    ok_medico, medicos_usados, medicos_cupo, _msg_medico = check_medico_catalog_limit(
+        tenant_id
+    )
+
     return render_template(
         'facturacion/medicos.html',
         medicos_list=medicos_list,
-        search=search
+        search=search,
+        puede_crear_medico=ok_medico,
+        medicos_usados=medicos_usados,
+        medicos_cupo=medicos_cupo,
     )
 
 @login_required
 @permission_required('catalogos.crear')
 def facturacion_medicos_nuevo():
     """Crear nuevo médico"""
-    
+    tenant_id = get_current_tenant_id()
+    ok_medico, _, _, msg_medico = check_medico_catalog_limit(tenant_id)
+    if not ok_medico:
+        if request.method == 'POST':
+            flash(msg_medico, 'error')
+        else:
+            flash(msg_medico, 'warning')
+        return redirect(url_for('facturacion_medicos'))
+
     if request.method == 'POST':
         nombre = sanitize_input(request.form.get('nombre', ''), 200)
-        exequatur = sanitize_input(request.form.get('exequatur', ''), 50)
+        exequatur = sanitize_input(request.form.get('exequatur', ''), 10)
         especialidad = get_especialidad_form(request.form)
         telefono = sanitize_input(request.form.get('telefono', ''), 20)
         email = request.form.get('email', '').strip()
@@ -302,6 +317,9 @@ def facturacion_medicos_nuevo():
         
         if not all([nombre, exequatur, especialidad, telefono, email, cedula]):
             flash('Todos los campos del médico son obligatorios', 'error')
+            return redirect(url_for('facturacion_medicos_nuevo'))
+        if len(exequatur) > 10:
+            flash('El exequátur puede tener como máximo 10 caracteres.', 'error')
             return redirect(url_for('facturacion_medicos_nuevo'))
 
         if not validate_digits(cedula, 11):
@@ -319,7 +337,10 @@ def facturacion_medicos_nuevo():
             flash('Ingresa un correo electrónico válido', 'error')
             return redirect(url_for('facturacion_medicos_nuevo'))
 
-        tenant_id = get_current_tenant_id()
+        ok_medico, _, _, msg_medico = check_medico_catalog_limit(tenant_id)
+        if not ok_medico:
+            flash(msg_medico, 'error')
+            return redirect(url_for('facturacion_medicos'))
         from services.identificadores import error_medico_identificadores
         repetido = error_medico_identificadores(tenant_id, cedula, exequatur)
         if repetido:
@@ -352,7 +373,7 @@ def facturacion_medicos_editar(medico_id):
     
     if request.method == 'POST':
         nombre = sanitize_input(request.form.get('nombre', ''), 200)
-        exequatur = sanitize_input(request.form.get('exequatur', ''), 50)
+        exequatur = sanitize_input(request.form.get('exequatur', ''), 10)
         especialidad = get_especialidad_form(request.form)
         telefono = sanitize_input(request.form.get('telefono', ''), 20)
         email = request.form.get('email', '').strip()
@@ -362,6 +383,9 @@ def facturacion_medicos_editar(medico_id):
         
         if not all([nombre, exequatur, especialidad, telefono, email, cedula]):
             flash('Todos los campos del médico son obligatorios', 'error')
+            return redirect(url_for('facturacion_medicos_editar', medico_id=medico_id))
+        if len(exequatur) > 10:
+            flash('El exequátur puede tener como máximo 10 caracteres.', 'error')
             return redirect(url_for('facturacion_medicos_editar', medico_id=medico_id))
 
         if not validate_digits(cedula, 11):
@@ -387,6 +411,11 @@ def facturacion_medicos_editar(medico_id):
         if repetido:
             flash(repetido, 'error')
             return redirect(url_for('facturacion_medicos_editar', medico_id=medico_id))
+        if activo and not medico.get('activo'):
+            ok_medico, _, _, msg_medico = check_medico_catalog_limit(tenant_id)
+            if not ok_medico:
+                flash(msg_medico, 'error')
+                return redirect(url_for('facturacion_medicos_editar', medico_id=medico_id))
         execute_update('''
             UPDATE medicos 
             SET nombre = %s, exequatur = %s, especialidad = %s, telefono = %s, email = %s, cedula = %s, activo = %s, factura = %s

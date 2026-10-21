@@ -59,14 +59,18 @@
                         <label class="form-label" for="sexo_historia">Sexo *</label>
                         <select class="form-select" id="sexo_historia" name="sexo_historia" required>
                             <option value="">Seleccione...</option>
-                            <option value="M">M</option>
-                            <option value="F">F</option>
-                            <option value="Otro">Otro</option>
+                            <option value="M">Masculino (M)</option>
+                            <option value="F">Femenino (F)</option>
                         </select>
                     </div>
                     <div class="col-md-2 mb-3">
-                        <label class="form-label" for="ars">ARS</label>
-                        <input class="form-control" id="ars" readonly>
+                        <label class="form-label" for="ars_id">ARS</label>
+                        <select class="form-select" id="ars_id" name="ars_id">
+                            <option value="">—</option>
+                            {% for ars in ars_list %}
+                            <option value="{{ ars['id'] }}">{{ ars['nombre'] }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                     <div class="col-md-6 mb-3">
                         <label class="form-label" for="numero_afiliado">Número de afiliado</label>
@@ -214,8 +218,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     function actualizarPaciente() {
         document.getElementById('edad').value = edad(pacientes.dataset.fechaNacimiento);
-        document.getElementById('sexo_historia').value = pacientes.dataset.sexo || '';
-        document.getElementById('ars').value = pacientes.dataset.arsNombre || 'Sin ARS';
+        const sexoPac = (pacientes.dataset.sexo || '').toUpperCase();
+        document.getElementById('sexo_historia').value =
+            sexoPac === 'M' || sexoPac === 'F' ? sexoPac : '';
+        const arsEl = document.getElementById('ars_id');
+        const arsId = pacientes.dataset.arsId || '';
+        if (arsId && [...arsEl.options].some((opt) => opt.value === arsId)) {
+            arsEl.value = arsId;
+        } else {
+            const nombre = pacientes.dataset.arsNombre || '';
+            const match = [...arsEl.options].find(
+                (opt) => opt.value && opt.text.trim() === nombre.trim()
+            );
+            arsEl.value = match ? match.value : '';
+        }
         document.getElementById('nss').value = pacientes.dataset.nss || '';
         document.getElementById('numero_afiliado').value = pacientes.dataset.nss || '';
     }

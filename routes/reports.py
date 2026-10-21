@@ -14,6 +14,7 @@ from routes.emergency import medico_id_emergencias_restringido
 from routes.licenses import medico_id_licencias_restringido
 from routes.prescriptions import medico_id_recetas_restringido
 from routes.support import execute_paginated_query, sanitize_input, validate_int
+from services.plan_features import tenant_plan_centro_medico
 
 SECCIONES_HISTORICO = (
     {
@@ -74,11 +75,14 @@ SECCIONES_HISTORICO = (
 
 
 def _secciones_visibles():
-    return [
-        seccion
-        for seccion in SECCIONES_HISTORICO
-        if user_has_permission(current_user, seccion['permiso'])
-    ]
+    secciones = []
+    for seccion in SECCIONES_HISTORICO:
+        if not user_has_permission(current_user, seccion['permiso']):
+            continue
+        if seccion['id'] == 'emergencias' and not tenant_plan_centro_medico():
+            continue
+        secciones.append(seccion)
+    return secciones
 
 
 def _filtros_comunes():
@@ -159,9 +163,6 @@ def _consultar_facturas(tenant_id, filtros):
     if filtros['ncf']:
         query += ' AND f.ncf LIKE %s'
         params.append(f"%{filtros['ncf']}%")
-    if filtros['estado'] in ('Pendiente', 'Pagada', 'Vencida', 'Anulada'):
-        query += ' AND f.estado=%s'
-        params.append(filtros['estado'])
     query, params = _aplicar_rango_fecha(query, params, 'f.fecha_emision', filtros)
     filas, pagination = execute_paginated_query(
         query, params, 'f.fecha_emision DESC, f.id DESC', default_per_page=50
@@ -197,8 +198,7 @@ def _consultar_facturas(tenant_id, filtros):
         ),
         'ver_endpoint': 'facturacion_ver_factura',
         'ver_param': 'factura_id',
-        'filtros': ('ars_id', 'medico_id', 'ncf', 'estado', 'fecha_desde', 'fecha_hasta'),
-        'estados': ('Pendiente', 'Pagada', 'Vencida', 'Anulada'),
+        'filtros': ('ars_id', 'medico_id', 'ncf', 'fecha_desde', 'fecha_hasta'),
         'moneda': ('total',),
         'acciones_factura': True,
     }

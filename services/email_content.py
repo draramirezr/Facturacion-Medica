@@ -327,6 +327,39 @@ def correo_recuperar_password(nombre, enlace, horas_validez=1):
     return asunto, texto, html_body
 
 
+def correo_upgrade_plan_soporte(empresa, solicitud_id, plan_nuevo, monto, vence_pago):
+    """Aviso al buzón de soporte cuando un cliente sube de plan."""
+    from services.plan_upgrades import PLAN_ETIQUETAS
+
+    nombre = (empresa or {}).get('nombre') or 'Empresa'
+    email = (empresa or {}).get('email') or '—'
+    plan_txt = PLAN_ETIQUETAS.get(plan_nuevo, plan_nuevo)
+    vence = vence_pago.strftime('%d/%m/%Y') if hasattr(vence_pago, 'strftime') else str(vence_pago)
+    asunto = f'[ClinicRD] Upgrade de plan — {nombre}'
+    monto_txt = f'RD$ {monto:,.2f}' if monto is not None else '—'
+    texto = (
+        f'La empresa {nombre} ({email}) solicitó mejorar su plan a {plan_txt}.\n\n'
+        f'Solicitud #{solicitud_id}\n'
+        f'Monto mensual: {monto_txt}\n'
+        f'Plazo de pago: {vence} (7 días; si no se registra el pago, se suspende y revierte el plan)\n\n'
+        'Revise el panel de upgrades y facturas de plataforma.'
+    )
+    parrafos = [
+        f'<strong>{html.escape(nombre)}</strong> ({html.escape(email)}) '
+        f'subió de plan a <strong>{html.escape(plan_txt)}</strong>.',
+        f'<strong>Solicitud:</strong> #{solicitud_id}<br>'
+        f'<strong>Monto:</strong> {html.escape(monto_txt)}<br>'
+        f'<strong>Pagar antes de:</strong> {html.escape(vence)}',
+        'Si no marca la factura como pagada a tiempo, el sistema revierte el plan '
+        'y suspende la empresa automáticamente.',
+    ]
+    return asunto, texto, _cuerpo_html(
+        'Nuevo upgrade de plan',
+        parrafos,
+        objetivo='Notificación interna para soporte ClinicRD.',
+    )
+
+
 def correo_factura_suscripcion(empresa, numero, periodo, monto):
     """Cobro de ClinicRD a la empresa cliente."""
     nombre = empresa or 'su empresa'

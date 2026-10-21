@@ -674,6 +674,8 @@ def _contexto_centro_plantilla():
 
 
 def inject_theme():
+    from services.plan_features import tenant_plan_centro_medico
+
     tema_actual = (
         (getattr(current_user, 'tema_color', None) or 'cyan')
         if current_user.is_authenticated else 'cyan'
@@ -702,6 +704,7 @@ def inject_theme():
                 or 'Sin empresa'
             ),
             'tipo_empresa': empresa_db.get('tipo_empresa') or '',
+            'plan': empresa_db.get('plan') or '',
         }
         if current_user.tenant_id:
             try:
@@ -736,6 +739,12 @@ def inject_theme():
             and usuario_es_medico_operativo(current_user)
         ),
         'centro_contexto': _contexto_centro_plantilla(),
+        'plan_centro_medico': (
+            tenant_plan_centro_medico(current_user.tenant_id)
+            if current_user.is_authenticated
+            and getattr(current_user, 'tenant_id', None)
+            else False
+        ),
         'producto': PRODUCTO,
         'product_name': PRODUCTO['nombre'],
         'seo': datos_seo(_clave_seo_actual()),

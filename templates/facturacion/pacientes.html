@@ -210,7 +210,7 @@
     <!-- Búsqueda -->
     <div class="search-box">
         <form method="GET" action="{{ url_for('facturacion_pacientes') }}" class="row g-3 align-items-end">
-            <div class="col-md-10">
+            <div class="col-12">
                 <label class="form-label patients-search-label">
                     <i class="fas fa-search me-1"></i>Buscar Paciente
                 </label>
@@ -237,11 +237,6 @@
                          role="listbox"
                          hidden></div>
                 </div>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-buscar w-100 patients-search-button">
-                    <i class="fas fa-search me-2"></i>Buscar
-                </button>
             </div>
         </form>
         {% if search %}

@@ -9,6 +9,7 @@ from core.database import execute_query, execute_update, transactional_methods
 from core.security import rate_limit
 from core.tenant import get_current_tenant_id
 from routes.support import sanitize_input, validate_int
+from services.plan_features import requiere_plan_centro_medico
 
 PRESENCIA_SEGUNDOS = 90
 SQL_EN_LINEA = (
@@ -74,6 +75,7 @@ def serializar_mensaje_interno(mensaje):
     }
 
 @login_required
+@requiere_plan_centro_medico(api=True)
 def api_mensajeria_usuarios():
     tenant_id = get_current_tenant_id()
     if not tenant_id:
@@ -91,6 +93,7 @@ def api_mensajeria_usuarios():
     return jsonify({'usuarios': usuarios})
 
 @login_required
+@requiere_plan_centro_medico(api=True)
 def api_mensajeria_conversaciones():
     tenant_id = get_current_tenant_id()
     if not tenant_id:
@@ -142,6 +145,7 @@ def api_mensajeria_conversaciones():
     return jsonify({'conversaciones': conversaciones})
 
 @login_required
+@requiere_plan_centro_medico(api=True)
 def api_mensajeria_mensajes(usuario_id):
     tenant_id = get_current_tenant_id()
     if not tenant_id:
@@ -196,6 +200,7 @@ def api_mensajeria_mensajes(usuario_id):
     })
 
 @login_required
+@requiere_plan_centro_medico(api=True)
 @rate_limit(max_requests=60, window=60)
 @transactional_methods('POST')
 def api_mensajeria_enviar():
@@ -263,6 +268,7 @@ def api_mensajeria_enviar():
     }), 201
 
 @login_required
+@requiere_plan_centro_medico(api=True)
 @transactional_methods('POST')
 def api_mensajeria_marcar_leidos():
     tenant_id = get_current_tenant_id()
@@ -304,6 +310,7 @@ def api_mensajeria_marcar_leidos():
     return jsonify({'ok': True})
 
 @login_required
+@requiere_plan_centro_medico(api=True)
 def api_mensajeria_no_leidos():
     tenant_id = get_current_tenant_id()
     if not tenant_id:

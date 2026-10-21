@@ -35,7 +35,6 @@
             <div class="col-lg-3"><label class="form-label" for="recetas_medico">Médico</label><select class="form-select" id="recetas_medico" name="medico_id"><option value="">Todos</option>{% for m in medicos %}<option value="{{ m['id'] }}" {% if filtros.get('medico_id')|string==m['id']|string %}selected{% endif %}>{{ m['nombre'] }}</option>{% endfor %}</select></div>
             {% endif %}
             <div class="{{ 'col-lg-4' if recetas_restringidas else 'col-lg-3' }}"><label class="form-label" for="recetas_estado">Estado</label><select class="form-select" id="recetas_estado" name="estado"><option value="">Todos</option><option value="Emitida" {% if filtros.get('estado')=='Emitida' %}selected{% endif %}>Emitida</option><option value="Anulada" {% if filtros.get('estado')=='Anulada' %}selected{% endif %}>Anulada</option></select></div>
-            <div class="col-lg-2"><button class="btn btn-primary w-100" type="submit"><i class="fas fa-filter me-2"></i>Aplicar</button></div>
         </div>
     </form>
     <section class="rx-card">

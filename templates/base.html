@@ -1104,6 +1104,11 @@
                         <i class="fas fa-flask"></i>
                         <span>Demos</span>
                     </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'plataforma_upgrades' else '' }}"
+                       href="{{ url_for('plataforma_upgrades') }}">
+                        <i class="fas fa-arrow-trend-up"></i>
+                        <span>Upgrades</span>
+                    </a>
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('admin_usuarios') else '' }}"
                        href="{{ url_for('admin_usuarios') }}">
                         <i class="fas fa-users-gear"></i>
@@ -1128,7 +1133,7 @@
                     <i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="ars-nav-group collapsed" id="nav-principal">
-                    {% if es_medico_operativo %}
+                    {% if es_medico_operativo and plan_centro_medico %}
                     <a class="ars-nav-link {{ 'active' if endpoint == 'turnos_mi_cola' else '' }}"
                        href="{{ url_for('turnos_mi_cola') }}">
                         <i class="fas fa-ticket"></i>
@@ -1202,7 +1207,7 @@
                         <span>Pacientes</span>
                     </a>
                     {% endif %}
-                    {% if can('turnos.ver') and not es_medico_operativo %}
+                    {% if plan_centro_medico and can('turnos.ver') and not es_medico_operativo %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('turnos_') else '' }}"
                        href="{{ url_for('turnos_recepcion') if can('turnos.administrar') or can('turnos.crear') else url_for('turnos_mi_cola') }}">
                         <i class="fas fa-ticket"></i>
@@ -1242,7 +1247,7 @@
                         <span>Vista 360</span>
                     </a>
                     {% endif %}
-                    {% if can('emergencia.ver') %}
+                    {% if plan_centro_medico and can('emergencia.ver') %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_historias_emergencia') or endpoint.startswith('facturacion_historia_emergencia_') else '' }}"
                        href="{{ url_for('facturacion_historias_emergencia') }}">
                         <i class="fas fa-truck-medical"></i>
@@ -1488,7 +1493,7 @@
                 </div>
             </header>
 
-            {% if current_user.mostrar_chat and not es_dueno_software %}
+            {% if plan_centro_medico and current_user.mostrar_chat and not es_dueno_software %}
             <button class="ars-chat-fab" id="arsChatToggle" type="button"
                     aria-label="Abrir mensajería" aria-controls="arsChatPanel"
                     aria-expanded="false" title="Mensajería interna">
@@ -1747,8 +1752,9 @@
 
     {% if current_user.is_authenticated %}
     <script src="{{ url_for('static', filename='js/app-shell.js') }}?v=1.6" defer></script>
-    <script src="{{ url_for('static', filename='js/patient-search.js') }}?v=2" defer></script>
-    {% if current_user.mostrar_chat and not es_dueno_software %}
+    <script src="{{ url_for('static', filename='js/auto-filtros.js') }}?v=2" defer></script>
+    <script src="{{ url_for('static', filename='js/patient-search.js') }}?v=4" defer></script>
+    {% if plan_centro_medico and current_user.mostrar_chat and not es_dueno_software %}
     <script src="{{ url_for('static', filename='js/chat.js') }}?v=2" defer></script>
     {% endif %}
     {% endif %}

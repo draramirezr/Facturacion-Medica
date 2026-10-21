@@ -26,6 +26,7 @@ from routes.support import (
     validate_email,
 )
 from services.catalogos_ars import sembrar_ars_tenant
+from services.datos_guia import sembrar_datos_guia_tenant
 from services.platform import (
     PLAN_LICENCIAS, asegurar_tablas_plataforma, registrar_vista_pagina,
 )
@@ -318,6 +319,9 @@ def registro():
             if not user_id:
                 raise RuntimeError('No se pudo crear el usuario administrador')
             sembrar_ars_tenant(empresa_id)
+            sembrar_datos_guia_tenant(
+                empresa_id, tipo_empresa, telefono, email,
+            )
             from services.tenant_roles import asignar_rol_administrador
             asignar_rol_administrador(user_id, empresa_id)
         from services.account_activation import (

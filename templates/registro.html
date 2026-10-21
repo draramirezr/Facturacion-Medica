@@ -280,6 +280,12 @@
                 return;
             }
             let ultimoCopiado = '';
+            const sinTitulo = (valor) => {
+                const texto = valor || '';
+                const punto = texto.indexOf('.');
+                const resto = punto === -1 ? texto : texto.slice(punto + 1);
+                return resto.trimStart();
+            };
             const copiarSiMedico = () => {
                 if (tipo.value !== 'medico') {
                     return;
@@ -288,7 +294,7 @@
                 if (actual && actual !== ultimoCopiado) {
                     return;
                 }
-                nombre.value = empresa.value;
+                nombre.value = sinTitulo(empresa.value);
                 ultimoCopiado = nombre.value.trim();
             };
             empresa.addEventListener('input', copiarSiMedico);

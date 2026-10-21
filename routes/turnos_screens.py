@@ -18,6 +18,7 @@ from core.clock import ahora_clinica, fecha_clinica
 from core.database import execute_query, execute_update, transactional_methods
 from core.tenant import get_current_tenant_id
 from routes.support import sanitize_input
+from services.plan_features import requiere_plan_centro_medico
 from turnos import EstadoTurno, validar_transicion
 
 
@@ -179,6 +180,7 @@ def resumen_citas_medico_hoy(citas):
 
 @login_required
 @permission_required('turnos.ver')
+@requiere_plan_centro_medico
 def turnos_recepcion():
     if not (
         user_has_permission(current_user, 'turnos.crear')
@@ -241,6 +243,7 @@ def turnos_recepcion():
 
 @login_required
 @permission_required('turnos.crear')
+@requiere_plan_centro_medico
 @transactional_methods('POST')
 def turnos_nuevo():
     tenant_id = get_current_tenant_id()
@@ -366,6 +369,7 @@ def turnos_nuevo():
 
 @login_required
 @permission_required('turnos.llamar')
+@requiere_plan_centro_medico
 @transactional_methods('POST')
 def turnos_accion(turno_id):
     tenant_id = get_current_tenant_id()
@@ -462,6 +466,7 @@ def turnos_accion(turno_id):
 
 @login_required
 @permission_required('turnos.llamar')
+@requiere_plan_centro_medico
 @transactional_methods('POST')
 def turnos_siguiente():
     tenant_id = get_current_tenant_id()
@@ -500,6 +505,7 @@ def turnos_siguiente():
 
 @login_required
 @permission_required('turnos.cola_propia')
+@requiere_plan_centro_medico
 def turnos_mi_cola():
     if not current_user.medico_id:
         flash('Tu usuario no está vinculado a un médico', 'error')
@@ -529,6 +535,7 @@ def turnos_mi_cola():
 
 @login_required
 @permission_required('turnos.cola_propia')
+@requiere_plan_centro_medico
 def turnos_mi_cola_estado():
     """Firma de la cola y citas de hoy para refrescar la pantalla del médico."""
     if not current_user.medico_id:
@@ -556,6 +563,7 @@ def turnos_mi_cola_estado():
 
 @login_required
 @permission_required('turnos.imprimir')
+@requiere_plan_centro_medico
 def turnos_ticket(turno_id):
     tenant_id = get_current_tenant_id()
     turno = obtener_turno_tenant(turno_id, tenant_id)
@@ -595,6 +603,7 @@ def obtener_pantallas_turnos(tenant_id):
 
 @login_required
 @permission_required('turnos.pantalla')
+@requiere_plan_centro_medico
 @transactional_methods('POST')
 def turnos_pantallas():
     tenant_id = get_current_tenant_id()
@@ -714,6 +723,7 @@ def turnos_pantallas():
 
 @login_required
 @permission_required('turnos.pantalla')
+@requiere_plan_centro_medico
 @transactional_methods('POST')
 def turnos_configuracion_ticket():
     ancho = request.form.get('ancho')
@@ -729,6 +739,7 @@ def turnos_configuracion_ticket():
 
 @login_required
 @permission_required('turnos.pantalla')
+@requiere_plan_centro_medico
 @transactional_methods('POST')
 def turnos_pantalla_revocar(pantalla_id):
     execute_update('''

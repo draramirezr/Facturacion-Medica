@@ -36,9 +36,27 @@
                     <div class="col-lg-3"><label class="form-label required">Fecha</label><input class="form-control" type="date" id="fecha_servicio" name="fecha_servicio" value="{{ request.form.get('fecha_servicio',fecha_actual) }}" required></div>
                     <div class="col-lg-3"><label class="form-label required">Hora</label><input class="form-control" type="time" id="hora_servicio" name="hora_servicio" value="{{ request.form.get('hora_servicio',hora_actual) }}" required></div>
                     <div class="col-lg-6"><label class="form-label">Historia de emergencia relacionada</label><select class="form-select" id="historia_emergencia_id" name="historia_emergencia_id"><option value="">Sin historia relacionada</option>{% for e in emergencias %}<option value="{{ e['id'] }}" data-paciente="{{ e['paciente_id'] }}" {% if request.form.get('historia_emergencia_id')|string == e['id']|string %}selected{% endif %}>{{ e['fecha'] }} · {{ e['motivo_emergencia'] }}</option>{% endfor %}</select></div>
-                    <div class="col-lg-2"><label class="form-label">Edad</label><input class="form-control" id="edad" readonly></div>
-                    <div class="col-lg-2"><label class="form-label">Sexo</label><input class="form-control" id="sexo" readonly></div>
-                    <div class="col-lg-2"><label class="form-label">ARS</label><input class="form-control" id="ars" readonly></div>
+                    <div class="col-lg-2"><label class="form-label">Edad</label><input class="form-control" id="edad" readonly tabindex="-1" aria-readonly="true"></div>
+                    <div class="col-lg-2">
+                        <label class="form-label" for="sexo">Sexo</label>
+                        <select class="form-select" id="sexo" name="sexo">
+                            <option value="">—</option>
+                            <option value="M" {% if request.form.get('sexo') == 'M' %}selected{% endif %}>Masculino (M)</option>
+                            <option value="F" {% if request.form.get('sexo') == 'F' %}selected{% endif %}>Femenino (F)</option>
+                        </select>
+                    </div>
+                    <div class="col-lg-2">
+                        <label class="form-label" for="ars_id">ARS</label>
+                        <select class="form-select" id="ars_id" name="ars_id">
+                            <option value="">—</option>
+                            {% for ars in ars_list %}
+                            <option value="{{ ars['id'] }}"
+                                    {% if request.form.get('ars_id')|string == ars['id']|string %}selected{% endif %}>
+                                {{ ars['nombre'] }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
                     <div class="col-12"><label class="form-label">Dirección</label><input class="form-control" id="direccion" readonly></div>
                     <div class="col-lg-5"><label class="form-label required">Persona responsable</label><input class="form-control" id="responsable" name="responsable" value="{{ request.form.get('responsable','') }}" maxlength="200" required></div>
                     <div class="col-lg-3"><label class="form-label required">Teléfono</label><input class="form-control" id="telefono_responsable" name="telefono_responsable" value="{{ request.form.get('telefono_responsable','') }}" inputmode="numeric" pattern="[0-9]{10}" minlength="10" maxlength="10" data-digits-only="10" required></div>
@@ -90,9 +108,21 @@
             if (service < new Date(service.getFullYear(), born.getMonth(), born.getDate())) age--;
         }
         document.getElementById('edad').value = age === '' ? '' : age;
-        document.getElementById('sexo').value = patient.dataset.sexo || '';
+        const sexoEl = document.getElementById('sexo');
+        const sexoPac = (patient.dataset.sexo || '').toUpperCase();
+        sexoEl.value = sexoPac === 'M' || sexoPac === 'F' ? sexoPac : '';
         document.getElementById('direccion').value = patient.dataset.direccion || '';
-        document.getElementById('ars').value = patient.dataset.arsNombre || '';
+        const arsEl = document.getElementById('ars_id');
+        const arsId = patient.dataset.arsId || '';
+        if (arsId && [...arsEl.options].some((opt) => opt.value === arsId)) {
+            arsEl.value = arsId;
+        } else {
+            const nombre = patient.dataset.arsNombre || '';
+            const match = [...arsEl.options].find(
+                (opt) => opt.value && opt.text.trim() === nombre.trim()
+            );
+            arsEl.value = match ? match.value : '';
+        }
         const responsible = document.getElementById('responsable');
         const phone = document.getElementById('telefono_responsable');
         if (!responsible.value) responsible.value = patient.dataset.nombrePariente || '';

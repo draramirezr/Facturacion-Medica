@@ -85,7 +85,6 @@
                 <div class="col-lg-3"><label class="form-label" for="agenda_medico">Médico</label><select class="form-select" id="agenda_medico" name="medico_id"><option value="">Todos</option>{% for m in medicos %}<option value="{{ m['id'] }}" {% if filtros.get('medico_id')|string==m['id']|string %}selected{% endif %}>{{ m['nombre'] }}</option>{% endfor %}</select></div>
                 {% endif %}
                 <div class="{{ 'col-lg-4' if agenda_restringida else 'col-lg-3' }}"><label class="form-label" for="agenda_estado">Estado</label><select class="form-select" id="agenda_estado" name="estado"><option value="">Todos</option>{% for e in ['Programada','Confirmada','Completada','Cancelada','No asistió','Vencida'] %}<option value="{{ e }}" {% if filtros.get('estado')==e %}selected{% endif %}>{{ e }}</option>{% endfor %}</select></div>
-                <div class="col-lg-2"><button class="btn btn-primary w-100" type="submit"><i class="fas fa-filter me-2"></i>Aplicar</button></div>
             </div>
         </form>
     </section>

@@ -38,7 +38,6 @@
             {% endif %}
             <div class="col-lg-2"><label class="form-label">Estado</label><select class="form-select" name="estado"><option value="">Todos</option>{% for estado in ['Borrador','Emitida','Anulada','Vencida'] %}<option value="{{ estado }}" {% if filtros.get('estado') == estado %}selected{% endif %}>{{ estado }}</option>{% endfor %}</select></div>
             <div class="col-lg-2"><label class="form-label">Ordenar</label><select class="form-select" name="orden">{% for value, label in [('recientes','Más recientes'),('antiguas','Más antiguas'),('paciente','Paciente'),('medico','Médico'),('estado','Estado')] %}<option value="{{ value }}" {% if filtros.get('orden','recientes') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-            <div class="col-lg-2"><button class="btn btn-primary w-100" type="submit" title="Aplicar filtros"><i class="fas fa-filter me-2"></i>Aplicar</button></div>
         </div>
     </form>
 

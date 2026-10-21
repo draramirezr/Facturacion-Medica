@@ -65,7 +65,7 @@
                 <small>Crear su primera consulta dentro del expediente clínico.</small>
             </a>
             {% endif %}
-            {% if can('emergencia.crear') %}
+            {% if plan_centro_medico and can('emergencia.crear') %}
             <a class="next-step-card" href="{{ url_for('facturacion_historias_emergencia_nueva', paciente_id=paciente['id']) }}">
                 <i class="fas fa-truck-medical"></i>
                 <strong>Historia de emergencia</strong>

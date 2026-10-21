@@ -37,6 +37,36 @@
         margin-bottom: 2rem;
         box-shadow: 0 4px 15px {{ tema.primary }}15;
     }
+
+    .historico-filter-grid {
+        display: grid;
+        gap: 1rem 1.25rem;
+        align-items: end;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    @media (min-width: 768px) {
+        .historico-filter-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .historico-filter-grid {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+    }
+
+    .historico-filter-field .form-control,
+    .historico-filter-field .form-select {
+        width: 100%;
+    }
+
+    .historico-filter-hint {
+        margin: 0.75rem 0 0;
+        color: #888;
+        font-size: 0.875rem;
+    }
     
     .tabla-historico {
         background:var(--ars-shell-surface, #fff);
@@ -212,23 +242,6 @@
         border: 1px solid var(--primary-color);
     }
     
-    .btn-filtrar {
-        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%);
-        border: none;
-        color: white;
-        padding: 0.6rem 2rem;
-        border-radius: 10px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-    
-    .btn-filtrar:hover {
-        background: linear-gradient(135deg, #9A9A9B 0%, #8A8A8B 100%);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(172, 172, 173, 0.4);
-    }
-    
     .btn-limpiar {
         background:var(--ars-shell-surface, #fff);
         border: 2px solid {{ tema.primary }};
@@ -315,19 +328,19 @@
     <div class="filtros-card">
         <h5 class="historico-filter-title">
             <i class="fas fa-filter me-2"></i>
-            Filtros de Búsqueda
+            Filtros
         </h5>
-        <form method="GET" action="{{ url_for('facturacion_historico') }}">
+        <form method="GET" action="{{ url_for('facturacion_historico') }}" class="historico-filters-form">
             <input type="hidden" name="tipo" value="{{ tipo }}">
-            <div class="row g-3 align-items-end">
+            <div class="historico-filter-grid">
                 {% if 'buscar' in filtros_visibles %}
-                <div class="col-md-3 mb-3">
+                <div class="historico-filter-field">
                     <label class="historico-filter-label">Buscar</label>
-                    <input type="text" class="form-control" name="buscar" value="{{ filtros.buscar or '' }}" placeholder="Paciente, cédula, código...">
+                    <input type="text" class="form-control" name="buscar" value="{{ filtros.buscar or '' }}" placeholder="Paciente, cédula, código..." autocomplete="off">
                 </div>
                 {% endif %}
                 {% if 'ars_id' in filtros_visibles %}
-                <div class="col-md-3 mb-3">
+                <div class="historico-filter-field">
                     <label class="historico-filter-label">ARS</label>
                     <select class="form-select" name="ars_id">
                         <option value="">Todas las ARS</option>
@@ -338,7 +351,7 @@
                 </div>
                 {% endif %}
                 {% if 'medico_id' in filtros_visibles %}
-                <div class="col-md-3 mb-3">
+                <div class="historico-filter-field">
                     <label class="historico-filter-label">Médico</label>
                     <select class="form-select" name="medico_id" {% if medico_restringido %}disabled{% endif %}>
                         <option value="">Todos los médicos</option>
@@ -349,19 +362,19 @@
                 </div>
                 {% endif %}
                 {% if 'ncf' in filtros_visibles %}
-                <div class="col-md-2 mb-3">
+                <div class="historico-filter-field">
                     <label class="historico-filter-label">NCF</label>
-                    <input type="text" class="form-control" name="ncf" value="{{ filtros.ncf or '' }}" placeholder="NCF">
+                    <input type="text" class="form-control" name="ncf" value="{{ filtros.ncf or '' }}" placeholder="NCF" autocomplete="off">
                 </div>
                 {% endif %}
                 {% if 'numero' in filtros_visibles %}
-                <div class="col-md-3 mb-3">
+                <div class="historico-filter-field">
                     <label class="historico-filter-label">Referencia</label>
-                    <input type="text" class="form-control" name="numero" value="{{ filtros.numero or '' }}" placeholder="Referencia del pago">
+                    <input type="text" class="form-control" name="numero" value="{{ filtros.numero or '' }}" placeholder="Referencia del pago" autocomplete="off">
                 </div>
                 {% endif %}
                 {% if 'estado' in filtros_visibles %}
-                <div class="col-md-2 mb-3">
+                <div class="historico-filter-field">
                     <label class="historico-filter-label">Estado</label>
                     <select class="form-select" name="estado">
                         <option value="">Todos</option>
@@ -372,7 +385,7 @@
                 </div>
                 {% endif %}
                 {% if 'metodo_pago' in filtros_visibles %}
-                <div class="col-md-3 mb-3">
+                <div class="historico-filter-field">
                     <label class="historico-filter-label">Método</label>
                     <select class="form-select" name="metodo_pago">
                         <option value="">Todos</option>
@@ -383,28 +396,21 @@
                 </div>
                 {% endif %}
                 {% if 'fecha_desde' in filtros_visibles %}
-                <div class="col-md-2 mb-3">
+                <div class="historico-filter-field">
                     <label class="historico-filter-label">Desde</label>
                     <input type="date" class="form-control" name="fecha_desde" value="{{ filtros.fecha_desde or '' }}">
                 </div>
                 {% endif %}
                 {% if 'fecha_hasta' in filtros_visibles %}
-                <div class="col-md-2 mb-3">
+                <div class="historico-filter-field">
                     <label class="historico-filter-label">Hasta</label>
                     <input type="date" class="form-control" name="fecha_hasta" value="{{ filtros.fecha_hasta or '' }}">
                 </div>
                 {% endif %}
-                <div class="col-auto mb-3 d-flex align-items-end gap-2">
-                <a href="{{ url_for('facturacion_historico', tipo=tipo) }}" class="btn btn-limpiar">
-                    <i class="fas fa-times-circle me-1"></i>
-                    Limpiar
-                </a>
-                <button type="submit" class="btn btn-filtrar">
-                    <i class="fas fa-search me-1"></i>
-                    Buscar
-                </button>
-                </div>
             </div>
+            <p class="historico-filter-hint">
+                <i class="fas fa-bolt me-1"></i>Los resultados se actualizan solos al cambiar cualquier filtro.
+            </p>
         </form>
     </div>
 

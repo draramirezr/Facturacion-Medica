@@ -22,6 +22,15 @@ from routes.support import (
     validate_int,
 )
 from services.catalogos_ars import sembrar_ars_tenant
+from services.datos_guia import sembrar_datos_guia_tenant
+from services.plan_upgrades import (
+    PLAN_ETIQUETAS,
+    UPGRADE_GRACIA_DIAS,
+    planes_superiores,
+    solicitar_upgrade_plan,
+    upgrade_pendiente_empresa,
+)
+from services.tipo_cambio import catalogo_precios
 from services.subscriptions import (
     inactivar_demos_vencidos,
     verificar_suscripciones_vencidas,
@@ -290,6 +299,12 @@ def admin_empresas_nueva():
         ),
     )
     sembrar_ars_tenant(empresa_id)
+    sembrar_datos_guia_tenant(
+        empresa_id,
+        values['tipo_empresa'],
+        values['telefono'],
+        values['email'],
+    )
     from services.tenant_roles import sembrar_roles_sistema
     sembrar_roles_sistema(empresa_id)
     flash(f'Empresa "{values["nombre"]}" creada exitosamente', 'success')
@@ -320,10 +335,16 @@ def admin_empresas_editar(empresa_id):
         empresa = execute_query(
             'SELECT * FROM empresas WHERE id=%s', (empresa_id,),
         ) or empresa
+        precios = catalogo_precios()
         return render_template(
             'admin/empresas/form.html',
             empresa=empresa,
             administradores=_administradores_de_empresa(empresa_id),
+            upgrade_pendiente=upgrade_pendiente_empresa(empresa_id),
+            planes_upgrade=planes_superiores(empresa.get('plan')),
+            plan_etiquetas=PLAN_ETIQUETAS,
+            precios_planes=precios,
+            upgrade_gracia_dias=UPGRADE_GRACIA_DIAS,
         )
     values = _company_form_values()
     values = _conservar_suscripcion_si_no_es_dueno(values, empresa)
@@ -367,6 +388,26 @@ def admin_empresas_editar(empresa_id):
     else:
         flash(f'Empresa "{values["nombre"]}" actualizada exitosamente', 'success')
     return redirect(url_for('admin_empresas'))
+
+
+@login_required
+def admin_empresa_solicitar_upgrade(empresa_id):
+    if current_user.perfil != 'Administrador':
+        flash('No tienes permisos', 'error')
+        return redirect(url_for('facturacion_menu'))
+    tenant_id = get_current_tenant_id()
+    if tenant_id is not None and tenant_id != empresa_id:
+        flash('Solo puede mejorar el plan de su propia empresa.', 'error')
+        return redirect(url_for('admin_empresas'))
+    if usuario_es_dueno_software(current_user):
+        flash('Como dueño del software, edite el plan directamente en este formulario.', 'info')
+        return redirect(url_for('admin_empresas_editar', empresa_id=empresa_id))
+    plan_nuevo = (request.form.get('plan_nuevo') or '').strip()
+    ok, mensaje, _ = solicitar_upgrade_plan(
+        empresa_id, plan_nuevo, getattr(current_user, 'id', None),
+    )
+    flash(mensaje, 'success' if ok else 'error')
+    return redirect(url_for('admin_empresas_editar', empresa_id=empresa_id))
 
 
 @rate_limit(max_requests=10, window=300)
@@ -610,6 +651,12 @@ def register_admin_company_routes(app):
     app.add_url_rule(
         '/admin/empresas/editar/<int:empresa_id>', 'admin_empresas_editar',
         admin_empresas_editar, methods=['GET', 'POST'],
+    )
+    app.add_url_rule(
+        '/admin/empresas/<int:empresa_id>/upgrade-plan',
+        'admin_empresa_solicitar_upgrade',
+        admin_empresa_solicitar_upgrade,
+        methods=['POST'],
     )
     app.add_url_rule(
         '/admin/empresas/<int:empresa_id>/clave-temporal/<int:usuario_id>',

@@ -172,10 +172,12 @@
                            value="{{ medico['exequatur'] if medico and medico['exequatur'] else '' }}"
                            required
                            placeholder="Ej: 123456"
-                           maxlength="10">
+                           maxlength="10"
+                           data-max-chars="10"
+                           title="Máximo 10 caracteres">
                     <small class="text-muted">
                         <i class="fas fa-info-circle me-1"></i>
-                        Número de licencia médica (Exequátur)
+                        Número de licencia médica (Exequátur). Máximo 10 caracteres.
                     </small>
                 </div>
 
@@ -265,6 +267,23 @@
 
 <script nonce="{{ csp_nonce }}">
 document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('[data-max-chars]').forEach(function (input) {
+        const maximo = Number.parseInt(input.dataset.maxChars, 10);
+        if (!Number.isFinite(maximo) || maximo <= 0) {
+            return;
+        }
+        const limitar = function () {
+            if (input.value.length > maximo) {
+                input.value = input.value.slice(0, maximo);
+            }
+        };
+        input.addEventListener('input', limitar);
+        input.addEventListener('paste', function () {
+            setTimeout(limitar, 0);
+        });
+        limitar();
+    });
+
     const select = document.getElementById('especialidad');
     const container = document.getElementById('otraEspecialidadContainer');
     const customInput = document.getElementById('especialidad_otra');

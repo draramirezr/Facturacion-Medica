@@ -57,9 +57,22 @@ def facturacion_hojas_enfermeria():
 def facturacion_hojas_enfermeria_nueva():
     """Registrar una hoja de enfermería asociada a un paciente."""
     tenant_id = get_current_tenant_id()
+    from services.catalogos_ars import sembrar_ars_tenant
+
+    sembrar_ars_tenant(tenant_id)
+    ars_list = execute_query(
+        '''
+        SELECT id, nombre FROM ars
+        WHERE tenant_id=%s AND activo=1
+        ORDER BY nombre
+        ''',
+        (tenant_id,),
+        fetch='all',
+    ) or []
     pacientes = execute_query('''
         SELECT p.id, p.nombre, p.fecha_nacimiento, p.sexo, p.direccion,
-               p.nombre_pariente, p.telefono_pariente, a.nombre AS ars_nombre
+               p.nombre_pariente, p.telefono_pariente, p.ars_id,
+               a.nombre AS ars_nombre
         FROM pacientes p
         LEFT JOIN ars a ON a.id=p.ars_id AND a.tenant_id=p.tenant_id
         WHERE p.tenant_id=%s
@@ -87,6 +100,10 @@ def facturacion_hojas_enfermeria_nueva():
         telefono = re.sub(r'\D', '', request.form.get('telefono_responsable', ''))
         observaciones = sanitize_input(request.form.get('observaciones', ''), 3000)
         firma = sanitize_input(request.form.get('firma_responsable', ''), 200)
+        sexo_form = (request.form.get('sexo') or '').strip().upper()
+        ars_id_form = validate_int(
+            request.form.get('ars_id'), min_value=1, default=None,
+        )
 
         paciente = execute_query('''
             SELECT p.*, a.nombre AS ars_nombre
@@ -101,6 +118,7 @@ def facturacion_hojas_enfermeria_nueva():
             return render_template(
                 'facturacion/hoja_enfermeria_form.html',
                 pacientes=pacientes, emergencias=emergencias,
+                ars_list=ars_list,
                 paciente_preseleccionado=paciente_preseleccionado,
                 fecha_actual=fecha_servicio, hora_actual=hora_servicio
             )
@@ -109,6 +127,7 @@ def facturacion_hojas_enfermeria_nueva():
             return render_template(
                 'facturacion/hoja_enfermeria_form.html',
                 pacientes=pacientes, emergencias=emergencias,
+                ars_list=ars_list,
                 paciente_preseleccionado=paciente_id,
                 fecha_actual=fecha_servicio, hora_actual=hora_servicio
             )
@@ -120,6 +139,7 @@ def facturacion_hojas_enfermeria_nueva():
             return render_template(
                 'facturacion/hoja_enfermeria_form.html',
                 pacientes=pacientes, emergencias=emergencias,
+                ars_list=ars_list,
                 paciente_preseleccionado=paciente_id,
                 fecha_actual=fecha_servicio, hora_actual=hora_servicio
             )
@@ -175,6 +195,16 @@ def facturacion_hojas_enfermeria_nueva():
                 paciente_id=paciente_id
             ))
 
+        sexo_guardar = sexo_form if sexo_form in ('M', 'F') else paciente.get('sexo')
+        ars_nombre_guardar = paciente.get('ars_nombre')
+        if ars_id_form:
+            ars_elegida = execute_query(
+                'SELECT nombre FROM ars WHERE id=%s AND tenant_id=%s AND activo=1',
+                (ars_id_form, tenant_id),
+            )
+            if ars_elegida:
+                ars_nombre_guardar = ars_elegida['nombre']
+
         hoja_id = execute_update('''
             INSERT INTO hojas_enfermeria (
                 tenant_id, paciente_id, historia_emergencia_id,
@@ -190,8 +220,8 @@ def facturacion_hojas_enfermeria_nueva():
             tenant_id, paciente_id, emergencia_id, fecha_servicio, hora_servicio,
             paciente['nombre'], calcular_edad_clinica(
                 paciente.get('fecha_nacimiento'), fecha_obj
-            ), paciente.get('sexo'), paciente.get('direccion'), responsable,
-            telefono, paciente.get('ars_nombre'),
+            ), sexo_guardar, paciente.get('direccion'), responsable,
+            telefono, ars_nombre_guardar,
             json.dumps(suministros, ensure_ascii=False),
             observaciones or None, firma, current_user.id
         ))
@@ -204,6 +234,7 @@ def facturacion_hojas_enfermeria_nueva():
         'facturacion/hoja_enfermeria_form.html',
         pacientes=pacientes,
         emergencias=emergencias,
+        ars_list=ars_list,
         paciente_preseleccionado=paciente_preseleccionado,
         fecha_actual=datetime.now().strftime('%Y-%m-%d'),
         hora_actual=datetime.now().strftime('%H:%M')

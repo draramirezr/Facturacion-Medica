@@ -817,14 +817,6 @@
                 </div>
             </div>
             
-            <div class="filter-actions">
-                <button type="submit" class="btn-filter">
-                    <i class="fas fa-search me-2"></i>Aplicar filtros
-                </button>
-                <button type="button" class="btn-filter btn-filter-secondary" data-csp-click="limpiarFiltros">
-                    <i class="fas fa-eraser me-2"></i>Limpiar filtros
-                </button>
-            </div>
         </form>
     </div>
     
@@ -970,6 +962,7 @@
         const option = event.target.closest('.multiselect-option');
         const checkbox = option.querySelector('input[type="checkbox"]');
         checkbox.checked = !checkbox.checked;
+        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
         updateSelectedText(filterName);
     }
     
@@ -982,6 +975,8 @@
             cb.checked = !allChecked;
         });
         updateSelectedText(filterName);
+        const form = document.getElementById('filterForm');
+        if (form) form.requestSubmit();
     }
     
     // Actualizar texto de selección
@@ -1027,29 +1022,12 @@
         updateSelectedText('medico_consulta');
     });
     
-    // Limpiar filtros: desmarca todos los checkboxes y reinicia fechas al rango por defecto
-    function limpiarFiltros() {
-        // Desmarcar todos los checkboxes
-        ['ars', 'medico_factura', 'medico_consulta'].forEach(name => {
-            const dropdown = document.getElementById(name + '-dropdown');
-            if (!dropdown) return;
-            dropdown.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.checked = false);
-            updateSelectedText(name);
-        });
-        // Reset de fechas: último mes por defecto
-        const hoy = new Date();
-        const hace30 = new Date();
-        hace30.setDate(hace30.getDate() - 30);
-        document.getElementById('fecha_hasta').value = hoy.toISOString().split('T')[0];
-        document.getElementById('fecha_desde').value = hace30.toISOString().split('T')[0];
-    }
-    
     // ==================== FUNCIONES PARA GRÁFICOS ====================
     
     // Esperar a que se cargue Chart.js antes de ejecutar
     document.addEventListener('DOMContentLoaded', function() {
         // Convertir fechas dd/mm/yyyy a yyyy-mm-dd al enviar
-        const form = document.getElementById('filtrosDashboard');
+        const form = document.getElementById('filterForm');
         if (form) {
             form.addEventListener('submit', function() {
                 const fDesde = document.getElementById('fecha_desde');

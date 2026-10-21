@@ -151,7 +151,7 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-lg-4 col-md-6">
+                    <div class="col-lg-7 col-md-6">
                         <label for="numero" class="form-label">
                             <i class="fas fa-hashtag me-2 text-primary"></i>Número de factura
                         </label>
@@ -163,12 +163,6 @@
                                placeholder="Si no está entre las 5, digite el número"
                                maxlength="40"
                                {% if not ars_id %}disabled{% endif %}>
-                    </div>
-                    <div class="col-lg-3 col-md-12">
-                        <label class="form-label d-none d-lg-block" aria-hidden="true">&nbsp;</label>
-                        <button type="submit" class="btn btn-guardar w-100" {% if not ars_id %}disabled{% endif %}>
-                            <i class="fas fa-search me-1"></i>Buscar
-                        </button>
                     </div>
                 </div>
             </form>
