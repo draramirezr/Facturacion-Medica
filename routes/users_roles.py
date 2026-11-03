@@ -903,6 +903,7 @@ def admin_usuarios_eliminar(usuario_id):
 
 def _guardar_y_probar_correo_smtp(enviar_prueba=False):
     """Valida formulario SMTP, guarda en empresa y opcionalmente envía prueba."""
+    from services.smtp_presets import validar_formulario_smtp
     from services.tenant_mail import enviar_correo_consultorio, guardar_correo_empresa
 
     if not user_has_permission(current_user, 'configuracion.editar'):
@@ -917,26 +918,26 @@ def _guardar_y_probar_correo_smtp(enviar_prueba=False):
     host = sanitize_input(request.form.get('smtp_host', ''), 255)
     remitente = sanitize_input(request.form.get('smtp_remitente', ''), 255)
     usuario_smtp = sanitize_input(request.form.get('smtp_usuario', ''), 255)
+    if not usuario_smtp and remitente:
+        usuario_smtp = remitente
     password_nueva = (request.form.get('smtp_password') or '').strip() or None
-    if remitente and not validate_email(remitente):
-        return False, 'El correo remitente no es válido'
+    resumen_previo = resumen_correo_empresa(get_empresa_info(tenant_id))
+    error_validacion = validar_formulario_smtp(
+        host,
+        remitente,
+        password_nueva,
+        resumen_previo.get('tiene_password'),
+        enviar_prueba=enviar_prueba,
+    )
+    if error_validacion:
+        return False, error_validacion
     destino_prueba = None
     if enviar_prueba:
-        if not host or not remitente:
-            return False, (
-                'Complete servidor SMTP y correo remitente antes de la prueba.'
-            )
         destino_prueba = (getattr(current_user, 'email', None) or '').strip()
         if not destino_prueba or not validate_email(destino_prueba):
             return False, (
                 'Su usuario no tiene un correo válido. Actualice el email '
                 'del usuario en Administración → Usuarios y vuelva a probar.'
-            )
-        resumen_previo = resumen_correo_empresa(get_empresa_info(tenant_id))
-        if not password_nueva and not resumen_previo.get('tiene_password'):
-            return False, (
-                'Indique la contraseña SMTP (en Gmail use una contraseña '
-                'de aplicación, no la clave normal de la cuenta).'
             )
     guardar_correo_empresa(
         tenant_id,
@@ -965,7 +966,6 @@ def _guardar_y_probar_correo_smtp(enviar_prueba=False):
         destino_prueba,
         'Prueba de correo ClinicRD',
         '<p>Si lees esto, el correo del consultorio ya envía mensajes.</p>',
-        fallback_plataforma=False,
     )
     if ok:
         return True, (
@@ -1033,30 +1033,28 @@ def perfil_configuracion():
             if not tenant_id:
                 flash('La papelería es del consultorio, no de la plataforma.', 'error')
                 return redirect(url_for('perfil_configuracion'))
-            from services.stationery import MAX_LOGO_BYTES, guardar_papeleria
+            from services.stationery import (
+                MAX_LOGO_BYTES,
+                guardar_solo_logo_papeleria,
+            )
             archivo = request.files.get('logo_papeleria')
             logo_bytes = None
             if archivo and archivo.filename:
                 logo_bytes = archivo.read(MAX_LOGO_BYTES + 1)
                 if len(logo_bytes) > MAX_LOGO_BYTES:
                     flash('El logo no puede superar 512 KB.', 'error')
-                    return redirect(url_for('perfil_configuracion'))
+                    return redirect(url_for('perfil_configuracion', _anchor='papeleria'))
             try:
-                guardar_papeleria(
+                guardar_solo_logo_papeleria(
                     tenant_id,
-                    {
-                        'encabezado': request.form.get('encabezado', ''),
-                        'subtitulo': request.form.get('subtitulo', ''),
-                        'pie_pagina': request.form.get('pie_pagina', ''),
-                    },
                     logo_bytes=logo_bytes,
                     quitar_logo=request.form.get('quitar_logo') == '1',
                 )
             except ValueError as error:
                 flash(str(error), 'error')
-                return redirect(url_for('perfil_configuracion'))
-            flash('Papelería del consultorio actualizada.', 'success')
-            return redirect(url_for('perfil_configuracion'))
+                return redirect(url_for('perfil_configuracion', _anchor='papeleria'))
+            flash('Logo del consultorio actualizado.', 'success')
+            return redirect(url_for('perfil_configuracion', _anchor='papeleria'))
 
         tema_color = request.form.get(
             'tema_color', current_user.tema_color or 'cyan'
@@ -1169,11 +1167,17 @@ def perfil_configuracion():
             )
 
     correo_smtp = {'configurado': False}
+    smtp_presets = {}
+    smtp_estado = {'listo_para_enviar': False, 'faltantes': []}
     if user_has_permission(current_user, 'configuracion.editar'):
         try:
             correo_smtp = resumen_correo_empresa(get_empresa_info())
         except Exception:
             correo_smtp = resumen_correo_empresa(None)
+        from services.smtp_presets import SMTP_PRESETS, estado_configuracion_smtp
+
+        smtp_presets = SMTP_PRESETS
+        smtp_estado = estado_configuracion_smtp(correo_smtp)
 
     papeleria = None
     tenant_id = get_current_tenant_id()
@@ -1198,6 +1202,8 @@ def perfil_configuracion():
         ecf_certificado=ecf_certificado,
         correo_smtp=correo_smtp,
         papeleria=papeleria,
+        smtp_presets=smtp_presets,
+        smtp_estado=smtp_estado,
     )
 
 

@@ -25,7 +25,7 @@ def api_buscar_pacientes():
     from services.centro_contexto import sql_filtro_paciente_por_centro
 
     query = """
-        SELECT p.id, p.nombre, p.cedula, p.nss, p.telefono,
+        SELECT p.id, p.nombre, p.cedula, p.nss, p.telefono, p.email,
                p.fecha_nacimiento, p.sexo, p.direccion,
                p.nombre_pariente, p.telefono_pariente, p.ars_id,
                a.nombre AS ars_nombre
@@ -77,6 +77,7 @@ def api_buscar_pacientes():
                 'cedula': paciente.get('cedula') or '',
                 'nss': paciente.get('nss') or '',
                 'telefono': paciente.get('telefono') or '',
+                'email': paciente.get('email') or '',
                 'fecha_nacimiento': (
                     paciente['fecha_nacimiento'].isoformat()
                     if paciente.get('fecha_nacimiento') else ''

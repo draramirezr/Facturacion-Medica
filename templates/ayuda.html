@@ -154,7 +154,7 @@
                     <li>En {{ enlace('citas.ver', 'facturacion_citas', 'Agenda médica') }} elige el día en el calendario.</li>
                     <li>Al hacer clic en un día puedes agendar la cita: paciente, médico, hora y motivo.</li>
                     <li>Para moverla, abre la cita o pulsa <strong>Reagendar</strong>.</li>
-                    <li>Al programar o reagendar, si el paciente tiene correo se le envía un enlace para <strong>confirmar o cancelar</strong>. El día anterior se reenvía un recordatorio al abrir la agenda o Mi cola.</li>
+                    <li>Al programar, reagendar o <strong>guardar un cambio de fecha u hora</strong>, si el paciente tiene correo se le envía un enlace para <strong>confirmar o cancelar</strong>. El día anterior se reenvía un recordatorio al abrir la agenda o Mi cola.</li>
                     <li>En {{ enlace('citas.crear', 'facturacion_citas_qr', 'QR para agendar') }} el administrador imprime un código. El paciente lo escanea, ve médicos y horarios libres y la cita queda en esta misma agenda. Si ya está registrado (cédula o teléfono), se rellenan sus datos.</li>
                     <li>En Mi cola verá Agendada, Confirmada o En cola, sin preguntar por teléfono.</li>
                 </ol>
@@ -227,7 +227,7 @@
                         <strong>Mi empresa</strong>
                         {% endif %}: datos del consultorio y vigencia de la suscripción.
                     </li>
-                    <li>{{ enlace('configuracion.ver', 'perfil_configuracion', 'Configuración') }}: color, letra, chat, corrector, <strong>papelería</strong> (logo y membrete de recetas y facturas), <strong>correo SMTP del consultorio</strong> y, si eres administrador, <strong>backup en Excel</strong>.</li>
+                    <li>{{ enlace('configuracion.ver', 'perfil_configuracion', 'Configuración') }}: color, letra, chat, corrector, <strong>logo en impresiones</strong> (recetas y facturas; el nombre sale de la empresa), <strong>correo SMTP del consultorio</strong> (plantillas Gmail/Outlook y envío de prueba) y, si eres administrador, <strong>backup en Excel</strong>.</li>
                     <li>En tu nombre, arriba a la derecha, está <strong>Cambiar mi contraseña</strong>.</li>
                 </ol>
             </article>

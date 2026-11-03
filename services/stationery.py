@@ -100,6 +100,28 @@ def ruta_logo(tenant_id, ext=None):
     return _carpeta_tenant(tenant_id) / f'logo.{ext}'
 
 
+def guardar_solo_logo_papeleria(tenant_id, logo_bytes=None, quitar_logo=False):
+    """Actualiza solo el logo; conserva textos legacy si existían."""
+    asegurar_tabla_papeleria()
+    fila = execute_query(
+        '''
+        SELECT encabezado, subtitulo, pie_pagina
+        FROM papeleria_empresa WHERE tenant_id=%s
+        ''',
+        (int(tenant_id),),
+    ) or {}
+    return guardar_papeleria(
+        tenant_id,
+        {
+            'encabezado': fila.get('encabezado') or '',
+            'subtitulo': fila.get('subtitulo') or '',
+            'pie_pagina': fila.get('pie_pagina') or '',
+        },
+        logo_bytes=logo_bytes,
+        quitar_logo=quitar_logo,
+    )
+
+
 def guardar_papeleria(tenant_id, valores, logo_bytes=None, quitar_logo=False):
     tenant_id = int(tenant_id)
     if tenant_id <= 0:

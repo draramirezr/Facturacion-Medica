@@ -62,10 +62,27 @@ def asegurar_esquema_correo():
         )
 
 
+def smtp_consultorio_tiene_datos(empresa):
+    """Host y remitente guardados (puede faltar contraseña)."""
+    empresa = empresa or {}
+    return bool(
+        (empresa.get('smtp_host') or '').strip()
+        and (empresa.get('smtp_remitente') or '').strip()
+    )
+
+
+def smtp_consultorio_listo(empresa):
+    """SMTP completo: el consultorio envía solo desde su cuenta."""
+    return smtp_consultorio_tiene_datos(empresa) and bool(
+        empresa.get('smtp_password_cifrado')
+    )
+
+
 def resumen_correo_empresa(empresa):
     empresa = empresa or {}
     return {
-        'configurado': bool(empresa.get('smtp_host') and empresa.get('smtp_remitente')),
+        'configurado': smtp_consultorio_tiene_datos(empresa),
+        'listo_para_enviar': smtp_consultorio_listo(empresa),
         'smtp_host': empresa.get('smtp_host') or '',
         'smtp_port': empresa.get('smtp_port') or 587,
         'smtp_usuario': empresa.get('smtp_usuario') or '',
@@ -81,7 +98,9 @@ def describir_error_smtp(error):
     if isinstance(error, smtplib.SMTPAuthenticationError):
         return (
             'Usuario o contraseña SMTP incorrectos. '
-            'En Gmail use una contraseña de aplicación de 16 caracteres.'
+            'En Gmail use contraseña de aplicación. En Outlook/Hotmail, '
+            'el usuario debe ser el correo completo; si sigue fallando, '
+            'cree una contraseña de aplicación en la cuenta Microsoft.'
         )
     if isinstance(error, (TimeoutError,)):
         return (
@@ -199,10 +218,17 @@ def enviar_correo_consultorio(
     asunto,
     html,
     adjuntos=None,
-    fallback_plataforma=True,
+    fallback_plataforma=None,
     texto=None,
 ):
-    """Enviar desde el SMTP de la empresa; si falta, usa el correo de ClinicRD."""
+    """
+    Enviar desde el SMTP del consultorio.
+
+    Si el SMTP está completo (host, remitente y contraseña), solo se usa esa
+    cuenta — nunca el correo de ClinicRD, aunque falle el envío.
+
+    Si no hay SMTP configurado, se usa el correo de plataforma (demos).
+    """
     if not destinatario:
         return False, 'No hay destinatario'
     empresa = None
@@ -212,18 +238,22 @@ def enviar_correo_consultorio(
             'SELECT * FROM empresas WHERE id=%s',
             (tenant_id,),
         )
-    if (
-        empresa
-        and empresa.get('smtp_host')
-        and empresa.get('smtp_remitente')
-        and empresa.get('smtp_password_cifrado')
-    ):
-        ok, detalle = _enviar_smtp(
+    listo = smtp_consultorio_listo(empresa)
+    if smtp_consultorio_tiene_datos(empresa) and not listo:
+        return False, (
+            'Falta la contraseña SMTP en Configuración. '
+            'Complete el correo del consultorio para enviar avisos.'
+        )
+    if listo:
+        return _enviar_smtp(
             empresa, destinatario, asunto, html, adjuntos, texto=texto,
         )
-        if ok or not fallback_plataforma:
-            return ok, detalle
-    if fallback_plataforma:
+    usar_plataforma = (
+        fallback_plataforma
+        if fallback_plataforma is not None
+        else True
+    )
+    if usar_plataforma:
         from services.platform_mail import enviar_correo_plataforma
         return enviar_correo_plataforma(
             destinatario, asunto, html, adjuntos=adjuntos, texto=texto,

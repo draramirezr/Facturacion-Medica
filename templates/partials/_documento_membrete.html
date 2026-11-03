@@ -1,4 +1,5 @@
-{% if papeleria and (papeleria.tiene_logo or papeleria.encabezado or papeleria.subtitulo) %}
+{% set nombre_consultorio = empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'Consultorio' %}
+{% if papeleria and papeleria.tiene_logo or nombre_consultorio %}
 <style nonce="{{ csp_nonce }}">
     .doc-membrete {
         display: flex;
@@ -14,7 +15,6 @@
         flex: 0 0 72px;
     }
     .doc-membrete strong { display: block; font-size: 1.05rem; }
-    .doc-membrete small { display: block; color: #526071; }
     .doc-pie-papeleria {
         margin-top: 1.5rem;
         padding-top: .6rem;
@@ -29,12 +29,11 @@
     }
 </style>
 <div class="doc-membrete">
-    {% if papeleria.tiene_logo %}
+    {% if papeleria and papeleria.tiene_logo %}
     <img class="doc-membrete-logo" src="{{ url_for('papeleria_logo') }}" alt="">
     {% endif %}
     <div>
-        {% if papeleria.encabezado %}<strong>{{ papeleria.encabezado }}</strong>{% endif %}
-        {% if papeleria.subtitulo %}<small>{{ papeleria.subtitulo }}</small>{% endif %}
+        <strong>{{ nombre_consultorio }}</strong>
     </div>
 </div>
 {% endif %}

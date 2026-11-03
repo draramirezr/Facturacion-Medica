@@ -699,7 +699,8 @@ def inject_theme():
         empresa = {
             'tenant_id': current_user.tenant_id,
             'empresa_nombre': (
-                empresa_db.get('nombre')
+                empresa_db.get('razon_social')
+                or empresa_db.get('nombre')
                 or current_user.empresa_nombre
                 or 'Sin empresa'
             ),

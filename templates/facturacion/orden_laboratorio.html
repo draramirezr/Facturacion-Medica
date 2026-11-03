@@ -36,9 +36,6 @@
         {% include 'partials/_documento_membrete.html' %}
         {% include 'partials/_documento_datos_centro.html' %}
         <h1>Orden de laboratorio</h1>
-        {% if not papeleria or not papeleria.encabezado %}
-        <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ClinicRD' }}</div>
-        {% endif %}
     </header>
     <div class="lab-info">
         <div class="lab-info-item"><span>Paciente</span><strong>{{ consulta['paciente_nombre'] }}</strong></div>

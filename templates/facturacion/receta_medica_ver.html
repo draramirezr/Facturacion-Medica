@@ -43,9 +43,6 @@
         {% include 'partials/_documento_membrete.html' %}
         {% include 'partials/_documento_datos_centro.html' %}
         <h1>Receta Médica</h1>
-        {% if not papeleria or not papeleria.encabezado %}
-        <div>{{ empresa.empresa_nombre if empresa and empresa.empresa_nombre else 'ClinicRD' }}</div>
-        {% endif %}
         <strong>{{ receta['codigo'] }}</strong>
     </header>
     <div class="rx-info">

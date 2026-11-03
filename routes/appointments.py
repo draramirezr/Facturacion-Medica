@@ -15,7 +15,7 @@ from core.database import execute_query, execute_update
 from core.security import rate_limit
 from core.tenant import get_current_tenant_id
 from core.presentation import hora_input
-from routes.support import sanitize_input, validate_int
+from routes.support import sanitize_input, validate_email, validate_int
 from services.centro_contexto import centro_para_nuevo_registro
 from services.tenant_mail import notificar_paciente
 import hashlib
@@ -42,6 +42,30 @@ COLUMNAS_CONFIRMACION_CITA = {
 def cita_se_puede_reagendar(cita):
     """Permitir cambiar fecha y hora salvo que la cita ya se haya completado."""
     return bool(cita) and cita.get('estado') in ESTADOS_REAGENDABLES
+
+
+def cita_fecha_como_date(valor):
+    if valor is None:
+        return None
+    if hasattr(valor, 'year') and not hasattr(valor, 'hour'):
+        return valor
+    if hasattr(valor, 'date') and callable(getattr(valor, 'date', None)):
+        return valor.date()
+    try:
+        return datetime.strptime(str(valor)[:10], '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+
+def cita_horario_cambio(cita, fecha, hora):
+    """True si la fecha u hora difieren de la cita guardada."""
+    if not cita:
+        return False
+    prev_f = cita_fecha_como_date(cita.get('fecha'))
+    nueva_f = cita_fecha_como_date(fecha)
+    prev_h = hora_como_time(cita.get('hora'))
+    nueva_h = hora_como_time(hora)
+    return prev_f != nueva_f or prev_h != nueva_h
 
 
 def cita_horario_sigue_vigente(fecha, hora, duracion, ahora=None):
@@ -370,6 +394,38 @@ def actualizar_citas_vencidas(tenant_id):
     ))
 
 
+def correo_paciente_guardado(tenant_id, paciente_id):
+    if not tenant_id or not paciente_id:
+        return ''
+    fila = execute_query(
+        'SELECT email FROM pacientes WHERE id=%s AND tenant_id=%s',
+        (paciente_id, tenant_id),
+    )
+    return ((fila or {}).get('email') or '').strip()
+
+
+def aplicar_email_paciente_opcional(tenant_id, paciente_id, email_raw):
+    """Guarda correo en la ficha si el paciente aún no tiene (opcional en la cita)."""
+    email = (email_raw or '').strip().lower()
+    if not email:
+        return None
+    if not validate_email(email):
+        return 'Indique un correo válido para avisos o déjelo en blanco.'
+    if not execute_query(
+        'SELECT id FROM pacientes WHERE id=%s AND tenant_id=%s',
+        (paciente_id, tenant_id),
+    ):
+        return 'El paciente seleccionado no es válido.'
+    actual = correo_paciente_guardado(tenant_id, paciente_id)
+    if actual:
+        return None
+    execute_update(
+        'UPDATE pacientes SET email=%s WHERE id=%s AND tenant_id=%s',
+        (email, paciente_id, tenant_id),
+    )
+    return None
+
+
 def contexto_formulario_cita(tenant_id, medico_id_restringido=None):
     medicos_sql = (
         'SELECT id, nombre, especialidad FROM medicos '
@@ -595,6 +651,17 @@ def facturacion_citas_nueva():
                 consulta_origen=consulta_origen, form_data=request.form,
                 **contexto
             )
+        error_email = aplicar_email_paciente_opcional(
+            tenant_id, datos['paciente_id'],
+            request.form.get('paciente_email', ''),
+        )
+        if error_email:
+            flash(error_email, 'error')
+            return render_template(
+                'facturacion/cita_form.html', cita=None,
+                consulta_origen=consulta_origen, form_data=request.form,
+                **contexto
+            )
         if consulta_id:
             existente = execute_query(
                 'SELECT id FROM citas_medicas '
@@ -677,10 +744,30 @@ def facturacion_cita_editar(cita_id):
             return render_template(
                 'facturacion/cita_form.html', cita=cita,
                 consulta_origen=None, form_data=request.form,
+                paciente_correo=correo_paciente_guardado(
+                    tenant_id, cita.get('paciente_id'),
+                ),
                 puede_reagendar=cita_se_puede_reagendar(cita),
                 modo_reagendar=request.form.get('accion') == 'reagendar',
                 **contexto
             )
+        if request.form.get('accion') != 'reenviar_aviso':
+            error_email = aplicar_email_paciente_opcional(
+                tenant_id, datos['paciente_id'],
+                request.form.get('paciente_email', ''),
+            )
+            if error_email:
+                flash(error_email, 'error')
+                return render_template(
+                    'facturacion/cita_form.html', cita=cita,
+                    consulta_origen=None, form_data=request.form,
+                    paciente_correo=correo_paciente_guardado(
+                        tenant_id, cita.get('paciente_id'),
+                    ),
+                    puede_reagendar=cita_se_puede_reagendar(cita),
+                    modo_reagendar=request.form.get('accion') == 'reagendar',
+                    **contexto
+                )
         notas = datos['notas'] or ''
         estado_previo = datos['estado']
         datos['estado'] = estado_si_horario_vigente(
@@ -729,6 +816,15 @@ def facturacion_cita_editar(cita_id):
                 datos['hora'], 'reagendada',
             )
         else:
+            if (
+                cita_horario_cambio(cita, datos['fecha'], datos['hora'])
+                and cita.get('estado') != 'Completada'
+                and datos['estado'] != 'Completada'
+            ):
+                _avisar_cita_paciente(
+                    tenant_id, cita_id, datos['paciente_id'], datos['fecha'],
+                    datos['hora'], 'reagendada',
+                )
             if estado_previo in ESTADOS_AL_REVIVIR and datos['estado'] == 'Programada':
                 flash(
                     'El horario sigue vigente: la cita pasó de %s a Programada.'
@@ -744,6 +840,9 @@ def facturacion_cita_editar(cita_id):
     return render_template(
         'facturacion/cita_form.html', cita=cita,
         consulta_origen=None, form_data=cita,
+        paciente_correo=correo_paciente_guardado(
+            tenant_id, cita.get('paciente_id'),
+        ),
         puede_reagendar=cita_se_puede_reagendar(cita),
         modo_reagendar=request.args.get('reagendar') == '1',
         **contexto

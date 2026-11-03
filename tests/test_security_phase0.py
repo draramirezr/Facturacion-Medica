@@ -1142,6 +1142,8 @@ class PhaseZeroSecurityTests(unittest.TestCase):
 
     def test_appointment_can_be_rescheduled(self):
         from routes.appointments import (
+            aplicar_email_paciente_opcional,
+            cita_horario_cambio,
             cita_se_puede_reagendar,
             estado_si_horario_vigente,
         )
@@ -1163,6 +1165,24 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertTrue(cita_se_puede_reagendar({'estado': 'Cancelada'}))
         self.assertTrue(cita_se_puede_reagendar({'estado': 'Vencida'}))
         self.assertFalse(cita_se_puede_reagendar({'estado': 'Completada'}))
+        base = {'fecha': date(2026, 10, 1), 'hora': time(9, 0)}
+        self.assertFalse(cita_horario_cambio(base, date(2026, 10, 1), time(9, 0)))
+        self.assertTrue(cita_horario_cambio(base, date(2026, 10, 2), time(9, 0)))
+        self.assertTrue(cita_horario_cambio(base, date(2026, 10, 1), time(10, 0)))
+        with (
+            patch(
+                'routes.appointments.execute_query',
+                side_effect=[
+                    {'id': 1},
+                    {'email': ''},
+                ],
+            ),
+            patch('routes.appointments.execute_update') as update_email,
+        ):
+            self.assertIsNone(
+                aplicar_email_paciente_opcional(3, 1, 'paciente@example.com'),
+            )
+        update_email.assert_called_once()
         self.assertEqual(
             estado_si_horario_vigente(
                 'Vencida',

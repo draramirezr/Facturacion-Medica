@@ -5,6 +5,7 @@
             cedula: patient?.cedula || '',
             nss: patient?.nss || '',
             telefono: patient?.telefono || '',
+            email: patient?.email || '',
             fechaNacimiento: patient?.fecha_nacimiento || '',
             sexo: patient?.sexo || '',
             direccion: patient?.direccion || '',

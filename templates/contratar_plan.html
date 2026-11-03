@@ -38,6 +38,52 @@
     .plan-option input { margin-right: 0.65rem; }
     .plan-option strong { display: block; font-size: 1.05rem; }
     .plan-option small { color: var(--text-muted, #6b7280); }
+    .contratar-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: stretch;
+        gap: 0.75rem;
+        margin-top: 1.5rem;
+    }
+    .contratar-actions .btn-contratar {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 46px;
+        min-width: 11rem;
+        padding: 0.65rem 1.25rem !important;
+        border-radius: 12px !important;
+        font-size: 0.9375rem !important;
+        font-weight: 600 !important;
+        text-transform: none !important;
+        letter-spacing: normal !important;
+        line-height: 1.25;
+        white-space: nowrap;
+        box-shadow: none !important;
+        transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+    }
+    .contratar-actions .btn-contratar-primary {
+        background: linear-gradient(135deg, {{ tema.primary }} 0%, {{ tema.primary_dark }} 100%) !important;
+        border: 2px solid transparent !important;
+        color: #fff !important;
+    }
+    .contratar-actions .btn-contratar-primary:hover {
+        transform: translateY(-1px);
+        color: #fff !important;
+        filter: brightness(1.03);
+    }
+    .contratar-actions .btn-contratar-secondary {
+        background: var(--ars-shell-surface, #fff) !important;
+        border: 2px solid {{ tema.primary }}45 !important;
+        color: var(--primary-color) !important;
+        text-decoration: none !important;
+    }
+    .contratar-actions .btn-contratar-secondary:hover {
+        background: {{ tema.primary }}12 !important;
+        border-color: var(--primary-color) !important;
+        color: var(--primary-dark) !important;
+        transform: translateY(-1px);
+    }
 </style>
 
 <div class="contratar-wrap">
@@ -55,7 +101,9 @@
             Cierre sesión y pida al administrador que entre con su cuenta, o escríbanos a
             <a href="mailto:{{ soporte_email }}">{{ soporte_email }}</a>.
         </div>
-        <a class="btn btn-outline-primary" href="{{ url_for('logout') }}">Cerrar sesión</a>
+        <div class="contratar-actions">
+            <a class="btn btn-contratar btn-contratar-secondary" href="{{ url_for('logout') }}">Cerrar sesión</a>
+        </div>
         {% else %}
         <p class="mb-3">
             Elija el plan. Se activa al instante y tiene <strong>{{ upgrade_gracia_dias }} días</strong>
@@ -73,11 +121,11 @@
                 {% endif %}
             </label>
             {% endfor %}
-            <div class="d-flex flex-wrap gap-2 mt-4">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-bolt me-2"></i>Activar plan y entrar
+            <div class="contratar-actions">
+                <button type="submit" class="btn btn-contratar btn-contratar-primary">
+                    <i class="fas fa-bolt me-2" aria-hidden="true"></i>Activar plan y entrar
                 </button>
-                <a class="btn btn-outline-secondary" href="{{ url_for('logout') }}">Cerrar sesión</a>
+                <a class="btn btn-contratar btn-contratar-secondary" href="{{ url_for('logout') }}">Cerrar sesión</a>
             </div>
         </form>
         <p class="text-muted small mt-3 mb-0">

@@ -31,6 +31,13 @@
                 <div class="row g-3">
                     <div class="col-md-6"><label class="form-label required">Paciente</label>{{ patient_search(pacientes, paciente_valor, true, 'cita_paciente') }}</div>
                     <div class="col-md-6">
+                        <label class="form-label" for="paciente_email">Correo para avisos <span class="text-muted fw-normal">(opcional)</span></label>
+                        <input class="form-control" type="email" id="paciente_email" name="paciente_email" maxlength="100"
+                               placeholder="Si no tiene correo en la ficha, escríbalo aquí"
+                               value="{{ form_data.get('paciente_email') or paciente_correo|default('') }}">
+                        <small class="text-muted">Se guarda en la ficha del paciente si estaba vacío. Los avisos de cita van por correo.</small>
+                    </div>
+                    <div class="col-md-6">
                         <label class="form-label required">Médico</label>
                         {% if agenda_restringida and medicos %}
                         <input type="hidden" id="medico_id" name="medico_id" value="{{ medicos[0]['id'] }}" data-especialidad="{{ medicos[0]['especialidad'] or '' }}">
@@ -71,6 +78,8 @@
                 <input type="hidden" name="motivo" value="{{ cita['motivo'] or '' }}">
                 <input type="hidden" name="notas" value="{{ cita['notas'] or '' }}">
                 <input type="hidden" name="estado" value="Programada">
+                <input type="hidden" name="paciente_email" id="reagendar_paciente_email"
+                       value="{{ form_data.get('paciente_email') or paciente_correo|default('') }}">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-4"><label class="form-label required">Nueva fecha</label><input class="form-control" type="date" name="fecha" value="{{ fecha_valor }}" required></div>
                     <div class="col-md-4"><label class="form-label required">Nueva hora</label><input class="form-control" type="time" name="hora" value="{{ hora_valor|hora_input }}" required></div>
@@ -104,6 +113,32 @@
         specialty.value = selectedSpecialty();
     });
     if (!specialty.value && doctor.value) specialty.value = selectedSpecialty();
+    const emailAvisos = document.getElementById('paciente_email');
+    const emailReagendar = document.getElementById('reagendar_paciente_email');
+    const syncEmailReagendar = () => {
+        if (emailAvisos && emailReagendar) {
+            emailReagendar.value = emailAvisos.value.trim();
+        }
+    };
+    emailAvisos?.addEventListener('input', syncEmailReagendar);
+    document.getElementById('reagendar')?.querySelector('form')?.addEventListener('submit', syncEmailReagendar);
+    const applyPatientEmail = (patient) => {
+        if (!emailAvisos) return;
+        const saved = (patient?.email || '').trim();
+        if (saved) {
+            emailAvisos.value = saved;
+            emailAvisos.readOnly = true;
+        } else {
+            emailAvisos.readOnly = false;
+        }
+        syncEmailReagendar();
+    };
+    document.getElementById('paciente_id')?.addEventListener('patient:selected', (event) => {
+        applyPatientEmail(event.detail);
+    });
+    if (emailAvisos?.value.trim()) {
+        emailAvisos.readOnly = true;
+    }
     {% if modo_reagendar|default(false) %}
     document.getElementById('reagendar')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     {% endif %}
