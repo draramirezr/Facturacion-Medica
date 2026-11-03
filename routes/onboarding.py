@@ -21,6 +21,7 @@ from services.subscriptions import check_medico_catalog_limit
 
 _ENDPOINTS_LIBRES = frozenset({
     'completar_perfil_inicial',
+    'contratar_plan',
     'logout',
     'login',
     'registro',
@@ -192,6 +193,13 @@ def register_onboarding_routes(app):
             return None
         if perfil_inicial_pendiente(current_user):
             return redirect(url_for('completar_perfil_inicial'))
+        try:
+            from services.plan_upgrades import tenant_debe_contratar_despues_demo
+            tenant_id = get_current_tenant_id()
+            if tenant_debe_contratar_despues_demo(tenant_id):
+                return redirect(url_for('contratar_plan'))
+        except Exception:
+            pass
         return None
 
     app.add_url_rule(

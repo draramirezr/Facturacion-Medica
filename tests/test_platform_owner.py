@@ -32,7 +32,7 @@ class PlatformOwnerTests(unittest.TestCase):
         ).read_text(encoding='utf-8')
         self.assertIn('Visitas a la página', plantilla)
         self.assertIn('visitas.hoy', plantilla)
-        self.assertIn('visitas.por_dia', plantilla)
+        self.assertNotIn('visitas.por_dia', plantilla)
 
     def test_page_view_summary_groups_by_day(self):
         hoy = date.today()

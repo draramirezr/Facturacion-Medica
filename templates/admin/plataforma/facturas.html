@@ -79,6 +79,14 @@
                         <td>RD$ {{ '%.2f'|format(factura.monto|float) }}</td>
                         <td>{{ factura.estado|title }}</td>
                         <td class="text-center text-nowrap">
+                            {% if factura.estado == 'pendiente' %}
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('plataforma_factura_editar', factura_id=factura.id) }}" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% endif %}
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('plataforma_factura_ver', factura_id=factura.id) }}" target="_blank" rel="noopener" title="Ver factura">
+                                <i class="fas fa-eye"></i>
+                            </a>
                             <a class="btn btn-sm btn-outline-primary" href="{{ url_for('plataforma_factura_pdf', factura_id=factura.id) }}" title="Descargar">
                                 <i class="fas fa-download"></i>
                             </a>

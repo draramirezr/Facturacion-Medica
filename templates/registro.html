@@ -169,6 +169,15 @@
                 {% endif %}
             {% endwith %}
 
+            {% if sugerir_login|default(false) %}
+            <div class="login-prompt" style="margin-bottom:1rem;padding:12px 14px;border-radius:10px;background:#ebf8ff;border:1px solid #bee3f8;">
+                <strong>¿Ya tuvo una demo?</strong>
+                <a href="{{ url_for('login') }}">Inicie sesión</a>
+                para contratar un plan o
+                <a href="{{ url_for('solicitar_recuperacion') }}">recupere su contraseña</a>.
+            </div>
+            {% endif %}
+
             <form method="POST" action="{{ url_for('registro') }}">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">

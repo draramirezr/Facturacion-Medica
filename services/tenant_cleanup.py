@@ -4,16 +4,10 @@ import logging
 
 from core.config import REQUIRED_TENANT_TABLES
 from core.database import database_transaction, execute_query, execute_update
+from services.datos_guia_transacciones import tenant_solo_datos_guia
 
 logger = logging.getLogger(__name__)
 
-_TABLAS_SOLO_SEMILLA = frozenset({
-    'ars', 'roles', 'rol_permisos', 'usuario_roles',
-})
-_TABLAS_DATOS = tuple(
-    t for t in REQUIRED_TENANT_TABLES
-    if t not in _TABLAS_SOLO_SEMILLA and t != 'usuarios'
-)
 _ORDEN_ELIMINACION = (
     'usuario_roles',
     'usuario_medico',
@@ -60,14 +54,6 @@ _ORDEN_ELIMINACION = (
 )
 
 
-def _conteo_tenant(tabla, tenant_id):
-    fila = execute_query(
-        f'SELECT COUNT(*) AS n FROM `{tabla}` WHERE tenant_id=%s',
-        (tenant_id,),
-    )
-    return int(fila['n']) if fila else 0
-
-
 def motivo_no_eliminar_demo(empresa_id):
     """Devuelve texto de error si no se puede borrar; None si sí."""
     empresa = execute_query(
@@ -80,28 +66,12 @@ def motivo_no_eliminar_demo(empresa_id):
         return 'No se puede eliminar la empresa predeterminada'
     if not empresa.get('es_demo'):
         return 'Solo se pueden eliminar empresas marcadas como demo'
-    usuarios = execute_query(
-        '''
-        SELECT id, email_verificado, last_login
-        FROM usuarios WHERE tenant_id=%s
-        ''',
-        (empresa_id,),
-        fetch='all',
-    ) or []
-    for usuario in usuarios:
-        if usuario.get('email_verificado'):
-            return (
-                'Hay usuarios con correo ya verificado; '
-                'no se puede eliminar desde aquí'
-            )
-        if usuario.get('last_login'):
-            return 'Ya hubo inicio de sesión en esta demo'
-    for tabla in _TABLAS_DATOS:
-        if _conteo_tenant(tabla, empresa_id) > 0:
-            return (
-                f'La demo tiene datos operativos ({tabla}); '
-                'contacte soporte para borrado completo'
-            )
+    if not tenant_solo_datos_guia(empresa_id):
+        return (
+            'Hay datos reales además de los ejemplos de guía '
+            '(pacientes, facturas, mensajes, etc.). '
+            'Contacte soporte si necesita borrado completo.'
+        )
     return None
 
 

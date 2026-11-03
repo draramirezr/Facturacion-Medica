@@ -42,6 +42,28 @@
         white-space: nowrap;
         vertical-align: middle;
     }
+    .th-sort {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.35rem;
+        color: #fff !important;
+        text-decoration: none;
+        font-weight: 600;
+    }
+    .th-sort:hover {
+        color: #fff !important;
+        opacity: 0.92;
+        text-decoration: underline;
+    }
+    .th-sort .fa-sort,
+    .th-sort .fa-sort-up,
+    .th-sort .fa-sort-down {
+        font-size: 0.75rem;
+        opacity: 0.85;
+    }
+    .th-sort:not(.th-sort-active) .fa-sort {
+        opacity: 0.45;
+    }
     
     .table-empresas td {
         padding: 0.85rem 0.75rem;
@@ -181,6 +203,24 @@
         line-height: 1.3;
         overflow-wrap: anywhere;
     }
+    .razon-correo,
+    .razon-telefono {
+        display: block;
+        margin-top: 0.2rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        line-height: 1.25;
+        color: var(--text-muted, #6b7280);
+        overflow-wrap: anywhere;
+    }
+    .razon-telefono a {
+        color: inherit;
+        text-decoration: none;
+    }
+    .razon-telefono a:hover {
+        color: var(--primary-color);
+        text-decoration: underline;
+    }
     .licencias-count { font-size: 0.85rem; font-weight: 700; min-width: 2.6rem; }
     .login-fecha, .login-hora { display: block; line-height: 1.25; }
     .login-fecha { font-weight: 600; }
@@ -231,6 +271,28 @@
     {% endfor %}
 </style>
 
+{% macro th_sort(key, label, class='', center=false) %}
+{% set active = sort_col == key %}
+{% if active %}
+{% set next_dir = 'desc' if sort_dir == 'asc' else 'asc' %}
+{% elif key in ['login', 'meta'] %}
+{% set next_dir = 'desc' %}
+{% else %}
+{% set next_dir = 'asc' %}
+{% endif %}
+<th class="{{ class }}{% if center %} text-center{% endif %}">
+    <a class="th-sort{% if active %} th-sort-active{% endif %}"
+       href="{{ url_for('admin_empresas', sort=key, dir=next_dir) }}">
+        {{ label }}
+        {% if active %}
+        <i class="fas fa-sort-{{ 'up' if sort_dir == 'asc' else 'down' }}" aria-hidden="true"></i>
+        {% else %}
+        <i class="fas fa-sort" aria-hidden="true"></i>
+        {% endif %}
+    </a>
+</th>
+{% endmacro %}
+
 <div class="container-fluid empresas-page py-5 px-4">
     <!-- Hero -->
     <div class="empresas-hero">
@@ -265,18 +327,29 @@
             <table class="table table-hover mb-0">
                 <thead>
                     <tr>
-                        <th class="col-razon">Razón Social</th>
-                        <th class="col-licencias">Licencias</th>
-                        <th class="col-usuarios text-center">Usuarios</th>
-                        <th class="col-login">Último login</th>
-                        <th class="col-meta">Plan y estado</th>
+                        {{ th_sort('razon', 'Razón Social', 'col-razon') }}
+                        {{ th_sort('licencias', 'Licencias', 'col-licencias') }}
+                        {{ th_sort('usuarios', 'Usuarios', 'col-usuarios', center=true) }}
+                        {{ th_sort('login', 'Último login', 'col-login') }}
+                        {{ th_sort('meta', 'Plan y estado', 'col-meta') }}
                         <th class="text-end col-acciones">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for empresa in empresas %}
                     <tr>
-                        <td><span class="razon-nombre">{{ empresa['razon_social'] or empresa['nombre'] }}</span></td>
+                        <td>
+                            <span class="razon-nombre">{{ empresa['razon_social'] or empresa['nombre'] }}</span>
+                            {% if empresa.get('correo_contacto') %}
+                            <span class="razon-correo">{{ empresa['correo_contacto'] }}</span>
+                            {% endif %}
+                            {% if empresa.get('telefono') %}
+                            <span class="razon-telefono">
+                                <i class="fas fa-phone me-1" aria-hidden="true"></i>
+                                <a href="tel:{{ empresa['telefono']|replace(' ', '')|replace('-', '') }}">{{ empresa['telefono'] }}</a>
+                            </span>
+                            {% endif %}
+                        </td>
                         <td>
                             <div class="licencias-info">
                                 <span class="licencias-count">
@@ -344,9 +417,10 @@
                                 {% if empresa.get('puede_eliminar_demo') %}
                                 <form method="post"
                                       action="{{ url_for('admin_empresas_eliminar_demo', empresa_id=empresa['id']) }}"
-                                      onsubmit="return confirm('¿Eliminar la demo «{{ empresa['nombre']|e }}»? Libera el correo para un nuevo registro.');">
+                                      onsubmit="return confirm('¿Eliminar la demo «{{ empresa['nombre']|e }}»? Se borran usuarios y datos (incluidos ejemplos de guía) y queda libre el correo.');">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                                    <button class="btn btn-accion-editar text-danger" type="submit" title="Eliminar demo sin uso">
+                                    <button class="btn btn-accion-editar text-danger" type="submit"
+                                            title="Eliminar demo: solo ejemplos de guía, libera el correo">
                                         <i class="fas fa-trash-alt"></i> Eliminar
                                     </button>
                                 </form>

@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 _MARCADOR = '[Guía]'
 _CEDULAS = ('99990000001', '99990000002', '99990000003')
+GUIA_CEDULAS_PACIENTES = _CEDULAS
 
 
 def _json(data):
@@ -473,3 +474,105 @@ def sembrar_transacciones_guia_tenant(tenant_id):
         (tenant_id, hoy, medico_id),
     )
     return True
+
+
+def tenant_solo_datos_guia(tenant_id):
+    """
+    True si el tenant no tiene datos operativos reales (solo semilla / guía).
+    """
+    if not tenant_id:
+        return True
+    cedulas = GUIA_CEDULAS_PACIENTES
+    placeholders = ','.join(['%s'] * len(cedulas))
+    consultas = (
+        f'''
+        SELECT COUNT(*) AS n FROM pacientes
+        WHERE tenant_id=%s AND cedula NOT IN ({placeholders})
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM medicos
+        WHERE tenant_id=%s AND activo=1 AND nombre NOT LIKE '(Ejemplo)%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM centros_medicos
+        WHERE tenant_id=%s AND COALESCE(codigo, '') <> 'GUIA-DEMO'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM servicios
+        WHERE tenant_id=%s AND COALESCE(codigo, '') <> 'GUIA-SRV'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM ncf
+        WHERE tenant_id=%s AND COALESCE(descripcion, '') NOT LIKE '%(ejemplo)%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM codigo_ars
+        WHERE tenant_id=%s AND COALESCE(codigo, '') <> 'CONS-GUIA'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM facturas
+        WHERE tenant_id=%s AND COALESCE(numero_factura, '') NOT LIKE 'FAC-GUIA-%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM recetas_medicas
+        WHERE tenant_id=%s AND COALESCE(codigo, '') NOT LIKE 'REC-GUIA-%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM licencias_medicas
+        WHERE tenant_id=%s AND COALESCE(codigo, '') NOT LIKE 'LIC-GUIA-%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM pagos
+        WHERE tenant_id=%s AND COALESCE(numero_pago, '') NOT LIKE 'PAG-GUIA-%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM citas_medicas
+        WHERE tenant_id=%s AND COALESCE(motivo, '') NOT LIKE '[Guía]%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM consultas_clinicas
+        WHERE tenant_id=%s AND COALESCE(motivo_consulta, '') NOT LIKE '[Guía]%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM historias_emergencia
+        WHERE tenant_id=%s AND COALESCE(motivo_emergencia, '') NOT LIKE '[Guía]%'
+          AND COALESCE(autorizacion, '') NOT LIKE 'GUIA-%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM hojas_enfermeria
+        WHERE tenant_id=%s AND COALESCE(observaciones, '') NOT LIKE '[Guía]%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM turnos_atencion
+        WHERE tenant_id=%s AND COALESCE(motivo, '') NOT LIKE '[Guía]%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM pacientes_pendientes
+        WHERE tenant_id=%s AND COALESCE(servicios_realizados, '') NOT LIKE '[Guía]%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM reclamaciones
+        WHERE tenant_id=%s AND COALESCE(observaciones, '') NOT LIKE '[Guía]%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM tipos_licencia_medica
+        WHERE tenant_id=%s AND COALESCE(nombre, '') NOT LIKE '%(ejemplo)%'
+        ''',
+        '''
+        SELECT COUNT(*) AS n FROM mensajes_internos WHERE tenant_id=%s
+        ''',
+    )
+    params_pacientes = (tenant_id, *cedulas)
+    for indice, sql in enumerate(consultas):
+        params = params_pacientes if indice == 0 else (tenant_id,)
+        n = _conteo_raw(sql, params)
+        if indice == 1 and n > 1:
+            return False
+        if indice != 1 and n > 0:
+            return False
+    return True
+
+
+def _conteo_raw(sql, params):
+    fila = execute_query(sql, params)
+    return int((fila or {}).get('n') or 0)

@@ -81,42 +81,35 @@ def login():
         if user_data and user_data['activo']:
             es_dueno = user_data.get('tenant_id') is None
             estado = user_data.get('empresa_estado')
-            if not es_dueno and estado != 'activo':
+            es_demo = bool(user_data.get('empresa_es_demo'))
+            if not es_dueno and estado != 'activo' and not es_demo:
                 message = (
-                    'Tu demo de 7 días terminó. Si cerraron el acuerdo, '
-                    'ClinicRD puede darte de alta.'
-                    if user_data.get('empresa_es_demo')
-                    else (
-                        'Suscripción vencida o suspendida. Contacta al administrador '
-                        'del sistema.'
-                        if estado == 'suspendido'
-                        else 'La empresa asociada a este usuario está inactiva'
-                    )
+                    'Suscripción vencida o suspendida. Contacta al administrador '
+                    'del sistema.'
+                    if estado == 'suspendido'
+                    else 'La empresa asociada a este usuario está inactiva'
                 )
                 flash(message, 'error')
                 return _redirigir_login()
-            fecha_fin = user_data.get('empresa_fecha_fin')
-            if isinstance(fecha_fin, str):
-                fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
-            if not es_dueno and fecha_fin and fecha_fin < date.today():
-                es_demo = bool(user_data.get('empresa_es_demo'))
-                execute_update(
-                    "UPDATE empresas SET estado=%s "
-                    "WHERE id=%s AND estado='activo'",
-                    (
-                        'inactivo' if es_demo else 'suspendido',
-                        user_data.get('tenant_id'),
-                    ),
-                )
-                flash(
-                    'Tu demo de 7 días terminó. Si cerraron el acuerdo, '
-                    'ClinicRD puede darte de alta.'
-                    if es_demo else
-                    'La suscripción de tu empresa ha vencido. '
-                    'Contacta al administrador.',
-                    'error',
-                )
-                return _redirigir_login()
+            if not es_dueno and es_demo:
+                from services.plan_upgrades import marcar_demo_vencido_si_corresponde
+                marcar_demo_vencido_si_corresponde(user_data.get('tenant_id'))
+            elif not es_dueno:
+                fecha_fin = user_data.get('empresa_fecha_fin')
+                if isinstance(fecha_fin, str):
+                    fecha_fin = datetime.strptime(fecha_fin, '%Y-%m-%d').date()
+                if fecha_fin and fecha_fin < date.today():
+                    execute_update(
+                        "UPDATE empresas SET estado='suspendido' "
+                        "WHERE id=%s AND estado='activo'",
+                        (user_data.get('tenant_id'),),
+                    )
+                    flash(
+                        'La suscripción de tu empresa ha vencido. '
+                        'Contacta al administrador.',
+                        'error',
+                    )
+                    return _redirigir_login()
             from services.password_change import cambio_admin_vigente
 
             if cambio_admin_vigente(user_data):
@@ -150,6 +143,22 @@ def login():
                     'WHERE id=%s AND tenant_id <=> %s',
                     (datetime.now(), user.id, user.tenant_id),
                 )
+                from services.plan_upgrades import tenant_debe_contratar_despues_demo
+                from auth.helpers import usuario_es_administrador
+                if tenant_debe_contratar_despues_demo(user.tenant_id):
+                    if usuario_es_administrador(user):
+                        flash(
+                            'Su demo terminó. Elija un plan para reactivar su '
+                            'consultorio con los mismos datos.',
+                            'info',
+                        )
+                    else:
+                        flash(
+                            'El demo de su consultorio terminó. Pida al '
+                            'administrador que contrate un plan para volver a entrar.',
+                            'warning',
+                        )
+                    return redirect(url_for('contratar_plan'))
                 return redirect(url_retorno_segura(destino_inicio_sesion(user)))
             flash('Contraseña incorrecta', 'error')
         else:
@@ -234,7 +243,8 @@ def registro():
     usuario_existente = execute_query(
         '''
         SELECT u.id AS user_id, u.nombre, u.email_verificado,
-               e.id AS empresa_id, e.es_demo
+               e.id AS empresa_id, e.es_demo, e.estado AS empresa_estado,
+               e.fecha_fin AS empresa_fecha_fin
         FROM usuarios u
         INNER JOIN empresas e ON e.id = u.tenant_id
         WHERE u.email = %s
@@ -273,12 +283,30 @@ def registro():
                 'error',
             )
             return render_template('registro.html')
-        flash(
-            'Ya existe una cuenta con ese correo. Inicia sesión o recupera '
-            'tu contraseña.',
-            'error',
-        )
-        return render_template('registro.html')
+        if usuario_existente.get('es_demo'):
+            from services.plan_upgrades import tenant_debe_contratar_despues_demo
+            if tenant_debe_contratar_despues_demo(
+                usuario_existente['empresa_id'],
+            ):
+                flash(
+                    'Ya tuvo una demo con este correo y el período de prueba '
+                    'terminó. Inicie sesión para contratar un plan y conservar '
+                    'sus datos (no cree otra cuenta).',
+                    'warning',
+                )
+            else:
+                flash(
+                    'Ya existe una demo o cuenta con este correo. Inicie sesión '
+                    'o recupere su contraseña.',
+                    'warning',
+                )
+        else:
+            flash(
+                'Ya existe una cuenta con ese correo. Inicie sesión o recupere '
+                'su contraseña.',
+                'error',
+            )
+        return render_template('registro.html', sugerir_login=True)
     if execute_query('SELECT id FROM empresas WHERE nombre=%s', (nombre_empresa,)):
         flash(
             'Ya existe una empresa con ese nombre. Usa otro nombre o inicia sesión.',

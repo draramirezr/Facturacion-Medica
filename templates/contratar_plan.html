@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+
+{% block title %}Contratar plan - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .contratar-wrap {
+        max-width: 720px;
+        margin: 2rem auto 3rem;
+        padding: 0 1rem;
+    }
+    .contratar-card {
+        background: var(--ars-shell-surface, #fff);
+        border-radius: 18px;
+        padding: 2rem;
+        box-shadow: 0 8px 32px {{ tema.primary }}20;
+    }
+    .contratar-card h1 {
+        font-size: 1.65rem;
+        font-weight: 800;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+    }
+    .plan-option {
+        display: block;
+        border: 2px solid {{ tema.primary }}25;
+        border-radius: 14px;
+        padding: 1rem 1.1rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: border-color 0.2s, background 0.2s;
+    }
+    .plan-option:has(input:checked) {
+        border-color: var(--primary-color);
+        background: {{ tema.primary }}10;
+    }
+    .plan-option input { margin-right: 0.65rem; }
+    .plan-option strong { display: block; font-size: 1.05rem; }
+    .plan-option small { color: var(--text-muted, #6b7280); }
+</style>
+
+<div class="contratar-wrap">
+    <div class="contratar-card">
+        <h1><i class="fas fa-handshake me-2"></i>Contratar ClinicRD</h1>
+        <p class="text-muted mb-3">
+            {{ empresa.get('razon_social') or empresa.get('nombre') or 'Su consultorio' }}
+            — su demo terminó, pero <strong>sus datos siguen guardados</strong>.
+        </p>
+
+        {% if not puede_contratar %}
+        <div class="alert alert-warning">
+            <i class="fas fa-user-shield me-2"></i>
+            Solo el <strong>administrador</strong> del consultorio puede elegir el plan y reactivar el acceso.
+            Cierre sesión y pida al administrador que entre con su cuenta, o escríbanos a
+            <a href="mailto:{{ soporte_email }}">{{ soporte_email }}</a>.
+        </div>
+        <a class="btn btn-outline-primary" href="{{ url_for('logout') }}">Cerrar sesión</a>
+        {% else %}
+        <p class="mb-3">
+            Elija el plan. Se activa al instante y tiene <strong>{{ upgrade_gracia_dias }} días</strong>
+            para completar el pago. Soporte recibirá la solicitud con la factura pendiente.
+        </p>
+        <form method="post" action="{{ url_for('contratar_plan') }}">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            {% for clave in planes %}
+            <label class="plan-option">
+                <input type="radio" name="plan" value="{{ clave }}" required
+                       {% if clave == (empresa.get('plan') or 'basico') %}checked{% endif %}>
+                <strong>{{ plan_etiquetas.get(clave, clave) }}</strong>
+                {% if precios_planes and precios_planes.get(clave) %}
+                <small>{{ precios_planes[clave].mensual_dop }} / mes (referencia)</small>
+                {% endif %}
+            </label>
+            {% endfor %}
+            <div class="d-flex flex-wrap gap-2 mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-bolt me-2"></i>Activar plan y entrar
+                </button>
+                <a class="btn btn-outline-secondary" href="{{ url_for('logout') }}">Cerrar sesión</a>
+            </div>
+        </form>
+        <p class="text-muted small mt-3 mb-0">
+            ¿Dudas? <a href="mailto:{{ soporte_email }}">{{ soporte_email }}</a>
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

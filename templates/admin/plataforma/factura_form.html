@@ -1,14 +1,26 @@
 {% extends "base.html" %}
-{% block title %}Nueva factura de cliente - ClinicRD{% endblock %}
+{% block title %}{{ 'Editar factura ' ~ factura.numero if factura else 'Nueva factura de cliente' }} - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
 <div class="container py-5" style="max-width:720px;">
-    <h1 class="h3 mb-1"><i class="fas fa-file-invoice-dollar me-2"></i>Nueva factura</h1>
-    <p class="text-muted mb-4">Cobra la suscripción a una empresa cliente.</p>
+    <h1 class="h3 mb-1">
+        <i class="fas fa-file-invoice-dollar me-2"></i>
+        {{ 'Editar factura ' ~ factura.numero if factura else 'Nueva factura' }}
+    </h1>
+    <p class="text-muted mb-4">
+        {% if factura %}
+        Cliente: <strong>{{ factura.empresa_razon or factura.empresa_nombre }}</strong>
+        · estado {{ factura.estado|title }}
+        {% else %}
+        Cobra la suscripción a una empresa cliente.
+        {% endif %}
+    </p>
 
-    <form method="post" class="p-4 rounded-4" style="background:var(--ars-shell-surface,#fff);">
+    <form method="post" class="p-4 rounded-4" style="background:var(--ars-shell-surface,#fff);"
+          action="{{ url_for('plataforma_factura_editar', factura_id=factura.id) if factura else url_for('plataforma_factura_nueva') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if not factura %}
         <div class="mb-3">
             <label class="form-label" for="empresa_id">Cliente</label>
             <select class="form-select" id="empresa_id" name="empresa_id" required>
@@ -23,6 +35,7 @@
                 {% endfor %}
             </select>
         </div>
+        {% endif %}
         <div class="row g-3">
             <div class="col-md-4">
                 <label class="form-label" for="fecha">Fecha</label>
@@ -58,9 +71,30 @@
             </div>
         </div>
         <div class="d-flex gap-2 mt-4">
-            <button class="btn btn-primary" type="submit">Guardar factura</button>
+            <button class="btn btn-primary" type="submit">
+                {{ 'Guardar cambios' if factura else 'Guardar factura' }}
+            </button>
             <a class="btn btn-outline-secondary" href="{{ url_for('plataforma_facturas') }}">Cancelar</a>
         </div>
     </form>
 </div>
+{% if not factura %}
+<script nonce="{{ csp_nonce }}">
+(function () {
+    const empresa = document.getElementById('empresa_id');
+    const plan = document.getElementById('plan');
+    const licencias = document.getElementById('licencias');
+    const monto = document.getElementById('monto');
+    if (!empresa) return;
+    function syncFromEmpresa() {
+        const opt = empresa.options[empresa.selectedIndex];
+        if (!opt || !opt.value) return;
+        if (opt.dataset.plan) plan.value = opt.dataset.plan;
+        if (opt.dataset.licencias) licencias.value = opt.dataset.licencias;
+        if (opt.dataset.precio) monto.value = opt.dataset.precio;
+    }
+    empresa.addEventListener('change', syncFromEmpresa);
+})();
+</script>
+{% endif %}
 {% endblock %}

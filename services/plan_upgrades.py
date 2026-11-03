@@ -21,6 +21,18 @@ PLAN_ETIQUETAS = {
 }
 
 
+def _asegurar_columna_conversion_demo():
+    try:
+        execute_update(
+            '''
+            ALTER TABLE solicitudes_upgrade_plan
+            ADD COLUMN es_conversion_demo TINYINT(1) NOT NULL DEFAULT 0
+            '''
+        )
+    except Exception:
+        pass
+
+
 def asegurar_tabla_upgrades():
     execute_update(
         '''
@@ -44,6 +56,7 @@ def asegurar_tabla_upgrades():
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
         '''
     )
+    _asegurar_columna_conversion_demo()
 
 
 def _indice_plan(plan):
@@ -51,6 +64,43 @@ def _indice_plan(plan):
         return PLAN_ORDEN.index(plan)
     except ValueError:
         return -1
+
+
+def tenant_debe_contratar_despues_demo(tenant_id):
+    """Demo vencido o inactivo: el cliente debe contratar (no registrarse de nuevo)."""
+    if not tenant_id:
+        return False
+    empresa = execute_query(
+        '''
+        SELECT es_demo, estado, fecha_fin
+        FROM empresas WHERE id=%s
+        ''',
+        (tenant_id,),
+    )
+    if not empresa or not empresa.get('es_demo'):
+        return False
+    if (empresa.get('estado') or '').strip().lower() != 'activo':
+        return True
+    fecha_fin = empresa.get('fecha_fin')
+    if isinstance(fecha_fin, str):
+        try:
+            fecha_fin = datetime.strptime(fecha_fin[:10], '%Y-%m-%d').date()
+        except ValueError:
+            fecha_fin = None
+    return bool(fecha_fin and fecha_fin < date.today())
+
+
+def marcar_demo_vencido_si_corresponde(tenant_id):
+    """Pasa demo activo con fecha pasada a inactivo (idempotente)."""
+    if not tenant_id:
+        return
+    execute_update(
+        '''
+        UPDATE empresas SET estado='inactivo'
+        WHERE id=%s AND es_demo=1 AND estado='activo' AND fecha_fin<CURDATE()
+        ''',
+        (tenant_id,),
+    )
 
 
 def planes_superiores(plan_actual):
@@ -115,6 +165,102 @@ def _notificar_soporte_upgrade(empresa, solicitud_id, plan_nuevo, monto, vence_p
     ok, detalle = enviar_correo_plataforma(destino, asunto, html, texto=texto)
     if not ok:
         logger.warning('No se pudo avisar a soporte del upgrade %s: %s', solicitud_id, detalle)
+
+
+def contratar_desde_demo(empresa_id, plan_nuevo, usuario_id=None):
+    """
+    Convierte demo vencida en cliente: acceso inmediato, factura y 7 días para pagar.
+    Retorna (ok, mensaje, solicitud_id).
+    """
+    asegurar_tabla_upgrades()
+    if plan_nuevo not in PLAN_ORDEN:
+        return False, 'Plan inválido.', None
+    empresa = execute_query('SELECT * FROM empresas WHERE id=%s', (empresa_id,))
+    if not empresa:
+        return False, 'Empresa no encontrada.', None
+    if not empresa.get('es_demo'):
+        return (
+            False,
+            'Esta cuenta ya no es demo. Use «Mejorar plan» en configuración '
+            'de empresa o contacte a soporte.',
+            None,
+        )
+    marcar_demo_vencido_si_corresponde(empresa_id)
+    if upgrade_pendiente_empresa(empresa_id):
+        return (
+            False,
+            'Ya tiene una contratación pendiente de pago. '
+            'Contacte a soporte para coordinar el pago.',
+            None,
+        )
+    monto = monto_plan_dop(plan_nuevo, 1)
+    if monto is None:
+        return False, 'No se pudo calcular el monto. Intente más tarde.', None
+
+    plan_actual = empresa.get('plan') or 'basico'
+    licencias_anterior = int(empresa.get('licencias_totales') or 1)
+    licencias_nuevo = PLAN_LICENCIAS.get(plan_nuevo, licencias_anterior)
+    hoy = date.today()
+    vence = hoy + timedelta(days=UPGRADE_GRACIA_DIAS)
+    periodo_fin = hoy + timedelta(days=30)
+
+    solicitud_id = None
+    with database_transaction():
+        execute_update(
+            '''
+            UPDATE empresas
+            SET es_demo=0, estado='activo', plan=%s, licencias_totales=%s,
+                fecha_inicio=%s, fecha_fin=%s
+            WHERE id=%s
+            ''',
+            (
+                plan_nuevo, licencias_nuevo, hoy.isoformat(),
+                periodo_fin.isoformat(), empresa_id,
+            ),
+        )
+        factura_id = crear_factura_plataforma(
+            {
+                'empresa_id': empresa_id,
+                'fecha': hoy.isoformat(),
+                'periodo_inicio': hoy.isoformat(),
+                'periodo_fin': periodo_fin.isoformat(),
+                'plan': plan_nuevo,
+                'licencias': licencias_nuevo,
+                'monto': round(float(monto), 2),
+                'notas': (
+                    f'Contratación tras demo vencida → '
+                    f'{PLAN_ETIQUETAS.get(plan_nuevo, plan_nuevo)}. '
+                    f'Pago antes del {vence.isoformat()}.'
+                ),
+            },
+            creado_por=usuario_id,
+        )
+        solicitud_id = execute_update(
+            '''
+            INSERT INTO solicitudes_upgrade_plan (
+                empresa_id, usuario_id, plan_anterior, plan_nuevo,
+                licencias_anterior, licencias_nuevo, factura_id, monto,
+                vence_pago, es_conversion_demo
+            ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,1)
+            ''',
+            (
+                empresa_id, usuario_id, plan_actual, plan_nuevo,
+                licencias_anterior, licencias_nuevo, factura_id,
+                round(float(monto), 2), vence.isoformat(),
+            ),
+        )
+
+    empresa = execute_query('SELECT * FROM empresas WHERE id=%s', (empresa_id,))
+    _notificar_soporte_upgrade(empresa, solicitud_id, plan_nuevo, monto, vence)
+    etiqueta = PLAN_ETIQUETAS.get(plan_nuevo, plan_nuevo)
+    return (
+        True,
+        f'Su consultorio quedó activo con el plan {etiqueta}. '
+        f'Tiene {UPGRADE_GRACIA_DIAS} días para completar el pago '
+        f'(antes del {vence.strftime("%d/%m/%Y")}). '
+        'Conservará sus datos; soporte recibió la solicitud.',
+        solicitud_id,
+    )
 
 
 def solicitar_upgrade_plan(empresa_id, plan_nuevo, usuario_id=None):
@@ -253,18 +399,32 @@ def marcar_upgrade_pagado_por_factura(factura_id):
 
 
 def _revertir_upgrade(solicitud):
-    execute_update(
-        '''
-        UPDATE empresas
-        SET plan=%s, licencias_totales=%s, estado='suspendido'
-        WHERE id=%s
-        ''',
-        (
-            solicitud['plan_anterior'],
-            solicitud['licencias_anterior'],
-            solicitud['empresa_id'],
-        ),
-    )
+    if solicitud.get('es_conversion_demo'):
+        execute_update(
+            '''
+            UPDATE empresas
+            SET es_demo=1, estado='inactivo', plan=%s, licencias_totales=%s
+            WHERE id=%s
+            ''',
+            (
+                solicitud['plan_anterior'],
+                solicitud['licencias_anterior'],
+                solicitud['empresa_id'],
+            ),
+        )
+    else:
+        execute_update(
+            '''
+            UPDATE empresas
+            SET plan=%s, licencias_totales=%s, estado='suspendido'
+            WHERE id=%s
+            ''',
+            (
+                solicitud['plan_anterior'],
+                solicitud['licencias_anterior'],
+                solicitud['empresa_id'],
+            ),
+        )
     if solicitud.get('factura_id'):
         execute_update(
             "UPDATE facturas_plataforma SET estado='anulada' WHERE id=%s AND estado='pendiente'",

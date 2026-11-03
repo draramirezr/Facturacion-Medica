@@ -184,6 +184,15 @@
             flex: 0 0 auto;
             text-align: left;
         }
+        .ecf-timbre-meta {
+            margin: 0.35rem 0 0;
+            font-size: 0.65rem !important;
+            line-height: 1.35;
+            color: #000 !important;
+        }
+        .ecf-timbre-meta p {
+            margin: 0.1rem 0;
+        }
 
         /* Footer para impresión */
         .footer-factura {
@@ -616,7 +625,16 @@
     .ecf-qr-block {
         flex: 0 0 auto;
         text-align: left;
-        max-width: 160px;
+        max-width: 200px;
+    }
+    .ecf-timbre-meta {
+        margin-top: 0.35rem;
+        font-size: 0.72rem;
+        line-height: 1.4;
+        color: #333;
+    }
+    .ecf-timbre-meta p {
+        margin: 0.15rem 0;
     }
     .factura-pie-inferior .footer-factura {
         flex: 1 1 240px;
@@ -804,6 +822,12 @@
                 <img src="{{ url_for('facturacion_qr_ecf', factura_id=factura['id']) }}"
                      alt="QR timbre DGII"
                      width="140" height="140" class="ecf-qr-img">
+                {% if ecf_timbre %}
+                <div class="ecf-timbre-meta">
+                    <p><strong>Código de seguridad:</strong> {{ ecf_timbre['codigo_seguridad'] }}</p>
+                    <p><strong>Firma digital:</strong> {{ ecf_timbre['firma_digital'] }}</p>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
             <div class="footer-factura">

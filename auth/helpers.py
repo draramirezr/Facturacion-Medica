@@ -48,6 +48,12 @@ def destino_inicio_sesion(user=None):
             return 'elegir_centro_trabajo'
     except Exception:
         pass
+    try:
+        from services.plan_upgrades import tenant_debe_contratar_despues_demo
+        if tenant_debe_contratar_despues_demo(getattr(user, 'tenant_id', None)):
+            return 'contratar_plan'
+    except Exception:
+        pass
     if usuario_es_medico_operativo(user):
         return 'turnos_mi_cola'
     return 'facturacion_menu'

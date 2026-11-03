@@ -9,6 +9,7 @@ from flask_login import current_user, login_required
 
 from core.config import REQUIRED_TENANT_TABLES
 from core.database import execute_query, execute_update
+from core.presentation import SOPORTE_EMAIL_PREDETERMINADO
 from auth.helpers import usuario_es_dueno_software
 from core.security import rate_limit
 from core.tenant import get_current_tenant_id
@@ -25,9 +26,12 @@ from services.catalogos_ars import sembrar_ars_tenant
 from services.datos_guia import sembrar_datos_guia_tenant
 from services.plan_upgrades import (
     PLAN_ETIQUETAS,
+    PLAN_ORDEN,
     UPGRADE_GRACIA_DIAS,
+    contratar_desde_demo,
     planes_superiores,
     solicitar_upgrade_plan,
+    tenant_debe_contratar_despues_demo,
     upgrade_pendiente_empresa,
 )
 from services.tipo_cambio import catalogo_precios
@@ -42,6 +46,34 @@ from services.tenant_cleanup import (
 
 logger = logging.getLogger(__name__)
 
+_EMPRESAS_ORDEN = {
+    'razon': 'COALESCE(e.razon_social, e.nombre)',
+    'licencias': (
+        'CASE WHEN e.licencias_totales > 0 '
+        'THEN e.licencias_usadas / e.licencias_totales ELSE 0 END'
+    ),
+    'usuarios': 'total_usuarios',
+    'login': 'ultimo_login',
+    'meta': 'e.fecha_fin',
+}
+
+
+def _orden_lista_empresas():
+    sort = sanitize_input(request.args.get('sort', ''), 20)
+    desc = request.args.get('dir', '').strip().lower() == 'desc'
+    sql_dir = 'DESC' if desc else 'ASC'
+    if sort == 'login':
+        nulls = 'ultimo_login IS NULL, '
+        return f'{nulls}ultimo_login {sql_dir}'
+    if sort == 'meta':
+        return (
+            f'e.fecha_fin IS NULL, e.fecha_fin {sql_dir}, '
+            f'e.plan {sql_dir}, e.estado {sql_dir}'
+        )
+    if sort in _EMPRESAS_ORDEN:
+        return f'{_EMPRESAS_ORDEN[sort]} {sql_dir}'
+    return 'e.fecha_creacion DESC'
+
 
 def _es_super_administrador():
     return usuario_es_dueno_software(current_user)
@@ -53,25 +85,48 @@ def admin_empresas():
         flash('No tienes permisos para gestionar empresas', 'error')
         return redirect(url_for('facturacion_menu'))
     tenant_id = get_current_tenant_id()
+    order_by = _orden_lista_empresas()
+    sort_col = sanitize_input(request.args.get('sort', ''), 20)
+    sort_dir = (
+        'desc' if request.args.get('dir', '').strip().lower() == 'desc' else 'asc'
+    )
     if tenant_id is None:
         empresas = execute_query(
-            """
+            f"""
             SELECT e.*, COUNT(u.id) AS total_usuarios,
-                   MAX(u.last_login) AS ultimo_login
+                   MAX(u.last_login) AS ultimo_login,
+                   COALESCE(
+                       NULLIF(TRIM(e.email), ''),
+                       (
+                           SELECT u2.email FROM usuarios u2
+                           WHERE u2.tenant_id=e.id AND u2.activo=1
+                           ORDER BY (u2.perfil='Administrador') DESC, u2.id ASC
+                           LIMIT 1
+                       )
+                   ) AS correo_contacto
             FROM empresas e
             LEFT JOIN usuarios u ON e.id=u.tenant_id AND u.activo=1
-            GROUP BY e.id ORDER BY e.fecha_creacion DESC
+            GROUP BY e.id ORDER BY {order_by}
             """,
             fetch='all',
         )
     else:
         empresas = execute_query(
-            """
+            f"""
             SELECT e.*, COUNT(u.id) AS total_usuarios,
-                   MAX(u.last_login) AS ultimo_login
+                   MAX(u.last_login) AS ultimo_login,
+                   COALESCE(
+                       NULLIF(TRIM(e.email), ''),
+                       (
+                           SELECT u2.email FROM usuarios u2
+                           WHERE u2.tenant_id=e.id AND u2.activo=1
+                           ORDER BY (u2.perfil='Administrador') DESC, u2.id ASC
+                           LIMIT 1
+                       )
+                   ) AS correo_contacto
             FROM empresas e
             LEFT JOIN usuarios u ON e.id=u.tenant_id AND u.activo=1
-            WHERE e.id = %s GROUP BY e.id ORDER BY e.fecha_creacion DESC
+            WHERE e.id = %s GROUP BY e.id ORDER BY {order_by}
             """,
             (tenant_id,),
             fetch='all',
@@ -101,6 +156,8 @@ def admin_empresas():
         'admin/empresas/lista.html',
         empresas=empresas,
         es_dueno_software=_es_super_administrador(),
+        sort_col=sort_col,
+        sort_dir=sort_dir,
     )
 
 
@@ -391,6 +448,46 @@ def admin_empresas_editar(empresa_id):
 
 
 @login_required
+def contratar_plan():
+    """Tras demo vencida: el administrador elige plan y reactiva el consultorio."""
+    from auth.helpers import destino_inicio_sesion, usuario_es_administrador
+    from auth.helpers import usuario_es_dueno_software
+
+    tenant_id = get_current_tenant_id()
+    if usuario_es_dueno_software(current_user) or not tenant_id:
+        return redirect(url_for('admin_empresas'))
+    if not tenant_debe_contratar_despues_demo(tenant_id):
+        return redirect(url_for(destino_inicio_sesion(current_user)))
+    empresa = execute_query('SELECT * FROM empresas WHERE id=%s', (tenant_id,)) or {}
+    puede_contratar = usuario_es_administrador(current_user)
+    if request.method == 'POST':
+        if not puede_contratar:
+            flash(
+                'Solo el administrador del consultorio puede contratar un plan.',
+                'error',
+            )
+            return redirect(url_for('contratar_plan'))
+        plan = (request.form.get('plan') or '').strip()
+        ok, mensaje, _ = contratar_desde_demo(
+            tenant_id, plan, getattr(current_user, 'id', None),
+        )
+        flash(mensaje, 'success' if ok else 'error')
+        if ok:
+            return redirect(url_for(destino_inicio_sesion(current_user)))
+        return redirect(url_for('contratar_plan'))
+    return render_template(
+        'contratar_plan.html',
+        empresa=empresa,
+        planes=list(PLAN_ORDEN),
+        plan_etiquetas=PLAN_ETIQUETAS,
+        precios_planes=catalogo_precios(),
+        upgrade_gracia_dias=UPGRADE_GRACIA_DIAS,
+        puede_contratar=puede_contratar,
+        soporte_email=SOPORTE_EMAIL_PREDETERMINADO,
+    )
+
+
+@login_required
 def admin_empresa_solicitar_upgrade(empresa_id):
     if current_user.perfil != 'Administrador':
         flash('No tienes permisos', 'error')
@@ -643,6 +740,12 @@ def admin_empresa_clave_temporal(empresa_id, usuario_id):
 
 
 def register_admin_company_routes(app):
+    app.add_url_rule(
+        '/contratar-plan',
+        'contratar_plan',
+        contratar_plan,
+        methods=['GET', 'POST'],
+    )
     app.add_url_rule('/admin/empresas', 'admin_empresas', admin_empresas)
     app.add_url_rule(
         '/admin/empresas/nueva', 'admin_empresas_nueva',

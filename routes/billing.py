@@ -1200,6 +1200,7 @@ def facturacion_ver_factura(factura_id):
                           empresa_info=empresa_info,
                           fecha_factura=fecha_factura,
                           factura_ecf=factura_ecf,
+                          ecf_timbre=_ecf_timbre_desde_factura(factura_ecf),
                           mostrar_qr_ecf=_factura_tiene_qr_ecf(factura_ecf),
                           factura_editable=ok_editar,
                           factura_anulable=ok_editar)
@@ -1251,17 +1252,25 @@ def _obtener_ecf_aceptado_para_ri(factura_id, tenant_id):
     return document
 
 
-def _factura_tiene_qr_ecf(factura_ecf):
+def _ecf_timbre_desde_factura(factura_ecf):
+    """Timbre fiscal (QR, código de seguridad, firma) desde el XML firmado."""
     if not factura_ecf or not factura_ecf.get('xml_firmado'):
-        return False
+        return None
     if factura_ecf.get('estado') == 'RECHAZADO':
-        return False
+        return None
     try:
         stamp_url = current_app.config['ECF_CONFIG'].stamp_url
-        build_stamp(factura_ecf['xml_firmado'], stamp_url)
-        return True
+        stamp = build_stamp(factura_ecf['xml_firmado'], stamp_url)
     except (ECFStampError, KeyError, AttributeError):
-        return False
+        return None
+    return {
+        'codigo_seguridad': stamp.security_code,
+        'firma_digital': stamp.signature_date,
+    }
+
+
+def _factura_tiene_qr_ecf(factura_ecf):
+    return _ecf_timbre_desde_factura(factura_ecf) is not None
 
 
 def _obtener_ecf_firmado_para_qr(factura_id, tenant_id):

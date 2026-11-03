@@ -320,7 +320,7 @@ def generate_e31_pdf(
         canvas.drawCentredString(
             qr_x + qr_size / 2,
             qr_y - 0.25 * inch,
-            f"Fecha firma digital: {stamp.signature_date}",
+            f"Firma digital: {stamp.signature_date}",
         )
         canvas.setFont("Helvetica", 7)
         if track_id:

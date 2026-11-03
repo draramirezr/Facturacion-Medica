@@ -424,6 +424,55 @@ def resumen_facturacion_plataforma(filtros=None):
     return facturas, resumen
 
 
+def actualizar_factura_plataforma(factura_id, valores):
+    """Actualiza datos de una factura pendiente (no cambia número ni cliente)."""
+    factura = execute_query(
+        'SELECT id, estado FROM facturas_plataforma WHERE id=%s',
+        (factura_id,),
+    )
+    if not factura:
+        return False, 'Factura no encontrada.'
+    if factura.get('estado') != 'pendiente':
+        return False, 'Solo se pueden editar facturas en estado pendiente.'
+    plan = valores.get('plan')
+    if plan not in PLAN_USD:
+        return False, 'Plan inválido.'
+    try:
+        licencias = max(int(valores.get('licencias') or 1), 1)
+        monto = round(float(valores['monto']), 2)
+    except (TypeError, ValueError):
+        return False, 'Monto o licencias inválidos.'
+    if monto < 0:
+        return False, 'El monto no puede ser negativo.'
+    execute_update(
+        '''
+        UPDATE facturas_plataforma
+        SET fecha=%s, periodo_inicio=%s, periodo_fin=%s,
+            plan=%s, licencias=%s, monto=%s, notas=%s
+        WHERE id=%s AND estado='pendiente'
+        ''',
+        (
+            valores['fecha'],
+            valores['periodo_inicio'],
+            valores['periodo_fin'],
+            plan,
+            licencias,
+            monto,
+            valores.get('notas') or None,
+            factura_id,
+        ),
+    )
+    execute_update(
+        '''
+        UPDATE solicitudes_upgrade_plan
+        SET plan_nuevo=%s, licencias_nuevo=%s, monto=%s
+        WHERE factura_id=%s AND estado='pendiente_pago'
+        ''',
+        (plan, licencias, monto, factura_id),
+    )
+    return True, 'Factura actualizada.'
+
+
 def cambiar_estado_factura_plataforma(factura_id, estado):
     if estado not in ('pendiente', 'pagada', 'anulada'):
         return False
@@ -448,8 +497,9 @@ def listar_empresas_activas():
 def obtener_factura_plataforma(factura_id):
     return execute_query(
         '''
-        SELECT f.*, e.nombre AS empresa_nombre, e.email AS empresa_email,
-               e.telefono AS empresa_telefono, e.rnc AS empresa_rnc
+        SELECT f.*, e.nombre AS empresa_nombre, e.razon_social AS empresa_razon,
+               e.email AS empresa_email, e.telefono AS empresa_telefono,
+               e.rnc AS empresa_rnc
         FROM facturas_plataforma f
         JOIN empresas e ON e.id=f.empresa_id
         WHERE f.id=%s

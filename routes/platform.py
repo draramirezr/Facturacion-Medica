@@ -24,6 +24,7 @@ from services.platform import (
     DEMO_DIAS,
     PLAN_LICENCIAS,
     activar_demo_solicitud,
+    actualizar_factura_plataforma,
     alertas_licencias,
     asegurar_tablas_plataforma,
     cambiar_estado_factura_plataforma,
@@ -283,6 +284,62 @@ def plataforma_factura_nueva():
 
 
 @_solo_dueno
+def plataforma_factura_editar(factura_id):
+    factura = obtener_factura_plataforma(factura_id)
+    if not factura:
+        flash('Factura no encontrada.', 'error')
+        return redirect(url_for('plataforma_facturas'))
+    if factura.get('estado') != 'pendiente':
+        flash('Solo puede editar facturas pendientes de cobro.', 'warning')
+        return redirect(url_for('plataforma_facturas'))
+    precios = catalogo_precios()
+    if request.method == 'GET':
+        return render_template(
+            'admin/plataforma/factura_form.html',
+            empresas=[],
+            empresa_id=factura['empresa_id'],
+            factura=factura,
+            valores={
+                'fecha': str(factura.get('fecha') or '')[:10],
+                'periodo_inicio': str(factura.get('periodo_inicio') or '')[:10],
+                'periodo_fin': str(factura.get('periodo_fin') or '')[:10],
+                'plan': factura.get('plan') or 'basico',
+                'licencias': factura.get('licencias') or 1,
+                'monto': format(float(factura.get('monto') or 0), 'f'),
+                'notas': factura.get('notas') or '',
+            },
+            precios=precios,
+        )
+    plan = request.form.get('plan', 'basico').strip()
+    if plan not in PLAN_USD:
+        flash('Plan inválido.', 'error')
+        return redirect(url_for('plataforma_factura_editar', factura_id=factura_id))
+    try:
+        monto_escrito = (request.form.get('monto') or '').strip()
+        monto = float(monto_escrito) if monto_escrito else float(monto_plan_dop(plan))
+        licencias = int(request.form.get('licencias') or PLAN_LICENCIAS[plan])
+    except (TypeError, ValueError):
+        flash('Monto o licencias inválidos.', 'error')
+        return redirect(url_for('plataforma_factura_editar', factura_id=factura_id))
+    ok, mensaje = actualizar_factura_plataforma(
+        factura_id,
+        {
+            'fecha': request.form.get('fecha') or date.today().isoformat(),
+            'periodo_inicio': request.form.get('periodo_inicio') or date.today().isoformat(),
+            'periodo_fin': request.form.get('periodo_fin') or date.today().isoformat(),
+            'plan': plan,
+            'licencias': max(licencias, 1),
+            'monto': monto,
+            'notas': sanitize_input(request.form.get('notas', ''), 500),
+        },
+    )
+    flash(mensaje, 'success' if ok else 'error')
+    return redirect(url_for('plataforma_facturas') if ok else url_for(
+        'plataforma_factura_editar', factura_id=factura_id,
+    ))
+
+
+@_solo_dueno
 def plataforma_factura_estado(factura_id, estado):
     if cambiar_estado_factura_plataforma(factura_id, estado):
         flash(f'Factura marcada como {estado}.', 'success')
@@ -291,8 +348,7 @@ def plataforma_factura_estado(factura_id, estado):
     return redirect(url_for('plataforma_facturas'))
 
 
-@_solo_dueno
-def plataforma_factura_pdf(factura_id):
+def _respuesta_pdf_factura_plataforma(factura_id, *, descargar):
     factura = obtener_factura_plataforma(factura_id)
     if not factura:
         flash('Factura no encontrada.', 'error')
@@ -306,9 +362,20 @@ def plataforma_factura_pdf(factura_id):
     return send_file(
         pdf,
         mimetype='application/pdf',
-        as_attachment=True,
+        as_attachment=descargar,
         download_name=nombre,
     )
+
+
+@_solo_dueno
+def plataforma_factura_ver(factura_id):
+    """Abrir el PDF en el navegador."""
+    return _respuesta_pdf_factura_plataforma(factura_id, descargar=False)
+
+
+@_solo_dueno
+def plataforma_factura_pdf(factura_id):
+    return _respuesta_pdf_factura_plataforma(factura_id, descargar=True)
 
 
 @_solo_dueno
@@ -396,6 +463,16 @@ def register_platform_routes(app):
     app.add_url_rule(
         '/admin/plataforma/facturas/nueva', 'plataforma_factura_nueva',
         plataforma_factura_nueva, methods=['GET', 'POST'],
+    )
+    app.add_url_rule(
+        '/admin/plataforma/facturas/<int:factura_id>/editar',
+        'plataforma_factura_editar',
+        plataforma_factura_editar,
+        methods=['GET', 'POST'],
+    )
+    app.add_url_rule(
+        '/admin/plataforma/facturas/<int:factura_id>/ver',
+        'plataforma_factura_ver', plataforma_factura_ver,
     )
     app.add_url_rule(
         '/admin/plataforma/facturas/<int:factura_id>/pdf',

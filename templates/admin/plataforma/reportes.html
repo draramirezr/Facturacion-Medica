@@ -29,34 +29,6 @@
             </div>
         </div>
     </div>
-    <div class="table-empresas mb-5" style="background:var(--ars-shell-surface,#fff);border-radius:15px;overflow:hidden;">
-        {% if visitas.por_dia %}
-        <div class="table-responsive">
-            <table class="table table-hover mb-0">
-                <thead>
-                    <tr>
-                        <th>Fecha</th>
-                        <th class="text-end">Inicio</th>
-                        <th class="text-end">Registro</th>
-                        <th class="text-end">Total</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for dia in visitas.por_dia %}
-                    <tr>
-                        <td>{{ dia.fecha }}</td>
-                        <td class="text-end">{{ dia.index }}</td>
-                        <td class="text-end">{{ dia.registro }}</td>
-                        <td class="text-end fw-bold">{{ dia.total }}</td>
-                    </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-        {% else %}
-        <div class="text-center py-5 text-muted">Todavía no hay visitas registradas en la web pública.</div>
-        {% endif %}
-    </div>
 
     <h2 class="h5 mb-3">Cobros</h2>
     <div class="row g-3 mb-4">
@@ -176,6 +148,14 @@
                         <td>RD$ {{ '%.2f'|format(factura.monto|float) }}</td>
                         <td>{{ factura.estado|title }}</td>
                         <td class="text-center text-nowrap">
+                            {% if factura.estado == 'pendiente' %}
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('plataforma_factura_editar', factura_id=factura.id) }}" title="Editar">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% endif %}
+                            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('plataforma_factura_ver', factura_id=factura.id) }}" target="_blank" rel="noopener" title="Ver factura">
+                                <i class="fas fa-eye"></i>
+                            </a>
                             <a class="btn btn-sm btn-outline-primary" href="{{ url_for('plataforma_factura_pdf', factura_id=factura.id) }}" title="Descargar">
                                 <i class="fas fa-download"></i>
                             </a>
