@@ -334,7 +334,11 @@ def registro():
                 ),
             )
             if not empresa_id:
-                raise RuntimeError('No se pudo crear la empresa')
+                raise RuntimeError(
+                    'No pudimos registrar el consultorio. Ese nombre puede estar '
+                    'en uso: pruebe otro nombre de empresa o inicie sesión si '
+                    'ya tiene cuenta.'
+                )
             user_id = execute_update(
                 """
                 INSERT INTO usuarios (
@@ -345,7 +349,11 @@ def registro():
                 (empresa_id, nombre, email, generate_password_hash(password)),
             )
             if not user_id:
-                raise RuntimeError('No se pudo crear el usuario administrador')
+                raise RuntimeError(
+                    'No pudimos crear su usuario. Si el correo '
+                    f'{email} ya está registrado, use Iniciar sesión o '
+                    'Recuperar contraseña.'
+                )
             sembrar_ars_tenant(empresa_id)
             sembrar_datos_guia_tenant(
                 empresa_id, tipo_empresa, telefono, email,
@@ -387,9 +395,17 @@ def registro():
         )
         return redirect(url_for('login'))
     except Exception as error:
+        from auth.helpers import (
+            mensaje_error_registro_publico,
+            registro_sugerir_login_tras_error,
+        )
+
         logger.error('Error en registro público: %s', error, exc_info=True)
-        flash('Ocurrió un error al crear la cuenta. Intenta de nuevo.', 'error')
-        return render_template('registro.html')
+        flash(mensaje_error_registro_publico(error), 'error')
+        return render_template(
+            'registro.html',
+            sugerir_login=registro_sugerir_login_tras_error(error),
+        )
 
 
 RUTAS_RETORNO_PROHIBIDAS = frozenset({

@@ -158,3 +158,60 @@ def load_user(user_id):
         medico_id=user_data.get('medico_id'),
         modo_color=user_data.get('modo_color', 'light'),
     )
+
+
+def mensaje_error_registro_publico(error):
+    """Traduce fallos técnicos del registro a texto útil para el usuario."""
+    import pymysql
+
+    if isinstance(error, RuntimeError):
+        texto = str(error).strip()
+        if texto and len(texto) > 20:
+            return texto
+        return (
+            'No se pudo completar el registro. Revise el nombre del consultorio '
+            'y el correo, o inicie sesión si ya tuvo una demo.'
+        )
+    if isinstance(error, pymysql.err.IntegrityError):
+        partes = [str(parte) for parte in (error.args or (error,))]
+        raw = ' '.join(partes).lower()
+        if 'email' in raw or 'usuarios' in raw:
+            return (
+                'Ese correo ya está registrado. Use Iniciar sesión o '
+                'Recuperar contraseña en lugar de crear otra cuenta.'
+            )
+        if 'nombre' in raw or 'empresas' in raw:
+            return (
+                'Ya existe un consultorio con ese nombre. Elija otro nombre '
+                'de empresa o escríbanos si cree que es un error.'
+            )
+        return (
+            'Uno de los datos ya existe (correo o nombre de consultorio). '
+            'Cambie lo que repite o inicie sesión con su cuenta anterior.'
+        )
+    if isinstance(error, pymysql.err.OperationalError):
+        return (
+            'El servicio no pudo guardar la cuenta en este momento. '
+            'Espere unos minutos e intente de nuevo.'
+        )
+    if isinstance(error, pymysql.Error):
+        return (
+            'Hubo un problema con la base de datos al crear la cuenta. '
+            'Intente de nuevo; si persiste, contacte soporte@clinicrd.com.'
+        )
+    return (
+        'No pudimos crear la cuenta. Compruebe que el correo y el nombre '
+        'del consultorio no estén ya en uso, o contacte soporte@clinicrd.com.'
+    )
+
+
+def registro_sugerir_login_tras_error(error):
+    import pymysql
+
+    if isinstance(error, pymysql.err.IntegrityError):
+        partes = [str(parte) for parte in (error.args or (error,))]
+        raw = ' '.join(partes).lower()
+        return 'email' in raw or 'usuarios' in raw
+    if isinstance(error, RuntimeError):
+        return 'correo' in str(error).lower() or 'usuario' in str(error).lower()
+    return False
