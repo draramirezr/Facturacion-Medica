@@ -67,6 +67,9 @@ def configure(flask_app):
     register_platform_routes(flask_app)
     register_search_routes(flask_app)
     register_operation_routes(flask_app)
+    from integrations.external_ecf_service import register_external_ecf_service
+
+    register_external_ecf_service(flask_app)
 
 
 app = create_app()

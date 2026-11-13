@@ -1,0 +1,2766 @@
+{
+  "openapi": "3.0.4",
+  "info": {
+    "title": "Api Emision DO - Demo",
+    "description": "Aquí encontrarás la descripción de la API Emisión.",
+    "termsOfService": "https://www.thefactoryhka.com/rd/",
+    "contact": {
+      "name": "THE FACTORY HKA SRL",
+      "url": "https://www.thefactoryhka.com/rd/contactos/contactanos"
+    },
+    "version": "v1"
+  },
+  "paths": {
+    "/api/Anulacion": {
+      "post": {
+        "tags": [
+          "Anulacion"
+        ],
+        "summary": "Anular secuencias del cliente",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestAnulacionSecuencias"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestAnulacionSecuencias"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestAnulacionSecuencias"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaAnulacionSecuencias"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Autenticacion": {
+      "post": {
+        "tags": [
+          "Autenticacion"
+        ],
+        "summary": "Obtener Token (JWT)",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestAutenticacion"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestAutenticacion"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestAutenticacion"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaAutenticacion"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/CargaCertificado": {
+      "post": {
+        "tags": [
+          "CargaCertificado"
+        ],
+        "summary": "Actualiza el certificado del cliente",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestCargaCertificado"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestCargaCertificado"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestCargaCertificado"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaCargaCertificado"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/ConsultaRNC": {
+      "post": {
+        "tags": [
+          "ConsultaRNC"
+        ],
+        "summary": "Consulta RNC",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestConsultaRNC"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestConsultaRNC"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestConsultaRNC"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaEstadoRNC"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/DescargaArchivo": {
+      "post": {
+        "tags": [
+          "DescargaArchivo"
+        ],
+        "summary": "Descarga el archivo del documento enviado",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestDescargaArchivo"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestDescargaArchivo"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestDescargaArchivo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaDescargaArchivo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Enviar": {
+      "post": {
+        "tags": [
+          "Enviar"
+        ],
+        "summary": "Envie el documento a ser procesado",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEnviar"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEnviar"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEnviar"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaEnviar"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/EnvioCorreo": {
+      "post": {
+        "tags": [
+          "EnvioCorreo"
+        ],
+        "summary": "Envie por correo el documento electrónico",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEnvioCorreo"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEnvioCorreo"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEnvioCorreo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaEnvioCorreo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/EnvioCotizacion": {
+      "post": {
+        "tags": [
+          "EnvioCotizacion"
+        ],
+        "summary": "Envie por correo el documento electrónico",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEnvioCotizacionCorreo"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEnvioCotizacionCorreo"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEnvioCotizacionCorreo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaEnvioCorreo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/EstatusDocumento": {
+      "post": {
+        "tags": [
+          "EstatusDocumento"
+        ],
+        "summary": "Consulta el estatus de un documento",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEstatusDocumento"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEstatusDocumento"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEstatusDocumento"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaEstatusDocumento"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/EstatusLicencia": {
+      "post": {
+        "tags": [
+          "EstatusLicencia"
+        ],
+        "summary": "Consulta el estatus de licencia de folios",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEstatusLicencia"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEstatusLicencia"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEstatusLicencia"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaEstatusLicencia"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/EstatusLicencia/Lista": {
+      "post": {
+        "tags": [
+          "EstatusLicencia"
+        ],
+        "summary": "Consulta la lista de licencias de una empresa",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEstatusLicencia"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEstatusLicencia"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestEstatusLicencia"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaEstatusLicencia"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Logo": {
+      "post": {
+        "tags": [
+          "Logo"
+        ],
+        "summary": "Carga o actualiza el logo del cliente",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestLogo"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestLogo"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestLogo"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaLogo"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Series": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Obtener todas la series",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.Request"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.Request"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaSeries"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Series/CrearSerie": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Crear una nueva serie",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestSeries"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestSeries"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestSeries"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaSeries"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Series/ActualizarSerie": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Actualizar una serie existente",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestSeries"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestSeries"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestSeries"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaSeries"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Series/BorrarSerie": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Borrar (desactivar) una serie existente",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestSeries"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestSeries"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.RequestSeries"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaSeries"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Series/ObtenerSucursales": {
+      "post": {
+        "tags": [
+          "Series"
+        ],
+        "summary": "Obtener todas las sucursales",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.Request"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.Request"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/RDValidatorLibrary.Models.Request.Request"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.RespuestaSucursal"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "RDValidatorLibrary.Models.Classes.Anulacion.Anulacion": {
+        "type": "object",
+        "properties": {
+          "encabezado": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Anulacion.Encabezado"
+          },
+          "detallesAnulacion": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Anulacion.DetalleAnulacion"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Anulacion.DetalleAnulacion": {
+        "type": "object",
+        "properties": {
+          "numeroLinea": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoDocumento": {
+            "type": "string",
+            "nullable": true
+          },
+          "tablaSecuenciasAnuladas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Anulacion.SecuenciasAnuladas"
+            },
+            "nullable": true
+          },
+          "cantidad": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Anulacion.Encabezado": {
+        "type": "object",
+        "properties": {
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "cantidad": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaHoraAnulacioneNCF": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Anulacion.SecuenciasAnuladas": {
+        "type": "object",
+        "properties": {
+          "ncfDesde": {
+            "type": "string",
+            "nullable": true
+          },
+          "ncfHasta": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.CodigosItem": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "nullable": true
+          },
+          "codigo": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Comprador": {
+        "type": "object",
+        "properties": {
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "identificacionExtranjero": {
+            "type": "string",
+            "nullable": true
+          },
+          "correoComprador": {
+            "type": "string",
+            "nullable": true
+          },
+          "razonSocial": {
+            "type": "string",
+            "nullable": true
+          },
+          "contacto": {
+            "type": "string",
+            "nullable": true
+          },
+          "envioMail": {
+            "type": "string",
+            "nullable": true
+          },
+          "correo": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccion": {
+            "type": "string",
+            "nullable": true
+          },
+          "municipio": {
+            "type": "string",
+            "nullable": true
+          },
+          "provincia": {
+            "type": "string",
+            "nullable": true
+          },
+          "pais": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaEntrega": {
+            "type": "string",
+            "nullable": true
+          },
+          "contactoEntrega": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccionEntrega": {
+            "type": "string",
+            "nullable": true
+          },
+          "telefonoAdicional": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaOrden": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroOrden": {
+            "type": "string",
+            "nullable": true
+          },
+          "codigoInterno": {
+            "type": "string",
+            "nullable": true
+          },
+          "responsablePago": {
+            "type": "string",
+            "nullable": true
+          },
+          "informacionAdicional": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Cuotas": {
+        "type": "object",
+        "properties": {
+          "numCuota": {
+            "type": "string",
+            "nullable": true
+          },
+          "monto": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaVencimiento": {
+            "type": "string",
+            "nullable": true
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.DescuentoORecargo": {
+        "type": "object",
+        "properties": {
+          "numeroLinea": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoAjuste": {
+            "type": "string",
+            "nullable": true
+          },
+          "indicadorNorma1007": {
+            "type": "string",
+            "nullable": true
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoValor": {
+            "type": "string",
+            "nullable": true
+          },
+          "valor": {
+            "type": "string",
+            "nullable": true
+          },
+          "monto": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoOtraMoneda": {
+            "type": "string",
+            "nullable": true
+          },
+          "indicadorFacturacion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Detalles": {
+        "type": "object",
+        "properties": {
+          "numeroLinea": {
+            "type": "string",
+            "nullable": true
+          },
+          "tablaCodigos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.CodigosItem"
+            },
+            "nullable": true
+          },
+          "indicadorFacturacion": {
+            "type": "string",
+            "nullable": true
+          },
+          "retencion": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.RetencionItem"
+          },
+          "nombre": {
+            "type": "string",
+            "nullable": true
+          },
+          "indicadorBienoServicio": {
+            "type": "string",
+            "nullable": true
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "cantidad": {
+            "type": "string",
+            "nullable": true
+          },
+          "unidadMedida": {
+            "type": "string",
+            "nullable": true
+          },
+          "cantidadReferencia": {
+            "type": "string",
+            "nullable": true
+          },
+          "unidadReferencia": {
+            "type": "string",
+            "nullable": true
+          },
+          "tablaSubcantidad": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.SubcantidadItem"
+            },
+            "nullable": true
+          },
+          "gradosAlcohol": {
+            "type": "string",
+            "nullable": true
+          },
+          "precioUnitarioReferencia": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaElaboracion": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaVencimiento": {
+            "type": "string",
+            "nullable": true
+          },
+          "mineria": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.MineriaItem"
+            },
+            "nullable": true
+          },
+          "precioUnitario": {
+            "type": "string",
+            "nullable": true
+          },
+          "descuentoMonto": {
+            "type": "string",
+            "nullable": true
+          },
+          "tablaSubDescuento": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.SubDescuentoItem"
+            },
+            "nullable": true
+          },
+          "recargoMonto": {
+            "type": "string",
+            "nullable": true
+          },
+          "tablaSubRecargo": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.SubRecargoItem"
+            },
+            "nullable": true
+          },
+          "tablaImpuestoAdicional": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.ImpuestoAdicionalItem"
+            },
+            "nullable": true
+          },
+          "otraMonedaDetalle": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.OtraMonedaDetalleItem"
+          },
+          "monto": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.DocumentoElectronico": {
+        "type": "object",
+        "properties": {
+          "encabezado": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Encabezado"
+          },
+          "detallesItems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Detalles"
+            },
+            "nullable": true
+          },
+          "subtotales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Subtotal"
+            },
+            "nullable": true
+          },
+          "descuentosORecargos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.DescuentoORecargo"
+            },
+            "nullable": true
+          },
+          "paginacion": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Paginacion"
+            },
+            "nullable": true
+          },
+          "informacionReferencia": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.InformacionReferencia"
+          },
+          "observaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Observaciones"
+            },
+            "nullable": true
+          },
+          "cuotas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Cuotas"
+            },
+            "nullable": true
+          },
+          "serialDevice": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Emisor": {
+        "type": "object",
+        "properties": {
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "razonSocial": {
+            "type": "string",
+            "nullable": true
+          },
+          "nombreComercial": {
+            "type": "string",
+            "nullable": true
+          },
+          "sucursal": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccion": {
+            "type": "string",
+            "nullable": true
+          },
+          "municipio": {
+            "type": "string",
+            "nullable": true
+          },
+          "provincia": {
+            "type": "string",
+            "nullable": true
+          },
+          "tablaTelefono": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "correo": {
+            "type": "string",
+            "nullable": true
+          },
+          "webSite": {
+            "type": "string",
+            "nullable": true
+          },
+          "actividadEconomica": {
+            "type": "string",
+            "nullable": true
+          },
+          "codigoVendedor": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroFacturaInterna": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroPedidoInterno": {
+            "type": "string",
+            "nullable": true
+          },
+          "zonaVenta": {
+            "type": "string",
+            "nullable": true
+          },
+          "rutaVenta": {
+            "type": "string",
+            "nullable": true
+          },
+          "informacionAdicional": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaEmision": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Encabezado": {
+        "type": "object",
+        "properties": {
+          "identificacionDocumento": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.IdentificacionDocumento"
+          },
+          "emisor": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Emisor"
+          },
+          "comprador": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Comprador"
+          },
+          "informacionesAdicionales": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.InformacionesAdicionales"
+          },
+          "transporte": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Transporte"
+          },
+          "totales": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Totales"
+          },
+          "otraMoneda": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.OtraMoneda"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.FormaDePago": {
+        "type": "object",
+        "properties": {
+          "forma": {
+            "type": "string",
+            "nullable": true
+          },
+          "monto": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.IdentificacionDocumento": {
+        "type": "object",
+        "properties": {
+          "tipoDocumento": {
+            "type": "string",
+            "nullable": true
+          },
+          "ncf": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaVencimientoSecuencia": {
+            "type": "string",
+            "description": "Formato: dd-MM-yyyy (ej: 31-12-2025)",
+            "format": "dd-MM-yyyy",
+            "nullable": true,
+            "example": "31-12-2025"
+          },
+          "indicadorEnvioDiferido": {
+            "type": "string",
+            "nullable": true
+          },
+          "indicadorMontoGravado": {
+            "type": "string",
+            "nullable": true
+          },
+          "indicadorNotaCredito": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoIngresos": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoPago": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaLimitePago": {
+            "type": "string",
+            "nullable": true
+          },
+          "terminoPago": {
+            "type": "string",
+            "nullable": true
+          },
+          "tablaFormasPago": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.FormaDePago"
+            },
+            "nullable": true
+          },
+          "tipoCuentaPago": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroCuentaPago": {
+            "type": "string",
+            "nullable": true
+          },
+          "bancoPago": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaDesde": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaHasta": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.ImpuestoAdicionalItem": {
+        "type": "object",
+        "properties": {
+          "tipoImpuesto": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.ImpuestoAdicionalOtraMoneda": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "nullable": true
+          },
+          "tasa": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoSelectivoConsumoEspecifico": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoSelectivoConsumoAdvalorem": {
+            "type": "string",
+            "nullable": true
+          },
+          "otrosImpuestosAdicionales": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.InformacionReferencia": {
+        "type": "object",
+        "properties": {
+          "ncfModificado": {
+            "type": "string",
+            "nullable": true
+          },
+          "rncOtroContribuyente": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaNCFModificado": {
+            "type": "string",
+            "nullable": true
+          },
+          "codigoModificacion": {
+            "type": "string",
+            "nullable": true
+          },
+          "serie": {
+            "type": "string",
+            "nullable": true
+          },
+          "razonModificacion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.InformacionesAdicionales": {
+        "type": "object",
+        "properties": {
+          "fechaEmbarque": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroEmbarque": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroContenedor": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroReferencia": {
+            "type": "string",
+            "nullable": true
+          },
+          "pesoBruto": {
+            "type": "string",
+            "nullable": true
+          },
+          "pesoNeto": {
+            "type": "string",
+            "nullable": true
+          },
+          "unidadPesoBruto": {
+            "type": "string",
+            "nullable": true
+          },
+          "unidadPesoNeto": {
+            "type": "string",
+            "nullable": true
+          },
+          "cantidadBulto": {
+            "type": "string",
+            "nullable": true
+          },
+          "unidadBulto": {
+            "type": "string",
+            "nullable": true
+          },
+          "volumenBulto": {
+            "type": "string",
+            "nullable": true
+          },
+          "unidadVolumen": {
+            "type": "string",
+            "nullable": true
+          },
+          "nombrePuertoEmbarque": {
+            "type": "string",
+            "nullable": true
+          },
+          "condicionesEntrega": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalFob": {
+            "type": "string",
+            "nullable": true
+          },
+          "seguro": {
+            "type": "string",
+            "nullable": true
+          },
+          "flete": {
+            "type": "string",
+            "nullable": true
+          },
+          "otrosGastos": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalCif": {
+            "type": "string",
+            "nullable": true
+          },
+          "regimenAduanero": {
+            "type": "string",
+            "nullable": true
+          },
+          "nombrePuertoSalida": {
+            "type": "string",
+            "nullable": true
+          },
+          "nombrePuertoDesembarque": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.MineriaItem": {
+        "type": "object",
+        "properties": {
+          "pesoNetoKilogramo": {
+            "type": "string",
+            "nullable": true
+          },
+          "pesoNeto": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoAfiliacion": {
+            "type": "string",
+            "nullable": true
+          },
+          "liquidacion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Observaciones": {
+        "type": "object",
+        "properties": {
+          "valor": {
+            "type": "string",
+            "nullable": true
+          },
+          "campo": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.OtraMoneda": {
+        "type": "object",
+        "properties": {
+          "tipoMoneda": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoCambio": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoGravadoTotal": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoGravado1": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoGravado2": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoGravado3": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoExento": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoExentoOtraMoneda": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalITBIS": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalITBIS1": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalITBIS2": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalITBIS3": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoImpuestoAdicional": {
+            "type": "string",
+            "nullable": true
+          },
+          "impuestosAdicionales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.ImpuestoAdicionalOtraMoneda"
+            },
+            "nullable": true
+          },
+          "montoTotal": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.OtraMonedaDetalleItem": {
+        "type": "object",
+        "properties": {
+          "precio": {
+            "type": "string",
+            "nullable": true
+          },
+          "descuento": {
+            "type": "string",
+            "nullable": true
+          },
+          "recargo": {
+            "type": "string",
+            "nullable": true
+          },
+          "monto": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Paginacion": {
+        "type": "object",
+        "properties": {
+          "paginaNo": {
+            "type": "string",
+            "nullable": true
+          },
+          "noLineaDesde": {
+            "type": "string",
+            "nullable": true
+          },
+          "noLineaHasta": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalMontoGravado": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalMontoGravado1": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalMontoGravado2": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalMontoGravado3": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalExento": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalItbis": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalItbis1": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalItbis2": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalItbis3": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalImpuestoAdicionalPag": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalImpuestoAdicional": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.SubtotalImpuestoAdicional"
+          },
+          "montoSubtotal": {
+            "type": "string",
+            "nullable": true
+          },
+          "subtotalMontoNoFacturable": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.RetencionItem": {
+        "type": "object",
+        "properties": {
+          "indicadorAgente": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoITBIS": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoISR": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.SeriesModel": {
+        "type": "object",
+        "properties": {
+          "serie": {
+            "type": "string",
+            "nullable": true
+          },
+          "tipoDocumento": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaVencimientoSecuencia": {
+            "type": "string",
+            "description": "Formato: dd-MM-yyyy (ej: 31-12-2025)",
+            "format": "dd-MM-yyyy",
+            "nullable": true,
+            "example": "31-12-2025"
+          },
+          "correlativo": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "valorMinimo": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "valorMaximo": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "codigoSucursal": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.SubDescuentoItem": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "nullable": true
+          },
+          "porcentaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "monto": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.SubRecargoItem": {
+        "type": "object",
+        "properties": {
+          "tipo": {
+            "type": "string",
+            "nullable": true
+          },
+          "porcentaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "monto": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.SubcantidadItem": {
+        "type": "object",
+        "properties": {
+          "subcantidad": {
+            "type": "string",
+            "nullable": true
+          },
+          "codigo": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Subtotal": {
+        "type": "object",
+        "properties": {
+          "numero": {
+            "type": "string",
+            "nullable": true
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "orden": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoGravadoTotal": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoGravadoI1": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoGravadoI2": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoGravadoI3": {
+            "type": "string",
+            "nullable": true
+          },
+          "itbis": {
+            "type": "string",
+            "nullable": true
+          },
+          "itbiS1": {
+            "type": "string",
+            "nullable": true
+          },
+          "itbiS2": {
+            "type": "string",
+            "nullable": true
+          },
+          "itbiS3": {
+            "type": "string",
+            "nullable": true
+          },
+          "impuestoAdicional": {
+            "type": "string",
+            "nullable": true
+          },
+          "exento": {
+            "type": "string",
+            "nullable": true
+          },
+          "monto": {
+            "type": "string",
+            "nullable": true
+          },
+          "lineas": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.SubtotalImpuestoAdicional": {
+        "type": "object",
+        "properties": {
+          "selectivoConsumoEspecifico": {
+            "type": "string",
+            "nullable": true
+          },
+          "otrosImpuesto": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Sucursal": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "string",
+            "nullable": true
+          },
+          "descripcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccion": {
+            "type": "string",
+            "nullable": true
+          },
+          "telefono": {
+            "type": "string",
+            "nullable": true
+          },
+          "codigoPostal": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Totales": {
+        "type": "object",
+        "properties": {
+          "montoGravadoTotal": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoGravadoI1": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoGravadoI2": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoGravadoI3": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoExento": {
+            "type": "string",
+            "nullable": true
+          },
+          "itbiS1": {
+            "type": "string",
+            "nullable": true
+          },
+          "itbiS2": {
+            "type": "string",
+            "nullable": true
+          },
+          "itbiS3": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalITBIS": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalITBIS1": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalITBIS2": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalITBIS3": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoImpuestoAdicional": {
+            "type": "string",
+            "nullable": true
+          },
+          "impuestosAdicionales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.TotalesImpuestoAdicional"
+            },
+            "nullable": true
+          },
+          "montoTotal": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoNoFacturable": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoPeriodo": {
+            "type": "string",
+            "nullable": true
+          },
+          "saldoAnterior": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoAvancePago": {
+            "type": "string",
+            "nullable": true
+          },
+          "valorPagar": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalITBISRetenido": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalISRRetencion": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalITBISPercepcion": {
+            "type": "string",
+            "nullable": true
+          },
+          "totalISRPercepcion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.TotalesImpuestoAdicional": {
+        "type": "object",
+        "properties": {
+          "tipoImpuesto": {
+            "type": "string",
+            "nullable": true
+          },
+          "tasaImpuestoAdicional": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoImpuestoSelectivoConsumoEspecifico": {
+            "type": "string",
+            "nullable": true
+          },
+          "montoImpuestoSelectivoConsumoAdvalorem": {
+            "type": "string",
+            "nullable": true
+          },
+          "otrosImpuestosAdicionales": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Classes.Transporte": {
+        "type": "object",
+        "properties": {
+          "conductor": {
+            "type": "string",
+            "nullable": true
+          },
+          "documento": {
+            "type": "string",
+            "nullable": true
+          },
+          "ficha": {
+            "type": "string",
+            "nullable": true
+          },
+          "placa": {
+            "type": "string",
+            "nullable": true
+          },
+          "ruta": {
+            "type": "string",
+            "nullable": true
+          },
+          "zona": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroAlbaran": {
+            "type": "string",
+            "nullable": true
+          },
+          "via": {
+            "type": "string",
+            "nullable": true
+          },
+          "paisOrigen": {
+            "type": "string",
+            "nullable": true
+          },
+          "direccionDestino": {
+            "type": "string",
+            "nullable": true
+          },
+          "paisDestino": {
+            "type": "string",
+            "nullable": true
+          },
+          "rncIdentificacionCompaniaTransportista": {
+            "type": "string",
+            "nullable": true
+          },
+          "nombreCompaniaTransportista": {
+            "type": "string",
+            "nullable": true
+          },
+          "numeroViaje": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.Request": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestAnulacionSecuencias": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "anulacion": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Anulacion.Anulacion"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestAutenticacion": {
+        "type": "object",
+        "properties": {
+          "usuario": {
+            "type": "string",
+            "nullable": true
+          },
+          "clave": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestCargaCertificado": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "certificadoBase64": {
+            "type": "string",
+            "nullable": true
+          },
+          "claveBase64": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestConsultaRNC": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "rncConsultar": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestDescargaArchivo": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "documento": {
+            "type": "string",
+            "nullable": true
+          },
+          "extension": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestEnviar": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "documentoElectronico": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.DocumentoElectronico"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestEnvioCorreo": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "correos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "documento": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestEnvioCotizacionCorreo": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "correos": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "nullable": true
+          },
+          "documento": {
+            "type": "string",
+            "nullable": true
+          },
+          "documentoBase64": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestEstatusDocumento": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "documento": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestEstatusLicencia": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "serial": {
+            "type": "string",
+            "nullable": true
+          },
+          "licenciaId": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestLogo": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "logoBase64": {
+            "type": "string",
+            "nullable": true
+          },
+          "operacion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Request.RequestSeries": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "serie": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.SeriesModel"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.Ciclo": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "etapa": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "fechaInicio": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaFin": {
+            "type": "string",
+            "nullable": true
+          },
+          "utilizados": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.Licencia": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "servicio": {
+            "type": "string",
+            "nullable": true
+          },
+          "codigoLicencia": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaLicencia": {
+            "type": "string",
+            "nullable": true
+          },
+          "cadencia": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "tiempo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "etapa": {
+            "type": "string",
+            "nullable": true
+          },
+          "cicloActualLicencia": {
+            "type": "string",
+            "nullable": true
+          },
+          "cicloActualId": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "utilizadosCiclo": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "ciclos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.Ciclo"
+            },
+            "nullable": true
+          },
+          "tipo": {
+            "type": "string",
+            "nullable": true
+          },
+          "folios": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "utilizados": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "fechaAsignacion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.Observacion": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaAnulacionSecuencias": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "procesado": {
+            "type": "boolean"
+          },
+          "xmlBase64": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaAutenticacion": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "token": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaExpiracion": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaCargaCertificado": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "procesado": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaDescargaArchivo": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "archivo": {
+            "type": "string",
+            "nullable": true
+          },
+          "procesado": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaEnviar": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "xmlBase64": {
+            "type": "string",
+            "nullable": true
+          },
+          "procesado": {
+            "type": "boolean"
+          },
+          "codigoSeguridad": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaFirma": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaEmision": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaEnvioCorreo": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "procesado": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaEstadoRNC": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "rnc": {
+            "type": "string",
+            "nullable": true
+          },
+          "razonSocial": {
+            "type": "string",
+            "nullable": true
+          },
+          "nombreComercial": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaIncorporacion": {
+            "type": "string",
+            "nullable": true
+          },
+          "estado": {
+            "type": "string",
+            "nullable": true
+          },
+          "regimen": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaEstatusDocumento": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "procesado": {
+            "type": "boolean"
+          },
+          "observaciones": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.Observacion"
+            },
+            "nullable": true
+          },
+          "codigoSeguridad": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaFirma": {
+            "type": "string",
+            "nullable": true
+          },
+          "fechaEmision": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaEstatusLicencia": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "total": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "disponible": {
+            "type": "integer",
+            "format": "int32",
+            "nullable": true
+          },
+          "licencia": {
+            "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.Licencia"
+          },
+          "licencias": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Response.Licencia"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaLogo": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "procesado": {
+            "type": "boolean"
+          },
+          "logo": {
+            "type": "string",
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaSeries": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "serie": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.SeriesModel"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      },
+      "RDValidatorLibrary.Models.Response.RespuestaSucursal": {
+        "type": "object",
+        "properties": {
+          "codigo": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mensaje": {
+            "type": "string",
+            "nullable": true
+          },
+          "sucursales": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RDValidatorLibrary.Models.Classes.Sucursal"
+            },
+            "nullable": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Anulacion"
+    },
+    {
+      "name": "Autenticacion"
+    },
+    {
+      "name": "CargaCertificado"
+    },
+    {
+      "name": "ConsultaRNC"
+    },
+    {
+      "name": "DescargaArchivo"
+    },
+    {
+      "name": "Enviar"
+    },
+    {
+      "name": "EnvioCorreo"
+    },
+    {
+      "name": "EnvioCotizacion"
+    },
+    {
+      "name": "EstatusDocumento"
+    },
+    {
+      "name": "EstatusLicencia"
+    },
+    {
+      "name": "Logo"
+    },
+    {
+      "name": "Series"
+    }
+  ]
+}
