@@ -9,7 +9,7 @@ from flask_login import current_user, login_required
 
 from auth import permission_required
 from core.database import database_transaction, execute_query
-from core.security import sanitize_input
+from routes.support import sanitize_input
 from core.tenant import get_current_tenant_id, validate_tenant_access
 from services.notas_credito import (
     NotaCreditoError,
