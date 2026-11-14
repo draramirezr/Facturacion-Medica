@@ -99,15 +99,100 @@ def consulta_rnc_hka():
     )
 
 
+def _demo_serie():
+    return {
+        'serie': 'A',
+        'tipoDocumento': 'E31',
+        'fechaVencimientoSecuencia': '31-12-2027',
+        'correlativo': 1,
+        'valorMinimo': 1,
+        'valorMaximo': 9999999,
+        'codigoSucursal': '001',
+    }
+
+
+def _series_payload(*, incluir_demo: bool, mensaje: str):
+    body = request.get_json(silent=True) or {}
+    series = []
+    if incluir_demo:
+        pedida = body.get('serie')
+        if isinstance(pedida, dict) and (pedida.get('serie') or pedida.get('tipoDocumento')):
+            series = [pedida]
+        else:
+            series = [_demo_serie()]
+    return {
+        'codigo': 0,
+        'mensaje': mensaje,
+        'serie': series,
+    }
+
+
 def series_hka():
+    auth, err = _auth_from_body()
+    if err:
+        return err
+    return _hka_json(
+        _series_payload(
+            incluir_demo=True,
+            mensaje='Series de demostración ClinicRD (secuencias reales en Fase 3)',
+        )
+    )
+
+
+def series_crear_serie_hka():
+    auth, err = _auth_from_body()
+    if err:
+        return err
+    return _hka_json(
+        _series_payload(
+            incluir_demo=True,
+            mensaje='Serie aceptada en modo demostración ClinicRD',
+        )
+    )
+
+
+def series_actualizar_serie_hka():
+    auth, err = _auth_from_body()
+    if err:
+        return err
+    return _hka_json(
+        _series_payload(
+            incluir_demo=True,
+            mensaje='Serie actualizada en modo demostración ClinicRD',
+        )
+    )
+
+
+def series_borrar_serie_hka():
     auth, err = _auth_from_body()
     if err:
         return err
     return _hka_json(
         {
             'codigo': 0,
-            'mensaje': 'Series no gestionadas en ClinicRD; use secuencias DGII del tenant',
+            'mensaje': 'Serie desactivada en modo demostración ClinicRD',
             'serie': [],
+        }
+    )
+
+
+def series_obtener_sucursales_hka():
+    auth, err = _auth_from_body()
+    if err:
+        return err
+    return _hka_json(
+        {
+            'codigo': 0,
+            'mensaje': 'Sucursal principal (ClinicRD)',
+            'sucursales': [
+                {
+                    'codigo': '001',
+                    'descripcion': 'Principal',
+                    'direccion': None,
+                    'telefono': None,
+                    'codigoPostal': None,
+                }
+            ],
         }
     )
 

@@ -17,7 +17,11 @@ from integrations.external_ecf_service.routes.hka_stub_routes import (
     estatus_documento_hka,
     estatus_licencia_hka,
     estatus_licencia_lista_hka,
+    series_actualizar_serie_hka,
+    series_borrar_serie_hka,
+    series_crear_serie_hka,
     series_hka,
+    series_obtener_sucursales_hka,
 )
 from integrations.external_ecf_service.routes.send_routes import enviar_hka
 
@@ -72,6 +76,26 @@ def register_external_ecf_service(app):
         ),
         ('/api/ConsultaRNC', consulta_rnc_hka, 'external_ecf_consulta_rnc'),
         ('/api/Series', series_hka, 'external_ecf_series'),
+        (
+            '/api/Series/CrearSerie',
+            series_crear_serie_hka,
+            'external_ecf_series_crear',
+        ),
+        (
+            '/api/Series/ActualizarSerie',
+            series_actualizar_serie_hka,
+            'external_ecf_series_actualizar',
+        ),
+        (
+            '/api/Series/BorrarSerie',
+            series_borrar_serie_hka,
+            'external_ecf_series_borrar',
+        ),
+        (
+            '/api/Series/ObtenerSucursales',
+            series_obtener_sucursales_hka,
+            'external_ecf_series_sucursales',
+        ),
         (
             '/api/EstatusDocumento',
             estatus_documento_hka,

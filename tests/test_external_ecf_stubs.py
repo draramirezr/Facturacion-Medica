@@ -51,6 +51,30 @@ class ExternalECFStubRouteTests(unittest.TestCase):
         self.assertGreaterEqual(data['disponible'], 1)
         self.assertIn('licencia', data)
 
+    @patch(
+        'integrations.external_ecf_service.routes.hka_stub_routes.authorize_bearer_token'
+    )
+    def test_series_crear_serie_stub(self, auth_mock):
+        auth_mock.return_value = AuthorizedIntegrationContext(
+            client_id=1,
+            emitter_id=3,
+            tenant_id=16,
+            rnc='01400204101',
+            environment='PRUEBAS',
+        )
+        response = self.client.post(
+            '/api/Series/CrearSerie',
+            json={
+                'token': 'jwt',
+                'rnc': '01400204101',
+                'serie': {'serie': 'B', 'tipoDocumento': 'E32'},
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        data = response.get_json()
+        self.assertEqual(data['codigo'], 0)
+        self.assertTrue(data['serie'])
+
 
 if __name__ == '__main__':
     unittest.main()
