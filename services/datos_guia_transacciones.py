@@ -55,6 +55,7 @@ def _insert_pago_guia_ejemplo(
     indice,
     total,
     fecha_clinica,
+    factura_id=None,
 ):
     columnas = _pagos_columnas()
     numero = f'PAG-GUIA-{indice:03d}'
@@ -69,6 +70,8 @@ def _insert_pago_guia_ejemplo(
             valores.append(valor)
 
     _add('tenant_id', tenant_id)
+    if factura_id is not None:
+        _add('factura_id', factura_id)
     _add('numero_pago', numero)
     _add('monto_total', total)
     _add('monto', total)
@@ -521,6 +524,7 @@ def sembrar_transacciones_guia_tenant(tenant_id):
             indice=indice,
             total=total,
             fecha_clinica=fecha_clinica,
+            factura_id=factura_id,
         )
         if pago_id:
             execute_update(
