@@ -18,6 +18,76 @@ def _json(data):
     return json.dumps(data, ensure_ascii=False)
 
 
+def _pagos_columnas():
+    filas = execute_query(
+        '''
+        SELECT COLUMN_NAME AS nombre
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'pagos'
+        ''',
+        fetch='all',
+    ) or []
+    return {fila['nombre'] for fila in filas}
+
+
+def _sql_conteo_pagos_sin_guia():
+    columnas = _pagos_columnas()
+    if 'numero_pago' in columnas:
+        return '''
+        SELECT COUNT(*) AS n FROM pagos
+        WHERE tenant_id=%s AND COALESCE(numero_pago, '') NOT LIKE 'PAG-GUIA-%%'
+        '''
+    if 'referencia' in columnas:
+        return '''
+        SELECT COUNT(*) AS n FROM pagos
+        WHERE tenant_id=%s AND COALESCE(referencia, '') NOT LIKE 'REF-GUIA-%%'
+        '''
+    return '''
+        SELECT COUNT(*) AS n FROM pagos
+        WHERE tenant_id=%s AND COALESCE(observaciones, '') NOT LIKE '%%[Guía]%%'
+        '''
+
+
+def _insert_pago_guia_ejemplo(
+    *,
+    tenant_id,
+    usuario_id,
+    indice,
+    total,
+    fecha_clinica,
+):
+    columnas = _pagos_columnas()
+    numero = f'PAG-GUIA-{indice:03d}'
+    referencia = f'REF-GUIA-{indice:03d}'
+    observaciones = f'{_MARCADOR} Pago de ejemplo {indice}'
+    campos = []
+    valores = []
+
+    def _add(nombre, valor):
+        if nombre in columnas:
+            campos.append(nombre)
+            valores.append(valor)
+
+    _add('tenant_id', tenant_id)
+    _add('numero_pago', numero)
+    _add('monto_total', total)
+    _add('monto', total)
+    _add('fecha_pago', fecha_clinica)
+    _add('metodo_pago', 'Transferencia')
+    _add('referencia', referencia)
+    _add('observaciones', observaciones)
+    _add('created_by', usuario_id)
+
+    if 'fecha_pago' not in campos:
+        return None
+    placeholders = ', '.join(['%s'] * len(campos))
+    nombres = ', '.join(campos)
+    return execute_update(
+        f'INSERT INTO pagos ({nombres}) VALUES ({placeholders})',
+        tuple(valores),
+    )
+
+
 def _ya_sembrado(tenant_id):
     return bool(
         execute_query(
@@ -445,27 +515,22 @@ def sembrar_transacciones_guia_tenant(tenant_id):
             ),
         )
 
-        pago_id = execute_update(
-            '''
-            INSERT INTO pagos (
-                numero_pago, monto_total, fecha_pago, metodo_pago,
-                referencia, observaciones, tenant_id, created_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-            ''',
-            (
-                f'PAG-GUIA-{indice:03d}', total, fecha_clinica, 'Transferencia',
-                f'REF-GUIA-{indice:03d}',
-                f'{_MARCADOR} Pago de ejemplo {indice}',
-                tenant_id, usuario_id,
-            ),
+        pago_id = _insert_pago_guia_ejemplo(
+            tenant_id=tenant_id,
+            usuario_id=usuario_id,
+            indice=indice,
+            total=total,
+            fecha_clinica=fecha_clinica,
         )
-        execute_update(
-            '''
-            INSERT INTO pago_facturas (pago_id, factura_id, monto_aplicado, tenant_id)
-            VALUES (%s, %s, %s, %s)
-            ''',
-            (pago_id, factura_id, total, tenant_id),
-        )
+        if pago_id:
+            execute_update(
+                '''
+                INSERT INTO pago_facturas (
+                    pago_id, factura_id, monto_aplicado, tenant_id
+                ) VALUES (%s, %s, %s, %s)
+                ''',
+                (pago_id, factura_id, total, tenant_id),
+            )
 
     execute_update(
         '''
@@ -523,10 +588,7 @@ def tenant_solo_datos_guia(tenant_id):
         SELECT COUNT(*) AS n FROM licencias_medicas
         WHERE tenant_id=%s AND COALESCE(codigo, '') NOT LIKE 'LIC-GUIA-%%'
         ''',
-        '''
-        SELECT COUNT(*) AS n FROM pagos
-        WHERE tenant_id=%s AND COALESCE(numero_pago, '') NOT LIKE 'PAG-GUIA-%%'
-        ''',
+        _sql_conteo_pagos_sin_guia(),
         '''
         SELECT COUNT(*) AS n FROM citas_medicas
         WHERE tenant_id=%s AND COALESCE(motivo, '') NOT LIKE '[Guía]%%'
