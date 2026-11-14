@@ -10,7 +10,15 @@ from integrations.external_ecf_service.config import ExternalECFConfig
 from integrations.external_ecf_service.routes.authentication_routes import (
     autenticacion_hka,
 )
+from integrations.external_ecf_service.request_logging import log_hka_api_request
 from integrations.external_ecf_service.routes.health_routes import external_ecf_health
+from integrations.external_ecf_service.routes.hka_stub_routes import (
+    consulta_rnc_hka,
+    estatus_documento_hka,
+    estatus_licencia_hka,
+    estatus_licencia_lista_hka,
+    series_hka,
+)
 from integrations.external_ecf_service.routes.send_routes import enviar_hka
 
 logger = logging.getLogger(__name__)
@@ -28,6 +36,10 @@ def register_external_ecf_service(app):
         raise
 
     app.config['EXTERNAL_ECF_CONFIG'] = config
+
+    if not app.config.get('EXTERNAL_ECF_API_LOGGING'):
+        app.before_request(log_hka_api_request)
+        app.config['EXTERNAL_ECF_API_LOGGING'] = True
 
     bp = Blueprint('external_ecf_service', __name__)
     rate_decorator = rate_limit(
@@ -51,6 +63,29 @@ def register_external_ecf_service(app):
         view_func=enviar_view,
         methods=['POST'],
     )
+    for rule, view, endpoint in (
+        ('/api/EstatusLicencia', estatus_licencia_hka, 'external_ecf_estatus_licencia'),
+        (
+            '/api/EstatusLicencia/Lista',
+            estatus_licencia_lista_hka,
+            'external_ecf_estatus_licencia_lista',
+        ),
+        ('/api/ConsultaRNC', consulta_rnc_hka, 'external_ecf_consulta_rnc'),
+        ('/api/Series', series_hka, 'external_ecf_series'),
+        (
+            '/api/EstatusDocumento',
+            estatus_documento_hka,
+            'external_ecf_estatus_documento',
+        ),
+    ):
+        stub_view = rate_decorator(view)
+        csrf.exempt(stub_view)
+        app.add_url_rule(
+            rule,
+            endpoint=endpoint,
+            view_func=stub_view,
+            methods=['POST'],
+        )
     bp.add_url_rule(
         '/external-ecf/health',
         'external_ecf_health',

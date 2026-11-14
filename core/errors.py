@@ -1,9 +1,32 @@
 """Manejadores HTTP comunes de la aplicación."""
 
+import logging
+
 from flask import flash, jsonify, redirect, render_template, request, url_for
+
+logger = logging.getLogger(__name__)
 
 
 def not_found(error):
+    path = request.path or ''
+    if path.startswith('/api/'):
+        logger.warning(
+            'API POS 404 (no implementado): %s %s query=%s ip=%s ua=%s',
+            request.method,
+            path,
+            (request.query_string or b'').decode('utf-8', errors='replace')[:200],
+            request.headers.get('X-Forwarded-For', request.remote_addr),
+            (request.headers.get('User-Agent') or '')[:160],
+        )
+        return jsonify(
+            {
+                'codigo': 99,
+                'mensaje': (
+                    f'Ruta API no disponible en ClinicRD: {request.method} {path}. '
+                    'Revise logs del servidor o contacte soporte.'
+                ),
+            }
+        ), 404
     return render_template('errors/404.html'), 404
 
 
