@@ -1302,6 +1302,13 @@
                         <span>Pagos</span>
                     </a>
                     {% endif %}
+                    {% if can('facturacion.nota_credito') %}
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_nota') or endpoint == 'facturacion_notas_credito_buscar' else '' }}"
+                       href="{{ url_for('facturacion_notas_credito_buscar') }}">
+                        <i class="fas fa-file-circle-minus"></i>
+                        <span>Notas de crédito</span>
+                    </a>
+                    {% endif %}
                 </div>
                 {% endif %}
 

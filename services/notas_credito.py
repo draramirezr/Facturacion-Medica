@@ -284,6 +284,72 @@ def crear_nota_credito(
     return int(nota_id)
 
 
+def buscar_facturas_para_nota_credito(
+    tenant_id: int, term: str, *, limit: int = 25
+) -> list[dict]:
+    """Busca facturas por número interno, NCF o ID."""
+    q = (term or "").strip()
+    if not q:
+        return []
+
+    params: list = [tenant_id]
+    where = "f.tenant_id=%s AND f.estado != 'Anulada'"
+    if q.isdigit() and len(q) <= 9:
+        where += " AND (f.id=%s OR f.numero_factura LIKE %s OR f.ncf LIKE %s)"
+        pattern = f"%{q}%"
+        params.extend([int(q), pattern, pattern])
+    else:
+        pattern = f"%{q}%"
+        where += " AND (f.numero_factura LIKE %s OR f.ncf LIKE %s)"
+        params.extend([pattern, pattern])
+
+    rows = (
+        execute_query(
+            f"""
+            SELECT f.id, f.numero_factura, f.ncf, f.fecha_emision,
+                   f.nombre_ars, f.total, f.estado
+            FROM facturas f
+            WHERE {where}
+            ORDER BY f.fecha_emision DESC, f.id DESC
+            LIMIT {int(limit)}
+            """,
+            tuple(params),
+            fetch="all",
+        )
+        or []
+    )
+    out: list[dict] = []
+    for row in rows:
+        ok, _ = puede_emitir_nota_credito(tenant_id, row["id"])
+        if not ok:
+            continue
+        row["saldo_creditable"] = saldo_creditable_factura(tenant_id, row["id"])
+        out.append(row)
+    return out
+
+
+def listar_notas_credito_recientes(
+    tenant_id: int, *, limit: int = 15
+) -> list[dict]:
+    return (
+        execute_query(
+            """
+            SELECT nc.id, nc.codigo, nc.tipo, nc.total, nc.created_at,
+                   nc.factura_id, f.numero_factura, f.ncf
+            FROM notas_credito nc
+            INNER JOIN facturas f
+              ON f.id = nc.factura_id AND f.tenant_id = nc.tenant_id
+            WHERE nc.tenant_id=%s AND nc.estado='confirmada'
+            ORDER BY nc.id DESC
+            LIMIT %s
+            """,
+            (tenant_id, int(limit)),
+            fetch="all",
+        )
+        or []
+    )
+
+
 def cargar_nota_credito(tenant_id: int, nota_id: int) -> dict | None:
     nota = execute_query(
         """

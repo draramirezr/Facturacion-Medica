@@ -13,15 +13,40 @@ from routes.support import sanitize_input
 from core.tenant import get_current_tenant_id, validate_tenant_access
 from services.notas_credito import (
     NotaCreditoError,
+    buscar_facturas_para_nota_credito,
     cargar_nota_credito,
     crear_nota_credito,
     lineas_credito_pendientes,
+    listar_notas_credito_recientes,
     listar_notas_factura,
     puede_emitir_nota_credito,
     saldo_creditable_factura,
 )
 
 logger = logging.getLogger(__name__)
+
+
+@login_required
+@permission_required("facturacion.nota_credito")
+def facturacion_notas_credito_buscar():
+    """Hub: buscar factura por número o NCF para crear nota de crédito."""
+    tenant_id = get_current_tenant_id()
+    term = sanitize_input(request.form.get("q") or request.args.get("q") or "", 80)
+    resultados: list[dict] = []
+    if term:
+        resultados = buscar_facturas_para_nota_credito(tenant_id, term)
+        if not resultados:
+            flash(
+                "No se encontró ninguna factura con saldo creditable para ese criterio.",
+                "warning",
+            )
+    recientes = listar_notas_credito_recientes(tenant_id)
+    return render_template(
+        "facturacion/nota_credito_buscar.html",
+        term=term,
+        resultados=resultados,
+        recientes=recientes,
+    )
 
 
 @login_required
@@ -134,6 +159,12 @@ def facturacion_nota_credito_ver(nota_id):
 
 
 def register_credit_note_routes(app):
+    app.add_url_rule(
+        "/facturacion/notas-credito",
+        endpoint="facturacion_notas_credito_buscar",
+        view_func=facturacion_notas_credito_buscar,
+        methods=["GET", "POST"],
+    )
     app.add_url_rule(
         "/facturacion/facturas/<int:factura_id>/nota-credito/nueva",
         endpoint="facturacion_nota_credito_nueva",

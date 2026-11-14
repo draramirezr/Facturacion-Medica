@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+
+{% block title %}Notas de crédito{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/facturacion-responsive.css') }}">
+<style nonce="{{ csp_nonce }}">
+    .nc-buscar-shell {
+        max-width: 960px;
+        margin: 0 auto 2rem;
+        padding: 0 0.5rem;
+    }
+    .nc-buscar-card {
+        background: var(--ars-shell-surface, #fff);
+        border-radius: 16px;
+        box-shadow: 0 4px 18px {{ tema.primary }}20;
+        padding: 1.75rem 2rem;
+        margin-bottom: 1.5rem;
+    }
+    .nc-buscar-card h1 {
+        font-size: 1.35rem;
+        font-weight: 700;
+        margin-bottom: 0.35rem;
+    }
+    .nc-buscar-hint {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 1.25rem;
+    }
+    .nc-result-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: flex-end;
+    }
+    .nc-result-actions .btn {
+        font-size: 0.85rem;
+        white-space: nowrap;
+    }
+</style>
+
+<div class="nc-buscar-shell mt-4">
+    <div class="nc-buscar-card">
+        <h1>Notas de crédito</h1>
+        <p class="nc-buscar-hint">
+            Busque la factura por <strong>número interno</strong> (ej. FAC-GUIA-0001),
+            <strong>NCF</strong> (ej. B0200000001) o <strong>ID</strong> de factura.
+        </p>
+        <form method="post" class="row g-2 align-items-end">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="col-md-9">
+                <label class="form-label" for="q">Factura</label>
+                <input type="search" class="form-control form-control-lg" id="q" name="q"
+                       value="{{ term }}"
+                       placeholder="Número, NCF o ID"
+                       autocomplete="off"
+                       required
+                       autofocus>
+            </div>
+            <div class="col-md-3">
+                <button type="submit" class="btn btn-primary w-100 btn-lg">
+                    <i class="fas fa-search me-1"></i>Buscar
+                </button>
+            </div>
+        </form>
+    </div>
+
+    {% if term and resultados %}
+    <div class="nc-buscar-card">
+        <h2 class="h6 text-muted text-uppercase mb-3">Resultados</h2>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Factura</th>
+                        <th>NCF</th>
+                        <th>Fecha</th>
+                        <th>ARS</th>
+                        <th class="text-end">Saldo</th>
+                        <th class="text-end">Acción</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for f in resultados %}
+                    <tr>
+                        <td>
+                            <a href="{{ url_for('facturacion_ver_factura', factura_id=f['id']) }}">
+                                {{ f['numero_factura'] }}
+                            </a>
+                        </td>
+                        <td>{{ f['ncf'] or '—' }}</td>
+                        <td>{{ f['fecha_emision'] }}</td>
+                        <td>{{ f['nombre_ars'] or '—' }}</td>
+                        <td class="text-end fw-semibold">
+                            RD$ {{ '%.2f'|format(f['saldo_creditable']) }}
+                        </td>
+                        <td class="text-end">
+                            <div class="nc-result-actions">
+                                <a class="btn btn-outline-primary btn-sm"
+                                   href="{{ url_for('facturacion_nota_credito_nueva', factura_id=f['id'], tipo='parcial') }}">
+                                    Parcial
+                                </a>
+                                <a class="btn btn-primary btn-sm"
+                                   href="{{ url_for('facturacion_nota_credito_nueva', factura_id=f['id'], tipo='total') }}">
+                                    Total
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endif %}
+
+    {% if recientes %}
+    <div class="nc-buscar-card">
+        <h2 class="h6 text-muted text-uppercase mb-3">Últimas notas registradas</h2>
+        <ul class="list-group list-group-flush">
+            {% for nc in recientes %}
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                <span>
+                    <a href="{{ url_for('facturacion_nota_credito_ver', nota_id=nc['id']) }}">
+                        {{ nc['codigo'] }}
+                    </a>
+                    · Factura {{ nc['numero_factura'] }}
+                    {% if nc['ncf'] %} ({{ nc['ncf'] }}){% endif %}
+                    · {{ nc['tipo']|capitalize }}
+                </span>
+                <span class="text-muted">RD$ {{ '%.2f'|format(nc['total']) }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
