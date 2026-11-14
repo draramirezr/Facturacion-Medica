@@ -299,8 +299,9 @@ def sembrar_transacciones_guia_tenant(tenant_id):
                 tenant_id, paciente_id, historia_emergencia_id,
                 fecha_servicio, hora_servicio, nombre_paciente, edad, sexo,
                 direccion, responsable, telefono_responsable, ars_nombre,
-                medicamentos_materiales, observaciones, created_by
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                medicamentos_materiales, observaciones, firma_responsable,
+                created_by
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
             ''',
             (
                 tenant_id, paciente_id, emergencia_id, fecha_clinica,
@@ -315,6 +316,7 @@ def sembrar_transacciones_guia_tenant(tenant_id):
                     'cantidad': '1',
                 }]),
                 f'{_MARCADOR} Hoja de enfermería {indice}',
+                'Firma de ejemplo (guía)',
                 usuario_id,
             ),
         )

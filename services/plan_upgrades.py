@@ -22,6 +22,18 @@ PLAN_ETIQUETAS = {
 
 
 def _asegurar_columna_conversion_demo():
+    existe = execute_query(
+        '''
+        SELECT 1 AS ok
+        FROM information_schema.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = 'solicitudes_upgrade_plan'
+          AND COLUMN_NAME = 'es_conversion_demo'
+        LIMIT 1
+        '''
+    )
+    if existe:
+        return
     try:
         execute_update(
             '''
