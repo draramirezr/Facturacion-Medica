@@ -802,7 +802,7 @@
                     <input class="form-control" id="api_pos_usuario" name="api_pos_usuario"
                            maxlength="100" value="{{ external_ecf_pos.usuario_api }}"
                            {% if not can('configuracion.editar') %}readonly{% endif %}>
-                    <div class="form-text">Único en toda la plataforma. Sugerido: <code>{{ external_ecf_pos.usuario_api }}</code>.</div>
+                    <div class="form-text">Único en toda la plataforma. Sugerido según su empresa: <code>{{ external_ecf_pos.usuario_api }}</code>.</div>
                 </div>
             </div>
             {% if can('configuracion.editar') %}

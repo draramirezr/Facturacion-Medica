@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import secrets
+import unicodedata
 
 from core.config import url_publica_base
 from core.database import execute_query, execute_update
@@ -58,20 +59,66 @@ def obtener_cliente_integracion_por_codigo(codigo: str) -> dict | None:
     )
 
 
-def _usuario_api_por_defecto(tenant_id: int, client_codigo: str | None = None) -> str:
+def _slug_desde_empresa(empresa: dict | None) -> str:
+    """Identificador corto legible a partir del nombre del consultorio en ClinicRD."""
+    if not empresa:
+        return ''
+    texto = (
+        (empresa.get('nombre') or '').strip()
+        or (empresa.get('razon_social') or '').strip()
+    )
+    if not texto:
+        rnc = normalize_rnc(empresa.get('rnc') or '')
+        if rnc:
+            return rnc[-8:] if len(rnc) > 8 else rnc
+        return f'e{int(empresa.get("id") or 0)}'
+    texto = unicodedata.normalize('NFKD', texto)
+    texto = texto.encode('ascii', 'ignore').decode('ascii')
+    slug = re.sub(r'[^a-zA-Z0-9]+', '', texto.lower())[:20]
+    if len(slug) >= 3:
+        return slug
+    rnc = normalize_rnc(empresa.get('rnc') or '')
+    return (rnc[-8:] if len(rnc) > 8 else rnc) or f'e{int(empresa.get("id") or 0)}'
+
+
+def _usuario_api_por_defecto(
+    tenant_id: int,
+    *,
+    empresa_slug: str,
+    client_codigo: str | None = None,
+    multiples_integradores: bool = False,
+) -> str:
     base = f'api-t{int(tenant_id)}'
-    sufijo = re.sub(r'[^a-zA-Z0-9]', '', (client_codigo or ''))[:24]
-    if sufijo:
-        return f'{base}-{sufijo}'
+    partes = []
+    if empresa_slug:
+        partes.append(
+            re.sub(r'[^a-zA-Z0-9]', '', empresa_slug.lower())[:24]
+        )
+    if multiples_integradores and client_codigo:
+        pos = re.sub(r'[^a-zA-Z0-9]', '', client_codigo.lower())[:10]
+        if pos:
+            partes.append(pos)
+    if partes:
+        return f'{base}-{"-".join(partes)}'[:100]
     return base
 
 
 def _normalizar_usuario_api(
-    value: str | None, tenant_id: int, client_codigo: str | None = None
+    value: str | None,
+    tenant_id: int,
+    *,
+    empresa_slug: str,
+    client_codigo: str | None = None,
+    multiples_integradores: bool = False,
 ) -> str:
     limpio = re.sub(r'[^a-zA-Z0-9_-]', '', (value or '').strip())
     if len(limpio) < 3:
-        return _usuario_api_por_defecto(tenant_id, client_codigo)
+        return _usuario_api_por_defecto(
+            tenant_id,
+            empresa_slug=empresa_slug,
+            client_codigo=client_codigo,
+            multiples_integradores=multiples_integradores,
+        )
     return limpio[:100]
 
 
@@ -132,6 +179,7 @@ def contexto_configuracion_api_pos(
     tenant_id: int,
     *,
     emisor: dict,
+    empresa_info: dict | None,
     ambiente_servidor: str,
     servicio_habilitado: bool,
     client_codigo_preferido: str | None = None,
@@ -161,9 +209,16 @@ def contexto_configuracion_api_pos(
     razon = (emisor.get('razon_social') or emisor.get('nombre') or '').strip()
     if integracion:
         razon = integracion.get('razon_social') or razon
+    empresa_slug = _slug_desde_empresa(empresa_info)
+    varios_integradores = len(clientes) > 1
     usuario = (
         (integracion or {}).get('usuario')
-        or _usuario_api_por_defecto(tenant_id, client_codigo)
+        or _usuario_api_por_defecto(
+            tenant_id,
+            empresa_slug=empresa_slug,
+            client_codigo=client_codigo,
+            multiples_integradores=varios_integradores,
+        )
     )
     activa = bool(
         integracion
@@ -244,13 +299,23 @@ def provisionar_integracion_pos(
         return False, 'Indique el RNC del emisor en el certificado e-CF primero.', None
 
     empresa = execute_query(
-        'SELECT id FROM empresas WHERE id = %s LIMIT 1',
+        '''
+        SELECT id, nombre, razon_social, rnc FROM empresas WHERE id = %s LIMIT 1
+        ''',
         (tenant_id,),
     )
     if not empresa:
         return False, 'Consultorio no encontrado.', None
 
-    usuario = _normalizar_usuario_api(usuario_api, tenant_id, client_codigo)
+    varios = len(listar_clientes_integracion_pos()) > 1
+    empresa_slug = _slug_desde_empresa(empresa)
+    usuario = _normalizar_usuario_api(
+        usuario_api,
+        tenant_id,
+        empresa_slug=empresa_slug,
+        client_codigo=client_codigo,
+        multiples_integradores=varios,
+    )
     if _usuario_api_en_uso_por_otro_tenant(usuario, tenant_id):
         return (
             False,
@@ -378,6 +443,7 @@ def procesar_accion_configuracion_api_pos(
     usuario_api: str | None,
     razon_social: str | None,
     emisor: dict,
+    empresa_info: dict | None,
     ambiente_servidor: str,
 ) -> tuple[bool, str, str | None, str]:
     """Devuelve (ok, mensaje, clave_opcional, categoria_flash)."""

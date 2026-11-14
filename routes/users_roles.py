@@ -1069,6 +1069,7 @@ def perfil_configuracion():
                 usuario_api=usuario_api or None,
                 razon_social=razon or None,
                 emisor=emisor,
+                empresa_info=empresa_actual,
                 ambiente_servidor=ext_cfg.environment,
             )
             if clave:
@@ -1266,6 +1267,7 @@ def perfil_configuracion():
             external_ecf_pos = contexto_configuracion_api_pos(
                 tenant_id,
                 emisor=emisor_ecf_para_xml(tenant_id, empresa_para_api),
+                empresa_info=empresa_para_api,
                 ambiente_servidor=ext_cfg.environment,
                 servicio_habilitado=ext_cfg.enabled,
                 client_codigo_preferido=pos_cliente,
