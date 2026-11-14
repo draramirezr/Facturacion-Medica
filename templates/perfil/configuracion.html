@@ -686,6 +686,119 @@
     </section>
     {% endif %}
 
+    {% if external_ecf_pos and external_ecf_pos.modulo_disponible %}
+    <section class="settings-card">
+        <details class="settings-fold" id="api-pos-ecf" open>
+        <summary>
+            <span>
+                <h2 class="settings-card-title">API POS (compatible HKA)</h2>
+                <p class="settings-card-subtitle">
+                    Credenciales para RicoHotDog u otros puntos de venta — no usa su usuario web
+                </p>
+            </span>
+            <i class="fas fa-chevron-down settings-fold-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="settings-fold-body">
+        <p class="settings-card-subtitle">
+            Configure aquí lo que antes se hacía con el seed SQL (<code>ext_integration_*</code>).
+            La clave API solo se muestra una vez al activarla o al rotarla.
+        </p>
+
+        {% if not external_ecf_pos.servicio_habilitado %}
+        <div class="certificate-status is-pending">
+            <i class="fas fa-triangle-exclamation"></i>
+            <div>
+                <strong>Servicio desactivado en el servidor</strong>
+                <div>Puede guardar datos; el POS no autenticará hasta habilitar <code>EXTERNAL_ECF_ENABLED</code>.</div>
+            </div>
+        </div>
+        {% elif external_ecf_pos.activa %}
+        <div class="certificate-status is-valid">
+            <i class="fas fa-circle-check"></i>
+            <div>
+                <strong>Integración activa</strong>
+                <div>Usuario <code>{{ external_ecf_pos.usuario_api }}</code> · RNC {{ external_ecf_pos.rnc }}</div>
+            </div>
+        </div>
+        {% else %}
+        <div class="certificate-status is-pending">
+            <i class="fas fa-triangle-exclamation"></i>
+            <div>
+                <strong>Sin credencial API</strong>
+                <div>Active la integración para generar usuario y clave del POS.</div>
+            </div>
+        </div>
+        {% endif %}
+
+        {% if external_ecf_api_clave_nueva %}
+        <div class="alert alert-warning mt-3" role="alert">
+            <strong>Clave API (cópiela ahora):</strong>
+            <code class="user-select-all d-block mt-2">{{ external_ecf_api_clave_nueva }}</code>
+            <span class="small">No se volverá a mostrar. Péguela en RicoHotDog con el usuario y el RNC indicados abajo.</span>
+        </div>
+        {% endif %}
+
+        <div class="certificate-grid">
+            <div class="certificate-item">
+                <small>URL del proveedor (POS)</small>
+                <strong class="text-break">{{ external_ecf_pos.url_base }}</strong>
+            </div>
+            <div class="certificate-item">
+                <small>Ambiente servidor</small>
+                <strong>{{ external_ecf_pos.ambiente_servidor }}</strong>
+            </div>
+            <div class="certificate-item">
+                <small>Integrador</small>
+                <strong>{{ external_ecf_pos.integrador }}</strong>
+            </div>
+        </div>
+
+        <ul class="settings-card-subtitle small mt-2 mb-3">
+            <li>Autenticación: <code>{{ external_ecf_pos.endpoints.autenticacion or '—' }}</code></li>
+            <li>Enviar documento: <code>{{ external_ecf_pos.endpoints.enviar or '—' }}</code></li>
+        </ul>
+
+        <form method="POST" action="{{ url_for('perfil_configuracion') }}" class="mt-2">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label" for="api_pos_rnc">RNC emisor (API)</label>
+                    <input class="form-control" id="api_pos_rnc" type="text" readonly
+                           value="{{ external_ecf_pos.rnc }}">
+                    <div class="form-text">Se toma del certificado e-CF / empresa.</div>
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label" for="api_pos_razon_social">Razón social emisor</label>
+                    <input class="form-control" id="api_pos_razon_social" name="api_pos_razon_social"
+                           maxlength="200" value="{{ external_ecf_pos.razon_social }}"
+                           {% if not can('configuracion.editar') %}readonly{% endif %}>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label" for="api_pos_usuario">Usuario API</label>
+                    <input class="form-control" id="api_pos_usuario" name="api_pos_usuario"
+                           maxlength="100" value="{{ external_ecf_pos.usuario_api }}"
+                           {% if not can('configuracion.editar') %}readonly{% endif %}>
+                    <div class="form-text">Único en toda la plataforma. Por defecto <code>api-t{{ external_ecf_pos.tenant_id }}</code>.</div>
+                </div>
+            </div>
+            {% if can('configuracion.editar') %}
+            <div class="d-flex flex-wrap gap-2 mt-3">
+                <button class="btn btn-primary" type="submit" name="accion" value="api_pos_activar">
+                    {{ 'Guardar integración' if external_ecf_pos.activa else 'Activar integración' }}
+                </button>
+                {% if external_ecf_pos.activa %}
+                <button class="btn btn-outline-primary" type="submit" name="accion" value="api_pos_rotar">
+                    Generar nueva clave API
+                </button>
+                {% endif %}
+            </div>
+            {% endif %}
+        </form>
+        </div>
+        </details>
+    </section>
+    {% endif %}
+
     {% if can('configuracion.editar') %}
     <section class="settings-card">
         <details class="settings-fold" id="correo-consultorio">

@@ -6,7 +6,7 @@ import secrets
 
 from flask import (
     Response, current_app, flash, jsonify, redirect, render_template, request,
-    send_file, stream_with_context, url_for,
+    send_file, session, stream_with_context, url_for,
 )
 from flask_login import current_user, login_required
 from werkzeug.security import generate_password_hash
@@ -26,6 +26,10 @@ from services.ecf_operations import (
     emisor_ecf_para_xml,
     obtener_configuracion_ecf_tenant,
     procesar_formulario_certificado_ecf,
+)
+from services.external_ecf_pos_config import (
+    contexto_configuracion_api_pos,
+    procesar_accion_configuracion_api_pos,
 )
 from services.subscriptions import check_license_available, get_empresa_info
 from services.tenant_mail import resumen_correo_empresa
@@ -1025,6 +1029,51 @@ def perfil_configuracion():
             flash(mensaje, categoria)
             return redirect(url_for('perfil_configuracion', _anchor='certificado-ecf'))
 
+        if request.form.get('accion') in {'api_pos_activar', 'api_pos_rotar'}:
+            if not user_has_permission(current_user, 'configuracion.editar'):
+                flash('No tienes permiso para configurar la API del POS', 'error')
+                return redirect(
+                    url_for('perfil_configuracion', _anchor='api-pos-ecf')
+                )
+            tenant_id = get_current_tenant_id()
+            if not tenant_id:
+                flash(
+                    'La API POS es de cada consultorio, no de la plataforma.',
+                    'error',
+                )
+                return redirect(url_for('perfil_configuracion'))
+            ext_cfg = current_app.config.get('EXTERNAL_ECF_CONFIG')
+            if not ext_cfg or not ext_cfg.enabled:
+                flash(
+                    'El servicio API para POS no está habilitado en el servidor.',
+                    'error',
+                )
+                return redirect(
+                    url_for('perfil_configuracion', _anchor='api-pos-ecf')
+                )
+            empresa_actual = get_empresa_info(tenant_id) or {}
+            emisor = emisor_ecf_para_xml(tenant_id, empresa_actual)
+            usuario_api = sanitize_input(
+                request.form.get('api_pos_usuario') or '', 100
+            )
+            razon = sanitize_input(
+                request.form.get('api_pos_razon_social') or '', 200
+            )
+            _ok, mensaje, clave, categoria = procesar_accion_configuracion_api_pos(
+                tenant_id,
+                accion=request.form.get('accion') or '',
+                usuario_api=usuario_api or None,
+                razon_social=razon or None,
+                emisor=emisor,
+                ambiente_servidor=ext_cfg.environment,
+            )
+            if clave:
+                session['external_ecf_api_clave'] = clave
+            flash(mensaje, categoria)
+            return redirect(
+                url_for('perfil_configuracion', _anchor='api-pos-ecf')
+            )
+
         if request.form.get('accion') == 'papeleria':
             if not user_has_permission(current_user, 'configuracion.editar') and not usuario_es_administrador(current_user):
                 flash('No tienes permiso para editar la papelería', 'error')
@@ -1197,9 +1246,24 @@ def perfil_configuracion():
         except Exception:
             papeleria = vacia
 
+    external_ecf_pos = None
+    external_ecf_api_clave_nueva = session.pop('external_ecf_api_clave', None)
+    if tenant_id and user_has_permission(current_user, 'configuracion.ver'):
+        ext_cfg = current_app.config.get('EXTERNAL_ECF_CONFIG')
+        if ext_cfg and tenant_id:
+            empresa_para_api = get_empresa_info(tenant_id) or {}
+            external_ecf_pos = contexto_configuracion_api_pos(
+                tenant_id,
+                emisor=emisor_ecf_para_xml(tenant_id, empresa_para_api),
+                ambiente_servidor=ext_cfg.environment,
+                servicio_habilitado=ext_cfg.enabled,
+            )
+
     return render_template(
         'perfil/configuracion.html',
         ecf_certificado=ecf_certificado,
+        external_ecf_pos=external_ecf_pos,
+        external_ecf_api_clave_nueva=external_ecf_api_clave_nueva,
         correo_smtp=correo_smtp,
         papeleria=papeleria,
         smtp_presets=smtp_presets,
