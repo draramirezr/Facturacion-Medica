@@ -491,7 +491,7 @@ def tenant_solo_datos_guia(tenant_id):
         ''',
         '''
         SELECT COUNT(*) AS n FROM medicos
-        WHERE tenant_id=%s AND activo=1 AND nombre NOT LIKE '(Ejemplo)%'
+        WHERE tenant_id=%s AND activo=1 AND nombre NOT LIKE '(Ejemplo)%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM centros_medicos
@@ -503,7 +503,7 @@ def tenant_solo_datos_guia(tenant_id):
         ''',
         '''
         SELECT COUNT(*) AS n FROM ncf
-        WHERE tenant_id=%s AND COALESCE(descripcion, '') NOT LIKE '%(ejemplo)%'
+        WHERE tenant_id=%s AND COALESCE(descripcion, '') NOT LIKE '%%(ejemplo)%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM codigo_ars
@@ -511,52 +511,52 @@ def tenant_solo_datos_guia(tenant_id):
         ''',
         '''
         SELECT COUNT(*) AS n FROM facturas
-        WHERE tenant_id=%s AND COALESCE(numero_factura, '') NOT LIKE 'FAC-GUIA-%'
+        WHERE tenant_id=%s AND COALESCE(numero_factura, '') NOT LIKE 'FAC-GUIA-%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM recetas_medicas
-        WHERE tenant_id=%s AND COALESCE(codigo, '') NOT LIKE 'REC-GUIA-%'
+        WHERE tenant_id=%s AND COALESCE(codigo, '') NOT LIKE 'REC-GUIA-%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM licencias_medicas
-        WHERE tenant_id=%s AND COALESCE(codigo, '') NOT LIKE 'LIC-GUIA-%'
+        WHERE tenant_id=%s AND COALESCE(codigo, '') NOT LIKE 'LIC-GUIA-%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM pagos
-        WHERE tenant_id=%s AND COALESCE(numero_pago, '') NOT LIKE 'PAG-GUIA-%'
+        WHERE tenant_id=%s AND COALESCE(numero_pago, '') NOT LIKE 'PAG-GUIA-%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM citas_medicas
-        WHERE tenant_id=%s AND COALESCE(motivo, '') NOT LIKE '[Guía]%'
+        WHERE tenant_id=%s AND COALESCE(motivo, '') NOT LIKE '[Guía]%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM consultas_clinicas
-        WHERE tenant_id=%s AND COALESCE(motivo_consulta, '') NOT LIKE '[Guía]%'
+        WHERE tenant_id=%s AND COALESCE(motivo_consulta, '') NOT LIKE '[Guía]%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM historias_emergencia
-        WHERE tenant_id=%s AND COALESCE(motivo_emergencia, '') NOT LIKE '[Guía]%'
-          AND COALESCE(autorizacion, '') NOT LIKE 'GUIA-%'
+        WHERE tenant_id=%s AND COALESCE(motivo_emergencia, '') NOT LIKE '[Guía]%%'
+          AND COALESCE(autorizacion, '') NOT LIKE 'GUIA-%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM hojas_enfermeria
-        WHERE tenant_id=%s AND COALESCE(observaciones, '') NOT LIKE '[Guía]%'
+        WHERE tenant_id=%s AND COALESCE(observaciones, '') NOT LIKE '[Guía]%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM turnos_atencion
-        WHERE tenant_id=%s AND COALESCE(motivo, '') NOT LIKE '[Guía]%'
+        WHERE tenant_id=%s AND COALESCE(motivo, '') NOT LIKE '[Guía]%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM pacientes_pendientes
-        WHERE tenant_id=%s AND COALESCE(servicios_realizados, '') NOT LIKE '[Guía]%'
+        WHERE tenant_id=%s AND COALESCE(servicios_realizados, '') NOT LIKE '[Guía]%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM reclamaciones
-        WHERE tenant_id=%s AND COALESCE(observaciones, '') NOT LIKE '[Guía]%'
+        WHERE tenant_id=%s AND COALESCE(observaciones, '') NOT LIKE '[Guía]%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM tipos_licencia_medica
-        WHERE tenant_id=%s AND COALESCE(nombre, '') NOT LIKE '%(ejemplo)%'
+        WHERE tenant_id=%s AND COALESCE(nombre, '') NOT LIKE '%%(ejemplo)%%'
         ''',
         '''
         SELECT COUNT(*) AS n FROM mensajes_internos WHERE tenant_id=%s

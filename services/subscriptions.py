@@ -14,7 +14,7 @@ def _medicos_que_cuentan_licencia_sql():
     return """
         SELECT COUNT(*) AS total FROM medicos
         WHERE tenant_id=%s AND activo=1
-          AND nombre NOT LIKE '(Ejemplo)%'
+          AND nombre NOT LIKE '(Ejemplo)%%'
     """
 
 
