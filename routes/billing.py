@@ -22,6 +22,11 @@ from routes.patients import paciente_adulto_sin_cedula
 from routes.support import execute_paginated_query, sanitize_input, validate_int
 from services.subscriptions import get_empresa_info
 from services.ecf_operations import consultar_resultado_ecf_dgii, ecf_habilitado_para_tenant, emisor_ecf_para_xml, fecha_vencimiento_secuencia_ecf, obtener_configuracion_ecf_tenant, procesar_envio_ecf_dgii
+from services.notas_credito import (
+    listar_notas_factura,
+    puede_emitir_nota_credito,
+    saldo_creditable_factura,
+)
 logger = logging.getLogger(__name__)
 
 # Validaciones de carga de consultas (alineadas con Shirley)
@@ -1185,6 +1190,14 @@ def facturacion_ver_factura(factura_id):
     }
     
     ok_editar, _motivo_editar = _factura_modificable(factura, tenant_id)
+    puede_nc, _motivo_nc = puede_emitir_nota_credito(tenant_id, factura_id)
+    saldo_nc = saldo_creditable_factura(tenant_id, factura_id) if puede_nc else 0
+    notas_credito_list = listar_notas_factura(tenant_id, factura_id)
+    puede_crear_nota = (
+        puede_nc
+        and user_has_permission(current_user, 'facturacion.nota_credito')
+        and (factura.get('estado') or '') != 'Anulada'
+    )
     return render_template('facturacion/ver_factura.html',
                           factura=factura,
                           pacientes=pacientes_procesados,
@@ -1203,7 +1216,10 @@ def facturacion_ver_factura(factura_id):
                           ecf_timbre=_ecf_timbre_desde_factura(factura_ecf),
                           mostrar_qr_ecf=_factura_tiene_qr_ecf(factura_ecf),
                           factura_editable=ok_editar,
-                          factura_anulable=ok_editar)
+                          factura_anulable=ok_editar,
+                          puede_crear_nota_credito=puede_crear_nota,
+                          saldo_creditable_nc=saldo_nc,
+                          notas_credito_list=notas_credito_list)
 
 @login_required
 @permission_required('facturacion.ver')

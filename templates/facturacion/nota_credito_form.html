@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+
+{% block title %}{{ titulo }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4" style="max-width: 960px;">
+    <h1 class="h4 mb-3">{{ titulo }}</h1>
+    <p class="text-muted">
+        Factura #{{ factura['numero_factura'] }}
+        {% if factura.get('e_ncf') %} · e-NCF {{ factura['e_ncf'] }}{% elif factura.get('ncf') %} · {{ factura['ncf'] }}{% endif %}
+        · Saldo creditable: <strong>RD$ {{ '%.2f'|format(saldo) }}</strong>
+    </p>
+
+    <form method="post" class="card shadow-sm border-0 p-4">
+        <input type="hidden" name="tipo" value="{{ tipo }}">
+
+        <div class="mb-3">
+            <label class="form-label required" for="motivo">Motivo</label>
+            <textarea class="form-control" id="motivo" name="motivo" rows="3" maxlength="2000" required
+                placeholder="Ej.: devolución de servicio, ajuste por facturación duplicada, error en monto…"></textarea>
+        </div>
+
+        {% if tipo == 'parcial' %}
+        <p class="small text-muted">Seleccione las líneas y el monto a acreditar en cada una.</p>
+        <div class="table-responsive">
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Incluir</th>
+                        <th>Descripción</th>
+                        <th class="text-end">Pendiente</th>
+                        <th class="text-end">Monto a acreditar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for linea in lineas %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" name="incluir_{{ linea['id'] }}" value="1" class="form-check-input">
+                        </td>
+                        <td>{{ linea['descripcion'] }}</td>
+                        <td class="text-end">RD$ {{ '%.2f'|format(linea['monto_pendiente']) }}</td>
+                        <td class="text-end" style="max-width: 140px;">
+                            <input type="number" class="form-control form-control-sm text-end"
+                                name="monto_{{ linea['id'] }}"
+                                step="0.01" min="0.01" max="{{ linea['monto_pendiente'] }}"
+                                value="{{ '%.2f'|format(linea['monto_pendiente']) }}">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info mb-0">
+            Se acreditará el saldo total pendiente de la factura
+            (<strong>RD$ {{ '%.2f'|format(saldo) }}</strong>).
+        </div>
+        {% endif %}
+
+        <div class="d-flex gap-2 mt-4">
+            <a href="{{ url_for('facturacion_ver_factura', factura_id=factura['id']) }}"
+               class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary">Confirmar nota de crédito</button>
+        </div>
+    </form>
+</div>
+{% endblock %}

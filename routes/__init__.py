@@ -3,6 +3,7 @@
 from routes.appointments import register_appointment_routes
 from routes.cita_qr import register_cita_qr_routes
 from routes.billing import register_billing_routes
+from routes.credit_notes import register_credit_note_routes
 from routes.catalogs import register_catalog_routes
 from routes.centro_contexto import register_centro_contexto_routes
 from routes.clinical_history import register_clinical_history_routes
@@ -20,6 +21,7 @@ from routes.users_roles import register_user_role_routes
 def register_operation_routes(app):
     register_onboarding_routes(app)
     register_billing_routes(app)
+    register_credit_note_routes(app)
     register_catalog_routes(app)
     register_centro_contexto_routes(app)
     register_patient_routes(app)

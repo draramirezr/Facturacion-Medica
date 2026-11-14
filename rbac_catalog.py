@@ -67,6 +67,11 @@ PERMISOS_POR_GRUPO = {
         ("facturacion.crear", "Crear facturas", "Registrar y emitir facturas."),
         ("facturacion.editar", "Editar facturas", "Actualizar borradores y datos de facturación."),
         ("facturacion.anular", "Anular facturas", "Anular facturas y comprobantes."),
+        (
+            "facturacion.nota_credito",
+            "Notas de crédito",
+            "Emitir notas de crédito parciales o totales sobre facturas.",
+        ),
         ("facturacion.imprimir", "Imprimir facturas", "Imprimir y exportar documentos de facturación."),
     ),
     "catalogos": (
@@ -126,6 +131,7 @@ PERMISOS_ROLES_SISTEMA = {
         if not codigo.startswith(("usuarios.", "roles.", "configuracion."))
         and codigo not in {
             "facturacion.anular",
+            "facturacion.nota_credito",
             "pacientes.eliminar",
             "licencias.configurar",
         }

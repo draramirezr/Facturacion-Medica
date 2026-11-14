@@ -692,6 +692,28 @@
         <i class="fas fa-envelope me-2"></i>
         Enviar por mail
     </button>
+    {% if puede_crear_nota_credito %}
+    <div class="btn-group no-print">
+        <button type="button" class="btn btn-outline-secondary dropdown-toggle"
+                data-bs-toggle="dropdown" aria-expanded="false">
+            Nota de crédito
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li>
+                <a class="dropdown-item"
+                   href="{{ url_for('facturacion_nota_credito_nueva', factura_id=factura['id'], tipo='parcial') }}">
+                    Parcial
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item"
+                   href="{{ url_for('facturacion_nota_credito_nueva', factura_id=factura['id'], tipo='total') }}">
+                    Total (saldo RD$ {{ '%.2f'|format(saldo_creditable_nc) }})
+                </a>
+            </li>
+        </ul>
+    </div>
+    {% endif %}
 {% endmacro %}
 
 <div class="container-fluid mt-4">
@@ -722,6 +744,25 @@
                 No fue posible construir el XML: {{ factura_ecf.get('ultimo_error', 'revise los datos fiscales') }}.
             {% endif %}
         </span>
+    </div>
+    {% endif %}
+
+    {% if notas_credito_list %}
+    <div class="no-print alert alert-light border mb-3">
+        <strong>Notas de crédito registradas</strong>
+        <ul class="mb-0 mt-2">
+            {% for nc in notas_credito_list %}
+            <li>
+                <a href="{{ url_for('facturacion_nota_credito_ver', nota_id=nc['id']) }}">
+                    {{ nc['codigo'] }}
+                </a>
+                · {{ nc['tipo']|capitalize }} · RD$ {{ '%.2f'|format(nc['total']) }}
+                {% if nc.get('estado_ecf') == 'PENDIENTE_E34' %}
+                <span class="badge bg-warning text-dark">E34 pendiente</span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
     </div>
     {% endif %}
 

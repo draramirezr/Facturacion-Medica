@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Nota de crédito {{ nota['codigo'] }}{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4" style="max-width: 900px;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h1 class="h4 mb-0">Nota de crédito {{ nota['codigo'] }}</h1>
+        <a href="{{ url_for('facturacion_ver_factura', factura_id=nota['factura_id']) }}"
+           class="btn btn-outline-secondary btn-sm">Volver a la factura</a>
+    </div>
+
+    <div class="card shadow-sm border-0 p-4 mb-3">
+        <p><strong>Factura:</strong> {{ nota['numero_factura'] }}
+            {% if nota.get('ncf') %} · {{ nota['ncf'] }}{% endif %}</p>
+        <p><strong>Tipo:</strong> {{ 'Total' if nota['tipo'] == 'total' else 'Parcial' }}</p>
+        <p><strong>Estado:</strong> {{ nota['estado']|capitalize }}</p>
+        <p><strong>Total acreditado:</strong> RD$ {{ '%.2f'|format(nota['total']) }}</p>
+        <p class="mb-0"><strong>Motivo:</strong> {{ nota['motivo'] }}</p>
+        {% if nota.get('estado_ecf') == 'PENDIENTE_E34' %}
+        <div class="alert alert-warning mt-3 mb-0">
+            La factura origen tiene e-CF aceptado por DGII. Esta nota quedó registrada;
+            la emisión del comprobante electrónico <strong>E34</strong> está pendiente de implementación.
+        </div>
+        {% endif %}
+    </div>
+
+    {% if nota['detalles'] %}
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Descripción</th>
+                <th class="text-end">Monto creditado</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for d in nota['detalles'] %}
+            <tr>
+                <td>{{ d['descripcion'] }}</td>
+                <td class="text-end">RD$ {{ '%.2f'|format(d['monto_credito']) }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% endif %}
+</div>
+{% endblock %}

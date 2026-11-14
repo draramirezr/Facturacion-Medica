@@ -16,6 +16,7 @@ ALLOWED_TABLES = {
     'consultas_clinicas', 'conversaciones_internas',
     'ecf_configuraciones', 'ecf_eventos', 'ecf_outbox', 'ecf_secuencias',
     'evoluciones_clinicas', 'factura_detalles', 'facturas', 'facturas_ecf',
+    'notas_credito', 'nota_credito_detalles',
     'historias_emergencia', 'hojas_enfermeria', 'licencias_medicas',
     'medico_centro', 'medicos', 'mensajes_internos', 'ncf', 'pacientes',
     'pacientes_pendientes', 'pago_facturas', 'pagos',
