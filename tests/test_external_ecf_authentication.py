@@ -22,6 +22,7 @@ class ExternalECFAuthLogicTests(unittest.TestCase):
     def setUp(self):
         self.config = ExternalECFConfig(
             enabled=True,
+            emit_enabled=False,
             jwt_secret='a' * 32,
             token_ttl_seconds=3600,
             environment='PRUEBAS',
@@ -98,6 +99,7 @@ class ExternalECFAuthLogicTests(unittest.TestCase):
     def test_servicio_desactivado(self):
         disabled = ExternalECFConfig(
             enabled=False,
+            emit_enabled=False,
             jwt_secret='',
             token_ttl_seconds=3600,
             environment='PRUEBAS',
@@ -140,6 +142,7 @@ class ExternalECFAuthRouteTests(unittest.TestCase):
         self.client = self.app.test_client()
         self.app.config['EXTERNAL_ECF_CONFIG'] = ExternalECFConfig(
             enabled=True,
+            emit_enabled=False,
             jwt_secret='b' * 32,
             token_ttl_seconds=3600,
             environment='PRUEBAS',

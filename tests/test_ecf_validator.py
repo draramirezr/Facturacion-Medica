@@ -89,9 +89,15 @@ class ECFValidatorTests(unittest.TestCase):
         )
 
     def test_refuses_unverified_schema_file(self):
+        official = (
+            Path(__file__).resolve().parents[1]
+            / "ecf"
+            / "schemas"
+            / "e-CF-31-v1.0.xsd"
+        )
         with tempfile.TemporaryDirectory() as directory:
             schema_path = Path(directory) / "schema.xsd"
-            schema_path.write_text("<schema/>", encoding="utf-8")
+            schema_path.write_bytes(official.read_bytes() + b" ")
             with self.assertRaisesRegex(ECFSchemaError, "no coincide"):
                 ECFValidator(schema_path).validate_unsigned_e31(
                     build_valid_unsigned_xml()

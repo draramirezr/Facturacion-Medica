@@ -17,6 +17,7 @@ def _as_bool(value, default=False):
 @dataclass(frozen=True)
 class ExternalECFConfig:
     enabled: bool
+    emit_enabled: bool
     jwt_secret: str
     token_ttl_seconds: int
     environment: str
@@ -27,6 +28,7 @@ class ExternalECFConfig:
     def from_env(cls, env=None):
         source = os.environ if env is None else env
         enabled = _as_bool(source.get('EXTERNAL_ECF_ENABLED'), False)
+        emit_enabled = _as_bool(source.get('EXTERNAL_ECF_EMIT_ENABLED'), False)
         jwt_secret = (source.get('EXTERNAL_ECF_JWT_SECRET') or '').strip()
         token_ttl = int(source.get('EXTERNAL_ECF_TOKEN_TTL', '3600') or '3600')
         environment = (
@@ -54,6 +56,7 @@ class ExternalECFConfig:
             )
         return cls(
             enabled=enabled,
+            emit_enabled=emit_enabled,
             jwt_secret=jwt_secret,
             token_ttl_seconds=token_ttl,
             environment=environment,

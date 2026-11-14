@@ -28,6 +28,9 @@ from integrations.external_ecf_service.repositories.emitter_repository import (
 from integrations.external_ecf_service.repositories.integration_repository import (
     IntegrationRepository,
 )
+from integrations.external_ecf_service.services.external_emit_orchestrator import (
+    ExternalEmitOrchestrator,
+)
 from integrations.external_ecf_service.services.payload_hash import (
     compute_document_payload_hash,
 )
@@ -82,11 +85,16 @@ def _response_from_snapshot(snapshot: dict | None) -> EnviarSuccess | None:
         return None
 
 
-def _reception_success(*, fecha_emision: str | None, document_id: int | None = None):
+def _reception_success(
+    *,
+    fecha_emision: str | None,
+    document_id: int | None = None,
+    mensaje: str | None = None,
+):
     """Respuesta HKA-compatible para recepción sin envío a DGII."""
     return EnviarSuccess(
         codigo=0,
-        mensaje=_RECEPTION_MENSAJE,
+        mensaje=mensaje or _RECEPTION_MENSAJE,
         xml_base64=None,
         procesado=False,
         codigo_seguridad=None,
@@ -194,7 +202,41 @@ class SendService:
                     ),
                 )
 
-        success = _reception_success(fecha_emision=mapped.fecha_documento)
+        estado_doc = 'recibido'
+        mensaje_resp = _RECEPTION_MENSAJE
+        fiscal_procesado = False
+        xml_base64 = None
+        codigo_seguridad = None
+        fecha_firma = None
+        if getattr(self._config, 'emit_enabled', False):
+            intento = ExternalEmitOrchestrator().attempt(
+                tenant_id=auth.tenant_id,
+                mapped=mapped,
+                emit_fiscal=True,
+            )
+            estado_doc = intento.estado_documento
+            mensaje_resp = intento.mensaje_respuesta
+            if intento.procesado:
+                fiscal_procesado = True
+                xml_base64 = intento.xml_base64
+                codigo_seguridad = intento.codigo_seguridad
+                fecha_firma = intento.fecha_firma
+
+        if fiscal_procesado:
+            success = EnviarSuccess(
+                codigo=0,
+                mensaje=mensaje_resp,
+                xml_base64=xml_base64,
+                procesado=True,
+                codigo_seguridad=codigo_seguridad,
+                fecha_firma=fecha_firma,
+                fecha_emision=mapped.fecha_documento,
+            )
+        else:
+            success = _reception_success(
+                fecha_emision=mapped.fecha_documento,
+                mensaje=mensaje_resp,
+            )
         snapshot = _build_hka_snapshot(success)
         canonical_json = canonical_to_json_dict(mapped.canonical)
 
@@ -214,7 +256,7 @@ class SendService:
                 payload_original=documento_electronico,
                 payload_hash=payload_hash,
                 canonical_document=canonical_json,
-                estado='recibido',
+                estado=estado_doc,
                 error_codigo=None,
                 error_mensaje=None,
                 response_snapshot=snapshot,

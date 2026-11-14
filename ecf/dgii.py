@@ -247,8 +247,8 @@ class DGIIClient:
         encf = str(encf or "").strip().upper()
         if len(rnc) not in {9, 11}:
             raise DGIIClientError("RNC del emisor inválido")
-        if not re.fullmatch(r"E31\d{10}", encf):
-            raise DGIIClientError("e-NCF E31 inválido")
+        if not re.fullmatch(r"E(?:31|32)\d{10}", encf):
+            raise DGIIClientError("e-NCF inválido para envío DGII")
         if not token or not token.value:
             raise DGIIClientError("Token DGII ausente")
 
@@ -332,8 +332,8 @@ class DGIIClient:
         encf = str(encf or "").strip().upper()
         if len(rnc) not in {9, 11}:
             raise DGIIClientError("RNC del emisor inválido")
-        if not re.fullmatch(r"E31\d{10}", encf):
-            raise DGIIClientError("e-NCF E31 inválido")
+        if not re.fullmatch(r"E(?:31|32)\d{10}", encf):
+            raise DGIIClientError("e-NCF inválido para envío DGII")
         token = token or self.authenticate(rnc)
         response = self._request(
             "GET",

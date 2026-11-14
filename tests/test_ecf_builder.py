@@ -6,7 +6,11 @@ import unittest
 from lxml import etree
 
 from ecf.builder import ECFBuildError, ECFBuilder
-from ecf.validator import OFFICIAL_E31_SCHEMA_SHA256, _canonical_xsd_bytes
+from ecf.validator import (
+    OFFICIAL_E31_SCHEMA_SHA256,
+    OFFICIAL_E32_SCHEMA_SHA256,
+    _canonical_xsd_bytes,
+)
 
 
 class ECFBuilderTests(unittest.TestCase):
@@ -124,6 +128,18 @@ class ECFBuilderTests(unittest.TestCase):
             OFFICIAL_E31_SCHEMA_SHA256,
         )
         self.assertIn(b'name=" IndicadorServicioTodoIncluidoType"', schema)
+
+    def test_official_e32_schema_integrity(self):
+        schema = _canonical_xsd_bytes((
+            Path(__file__).resolve().parents[1]
+            / "ecf"
+            / "schemas"
+            / "e-CF-32-v1.0.xsd"
+        ).read_bytes())
+        self.assertEqual(
+            hashlib.sha256(schema).hexdigest(),
+            OFFICIAL_E32_SCHEMA_SHA256,
+        )
 
 
 if __name__ == "__main__":

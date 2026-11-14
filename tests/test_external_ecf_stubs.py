@@ -16,6 +16,7 @@ class ExternalECFStubRouteTests(unittest.TestCase):
         self.client = self.app.test_client()
         self.app.config['EXTERNAL_ECF_CONFIG'] = ExternalECFConfig(
             enabled=True,
+            emit_enabled=False,
             jwt_secret='e' * 32,
             token_ttl_seconds=3600,
             environment='PRUEBAS',

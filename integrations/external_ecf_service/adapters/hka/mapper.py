@@ -103,6 +103,20 @@ def _assess_motor_readiness(
     if document_type not in KNOWN_ECF_TYPES:
         notes.append(f'Tipo {document_type} no reconocido en catálogo e-CF.')
         return False, notes
+
+    if document_type == 'E32':
+        if not lines:
+            notes.append('E32 requiere al menos una línea de detalle.')
+            return False, notes
+        for line in lines:
+            indicator = str(line.get('billing_indicator') or '').strip()
+            if indicator and indicator not in {'0', '1', '2', '3', '4'}:
+                notes.append(
+                    f'Indicador de facturación {indicator} requiere revisión.'
+                )
+                return False, notes
+        return True, notes
+
     if document_type not in _CLINICRD_MOTOR_TYPES:
         notes.append(
             f'Tipo {document_type}: el motor e-CF actual de ClinicRD '

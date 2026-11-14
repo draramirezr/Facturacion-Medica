@@ -69,17 +69,20 @@ class HkaMapperTests(unittest.TestCase):
         with self.assertRaises(HkaMapperError):
             map_hka_documento_electronico(doc, authorized_rnc='999999999')
 
-    def test_e32_marca_motor_no_listo(self):
+    def test_e32_consumo_exento_motor_listo(self):
         doc = _sample_documento_e31_exento()
         doc['encabezado']['identificacionDocumento']['tipoDocumento'] = 'E32'
+        doc['encabezado']['identificacionDocumento']['ncf'] = 'E320000000099'
         mapped = map_hka_documento_electronico(doc, authorized_rnc='131793916')
-        self.assertFalse(mapped.canonical.dgii_motor_ready)
+        self.assertEqual(mapped.tipo_ecf, 'E32')
+        self.assertTrue(mapped.canonical.dgii_motor_ready)
 
 
 class SendServiceTests(unittest.TestCase):
     def setUp(self):
         self.config = ExternalECFConfig(
             enabled=True,
+            emit_enabled=False,
             jwt_secret='c' * 32,
             token_ttl_seconds=3600,
             environment='PRUEBAS',
@@ -172,6 +175,7 @@ class EnviarRouteTests(unittest.TestCase):
         self.client = self.app.test_client()
         self.app.config['EXTERNAL_ECF_CONFIG'] = ExternalECFConfig(
             enabled=True,
+            emit_enabled=False,
             jwt_secret='d' * 32,
             token_ttl_seconds=3600,
             environment='PRUEBAS',
@@ -239,6 +243,7 @@ class SendServiceErrorTests(unittest.TestCase):
     def setUp(self):
         self.config = ExternalECFConfig(
             enabled=True,
+            emit_enabled=False,
             jwt_secret='e' * 32,
             token_ttl_seconds=3600,
             environment='PRUEBAS',
@@ -386,6 +391,7 @@ class TokenIsolationTests(unittest.TestCase):
     def test_token_no_autoriza_emisor_ajeno(self):
         config = ExternalECFConfig(
             enabled=True,
+            emit_enabled=False,
             jwt_secret='f' * 32,
             token_ttl_seconds=3600,
             environment='PRUEBAS',

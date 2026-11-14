@@ -51,6 +51,23 @@ class DocumentRepository:
             ),
         )
 
+    def update_estado(
+        self,
+        document_id: int,
+        *,
+        estado: str,
+        error_mensaje: str | None = None,
+    ) -> None:
+        execute_update(
+            '''
+            UPDATE ext_ecf_documents
+            SET estado = %s,
+                error_mensaje = %s
+            WHERE id = %s
+            ''',
+            (estado, error_mensaje, document_id),
+        )
+
     def insert_document(
         self,
         *,
