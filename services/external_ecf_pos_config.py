@@ -1,4 +1,4 @@
-"""Alta y mantenimiento de credenciales API POS (compatibilidad HKA) por consultorio."""
+"""Alta y mantenimiento de credenciales API de punto de venta por consultorio."""
 
 from __future__ import annotations
 
@@ -11,9 +11,6 @@ from integrations.external_ecf_service.security.credentials import (
     hash_integration_password,
 )
 from integrations.external_ecf_service.tenant.resolver import normalize_rnc
-
-INTEGRATION_CLIENT_CODE = 'ricohotdog'
-INTEGRATION_CLIENT_NAME = 'RicoHotDog'
 
 
 def modulo_integracion_pos_disponible() -> bool:
@@ -29,14 +26,52 @@ def modulo_integracion_pos_disponible() -> bool:
     return bool(fila)
 
 
-def _usuario_api_por_defecto(tenant_id: int) -> str:
-    return f'api-t{int(tenant_id)}'
+def listar_clientes_integracion_pos() -> list[dict]:
+    if not modulo_integracion_pos_disponible():
+        return []
+    return (
+        execute_query(
+            '''
+            SELECT id, codigo, nombre, estado
+            FROM ext_integration_clients
+            WHERE estado = 'activo'
+            ORDER BY nombre
+            ''',
+            fetch='all',
+        )
+        or []
+    )
 
 
-def _normalizar_usuario_api(value: str | None, tenant_id: int) -> str:
+def obtener_cliente_integracion_por_codigo(codigo: str) -> dict | None:
+    codigo = (codigo or '').strip()
+    if not codigo:
+        return None
+    return execute_query(
+        '''
+        SELECT id, codigo, nombre, estado
+        FROM ext_integration_clients
+        WHERE codigo = %s AND estado = 'activo'
+        LIMIT 1
+        ''',
+        (codigo,),
+    )
+
+
+def _usuario_api_por_defecto(tenant_id: int, client_codigo: str | None = None) -> str:
+    base = f'api-t{int(tenant_id)}'
+    sufijo = re.sub(r'[^a-zA-Z0-9]', '', (client_codigo or ''))[:24]
+    if sufijo:
+        return f'{base}-{sufijo}'
+    return base
+
+
+def _normalizar_usuario_api(
+    value: str | None, tenant_id: int, client_codigo: str | None = None
+) -> str:
     limpio = re.sub(r'[^a-zA-Z0-9_-]', '', (value or '').strip())
     if len(limpio) < 3:
-        return _usuario_api_por_defecto(tenant_id)
+        return _usuario_api_por_defecto(tenant_id, client_codigo)
     return limpio[:100]
 
 
@@ -44,40 +79,11 @@ def _generar_clave_api() -> str:
     return secrets.token_urlsafe(18)
 
 
-def _obtener_client_id_ricohotdog() -> int | None:
-    fila = execute_query(
-        '''
-        SELECT id FROM ext_integration_clients
-        WHERE codigo = %s LIMIT 1
-        ''',
-        (INTEGRATION_CLIENT_CODE,),
-    )
-    return int(fila['id']) if fila else None
-
-
-def _asegurar_cliente_ricohotdog() -> int:
-    existente = _obtener_client_id_ricohotdog()
-    if existente:
-        execute_update(
-            '''
-            UPDATE ext_integration_clients
-            SET nombre = %s, estado = 'activo'
-            WHERE id = %s
-            ''',
-            (INTEGRATION_CLIENT_NAME, existente),
-        )
-        return existente
-    return execute_update(
-        '''
-        INSERT INTO ext_integration_clients (nombre, codigo, estado)
-        VALUES (%s, %s, 'activo')
-        ''',
-        (INTEGRATION_CLIENT_NAME, INTEGRATION_CLIENT_CODE),
-    )
-
-
-def obtener_integracion_pos_por_tenant(tenant_id: int) -> dict | None:
-    if not tenant_id or not modulo_integracion_pos_disponible():
+def obtener_integracion_pos_por_tenant(
+    tenant_id: int,
+    client_codigo: str,
+) -> dict | None:
+    if not tenant_id or not client_codigo or not modulo_integracion_pos_disponible():
         return None
     return execute_query(
         '''
@@ -90,7 +96,9 @@ def obtener_integracion_pos_por_tenant(tenant_id: int) -> dict | None:
             e.estado AS emisor_estado,
             c.id AS credential_id,
             c.usuario,
-            c.estado AS credencial_estado
+            c.estado AS credencial_estado,
+            cl.codigo AS client_codigo,
+            cl.nombre AS client_nombre
         FROM ext_integration_emitters e
         INNER JOIN ext_integration_clients cl ON cl.id = e.client_id
             AND cl.codigo = %s
@@ -100,8 +108,24 @@ def obtener_integracion_pos_por_tenant(tenant_id: int) -> dict | None:
         ORDER BY e.id DESC
         LIMIT 1
         ''',
-        (INTEGRATION_CLIENT_CODE, tenant_id),
+        (client_codigo, tenant_id),
     )
+
+
+def _resolver_codigo_cliente_ui(
+    clientes: list[dict],
+    *,
+    preferido: str | None,
+    integracion: dict | None,
+) -> str | None:
+    if not clientes:
+        return None
+    codigos = {c['codigo'] for c in clientes}
+    if preferido and preferido in codigos:
+        return preferido
+    if integracion and integracion.get('client_codigo') in codigos:
+        return integracion['client_codigo']
+    return clientes[0]['codigo']
 
 
 def contexto_configuracion_api_pos(
@@ -110,16 +134,36 @@ def contexto_configuracion_api_pos(
     emisor: dict,
     ambiente_servidor: str,
     servicio_habilitado: bool,
+    client_codigo_preferido: str | None = None,
 ) -> dict:
     base_url = (url_publica_base() or '').rstrip('/')
-    integracion = obtener_integracion_pos_por_tenant(tenant_id) if tenant_id else None
+    clientes = listar_clientes_integracion_pos()
+    integracion_preview = None
+    if client_codigo_preferido:
+        integracion_preview = obtener_integracion_pos_por_tenant(
+            tenant_id, client_codigo_preferido
+        )
+    client_codigo = _resolver_codigo_cliente_ui(
+        clientes,
+        preferido=client_codigo_preferido,
+        integracion=integracion_preview,
+    )
+    integracion = (
+        obtener_integracion_pos_por_tenant(tenant_id, client_codigo)
+        if client_codigo
+        else None
+    )
+    cliente_sel = next(
+        (c for c in clientes if c['codigo'] == client_codigo),
+        None,
+    )
     rnc = normalize_rnc(emisor.get('rnc') or '')
     razon = (emisor.get('razon_social') or emisor.get('nombre') or '').strip()
     if integracion:
         razon = integracion.get('razon_social') or razon
     usuario = (
         (integracion or {}).get('usuario')
-        or _usuario_api_por_defecto(tenant_id)
+        or _usuario_api_por_defecto(tenant_id, client_codigo)
     )
     activa = bool(
         integracion
@@ -138,7 +182,9 @@ def contexto_configuracion_api_pos(
         'usuario_api': usuario,
         'activa': activa,
         'integracion': integracion,
-        'integrador': INTEGRATION_CLIENT_NAME,
+        'clientes_pos': clientes,
+        'client_codigo': client_codigo,
+        'client_nombre': (cliente_sel or {}).get('nombre') or '—',
         'endpoints': {
             'autenticacion': f'{base_url}/api/Autenticacion' if base_url else '',
             'enviar': f'{base_url}/api/Enviar' if base_url else '',
@@ -166,6 +212,7 @@ def _usuario_api_en_uso_por_otro_tenant(usuario: str, tenant_id: int) -> bool:
 def provisionar_integracion_pos(
     tenant_id: int,
     *,
+    client_codigo: str,
     rnc: str,
     razon_social: str,
     usuario_api: str | None,
@@ -173,15 +220,25 @@ def provisionar_integracion_pos(
     rotar_clave: bool,
 ) -> tuple[bool, str, str | None]:
     """
-    Crea o actualiza emisor + credencial API para el tenant actual.
+    Crea o actualiza emisor + credencial API para el tenant y el integrador elegido.
     Devuelve (ok, mensaje, clave_en_claro_solo_si_se_generó).
     """
     if not modulo_integracion_pos_disponible():
         return (
             False,
-            'El módulo de integración POS no está instalado en la base de datos.',
+            'El módulo de integración con caja no está instalado en la base de datos.',
             None,
         )
+    cliente = obtener_cliente_integracion_por_codigo(client_codigo)
+    if not cliente:
+        return (
+            False,
+            'Ese sistema de caja no está habilitado. Solicite a soporte ClinicRD '
+            'que lo registre en el catálogo de integradores.',
+            None,
+        )
+    client_id = int(cliente['id'])
+
     rnc_norm = normalize_rnc(rnc)
     if not rnc_norm:
         return False, 'Indique el RNC del emisor en el certificado e-CF primero.', None
@@ -193,7 +250,7 @@ def provisionar_integracion_pos(
     if not empresa:
         return False, 'Consultorio no encontrado.', None
 
-    usuario = _normalizar_usuario_api(usuario_api, tenant_id)
+    usuario = _normalizar_usuario_api(usuario_api, tenant_id, client_codigo)
     if _usuario_api_en_uso_por_otro_tenant(usuario, tenant_id):
         return (
             False,
@@ -209,12 +266,10 @@ def provisionar_integracion_pos(
     if not razon:
         return False, 'La razón social del emisor es obligatoria.', None
 
-    integracion = obtener_integracion_pos_por_tenant(tenant_id)
+    integracion = obtener_integracion_pos_por_tenant(tenant_id, client_codigo)
     clave_nueva: str | None = None
     if rotar_clave or not integracion or not integracion.get('credential_id'):
         clave_nueva = _generar_clave_api()
-
-    client_id = _asegurar_cliente_ricohotdog()
 
     emisor = execute_query(
         '''
@@ -309,16 +364,17 @@ def provisionar_integracion_pos(
     if clave_nueva:
         return (
             True,
-            'Integración POS activada. Copie la clave API ahora; no se volverá a mostrar.',
+            'Integración activada. Copie la clave API ahora; no se volverá a mostrar.',
             clave_nueva,
         )
-    return True, 'Datos de integración POS actualizados.', None
+    return True, 'Datos de integración actualizados.', None
 
 
 def procesar_accion_configuracion_api_pos(
     tenant_id: int,
     *,
     accion: str,
+    client_codigo: str | None,
     usuario_api: str | None,
     razon_social: str | None,
     emisor: dict,
@@ -329,14 +385,19 @@ def procesar_accion_configuracion_api_pos(
     rotar = accion == 'api_pos_rotar'
     if accion not in {'api_pos_activar', 'api_pos_rotar'}:
         return False, 'Acción no reconocida.', None, 'error'
+    if not (client_codigo or '').strip():
+        return False, 'Seleccione el sistema de caja a integrar.', None, 'error'
+    client_codigo = client_codigo.strip()
 
+    integracion = obtener_integracion_pos_por_tenant(tenant_id, client_codigo)
     ok, mensaje, clave = provisionar_integracion_pos(
         tenant_id,
+        client_codigo=client_codigo,
         rnc=emisor.get('rnc') or '',
         razon_social=razon,
         usuario_api=usuario_api,
         ambiente=ambiente_servidor,
-        rotar_clave=rotar or not obtener_integracion_pos_por_tenant(tenant_id),
+        rotar_clave=rotar or not integracion or not integracion.get('credential_id'),
     )
     categoria = 'success' if ok else 'error'
     if ok and clave:

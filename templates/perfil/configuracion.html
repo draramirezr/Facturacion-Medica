@@ -691,20 +691,28 @@
         <details class="settings-fold" id="api-pos-ecf" open>
         <summary>
             <span>
-                <h2 class="settings-card-title">API POS (compatible HKA)</h2>
+                <h2 class="settings-card-title">Integración con punto de venta (API)</h2>
                 <p class="settings-card-subtitle">
-                    Credenciales para RicoHotDog u otros puntos de venta — no usa su usuario web
+                    Credenciales para su caja o POS — no usa su usuario web de ClinicRD
                 </p>
             </span>
             <i class="fas fa-chevron-down settings-fold-chevron" aria-hidden="true"></i>
         </summary>
         <div class="settings-fold-body">
         <p class="settings-card-subtitle">
-            Configure aquí lo que antes se hacía con el seed SQL (<code>ext_integration_*</code>).
+            Autenticación y envío de comprobantes vía <code>/api/Autenticacion</code> y <code>/api/Enviar</code>.
             La clave API solo se muestra una vez al activarla o al rotarla.
         </p>
 
-        {% if not external_ecf_pos.servicio_habilitado %}
+        {% if not external_ecf_pos.clientes_pos %}
+        <div class="certificate-status is-pending">
+            <i class="fas fa-triangle-exclamation"></i>
+            <div>
+                <strong>Sin integradores habilitados</strong>
+                <div>Soporte ClinicRD debe dar de alta su sistema de caja en el catálogo. Luego elija aquí cuál configurar.</div>
+            </div>
+        </div>
+        {% elif not external_ecf_pos.servicio_habilitado %}
         <div class="certificate-status is-pending">
             <i class="fas fa-triangle-exclamation"></i>
             <div>
@@ -734,7 +742,7 @@
         <div class="alert alert-warning mt-3" role="alert">
             <strong>Clave API (cópiela ahora):</strong>
             <code class="user-select-all d-block mt-2">{{ external_ecf_api_clave_nueva }}</code>
-            <span class="small">No se volverá a mostrar. Péguela en RicoHotDog con el usuario y el RNC indicados abajo.</span>
+            <span class="small">No se volverá a mostrar. Péguela en su POS con el usuario y el RNC indicados abajo.</span>
         </div>
         {% endif %}
 
@@ -747,10 +755,6 @@
                 <small>Ambiente servidor</small>
                 <strong>{{ external_ecf_pos.ambiente_servidor }}</strong>
             </div>
-            <div class="certificate-item">
-                <small>Integrador</small>
-                <strong>{{ external_ecf_pos.integrador }}</strong>
-            </div>
         </div>
 
         <ul class="settings-card-subtitle small mt-2 mb-3">
@@ -761,6 +765,26 @@
         <form method="POST" action="{{ url_for('perfil_configuracion') }}" class="mt-2">
             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
             <div class="row g-3">
+                {% if external_ecf_pos.clientes_pos|length > 1 %}
+                <div class="col-12">
+                    <label class="form-label" for="api_pos_cliente">Sistema de caja</label>
+                    <select class="form-select" id="api_pos_cliente" name="api_pos_cliente"
+                            onchange="if(this.value){location.href='{{ url_for('perfil_configuracion') }}?pos_cliente='+encodeURIComponent(this.value)+'#api-pos-ecf';}"
+                            {% if not can('configuracion.editar') %}disabled{% endif %}>
+                        {% for cli in external_ecf_pos.clientes_pos %}
+                        <option value="{{ cli.codigo }}" {% if cli.codigo == external_ecf_pos.client_codigo %}selected{% endif %}>
+                            {{ cli.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-text">Cada caja puede tener credenciales distintas. Cambie aquí para configurar otra.</div>
+                </div>
+                {% elif external_ecf_pos.client_codigo %}
+                <input type="hidden" name="api_pos_cliente" value="{{ external_ecf_pos.client_codigo }}">
+                <div class="col-12">
+                    <small class="text-muted">Sistema: <strong>{{ external_ecf_pos.client_nombre }}</strong></small>
+                </div>
+                {% endif %}
                 <div class="col-md-4">
                     <label class="form-label" for="api_pos_rnc">RNC emisor (API)</label>
                     <input class="form-control" id="api_pos_rnc" type="text" readonly
@@ -778,7 +802,7 @@
                     <input class="form-control" id="api_pos_usuario" name="api_pos_usuario"
                            maxlength="100" value="{{ external_ecf_pos.usuario_api }}"
                            {% if not can('configuracion.editar') %}readonly{% endif %}>
-                    <div class="form-text">Único en toda la plataforma. Por defecto <code>api-t{{ external_ecf_pos.tenant_id }}</code>.</div>
+                    <div class="form-text">Único en toda la plataforma. Sugerido: <code>{{ external_ecf_pos.usuario_api }}</code>.</div>
                 </div>
             </div>
             {% if can('configuracion.editar') %}

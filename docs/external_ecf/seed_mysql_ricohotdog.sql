@@ -2,7 +2,7 @@
 -- ClinicRD — Servicio e-CF externo (RicoHotDog / API HKA)
 -- Ejecutar en la MISMA base de datos que usa clinicrd.com (MySQL 8+).
 --
--- Preferido en producción: Configuración → «API POS (compatible HKA)» en la web.
+-- Preferido en producción: Configuración → «Integración con punto de venta (API)».
 -- Este script sirve para despliegues, soporte o cuando no hay UI disponible.
 -- ANTES DE CORRER: edita las variables de la sección 2.
 -- Clave API por defecto en este script: CambiarEstaClave2026!  (cámbiala luego)

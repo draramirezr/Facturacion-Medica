@@ -1059,9 +1059,13 @@ def perfil_configuracion():
             razon = sanitize_input(
                 request.form.get('api_pos_razon_social') or '', 200
             )
+            client_codigo = sanitize_input(
+                request.form.get('api_pos_cliente') or '', 50
+            )
             _ok, mensaje, clave, categoria = procesar_accion_configuracion_api_pos(
                 tenant_id,
                 accion=request.form.get('accion') or '',
+                client_codigo=client_codigo or None,
                 usuario_api=usuario_api or None,
                 razon_social=razon or None,
                 emisor=emisor,
@@ -1071,7 +1075,11 @@ def perfil_configuracion():
                 session['external_ecf_api_clave'] = clave
             flash(mensaje, categoria)
             return redirect(
-                url_for('perfil_configuracion', _anchor='api-pos-ecf')
+                url_for(
+                    'perfil_configuracion',
+                    _anchor='api-pos-ecf',
+                    pos_cliente=client_codigo or None,
+                )
             )
 
         if request.form.get('accion') == 'papeleria':
@@ -1252,11 +1260,15 @@ def perfil_configuracion():
         ext_cfg = current_app.config.get('EXTERNAL_ECF_CONFIG')
         if ext_cfg and tenant_id:
             empresa_para_api = get_empresa_info(tenant_id) or {}
+            pos_cliente = sanitize_input(
+                request.args.get('pos_cliente') or '', 50
+            ) or None
             external_ecf_pos = contexto_configuracion_api_pos(
                 tenant_id,
                 emisor=emisor_ecf_para_xml(tenant_id, empresa_para_api),
                 ambiente_servidor=ext_cfg.environment,
                 servicio_habilitado=ext_cfg.enabled,
+                client_codigo_preferido=pos_cliente,
             )
 
     return render_template(
