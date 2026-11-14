@@ -27,12 +27,16 @@ def receive_csp_report():
     payload = request.get_json(silent=True) or {}
     report = payload.get('csp-report', payload)
     if isinstance(report, dict):
-        logger.warning(
-            'CSP report: directive=%s blocked=%s document=%s',
-            report.get('effective-directive') or report.get('violated-directive'),
-            report.get('blocked-uri'),
-            report.get('document-uri'),
-        )
+        directive = report.get('effective-directive') or report.get('violated-directive')
+        blocked = report.get('blocked-uri')
+        document = report.get('document-uri')
+        if directive or blocked or document:
+            logger.info(
+                'CSP report: directive=%s blocked=%s document=%s',
+                directive,
+                blocked,
+                document,
+            )
     return '', 204
 
 
