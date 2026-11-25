@@ -41,6 +41,8 @@ def _factura_modificable(factura, tenant_id):
         return False, 'Factura no encontrada'
     if (factura.get('estado') or '') == 'Anulada':
         return False, 'La factura ya está anulada'
+    if (factura.get('destinatario') or 'ARS') == 'PACIENTE':
+        return False, 'Las facturas de pacientes se anulan desde Facturación → Facturas de pacientes'
     dias, _restantes = _dias_edicion_factura(factura)
     if dias >= 30:
         return False, 'Han pasado más de 30 días desde su creación'

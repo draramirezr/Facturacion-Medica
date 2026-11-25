@@ -439,7 +439,11 @@
                     {% endfor %}
                     <td class="text-center">
                         <div class="historico-acciones">
-                        {% if ver_endpoint and ver_param %}
+                        {% if tipo == 'facturas' and fila.get('destinatario') == 'PACIENTE' %}
+                        <a href="{{ url_for('factura_paciente_ver', factura_id=fila['id']) }}" class="btn btn-accion-editar" title="Ver factura de paciente">
+                            <i class="fas fa-eye"></i>
+                        </a>
+                        {% elif ver_endpoint and ver_param %}
                         <a href="{{ url_for(ver_endpoint, **{ver_param: fila['id']}) }}"
                            class="btn btn-accion-editar" title="Ver">
                             <i class="fas fa-eye"></i>

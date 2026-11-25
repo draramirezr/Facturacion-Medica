@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Factura {{ factura.ncf }} - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+{% set tipo = (factura.ncf or '')[:3] %}
+<style nonce="{{ csp_nonce }}">
+    .fpv-paper { max-width: 820px; margin: 1.2rem auto; background: var(--ars-shell-surface, #fff); border: 1px solid var(--ars-shell-border, #e8edf3);
+                 border-radius: 16px; padding: 2rem; position: relative; color: var(--ars-shell-text, #172033); }
+    .fpv-head { display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-bottom: 2px solid var(--primary-color, #0891b2); padding-bottom: 1rem; margin-bottom: 1rem; }
+    .fpv-fiscal { text-align: right; font-size: .85rem; }
+    .fpv-fiscal h1 { font-size: 1.15rem; font-weight: 800; margin: 0 0 .25rem; }
+    .fpv-ncf { font-size: 1.05rem; font-weight: 800; letter-spacing: .04em; }
+    .fpv-datos { display: grid; grid-template-columns: repeat(2, 1fr); gap: .6rem 1.5rem; font-size: .86rem; margin-bottom: 1rem; }
+    .fpv-datos span { display: block; color: var(--ars-shell-muted, #718096); font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; }
+    .fpv-tabla { width: 100%; border-collapse: collapse; font-size: .86rem; }
+    .fpv-tabla th { text-align: left; font-size: .72rem; text-transform: uppercase; letter-spacing: .04em; color: var(--ars-shell-muted, #718096);
+                    border-bottom: 1px solid var(--ars-shell-border, #e8edf3); padding: .45rem .3rem; }
+    .fpv-tabla td { padding: .5rem .3rem; border-bottom: 1px solid var(--ars-shell-border, #e8edf3); }
+    .fpv-tabla .num { text-align: right; white-space: nowrap; }
+    .fpv-totales { margin-left: auto; width: 280px; margin-top: .8rem; font-size: .9rem; }
+    .fpv-totales div { display: flex; justify-content: space-between; padding: .2rem 0; }
+    .fpv-totales .fpv-gran-total { font-size: 1.15rem; font-weight: 800; border-top: 2px solid var(--ars-shell-text, #172033); margin-top: .3rem; padding-top: .4rem; }
+    .fpv-pago { margin-top: 1rem; font-size: .84rem; color: var(--ars-shell-muted, #718096); }
+    .fpv-anulada { position: absolute; inset: 40% 0 auto; transform: rotate(-18deg); text-align: center; font-size: 4.5rem; font-weight: 900; color: rgba(220, 38, 38, .14); pointer-events: none; }
+    @media (max-width: 640px) { .fpv-datos { grid-template-columns: 1fr; } .fpv-fiscal { text-align: left; } }
+    @media print {
+        @page { size: Letter portrait; margin: 10mm; }
+        .ars-shell-sidebar, .ars-shell-topbar, .ars-mobile-topbar, .no-print, footer { display: none !important; }
+        .ars-shell-main, .ars-shell-content { margin: 0 !important; padding: 0 !important; }
+        html, body { background: #fff !important; }
+        .fpv-paper { max-width: none; margin: 0; border: 0; border-radius: 0; padding: 0; color: #000; }
+    }
+</style>
+
+<div class="container py-3 no-print">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <a class="btn btn-outline-primary" href="{{ url_for('facturas_pacientes') }}"><i class="fas fa-arrow-left me-2"></i>Facturas de pacientes</a>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-primary" href="{{ url_for('factura_paciente_nueva') }}"><i class="fas fa-plus me-1"></i>Nueva</a>
+            <button class="btn btn-primary" type="button" data-csp-print><i class="fas fa-print me-2"></i>Imprimir</button>
+        </div>
+    </div>
+</div>
+
+<article class="fpv-paper">
+    {% if factura.estado == 'Anulada' %}<div class="fpv-anulada">ANULADA</div>{% endif %}
+    <header class="fpv-head">
+        <div>
+            {% include 'partials/_documento_membrete.html' %}
+            {% include 'partials/_documento_datos_centro.html' %}
+        </div>
+        <div class="fpv-fiscal">
+            <h1>Factura de {{ tipos.get(tipo, 'Consumo')|lower }}</h1>
+            <div>NCF</div>
+            <div class="fpv-ncf">{{ factura.ncf }}</div>
+            {% if factura.ncf_vence %}<div>Válido hasta: {{ factura.ncf_vence.strftime('%d/%m/%Y') if factura.ncf_vence.strftime is defined else factura.ncf_vence }}</div>{% endif %}
+            <div>Fecha: {{ factura.fecha_emision.strftime('%d/%m/%Y') if factura.fecha_emision.strftime is defined else factura.fecha_emision }}</div>
+        </div>
+    </header>
+
+    <div class="fpv-datos">
+        <div><span>Paciente</span>{{ factura.nombre_paciente }}{% if factura.cedula_paciente %} · {{ factura.cedula_paciente }}{% endif %}</div>
+        {% if factura.nombre_medico %}<div><span>Médico</span>{{ factura.nombre_medico }}</div>{% endif %}
+        {% if tipo == 'B01' %}
+        <div><span>Cliente (crédito fiscal)</span>{{ factura.razon_social_comprador }}</div>
+        <div><span>RNC / cédula del cliente</span>{{ factura.rnc_comprador }}</div>
+        {% endif %}
+    </div>
+
+    <table class="fpv-tabla">
+        <thead><tr><th>Descripción</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Importe</th></tr></thead>
+        <tbody>
+            {% for linea in factura.lineas %}
+            <tr>
+                <td>{{ linea.descripcion }}</td>
+                <td class="num">{{ linea.cantidad }}</td>
+                <td class="num">{{ linea.precio_unitario|formato_moneda }}</td>
+                <td class="num">{{ linea.subtotal|formato_moneda }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <div class="fpv-totales">
+        <div><span>Subtotal</span><span>RD$ {{ factura.subtotal|formato_moneda }}</span></div>
+        <div><span>ITBIS (exento)</span><span>RD$ 0.00</span></div>
+        <div class="fpv-gran-total"><span>Total</span><span>RD$ {{ factura.total|formato_moneda }}</span></div>
+    </div>
+
+    <p class="fpv-pago">
+        Pagado con: <strong>{{ factura.metodo_pago or '—' }}</strong>
+        {% if factura.referencia_pago %} · Ref. {{ factura.referencia_pago }}{% endif %}
+        {% if factura.monto_recibido is not none %}
+        · Recibido RD$ {{ factura.monto_recibido|formato_moneda }}
+        {% if factura.cambio is not none and factura.cambio > 0 %} · Cambio RD$ {{ factura.cambio|formato_moneda }}{% endif %}
+        {% endif %}
+        {% if factura.observaciones %}<br>{{ factura.observaciones }}{% endif %}
+    </p>
+    {% include 'partials/_documento_pie.html' %}
+</article>
+
+{% if factura.estado != 'Anulada' and can('facturacion.anular') %}
+<div class="container no-print mb-5">
+    <details class="mt-2">
+        <summary class="text-muted">Anular esta factura</summary>
+        <form method="post" action="{{ url_for('factura_paciente_anular', factura_id=factura.id) }}" class="mt-2 d-flex gap-2 flex-wrap"
+              data-confirm-submit="¿Anular la factura {{ factura.ncf }}? El NCF queda anulado y debe reportarse a la DGII.">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <input class="form-control w-auto flex-grow-1" name="motivo_anulacion" maxlength="500" required placeholder="Motivo de la anulación">
+            <button class="btn btn-outline-danger" type="submit"><i class="fas fa-ban me-1"></i>Anular</button>
+        </form>
+    </details>
+</div>
+{% endif %}
+
+{% if imprimir %}
+<script nonce="{{ csp_nonce }}">
+    window.addEventListener('load', () => window.print());
+</script>
+{% endif %}
+{% endblock %}

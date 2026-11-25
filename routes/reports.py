@@ -142,7 +142,10 @@ def _consultar_facturas(tenant_id, filtros):
 
     query = '''
         SELECT f.id, f.fecha_emision AS fecha, f.numero_factura, f.ncf,
-               f.nombre_ars, COALESCE(m.nombre, f.nombre_medico) AS medico,
+               COALESCE(f.nombre_ars, CASE WHEN f.destinatario = 'PACIENTE'
+                        THEN 'Paciente (cobro directo)' END) AS nombre_ars,
+               f.destinatario,
+               COALESCE(m.nombre, f.nombre_medico) AS medico,
                f.total, f.estado, f.created_at,
                CASE WHEN EXISTS (
                    SELECT 1 FROM pago_facturas pf
@@ -183,6 +186,8 @@ def _consultar_facturas(tenant_id, filtros):
             dias < 30
             and estado not in ('Anulada',)
             and not int(fila.get('tiene_pagos') or 0)
+            # La factura al paciente se anula desde su propia pantalla.
+            and fila.get('destinatario') != 'PACIENTE'
         )
         fila['anulable'] = fila['editable']
     return {

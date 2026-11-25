@@ -88,6 +88,15 @@ def facturacion_hojas_enfermeria_nueva():
         request.args.get('paciente_id') or request.form.get('paciente_id'),
         min_value=1, default=None
     )
+    medicos = execute_query(
+        'SELECT id, nombre FROM medicos WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
+        (tenant_id,),
+        fetch='all',
+    ) or []
+    medico_seleccionado = validate_int(
+        request.form.get('medico_id') or getattr(current_user, 'medico_id', None),
+        min_value=1, default=None,
+    )
 
     if request.method == 'POST':
         paciente_id = validate_int(request.form.get('paciente_id'), min_value=1, default=None)
@@ -111,7 +120,11 @@ def facturacion_hojas_enfermeria_nueva():
             LEFT JOIN ars a ON a.id=p.ars_id AND a.tenant_id=p.tenant_id
             WHERE p.id=%s AND p.tenant_id=%s
         ''', (paciente_id, tenant_id)) if paciente_id else None
-        if not paciente or not all([
+        medico = execute_query(
+            'SELECT id, nombre FROM medicos WHERE id=%s AND tenant_id=%s AND activo=1',
+            (medico_seleccionado, tenant_id),
+        ) if medico_seleccionado else None
+        if not paciente or not medico or not all([
             fecha_servicio, hora_servicio, responsable, telefono, firma
         ]):
             flash('Complete todos los datos obligatorios de la hoja', 'error')
@@ -119,6 +132,7 @@ def facturacion_hojas_enfermeria_nueva():
                 'facturacion/hoja_enfermeria_form.html',
                 pacientes=pacientes, emergencias=emergencias,
                 ars_list=ars_list,
+                medicos=medicos, medico_seleccionado=medico_seleccionado,
                 paciente_preseleccionado=paciente_preseleccionado,
                 fecha_actual=fecha_servicio, hora_actual=hora_servicio
             )
@@ -128,6 +142,7 @@ def facturacion_hojas_enfermeria_nueva():
                 'facturacion/hoja_enfermeria_form.html',
                 pacientes=pacientes, emergencias=emergencias,
                 ars_list=ars_list,
+                medicos=medicos, medico_seleccionado=medico_seleccionado,
                 paciente_preseleccionado=paciente_id,
                 fecha_actual=fecha_servicio, hora_actual=hora_servicio
             )
@@ -140,6 +155,7 @@ def facturacion_hojas_enfermeria_nueva():
                 'facturacion/hoja_enfermeria_form.html',
                 pacientes=pacientes, emergencias=emergencias,
                 ars_list=ars_list,
+                medicos=medicos, medico_seleccionado=medico_seleccionado,
                 paciente_preseleccionado=paciente_id,
                 fecha_actual=fecha_servicio, hora_actual=hora_servicio
             )
@@ -211,10 +227,10 @@ def facturacion_hojas_enfermeria_nueva():
                 fecha_servicio, hora_servicio, nombre_paciente, edad, sexo,
                 direccion, responsable, telefono_responsable, ars_nombre,
                 medicamentos_materiales, observaciones, firma_responsable,
-                created_by
+                created_by, medico_id, nombre_medico
             ) VALUES (
                 %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                %s, %s, %s, %s
+                %s, %s, %s, %s, %s, %s
             )
         ''', (
             tenant_id, paciente_id, emergencia_id, fecha_servicio, hora_servicio,
@@ -223,7 +239,8 @@ def facturacion_hojas_enfermeria_nueva():
             ), sexo_guardar, paciente.get('direccion'), responsable,
             telefono, ars_nombre_guardar,
             json.dumps(suministros, ensure_ascii=False),
-            observaciones or None, firma, current_user.id
+            observaciones or None, firma, current_user.id,
+            medico['id'], medico['nombre'],
         ))
         flash('Hoja de enfermería registrada exitosamente', 'success')
         return redirect(url_for(
@@ -235,6 +252,7 @@ def facturacion_hojas_enfermeria_nueva():
         pacientes=pacientes,
         emergencias=emergencias,
         ars_list=ars_list,
+        medicos=medicos, medico_seleccionado=medico_seleccionado,
         paciente_preseleccionado=paciente_preseleccionado,
         fecha_actual=datetime.now().strftime('%Y-%m-%d'),
         hora_actual=datetime.now().strftime('%H:%M')

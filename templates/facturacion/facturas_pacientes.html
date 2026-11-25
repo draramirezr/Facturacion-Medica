@@ -1,0 +1,67 @@
+{% extends "base.html" %}
+
+{% block title %}Facturas de pacientes - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .fpl { max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; }
+    .fpl h1 { font-size: 1.45rem; font-weight: 800; margin: 0; color: var(--ars-shell-text, #172033); }
+    .fpl-hoy { display: inline-flex; gap: 14px; padding: 8px 14px; border-radius: 12px; font-size: .85rem;
+               background: var(--ars-shell-surface-alt, #f2f5f8); color: var(--ars-shell-muted, #718096); }
+    .fpl-hoy strong { color: var(--ars-shell-text, #172033); }
+    .fpl-card { background: var(--ars-shell-surface, #fff); border: 1px solid var(--ars-shell-border, #e8edf3); border-radius: 16px; padding: 6px 14px; }
+    .fpl-card td, .fpl-card th { vertical-align: middle; }
+    .fpl-card .num { text-align: right; white-space: nowrap; }
+    .fpl-estado { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .72rem; font-weight: 700; }
+    .fpl-pagada { background: #dcfce7; color: #15803d; }
+    .fpl-anulada { background: #fee2e2; color: #b91c1c; }
+</style>
+
+<div class="fpl">
+    <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-3">
+        <div>
+            <h1><i class="fas fa-receipt me-2"></i>Facturas de pacientes</h1>
+            <div class="fpl-hoy mt-2"><span>Hoy: <strong>{{ hoy_cantidad }}</strong> factura{{ '' if hoy_cantidad == 1 else 's' }}</span><span>Cobrado: <strong>RD$ {{ hoy_total|formato_moneda }}</strong></span></div>
+        </div>
+        <div class="d-flex gap-2 flex-wrap">
+            <form method="get" class="d-flex gap-2">
+                <input class="form-control" type="search" name="buscar" value="{{ buscar }}" placeholder="Paciente, cédula o NCF">
+                <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i></button>
+            </form>
+            {% if can('facturacion.crear') %}
+            <a class="btn btn-primary" href="{{ url_for('factura_paciente_nueva') }}"><i class="fas fa-plus me-1"></i>Nueva factura paciente</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="fpl-card">
+        {% if facturas %}
+        <div class="table-responsive">
+            <table class="table mb-0">
+                <thead>
+                    <tr><th>Fecha</th><th>NCF</th><th>Paciente</th><th>Médico</th><th>Pago</th><th class="num">Total</th><th>Estado</th><th></th></tr>
+                </thead>
+                <tbody>
+                    {% for f in facturas %}
+                    <tr>
+                        <td>{{ f.fecha_emision.strftime('%d/%m/%Y') if f.fecha_emision.strftime is defined else f.fecha_emision }}</td>
+                        <td><strong>{{ f.ncf }}</strong></td>
+                        <td>{{ f.nombre_paciente }}</td>
+                        <td>{{ f.nombre_medico or '—' }}</td>
+                        <td>{{ f.metodo_pago or '—' }}</td>
+                        <td class="num">{{ f.total|formato_moneda }}</td>
+                        <td><span class="fpl-estado {{ 'fpl-anulada' if f.estado == 'Anulada' else 'fpl-pagada' }}">{{ f.estado }}</span></td>
+                        <td class="num"><a class="btn btn-sm btn-accion-editar" href="{{ url_for('factura_paciente_ver', factura_id=f.id) }}"><i class="fas fa-eye"></i> Ver</a></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-center text-muted py-5 mb-0">Aún no hay facturas de pacientes{% if buscar %} que coincidan con «{{ buscar }}»{% endif %}.</p>
+        {% endif %}
+    </div>
+    {% include "_pagination.html" %}
+</div>
+{% endblock %}

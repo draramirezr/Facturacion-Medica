@@ -28,7 +28,8 @@ def _validar_datos_reclamacion(tenant_id):
     except ValueError:
         return None, 'Fecha de reclamación inválida'
     factura = execute_query(
-        'SELECT id, total FROM facturas WHERE id = %s AND tenant_id = %s AND estado != %s',
+        'SELECT id, total FROM facturas WHERE id = %s AND tenant_id = %s AND estado != %s'
+        " AND destinatario = 'ARS'",
         (factura_id, tenant_id, 'Anulada'),
     )
     if not factura:
@@ -63,6 +64,7 @@ def _contexto_formulario_reclamacion(tenant_id, factura_id=None, fecha_reclamaci
                f.fecha_emision, f.estado
         FROM facturas f
         WHERE f.tenant_id = %s AND f.estado != 'Anulada'
+          AND f.destinatario = 'ARS'
     '''
     facturas_params = [tenant_id]
     if ars_id:

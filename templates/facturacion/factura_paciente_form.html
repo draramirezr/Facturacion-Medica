@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% from "_patient_search.html" import patient_search %}
+
+{% block title %}Nueva factura paciente - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .fp { max-width: 1080px; margin: 0 auto; padding: 24px 20px 48px; }
+    .fp h1 { font-size: 1.45rem; font-weight: 800; color: var(--ars-shell-text, #172033); margin: 0; }
+    .fp-sub { color: var(--ars-shell-muted, #718096); font-size: .85rem; margin: 4px 0 18px; }
+    .fp-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
+    @media (max-width: 960px) { .fp-grid { grid-template-columns: 1fr; } }
+    .fp-card { background: var(--ars-shell-surface, #fff); border: 1px solid var(--ars-shell-border, #e8edf3); border-radius: 16px; padding: 18px 20px; margin-bottom: 16px; }
+    .fp-card h2 { font-size: .8rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ars-shell-muted, #718096); margin: 0 0 12px; }
+    .fp-conceptos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+    .fp-chip { border: 1px dashed var(--ars-shell-border, #cbd5e1); background: transparent; color: var(--ars-shell-text, #172033);
+               border-radius: 999px; padding: 5px 12px; font-size: .78rem; font-weight: 600; }
+    .fp-chip:hover { border-color: var(--primary-color, #0891b2); color: var(--primary-color, #0891b2); }
+    .fp-lineas th { font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ars-shell-muted, #718096); }
+    .fp-lineas td { vertical-align: middle; }
+    .fp-lineas .fp-cant { width: 80px; }
+    .fp-lineas .fp-precio { width: 140px; }
+    .fp-lineas .fp-sub-linea { width: 120px; text-align: right; font-weight: 700; white-space: nowrap; }
+    .fp-quitar { border: 0; background: transparent; color: var(--ars-shell-muted, #718096); }
+    .fp-quitar:hover { color: #dc2626; }
+    .fp-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--ars-shell-border, #e8edf3); }
+    .fp-total strong { font-size: 1.6rem; font-weight: 800; color: var(--ars-shell-text, #172033); }
+    .fp-cambio { font-size: .9rem; font-weight: 700; color: #15803d; }
+    .fp-sugerencias { display: grid; gap: 6px; }
+    .fp-sugerencia { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
+                     background: var(--ars-shell-surface-alt, #f2f5f8); font-size: .8rem; }
+    .fp-aviso { font-size: .78rem; color: var(--ars-shell-muted, #718096); }
+    .fp-tipo { display: grid; gap: 8px; }
+    .fp-tipo label { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 10px;
+                     border: 1px solid var(--ars-shell-border, #e8edf3); cursor: pointer; font-size: .85rem; }
+    .fp-tipo small { display: block; color: var(--ars-shell-muted, #718096); }
+</style>
+
+<div class="fp">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
+        <div>
+            <h1><i class="fas fa-file-invoice me-2"></i>Nueva factura paciente</h1>
+            <p class="fp-sub">Cobro al paciente: diferencia o copago de la ARS, consulta privada u otros servicios.</p>
+        </div>
+        <a class="btn btn-outline-secondary" href="{{ url_for('facturas_pacientes') }}"><i class="fas fa-list me-1"></i>Facturas de pacientes</a>
+    </div>
+
+    <form method="post" id="facturaPacienteForm" data-confirm-submit="¿Emitir la factura y registrar el cobro?" data-consultas-url="{{ url_for('api_consultas_recientes_paciente', paciente_id=0) }}">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="fp-grid">
+            <div>
+                <section class="fp-card">
+                    <h2>Paciente</h2>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            {{ patient_search(pacientes, form.get('paciente_id') or paciente_id, true, 'fp_paciente') }}
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="medico_id">Médico que atendió</label>
+                            <select class="form-select" id="medico_id" name="medico_id">
+                                <option value="">— Opcional —</option>
+                                {% for medico in medicos %}
+                                <option value="{{ medico.id }}" {{ 'selected' if form.get('medico_id')|string == medico.id|string else '' }}>{{ medico.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    <div class="fp-sugerencias mt-3" id="fpSugerencias" hidden>
+                        <div class="fp-aviso">Consultas registradas recientemente (por si cobra la diferencia que no cubre la ARS):</div>
+                    </div>
+                </section>
+
+                <section class="fp-card">
+                    <h2>Servicios</h2>
+                    <div class="fp-conceptos">
+                        {% for concepto in conceptos %}
+                        <button type="button" class="fp-chip" data-fp-concepto="{{ concepto }}"><i class="fas fa-plus me-1"></i>{{ concepto }}</button>
+                        {% endfor %}
+                        {% if servicios %}
+                        <select class="form-select form-select-sm w-auto" id="fpServicio" aria-label="Agregar servicio del catálogo">
+                            <option value="">+ Del catálogo…</option>
+                            {% for servicio in servicios %}
+                            <option value="{{ servicio.id }}" data-precio="{{ servicio.precio_base or '' }}">{{ servicio.nombre }}</option>
+                            {% endfor %}
+                        </select>
+                        {% endif %}
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table fp-lineas mb-0">
+                            <thead>
+                                <tr><th>Descripción</th><th>Cant.</th><th>Precio</th><th class="text-end">Subtotal</th><th></th></tr>
+                            </thead>
+                            <tbody id="fpLineas">
+                                {% for linea in lineas %}
+                                <tr data-fp-linea>
+                                    <td>
+                                        <input class="form-control form-control-sm" name="linea_descripcion" value="{{ linea.get('descripcion', '') }}" maxlength="500" placeholder="Ej.: Diferencia consulta ARS Humano">
+                                        <input type="hidden" name="linea_servicio_id" value="{{ linea.get('servicio_id') or '' }}">
+                                    </td>
+                                    <td class="fp-cant"><input class="form-control form-control-sm" name="linea_cantidad" type="number" min="1" max="999" value="{{ linea.get('cantidad', 1) }}"></td>
+                                    <td class="fp-precio"><input class="form-control form-control-sm" name="linea_precio" type="number" min="0" step="0.01" value="{{ linea.get('precio', '') }}" placeholder="0.00"></td>
+                                    <td class="fp-sub-linea" data-fp-subtotal>0.00</td>
+                                    <td><button type="button" class="fp-quitar" data-fp-quitar aria-label="Quitar línea"><i class="fas fa-xmark"></i></button></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="fpAgregar"><i class="fas fa-plus me-1"></i>Agregar línea</button>
+                    <div class="mt-3">
+                        <label class="form-label" for="observaciones">Observación (opcional)</label>
+                        <input class="form-control" id="observaciones" name="observaciones" maxlength="500" value="{{ form.get('observaciones', '') }}">
+                    </div>
+                </section>
+            </div>
+
+            <aside>
+                <section class="fp-card">
+                    <h2>Comprobante</h2>
+                    <div class="fp-tipo">
+                        {% set tipo_actual = form.get('tipo_comprobante') or tipo_defecto %}
+                        {% for clave, nombre in tipos.items() %}
+                        <label>
+                            <input type="radio" name="tipo_comprobante" value="{{ clave }}" {{ 'checked' if tipo_actual == clave else '' }}>
+                            <span>
+                                <strong>{{ clave }} · {{ nombre }}</strong>
+                                {% if clave in secuencias %}
+                                <small>{% if secuencias[clave].fecha_fin %}Secuencia vigente hasta {{ secuencias[clave].fecha_fin.strftime('%d/%m/%Y') if secuencias[clave].fecha_fin.strftime is defined else secuencias[clave].fecha_fin }}{% else %}Secuencia activa{% endif %}</small>
+                                {% else %}
+                                <small class="text-danger">Sin secuencia {{ clave }} activa: regístrela en NCF</small>
+                                {% endif %}
+                            </span>
+                        </label>
+                        {% endfor %}
+                    </div>
+                    <div id="fpCreditoFiscal" class="mt-3" {{ '' if tipo_actual == 'B01' else 'hidden' }}>
+                        <label class="form-label" for="rnc_comprador">RNC o cédula</label>
+                        <input class="form-control" id="rnc_comprador" name="rnc_comprador" inputmode="numeric" maxlength="11" data-input-filter="digits-hyphen" value="{{ form.get('rnc_comprador', '') }}">
+                        <label class="form-label mt-2" for="razon_social_comprador">Nombre o razón social</label>
+                        <input class="form-control" id="razon_social_comprador" name="razon_social_comprador" maxlength="200" value="{{ form.get('razon_social_comprador', '') }}">
+                    </div>
+                </section>
+
+                <section class="fp-card">
+                    <h2>Cobro</h2>
+                    <label class="form-label" for="metodo_pago">Forma de pago</label>
+                    <select class="form-select" id="metodo_pago" name="metodo_pago" required>
+                        {% for metodo in metodos %}
+                        <option value="{{ metodo }}" {{ 'selected' if (form.get('metodo_pago') or 'Efectivo') == metodo else '' }}>{{ metodo }}</option>
+                        {% endfor %}
+                    </select>
+                    <div id="fpEfectivo" class="mt-2">
+                        <label class="form-label" for="monto_recibido">Monto recibido</label>
+                        <input class="form-control" id="monto_recibido" name="monto_recibido" type="number" min="0" step="0.01" value="{{ form.get('monto_recibido', '') }}">
+                    </div>
+                    <div id="fpReferencia" class="mt-2" hidden>
+                        <label class="form-label" for="referencia_pago">Referencia / aprobación</label>
+                        <input class="form-control" id="referencia_pago" name="referencia_pago" maxlength="100" value="{{ form.get('referencia_pago', '') }}">
+                    </div>
+                    <div class="fp-total mt-3">
+                        <span>Total</span>
+                        <strong>RD$ <span id="fpTotal">0.00</span></strong>
+                    </div>
+                    <div class="text-end fp-cambio" id="fpCambio" hidden>Cambio: RD$ <span></span></div>
+                    <p class="fp-aviso mt-2 mb-3">Servicios de salud exentos de ITBIS. La factura queda pagada al emitirse.</p>
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-check me-1"></i>Emitir y cobrar
+                    </button>
+                </section>
+            </aside>
+        </div>
+    </form>
+</div>
+
+<template id="fpLineaTpl">
+    <tr data-fp-linea>
+        <td>
+            <input class="form-control form-control-sm" name="linea_descripcion" maxlength="500">
+            <input type="hidden" name="linea_servicio_id" value="">
+        </td>
+        <td class="fp-cant"><input class="form-control form-control-sm" name="linea_cantidad" type="number" min="1" max="999" value="1"></td>
+        <td class="fp-precio"><input class="form-control form-control-sm" name="linea_precio" type="number" min="0" step="0.01" placeholder="0.00"></td>
+        <td class="fp-sub-linea" data-fp-subtotal>0.00</td>
+        <td><button type="button" class="fp-quitar" data-fp-quitar aria-label="Quitar línea"><i class="fas fa-xmark"></i></button></td>
+    </tr>
+</template>
+<script src="{{ url_for('static', filename='js/factura-paciente.js') }}?v=1" nonce="{{ csp_nonce }}" defer></script>
+{% endblock %}

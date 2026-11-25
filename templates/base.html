@@ -1126,7 +1126,8 @@
                     </a>
                 </div>
                 {% else %}
-                {% if es_medico_operativo or can('dashboard.ver') or can('citas.ver') %}
+                {% if es_medico_operativo or can('dashboard.ver') or can('citas.ver')
+                      or (plan_centro_medico and can('turnos.ver')) %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-principal" aria-expanded="false" aria-controls="nav-principal">
                     <span>Principal</span>
@@ -1145,6 +1146,13 @@
                        href="{{ url_for('facturacion_dashboard') }}">
                         <i class="fas fa-chart-pie"></i>
                         <span>Dashboard</span>
+                    </a>
+                    {% endif %}
+                    {% if plan_centro_medico and can('turnos.ver') and not es_medico_operativo %}
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('turnos_') else '' }}"
+                       href="{{ url_for('turnos_recepcion') if can('turnos.administrar') or can('turnos.crear') else url_for('turnos_mi_cola') }}">
+                        <i class="fas fa-ticket"></i>
+                        <span>{{ 'Gestión de turnos' if can('turnos.administrar') or can('turnos.crear') else 'Mi cola' }}</span>
                     </a>
                     {% endif %}
                     {% if can('citas.ver') %}
@@ -1235,13 +1243,6 @@
                         <span>Historia Clínica</span>
                     </a>
                     {% endif %}
-                    {% if plan_centro_medico and can('turnos.ver') and not es_medico_operativo %}
-                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('turnos_') else '' }}"
-                       href="{{ url_for('turnos_recepcion') if can('turnos.administrar') or can('turnos.crear') else url_for('turnos_mi_cola') }}">
-                        <i class="fas fa-ticket"></i>
-                        <span>{{ 'Gestión de turnos' if can('turnos.administrar') or can('turnos.crear') else 'Mi cola' }}</span>
-                    </a>
-                    {% endif %}
                     {% if plan_centro_medico and can('emergencia.ver') %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_historias_emergencia') or endpoint.startswith('facturacion_historia_emergencia_') else '' }}"
                        href="{{ url_for('facturacion_historias_emergencia') }}">
@@ -1326,6 +1327,19 @@
                         <span>Notas de crédito ARS</span>
                     </a>
                     {% endif %}
+                    <div class="ars-nav-subgroup"><i class="fas fa-user"></i>Paciente</div>
+                    {% if can('facturacion.crear') %}
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'factura_paciente_nueva' else '' }}"
+                       href="{{ url_for('factura_paciente_nueva') }}">
+                        <i class="fas fa-cash-register"></i>
+                        <span>Nueva factura paciente</span>
+                    </a>
+                    {% endif %}
+                    <a class="ars-nav-link {{ 'active' if endpoint in ['facturas_pacientes', 'factura_paciente_ver'] else '' }}"
+                       href="{{ url_for('facturas_pacientes') }}">
+                        <i class="fas fa-receipt"></i>
+                        <span>Facturas de pacientes</span>
+                    </a>
                 </div>
                 {% endif %}
 

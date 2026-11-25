@@ -57,7 +57,23 @@ def facturado_en(tenant_id, desde, hasta, ars_id=None):
     return int(fila.get('facturas') or 0), _dec(fila.get('monto'))
 
 
+def cobrado_pacientes_en(tenant_id, desde, hasta):
+    fila = execute_query(
+        '''
+        SELECT COALESCE(SUM(f.total), 0) AS monto
+        FROM facturas f
+        WHERE f.tenant_id = %s AND f.estado <> 'Anulada'
+          AND f.destinatario = 'PACIENTE'
+          AND f.fecha_emision BETWEEN %s AND %s
+        ''',
+        (tenant_id, desde, hasta),
+    ) or {}
+    return _dec(fila.get('monto'))
+
+
 def cobrado_en(tenant_id, desde, hasta, ars_id=None):
+    # Con filtro de ARS solo cuentan los pagos de esa ARS.
+    pacientes = CERO if ars_id else cobrado_pacientes_en(tenant_id, desde, hasta)
     params = [tenant_id, desde, hasta]
     fila = execute_query(
         '''
@@ -70,7 +86,7 @@ def cobrado_en(tenant_id, desde, hasta, ars_id=None):
         ''' + _filtro_ars('f', ars_id, params),
         tuple(params),
     ) or {}
-    return _dec(fila.get('monto'))
+    return _dec(fila.get('monto')) + pacientes
 
 
 def cuentas_por_cobrar(tenant_id, hoy, ars_id=None):
@@ -87,6 +103,7 @@ def cuentas_por_cobrar(tenant_id, hoy, ars_id=None):
             GROUP BY factura_id
         ) ap ON ap.factura_id = f.id
         WHERE f.tenant_id = %s AND f.estado <> 'Anulada'
+          AND f.destinatario = 'ARS'
         ''' + _filtro_ars('f', ars_id, params) + '''
         HAVING saldo > 0
         ''',
@@ -190,8 +207,24 @@ def serie_mensual(tenant_id, desde, hasta, ars_id=None):
     while cursor <= hasta:
         meses.append(cursor.strftime('%Y-%m'))
         cursor = date(cursor.year + (cursor.month == 12), cursor.month % 12 + 1, 1)
+    if not ars_id:
+        cobrado = list(cobrado) + (execute_query(
+            '''
+            SELECT DATE_FORMAT(f.fecha_emision, '%%Y-%%m') AS mes,
+                   COALESCE(SUM(f.total), 0) AS monto
+            FROM facturas f
+            WHERE f.tenant_id = %s AND f.estado <> 'Anulada'
+              AND f.destinatario = 'PACIENTE'
+              AND f.fecha_emision BETWEEN %s AND %s
+            GROUP BY mes ORDER BY mes
+            ''',
+            (tenant_id, desde, hasta),
+            fetch='all',
+        ) or [])
     f_map = {r['mes']: _dec(r['monto']) for r in facturado}
-    c_map = {r['mes']: _dec(r['monto']) for r in cobrado}
+    c_map = {}
+    for r in cobrado:
+        c_map[r['mes']] = c_map.get(r['mes'], CERO) + _dec(r['monto'])
     return [
         {'mes': mes, 'facturado': f_map.get(mes, CERO), 'cobrado': c_map.get(mes, CERO)}
         for mes in meses
@@ -214,6 +247,7 @@ def por_ars(tenant_id, desde, hasta, limite=8):
             GROUP BY factura_id
         ) ap ON ap.factura_id = f.id
         WHERE f.tenant_id = %s AND f.estado <> 'Anulada'
+          AND f.destinatario = 'ARS'
           AND f.fecha_emision BETWEEN %s AND %s
         GROUP BY a.id, a.nombre
         ORDER BY facturado DESC

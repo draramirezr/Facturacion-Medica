@@ -91,6 +91,7 @@ def _consultar_facturas_pago(tenant_id, pago_id, extra_where='', extra_params=()
         LEFT JOIN pago_facturas pf
           ON f.id = pf.factura_id AND pf.tenant_id = f.tenant_id
         WHERE f.tenant_id = %s AND f.estado != 'Anulada'
+          AND f.destinatario = 'ARS'
           {extra_where}
         GROUP BY f.id
         HAVING (f.total - {saldo}) > 0
@@ -334,7 +335,7 @@ def facturacion_pagos_nuevo():
                     SELECT id, total
                     FROM facturas
                     WHERE tenant_id = %s AND id IN ({placeholders})
-                      AND estado != 'Anulada'
+                      AND estado != 'Anulada' AND destinatario = 'ARS'
                     FOR UPDATE
                 ''', (tenant_id, *ids), fetch='all') or []
                 facturas_por_id = {
@@ -498,7 +499,7 @@ def facturacion_pago_editar(pago_id):
                     SELECT id, total
                     FROM facturas
                     WHERE tenant_id = %s AND id IN ({placeholders})
-                      AND estado != 'Anulada'
+                      AND estado != 'Anulada' AND destinatario = 'ARS'
                     FOR UPDATE
                 ''', (tenant_id, *ids), fetch='all') or []
                 facturas_por_id = {

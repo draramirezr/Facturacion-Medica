@@ -376,6 +376,15 @@ def _asegurar_columnas_catalogos(cursor, database):
         ('codigo_ars', 'medico_id', 'INT NULL'),
         ('codigo_ars', 'centro_medico_id', 'INT NULL'),
         ('facturas', 'tipo_factura', "VARCHAR(20) NOT NULL DEFAULT 'TRADICIONAL'"),
+        # Factura al paciente (cobro directo) vs. factura consolidada a la ARS.
+        ('facturas', 'destinatario', "VARCHAR(10) NOT NULL DEFAULT 'ARS'"),
+        ('facturas', 'rnc_comprador', 'VARCHAR(11) NULL'),
+        ('facturas', 'razon_social_comprador', 'VARCHAR(200) NULL'),
+        ('facturas', 'metodo_pago', 'VARCHAR(20) NULL'),
+        ('facturas', 'referencia_pago', 'VARCHAR(100) NULL'),
+        ('facturas', 'monto_recibido', 'DECIMAL(10, 2) NULL'),
+        ('hojas_enfermeria', 'medico_id', 'INT NULL'),
+        ('hojas_enfermeria', 'nombre_medico', 'VARCHAR(200) NULL'),
         ('pacientes', 'created_by', 'INT NULL'),
     ):
         _asegurar_columna(cursor, database, tabla, columna, definicion)

@@ -59,6 +59,7 @@
         <div class="line-value"><b>Tel.:</b>{{ hoja['telefono_responsable'] }}</div>
         <div class="line-value wide"><b>ARS:</b>{{ hoja['ars_nombre'] or 'No asegurado' }}</div>
         <div class="line-value"><b>Hora:</b>{{ hoja['hora_servicio'] }}</div>
+        {% if hoja.get('nombre_medico') %}<div class="line-value wide"><b>Médico que atendió:</b>{{ hoja['nombre_medico'] }}</div>{% endif %}
     </div>
     <div class="document-title">MEDICAMENTOS Y MATERIALES MÉDICOS SUMINISTRADOS</div>
     <table class="supply-document">

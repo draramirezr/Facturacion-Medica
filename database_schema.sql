@@ -324,6 +324,7 @@ CREATE TABLE IF NOT EXISTS facturas (
     tenant_id INT NOT NULL,
     numero_factura VARCHAR(50) NOT NULL,
     tipo_factura VARCHAR(20) NOT NULL DEFAULT 'TRADICIONAL',
+    destinatario VARCHAR(10) NOT NULL DEFAULT 'ARS' COMMENT 'ARS = consolidada a la ARS; PACIENTE = cobro directo',
     ncf VARCHAR(20) NULL,
     fecha_emision DATE NOT NULL,
     fecha_vencimiento DATE NULL,
@@ -355,6 +356,13 @@ CREATE TABLE IF NOT EXISTS facturas (
     -- Estado
     estado ENUM('Pendiente', 'Pagada', 'Vencida', 'Anulada') NOT NULL DEFAULT 'Pendiente',
     
+    -- Cobro directo al paciente (destinatario = PACIENTE)
+    rnc_comprador VARCHAR(11) NULL,
+    razon_social_comprador VARCHAR(200) NULL,
+    metodo_pago VARCHAR(20) NULL,
+    referencia_pago VARCHAR(100) NULL,
+    monto_recibido DECIMAL(10, 2) NULL,
+
     -- Observaciones
     observaciones TEXT NULL,
     notas_internas TEXT NULL,
@@ -955,6 +963,8 @@ CREATE TABLE IF NOT EXISTS hojas_enfermeria (
     medicamentos_materiales LONGTEXT NOT NULL,
     observaciones TEXT NULL,
     firma_responsable VARCHAR(200) NOT NULL,
+    medico_id INT NULL,
+    nombre_medico VARCHAR(200) NULL,
     created_by INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
