@@ -54,9 +54,21 @@ def destino_inicio_sesion(user=None):
             return 'contratar_plan'
     except Exception:
         pass
-    if usuario_es_medico_operativo(user):
+    if usuario_usa_mi_cola(user):
         return 'turnos_mi_cola'
     return 'facturacion_menu'
+
+
+def usuario_usa_mi_cola(user):
+    """Médico operativo cuya empresa tiene el plan que incluye Mi cola.
+
+    Sin el plan, Mi cola redirige al inicio; enviar allí al médico desde el
+    inicio o el login producía un bucle de redirecciones.
+    """
+    if not usuario_es_medico_operativo(user):
+        return False
+    from services.plan_features import tenant_plan_centro_medico
+    return tenant_plan_centro_medico(getattr(user, 'tenant_id', None))
 
 
 def usuario_es_medico_operativo(user):

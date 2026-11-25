@@ -68,7 +68,17 @@ class RbacCatalogTests(unittest.TestCase):
             medico_id=22,
         )
         self.assertTrue(usuario_es_medico_operativo(medico))
-        self.assertEqual(destino_inicio_sesion(medico), 'turnos_mi_cola')
+        with patch(
+            'services.plan_features.tenant_plan_centro_medico',
+            return_value=True,
+        ):
+            self.assertEqual(destino_inicio_sesion(medico), 'turnos_mi_cola')
+        # Sin plan Centro médico, Mi cola no existe: va al inicio (evita bucle).
+        with patch(
+            'services.plan_features.tenant_plan_centro_medico',
+            return_value=False,
+        ):
+            self.assertEqual(destino_inicio_sesion(medico), 'facturacion_menu')
         self.assertTrue(medico.has_permission('historia_clinica.ver'))
         self.assertFalse(medico.has_permission('facturacion.ver'))
         self.assertFalse(medico.has_permission('reportes.ver'))

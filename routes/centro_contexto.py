@@ -3,7 +3,7 @@
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from auth.helpers import usuario_es_medico_operativo
+from auth.helpers import usuario_usa_mi_cola
 from services.centro_contexto import (
     centros_del_medico,
     debe_elegir_centro,
@@ -71,7 +71,7 @@ def cambiar_centro_trabajo():
 
 
 def _destino_despues_centro(user):
-    if usuario_es_medico_operativo(user):
+    if usuario_usa_mi_cola(user):
         return 'turnos_mi_cola'
     return 'facturacion_menu'
 

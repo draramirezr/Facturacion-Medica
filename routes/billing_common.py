@@ -4,8 +4,8 @@ from datetime import timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 from flask import redirect, render_template, url_for
 from flask_login import current_user, login_required
-from auth import user_has_permission
-from auth.helpers import usuario_es_dueno_software
+
+from auth.helpers import usuario_es_dueno_software, usuario_usa_mi_cola
 from core.clock import fecha_clinica
 
 
@@ -71,16 +71,9 @@ def facturacion_menu():
     """Menú principal de facturación"""
     if usuario_es_dueno_software(current_user):
         return redirect(url_for('admin_empresas'))
-    roles_rbac = set(getattr(current_user, 'rbac_roles', ()))
-    es_administrador = (
-        'Administrador' in roles_rbac
-        or getattr(current_user, 'perfil', None) == 'Administrador'
-    )
-    if (
-        getattr(current_user, 'medico_id', None)
-        and user_has_permission(current_user, 'turnos.cola_propia')
-        and not es_administrador
-    ):
+    # Solo si la empresa tiene Mi cola en su plan; si no, Mi cola devuelve
+    # aquí y se formaba un bucle de redirecciones.
+    if usuario_usa_mi_cola(current_user):
         return redirect(url_for('turnos_mi_cola'))
     return render_template('facturacion/menu.html')
 
