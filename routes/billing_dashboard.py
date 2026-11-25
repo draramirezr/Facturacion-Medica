@@ -70,23 +70,64 @@ def _render_dashboard_medico(tenant_id, medico_id, fecha_desde, fecha_hasta):
     )
 
 
+PRESETS_PERIODO = (
+    ('mes', 'Este mes'),
+    ('mes_anterior', 'Mes anterior'),
+    ('trimestre', 'Últimos 3 meses'),
+    ('anio', 'Este año'),
+)
+
+
+def rango_preset(preset, hoy=None):
+    """(desde, hasta) para los atajos de periodo del dashboard."""
+    from datetime import date, timedelta
+
+    hoy = hoy or date.today()
+    inicio_mes = hoy.replace(day=1)
+    if preset == 'mes_anterior':
+        fin = inicio_mes - timedelta(days=1)
+        return fin.replace(day=1), fin
+    if preset == 'trimestre':
+        mes = hoy.month - 2
+        anio = hoy.year
+        if mes <= 0:
+            mes += 12
+            anio -= 1
+        return date(anio, mes, 1), hoy
+    if preset == 'anio':
+        return date(hoy.year, 1, 1), hoy
+    return inicio_mes, hoy
+
+
+def _fecha_param(nombre):
+    from datetime import datetime
+
+    valor = (request.args.get(nombre) or '').strip()[:10]
+    try:
+        return datetime.strptime(valor, '%Y-%m-%d').date()
+    except ValueError:
+        return None
+
+
 @login_required
 @permission_required('dashboard.ver')
 def facturacion_dashboard():
-    """Dashboard de facturación"""
-    from datetime import datetime, timedelta
-    
-    # Fechas por defecto (último mes)
-    fecha_hasta = request.args.get('fecha_hasta', datetime.now().strftime('%Y-%m-%d'))
-    fecha_desde = request.args.get('fecha_desde', (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d'))
-    
-    # Estadísticas básicas
-    total_facturas = 0
-    total_facturado = 0.0
-    monto_pendiente = 0.0
-    ars_pendientes_nombres = []
-    
+    """Dashboard de facturación: indicadores del periodo y situación al día."""
+
+    from routes.production_report import agrupacion_por_defecto, consultar_produccion
+    from routes.support import validate_int
+    from services.dashboard import resumen_dashboard
+    from services.subscriptions import get_empresa_info
+
     tenant_id = get_current_tenant_id()
+    preset = request.args.get('periodo') or ''
+    desde, hasta = _fecha_param('fecha_desde'), _fecha_param('fecha_hasta')
+    if preset or not (desde and hasta):
+        preset = preset or 'mes'
+        desde, hasta = rango_preset(preset)
+    if desde > hasta:
+        desde, hasta = hasta, desde
+
     medico_id = getattr(current_user, 'medico_id', None)
     roles_rbac = set(getattr(current_user, 'rbac_roles', ()))
     es_medico = (
@@ -99,107 +140,41 @@ def facturacion_dashboard():
     )
     if medico_id and es_medico and not es_administrador:
         return _render_dashboard_medico(
-            tenant_id,
-            medico_id,
-            fecha_desde,
-            fecha_hasta,
+            tenant_id, medico_id, desde.isoformat(), hasta.isoformat(),
         )
-        
-    try:
-        # Total de facturas
-        result = execute_query('''
-            SELECT COUNT(*) as total FROM facturas 
-            WHERE tenant_id = %s
-        ''', (tenant_id,))
-        total_facturas = result['total'] if result else 0
-        
-        # Total facturado
-        result = execute_query('''
-            SELECT COALESCE(SUM(total), 0) as total FROM facturas 
-            WHERE tenant_id = %s
-        ''', (tenant_id,))
-        total_facturado = float(result['total']) if result and result['total'] else 0.0
-        
-        # Monto pendiente (si existe tabla pacientes con monto)
-        try:
-            result = execute_query('''
-                SELECT COALESCE(SUM(monto), 0) as total FROM pacientes 
-                WHERE tenant_id = %s
-            ''', (tenant_id,))
-            monto_pendiente = float(result['total']) if result and result['total'] else 0.0
-        except:
-            monto_pendiente = 0.0
-        
-        # ARS pendientes
-        result = execute_query('''
-            SELECT DISTINCT a.nombre 
-            FROM pacientes_pendientes pp 
-            JOIN ars a
-              ON pp.ars_id = a.id
-             AND a.tenant_id = pp.tenant_id
-            WHERE pp.estado = 'Pendiente'
-              AND pp.tenant_id = %s
-        ''', (tenant_id,), fetch='all')
-        ars_pendientes_nombres = [r['nombre'] for r in result] if result else []
-        
-    except Exception as e:
-        print(f"Error en dashboard: {e}")
-    
-    # Facturación por mes
-    facturacion_por_mes = []
-    try:
-        result = execute_query('''
-            SELECT DATE_FORMAT(fecha_emision, '%%Y-%%m') as mes, 
-                   SUM(total) as total_monto
-            FROM facturas
-            WHERE fecha_emision BETWEEN %s AND %s
-              AND tenant_id = %s
-            GROUP BY DATE_FORMAT(fecha_emision, '%%Y-%%m')
-            ORDER BY mes
-        ''', (fecha_desde, fecha_hasta, tenant_id), fetch='all')
-        facturacion_por_mes = [{'mes': r['mes'], 'total_monto': float(r['total_monto'])} for r in result] if result else []
-    except:
-        facturacion_por_mes = []
-    
-    # Facturación por ARS y mes
-    facturacion_ars_mes = []
-    try:
-        result = execute_query('''
-            SELECT DATE_FORMAT(f.fecha_emision, '%%Y-%%m') as mes,
-                   a.nombre as nombre_ars,
-                   SUM(f.total) as total_monto
-            FROM facturas f
-            JOIN ars a
-              ON f.ars_id = a.id
-             AND a.tenant_id = f.tenant_id
-            WHERE f.fecha_emision BETWEEN %s AND %s
-              AND f.tenant_id = %s
-            GROUP BY DATE_FORMAT(f.fecha_emision, '%%Y-%%m'), a.nombre
-            ORDER BY mes, a.nombre
-        ''', (fecha_desde, fecha_hasta, tenant_id), fetch='all')
-        facturacion_ars_mes = [{'mes': r['mes'], 'nombre_ars': r['nombre_ars'], 'total_monto': float(r['total_monto'])} for r in result] if result else []
-    except:
-        facturacion_ars_mes = []
-    
-    # Listas para filtros
-    tenant_id = get_current_tenant_id()
-    ars_list = execute_query('SELECT * FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
-    medicos_factura_list = execute_query('SELECT * FROM medicos WHERE activo = 1 AND tenant_id = %s ORDER BY nombre', (tenant_id,), fetch='all') or []
-    medicos_consulta_list = medicos_factura_list  # Usar la misma lista
-    
-    return render_template('facturacion/dashboard.html',
-                          total_facturas=total_facturas,
-                          total_facturado=total_facturado,
-                          monto_pendiente=monto_pendiente,
-                          ars_pendientes_nombres=ars_pendientes_nombres,
-                          facturacion_por_mes=facturacion_por_mes,
-                          facturacion_ars_mes=facturacion_ars_mes,
-                          ars_list=ars_list,
-                          medicos_factura_list=medicos_factura_list,
-                          medicos_consulta_list=medicos_consulta_list,
-                          fecha_desde=fecha_desde,
-                          fecha_hasta=fecha_hasta,
-                          es_administrador=user_has_permission(current_user, 'facturacion.editar'),
-                          ars_ids_seleccionados=[],
-                          medico_factura_ids_seleccionados=[],
-                          medico_consulta_ids_seleccionados=[])
+
+    ars_id = validate_int(request.args.get('ars_id'), min_value=1, default=None)
+    datos = resumen_dashboard(tenant_id, desde, hasta, ars_id)
+    empresa = get_empresa_info(tenant_id) or {}
+    agrupar = agrupacion_por_defecto(empresa.get('tipo_empresa'))
+    produccion, _ = consultar_produccion(tenant_id, agrupar, desde, hasta, ars_id)
+
+    graficas = {
+        'meses': [m['mes'] for m in datos['serie_mensual']],
+        'facturado': [float(m['facturado']) for m in datos['serie_mensual']],
+        'cobrado': [float(m['cobrado']) for m in datos['serie_mensual']],
+        'ars': [a['ars'] for a in datos['por_ars']],
+        'ars_facturado': [float(a['facturado']) for a in datos['por_ars']],
+        'ars_saldo': [float(a['saldo']) for a in datos['por_ars']],
+        'antiguedad': list(datos['antiguedad'].keys()),
+        'antiguedad_montos': [float(v) for v in datos['antiguedad'].values()],
+    }
+    ars_list = execute_query(
+        'SELECT id, nombre FROM ars WHERE activo = 1 AND tenant_id = %s ORDER BY nombre',
+        (tenant_id,),
+        fetch='all',
+    ) or []
+    return render_template(
+        'facturacion/dashboard.html',
+        d=datos,
+        produccion=produccion[:8],
+        agrupar=agrupar,
+        graficas=graficas,
+        desde=desde.isoformat(),
+        hasta=hasta.isoformat(),
+        preset=preset,
+        presets=PRESETS_PERIODO,
+        ars_id=ars_id,
+        ars_list=ars_list,
+        puede_generar=user_has_permission(current_user, 'facturacion.crear'),
+    )

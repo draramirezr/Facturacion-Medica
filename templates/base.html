@@ -101,7 +101,7 @@
 
     {% if current_user.is_authenticated %}
     <!-- Shell autenticado ClinicRD -->
-    <link href="{{ url_for('static', filename='css/app-shell.css') }}?v=1.16" rel="stylesheet">
+    <link href="{{ url_for('static', filename='css/app-shell.css') }}?v=1.17" rel="stylesheet">
     {% endif %}
     
     <!-- Estilos Críticos Inline - Prevenir FOUC (Flash of Unstyled Content) -->
@@ -1126,7 +1126,7 @@
                     </a>
                 </div>
                 {% else %}
-                {% if es_medico_operativo or can('dashboard.ver') %}
+                {% if es_medico_operativo or can('dashboard.ver') or can('citas.ver') %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-principal" aria-expanded="false" aria-controls="nav-principal">
                     <span>Principal</span>
@@ -1145,6 +1145,13 @@
                        href="{{ url_for('facturacion_dashboard') }}">
                         <i class="fas fa-chart-pie"></i>
                         <span>Dashboard</span>
+                    </a>
+                    {% endif %}
+                    {% if can('citas.ver') %}
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_cita') else '' }}"
+                       href="{{ url_for('facturacion_citas') }}">
+                        <i class="fas fa-calendar-days"></i>
+                        <span>Agenda Médica</span>
                     </a>
                     {% endif %}
                 </div>
@@ -1203,10 +1210,11 @@
                 </div>
                 {% endif %}
 
-                {% if can('pacientes.ver') or can('turnos.ver') or can('citas.ver')
+                {% if can('pacientes.ver') or can('turnos.ver')
                       or can('recetas.ver') or can('historia_clinica.ver')
                       or can('emergencia.ver') or can('enfermeria.ver')
-                      or can('licencias.ver') or can('facturacion.crear') %}
+                      or can('licencias.ver') or can('constancias.ver')
+                      or can('facturacion.crear') %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-gestion" aria-expanded="false" aria-controls="nav-gestion">
                     <span>Gestión</span>
@@ -1220,44 +1228,18 @@
                         <span>Pacientes</span>
                     </a>
                     {% endif %}
-                    {% if plan_centro_medico and can('turnos.ver') and not es_medico_operativo %}
-                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('turnos_') else '' }}"
-                       href="{{ url_for('turnos_recepcion') if can('turnos.administrar') or can('turnos.crear') else url_for('turnos_mi_cola') }}">
-                        <i class="fas fa-ticket"></i>
-                        <span>{{ 'Gestión de turnos' if can('turnos.administrar') or can('turnos.crear') else 'Mi cola' }}</span>
-                    </a>
-                    {% endif %}
-                    {% if can('citas.ver') %}
-                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_cita') else '' }}"
-                       href="{{ url_for('facturacion_citas') }}">
-                        <i class="fas fa-calendar-days"></i>
-                        <span>Agenda Médica</span>
-                    </a>
-                    {% endif %}
-                    {% if can('recetas.ver') %}
-                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_receta') else '' }}"
-                       href="{{ url_for('facturacion_recetas_medicas') }}">
-                        <i class="fas fa-prescription"></i>
-                        <span>Recetas Médicas</span>
-                    </a>
-                    {% endif %}
-                    {% if can('facturacion.crear') %}
-                    <a class="ars-nav-link {{ 'active' if endpoint in ['facturacion_facturas_nueva', 'facturacion_procesar_excel'] else '' }}"
-                       href="{{ url_for('facturacion_facturas_nueva') }}">
-                        <i class="fas fa-file-circle-plus"></i>
-                        <span>Registrar consultas</span>
-                    </a>
-                    {% endif %}
                     {% if can('historia_clinica.ver') %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_historia_clinica') else '' }}"
                        href="{{ url_for('facturacion_historia_clinica') }}">
                         <i class="fas fa-notes-medical"></i>
                         <span>Historia Clínica</span>
                     </a>
-                    <a class="ars-nav-link {{ 'active' if endpoint == 'facturacion_reporte_pacientes_360' else '' }}"
-                       href="{{ url_for('facturacion_reporte_pacientes_360') }}">
-                        <i class="fas fa-address-card"></i>
-                        <span>Vista 360</span>
+                    {% endif %}
+                    {% if plan_centro_medico and can('turnos.ver') and not es_medico_operativo %}
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('turnos_') else '' }}"
+                       href="{{ url_for('turnos_recepcion') if can('turnos.administrar') or can('turnos.crear') else url_for('turnos_mi_cola') }}">
+                        <i class="fas fa-ticket"></i>
+                        <span>{{ 'Gestión de turnos' if can('turnos.administrar') or can('turnos.crear') else 'Mi cola' }}</span>
                     </a>
                     {% endif %}
                     {% if plan_centro_medico and can('emergencia.ver') %}
@@ -1281,6 +1263,27 @@
                         <span>Licencias Médicas</span>
                     </a>
                     {% endif %}
+                    {% if can('constancias.ver') %}
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_constancia') else '' }}"
+                       href="{{ url_for('facturacion_constancias_medicas') }}">
+                        <i class="fas fa-file-signature"></i>
+                        <span>Constancias Médicas</span>
+                    </a>
+                    {% endif %}
+                    {% if can('recetas.ver') %}
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_receta') else '' }}"
+                       href="{{ url_for('facturacion_recetas_medicas') }}">
+                        <i class="fas fa-prescription"></i>
+                        <span>Recetas Médicas</span>
+                    </a>
+                    {% endif %}
+                    {% if can('facturacion.crear') %}
+                    <a class="ars-nav-link {{ 'active' if endpoint in ['facturacion_facturas_nueva', 'facturacion_procesar_excel'] else '' }}"
+                       href="{{ url_for('facturacion_facturas_nueva') }}">
+                        <i class="fas fa-file-circle-plus"></i>
+                        <span>Registrar consultas</span>
+                    </a>
+                    {% endif %}
                 </div>
                 {% endif %}
 
@@ -1291,35 +1294,36 @@
                     <i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="ars-nav-group collapsed" id="nav-facturacion">
+                    <div class="ars-nav-subgroup"><i class="fas fa-shield-heart"></i>ARS</div>
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_pacientes_pendientes') else '' }}"
                        href="{{ url_for('facturacion_pacientes_pendientes') }}">
                         <i class="fas fa-clipboard-list"></i>
-                        <span>Facturación pendiente</span>
+                        <span>Factura pendiente ARS</span>
                     </a>
                     {% if can('facturacion.crear') %}
                     <a class="ars-nav-link {{ 'active' if endpoint in ['facturacion_generar', 'facturacion_generar_step2', 'facturacion_vista_previa', 'facturacion_generar_final'] else '' }}"
                        href="{{ url_for('facturacion_generar') }}">
                         <i class="fas fa-file-invoice-dollar"></i>
-                        <span>Generar factura</span>
+                        <span>Generar factura ARS</span>
                     </a>
                     {% endif %}
                     {% if can('facturacion.ver') %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_reclamaciones') else '' }}"
                        href="{{ url_for('facturacion_reclamaciones') }}">
                         <i class="fas fa-triangle-exclamation"></i>
-                        <span>Reclamaciones</span>
+                        <span>Reclamaciones ARS</span>
                     </a>
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_pagos') else '' }}"
                        href="{{ url_for('facturacion_pagos') }}">
                         <i class="fas fa-money-check-dollar"></i>
-                        <span>Pagos</span>
+                        <span>Pagos ARS</span>
                     </a>
                     {% endif %}
                     {% if can('facturacion.nota_credito') %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_nota') or endpoint == 'facturacion_notas_credito_buscar' else '' }}"
                        href="{{ url_for('facturacion_notas_credito_buscar') }}">
                         <i class="fas fa-file-circle-minus"></i>
-                        <span>Notas de crédito</span>
+                        <span>Notas de crédito ARS</span>
                     </a>
                     {% endif %}
                 </div>

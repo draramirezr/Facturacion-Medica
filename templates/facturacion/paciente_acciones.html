@@ -93,6 +93,13 @@
                 <small>Crear una licencia, asociarla a una consulta e imprimirla.</small>
             </a>
             {% endif %}
+            {% if can('constancias.crear') %}
+            <a class="next-step-card" href="{{ url_for('facturacion_constancias_medicas_nueva', paciente_id=paciente['id']) }}">
+                <i class="fas fa-file-signature"></i>
+                <strong>Emitir constancia médica</strong>
+                <small>Constancia de asistencia a consulta para escuela o trabajo.</small>
+            </a>
+            {% endif %}
             {% if can('pacientes.editar') %}
             <a class="next-step-card" href="{{ url_for('facturacion_pacientes_editar', paciente_id=paciente['id']) }}">
                 <i class="fas fa-user-pen"></i>

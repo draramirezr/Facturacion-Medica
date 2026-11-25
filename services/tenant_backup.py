@@ -35,6 +35,7 @@ MODULOS = (
         ('tipos_licencia_medica', 'tenant_id'),
         ('licencias_medicas', 'tenant_id'),
     )),
+    ('Constancias', (('constancias_medicas', 'tenant_id'),)),
     ('Emergencia', (('historias_emergencia', 'tenant_id'),)),
     ('Enfermeria', (('hojas_enfermeria', 'tenant_id'),)),
     ('Facturas', (

@@ -29,6 +29,40 @@
         font-size: 0.85rem;
     }
 
+    .ars-home-empresa {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 6px;
+    }
+
+    .ars-home-empresa-nombre {
+        color: var(--ars-shell-text, #172033);
+        font-size: 0.95rem;
+        font-weight: 700;
+    }
+
+    .ars-home-tipo {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px;
+        border-radius: 999px;
+        background: var(--ars-shell-surface-alt, #f2f5f8);
+        border: 1px solid var(--ars-shell-border, #e8edf3);
+        color: var(--ars-shell-muted, #718096);
+        font-size: 0.72rem;
+        font-weight: 700;
+        letter-spacing: 0.03em;
+        text-transform: uppercase;
+        cursor: help;
+    }
+
+    .ars-home-tipo i {
+        color: var(--primary-color, #0891b2);
+    }
+
     .ars-home-section-title {
         margin: 0 0 14px;
         color: #263245;
@@ -124,23 +158,20 @@
 <div class="ars-home">
     <header class="ars-home-header">
         <h1>¡Bienvenido, {{ current_user.nombre.split()[0] }}!</h1>
-        <p>
-            {% if empresa and empresa.empresa_nombre %}
-                {{ empresa.empresa_nombre }} ·
+        {% if empresa and (empresa.empresa_nombre or empresa.tipo_empresa) %}
+        <div class="ars-home-empresa">
+            {% if empresa.empresa_nombre %}
+            <span class="ars-home-empresa-nombre">{{ empresa.empresa_nombre }}</span>
             {% endif %}
-            {% if empresa and empresa.tipo_empresa %}
-                <span class="badge rounded-pill bg-light text-dark border ms-1">
-                    <i class="fas {{ 'fa-hospital' if es_centro_salud else 'fa-user-md' }} me-1"></i>{{ etiqueta_tipo_empresa }}
-                </span>
-                ·
+            {% if empresa.tipo_empresa %}
+            <span class="ars-home-tipo"
+                  title="{{ 'Las facturas a ARS se emiten a nombre del centro (RNC).' if es_centro_salud else 'Las facturas a ARS se emiten a nombre del médico (cédula y exequátur).' }}">
+                <i class="fas {{ 'fa-hospital' if es_centro_salud else 'fa-user-doctor' }}"></i>{{ etiqueta_tipo_empresa }}
+            </span>
             {% endif %}
-            {% if es_centro_salud %}
-                Las facturas a ARS se emiten a nombre del centro (RNC).
-            {% else %}
-                Las facturas a ARS se emiten a nombre del médico.
-            {% endif %}
-            Selecciona una acción para comenzar.
-        </p>
+        </div>
+        {% endif %}
+        <p>Selecciona una acción para comenzar.</p>
     </header>
 
     <section aria-labelledby="quick-access-title">
@@ -171,7 +202,7 @@
             <a class="ars-quick-card" href="{{ url_for('facturacion_pacientes_pendientes') }}">
                 <span class="ars-quick-icon"><i class="fas fa-clipboard-list"></i></span>
                 <span class="ars-quick-copy">
-                    <h2>Facturación pendiente</h2>
+                    <h2>Factura pendiente ARS</h2>
                     <p>Revisa los registros pendientes de procesar.</p>
                 </span>
             </a>
@@ -181,7 +212,7 @@
             <a class="ars-quick-card" href="{{ url_for('facturacion_generar') }}">
                 <span class="ars-quick-icon"><i class="fas fa-file-invoice-dollar"></i></span>
                 <span class="ars-quick-copy">
-                    <h2>Generar factura</h2>
+                    <h2>Generar factura ARS</h2>
                     <p>Crea la factura final por ARS y período.</p>
                 </span>
             </a>
@@ -191,7 +222,7 @@
             <a class="ars-quick-card" href="{{ url_for('facturacion_reclamaciones') }}">
                 <span class="ars-quick-icon"><i class="fas fa-triangle-exclamation"></i></span>
                 <span class="ars-quick-copy">
-                    <h2>Reclamaciones</h2>
+                    <h2>Reclamaciones ARS</h2>
                     <p>Da seguimiento a glosas y reclamaciones.</p>
                 </span>
             </a>
@@ -199,7 +230,7 @@
             <a class="ars-quick-card" href="{{ url_for('facturacion_pagos') }}">
                 <span class="ars-quick-icon"><i class="fas fa-money-check-dollar"></i></span>
                 <span class="ars-quick-copy">
-                    <h2>Pagos</h2>
+                    <h2>Pagos ARS</h2>
                     <p>Registra y coteja los pagos recibidos.</p>
                 </span>
             </a>

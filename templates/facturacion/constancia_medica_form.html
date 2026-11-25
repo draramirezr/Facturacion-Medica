@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% from "_patient_search.html" import patient_search %}
+
+{% block title %}{{ 'Editar' if constancia else 'Nueva' }} Constancia Médica - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+{% set paciente_valor = form_data.get('paciente_id', paciente_preseleccionado or '') %}
+{% set medico_valor = form_data.get('medico_id', '') %}
+{% set consulta_valor = form_data.get('consulta_id', '') %}
+<style nonce="{{ csp_nonce }}">
+    .certificate-header { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 1.7rem; margin-bottom: 1.25rem; }
+    .certificate-section { background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.35rem; margin-bottom: 1.25rem; }
+    .certificate-section h2 { color: var(--primary-dark); font-size: 1.05rem; border-bottom: 1px solid {{ tema.primary }}20; padding-bottom: .7rem; margin-bottom: 1rem; }
+    .required::after { content: " *"; color: var(--primary-color); }
+</style>
+
+<div class="container py-4">
+    <div class="certificate-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div><h1 class="h3 mb-1"><i class="fas fa-file-signature me-2"></i>{{ 'Editar' if constancia else 'Nueva' }} constancia médica</h1><p class="text-muted mb-0">{% if constancia %}{{ constancia['codigo'] }} · Solo se permite editar mientras esté activa.{% else %}Certifica que el paciente asistió a consulta. No incluye diagnóstico.{% endif %}</p></div>
+        <a class="btn btn-outline-primary" href="{{ url_for('facturacion_constancias_medicas') }}"><i class="fas fa-arrow-left me-2"></i>Volver</a>
+    </div>
+
+    <form method="POST" id="certificateForm">
+        <section class="certificate-section">
+            <h2><i class="fas fa-user me-2"></i>Paciente</h2>
+            <div class="row g-3">
+                <div class="col-lg-8"><label class="form-label required">Paciente</label>{{ patient_search(pacientes, paciente_valor, true, 'constancia_paciente') }}</div>
+                <div class="col-lg-4"><label class="form-label">Identificación</label><input class="form-control" id="pacienteCedula" readonly></div>
+            </div>
+        </section>
+
+        <section class="certificate-section">
+            <h2><i class="fas fa-stethoscope me-2"></i>Atención</h2>
+            <div class="row g-3">
+                <div class="col-lg-6">
+                    <label class="form-label required">Médico que firma</label>
+                    {% if constancias_restringidas and medicos %}
+                    <input type="hidden" id="medico_id" name="medico_id" value="{{ medicos[0]['id'] }}">
+                    <input class="form-control" value="{{ medicos[0]['nombre'] }} · {{ medicos[0]['especialidad'] or 'Medicina general' }}" readonly>
+                    {% else %}
+                    <select class="form-select" id="medico_id" name="medico_id" required><option value="">Seleccione</option>{% for medico in medicos %}<option value="{{ medico['id'] }}" {% if medico_valor|string == medico['id']|string %}selected{% endif %}>{{ medico['nombre'] }} · {{ medico['especialidad'] }}</option>{% endfor %}</select>
+                    {% endif %}
+                </div>
+                <div class="col-lg-6"><label class="form-label">Consulta relacionada</label><select class="form-select" id="consulta_id" name="consulta_id"><option value="">Sin consulta relacionada</option>{% for consulta in consultas %}<option value="{{ consulta['id'] }}" data-paciente="{{ consulta['paciente_id'] }}" data-fecha="{{ consulta['fecha'] }}" data-hora="{{ consulta['hora']|hora_input }}" {% if consulta_valor|string == consulta['id']|string %}selected{% endif %}>{{ consulta['fecha'] }} · {{ consulta['medico_nombre'] }}</option>{% endfor %}</select></div>
+                <div class="col-lg-4"><label class="form-label required">Fecha de atención</label><input type="date" class="form-control" id="fecha_atencion" name="fecha_atencion" required value="{{ form_data.get('fecha_atencion', fecha_actual|default('')) }}"></div>
+                <div class="col-lg-4"><label class="form-label">Hora de entrada</label><input type="time" class="form-control" id="hora_entrada" name="hora_entrada" value="{{ form_data.get('hora_entrada')|hora_input }}"></div>
+                <div class="col-lg-4"><label class="form-label">Hora de salida</label><input type="time" class="form-control" id="hora_salida" name="hora_salida" value="{{ form_data.get('hora_salida')|hora_input }}"></div>
+                <div class="col-lg-6"><label class="form-label">Dirigida a</label><input class="form-control" name="dirigida_a" maxlength="200" value="{{ form_data.get('dirigida_a') or '' }}" placeholder="{{ dirigida_a_predeterminada }}"></div>
+                <div class="col-lg-6"><label class="form-label">Motivo / observación</label><input class="form-control" name="motivo" maxlength="500" value="{{ form_data.get('motivo') or '' }}" placeholder="Opcional. Ej.: consulta médica de control"></div>
+                <div class="col-12"><small class="text-muted">Por privacidad la constancia no muestra diagnóstico. Escriba solo lo que el paciente autorice compartir.</small></div>
+            </div>
+        </section>
+
+        <div class="form-actions right">
+            <a class="btn btn-cancelar" href="{{ url_for('facturacion_constancias_medicas') }}">Cancelar</a>
+            <button class="btn btn-guardar" type="submit"><i class="fas fa-save me-2"></i>{{ 'Guardar cambios' if constancia else 'Registrar constancia' }}</button>
+        </div>
+    </form>
+</div>
+<script nonce="{{ csp_nonce }}">
+(() => {
+    const patient = document.getElementById('paciente_id');
+    const consultation = document.getElementById('consulta_id');
+    const initialConsultation = consultation.value;
+    function patientInfo() {
+        document.getElementById('pacienteCedula').value = patient.dataset.cedula || '';
+        [...consultation.options].forEach((option, index) => {
+            if (!index) return;
+            option.hidden = option.dataset.paciente !== patient.value;
+            option.disabled = option.hidden;
+        });
+        if (consultation.selectedOptions[0]?.disabled) consultation.value = '';
+    }
+    function consultationInfo() {
+        const option = consultation.options[consultation.selectedIndex];
+        if (!option?.value) return;
+        if (option.dataset.fecha) document.getElementById('fecha_atencion').value = option.dataset.fecha;
+        const entrada = document.getElementById('hora_entrada');
+        if (option.dataset.hora && !entrada.value) entrada.value = option.dataset.hora;
+    }
+    patient.addEventListener('change', patientInfo);
+    consultation.addEventListener('change', consultationInfo);
+    patientInfo();
+    if (initialConsultation) consultation.value = initialConsultation;
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+
+{% block title %}Constancias Médicas - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .cm-hero { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 2rem; margin-bottom: 1.25rem; }
+    .cm-filters, .cm-table { background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}20; border-radius: 15px; padding: 1.2rem; margin-bottom: 1.25rem; }
+    .cm-table { padding: 0; overflow: hidden; }
+    .cm-table th { background: var(--primary-dark) !important; color: white !important; padding: .9rem; border: 0; }
+    .cm-table td { padding: .85rem; vertical-align: middle; }
+    .cm-state { display: inline-block; padding: .3rem .65rem; border: 1px solid {{ tema.primary }}40; border-radius: 8px; background: {{ tema.primary }}18; color: {{ tema.primary_dark }}; font-weight: 700; font-size: .75rem; }
+</style>
+
+<div class="container py-4">
+    <div class="cm-hero d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h1 class="mb-1"><i class="fas fa-file-signature me-2"></i>{{ 'Mis Constancias Médicas' if constancias_restringidas else 'Constancias Médicas' }}</h1>
+            <p class="text-muted mb-0">Constancias de asistencia a consulta para escuela, trabajo u otras instituciones.</p>
+        </div>
+        <div class="d-flex gap-2">
+            {% if can('constancias.crear') %}
+            <a class="btn btn-primary" href="{{ url_for('facturacion_constancias_medicas_nueva') }}"><i class="fas fa-plus me-2"></i>Nueva constancia</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <form class="cm-filters" method="GET">
+        <div class="row g-3 align-items-end">
+            <div class="{{ 'col-lg-4' if constancias_restringidas else 'col-lg-2' }}"><label class="form-label">Buscar</label><input class="form-control" name="buscar" value="{{ filtros.get('buscar','') }}" placeholder="Paciente, teléfono, código o institución"></div>
+            <div class="col-lg-2"><label class="form-label">Fecha de atención</label><input type="date" class="form-control" name="fecha" value="{{ filtros.get('fecha','') }}"></div>
+            {% if not constancias_restringidas %}
+            <div class="col-lg-2"><label class="form-label">Médico</label><select class="form-select" name="medico_id"><option value="">Todos</option>{% for medico in medicos %}<option value="{{ medico['id'] }}" {% if filtros.get('medico_id')|string == medico['id']|string %}selected{% endif %}>{{ medico['nombre'] }}</option>{% endfor %}</select></div>
+            {% endif %}
+            <div class="col-lg-2"><label class="form-label">Estado</label><select class="form-select" name="estado"><option value="">Todos</option>{% for estado in ['Activa','Anulada'] %}<option value="{{ estado }}" {% if filtros.get('estado') == estado %}selected{% endif %}>{{ estado }}</option>{% endfor %}</select></div>
+            <div class="col-lg-2"><label class="form-label">Ordenar</label><select class="form-select" name="orden">{% for value, label in [('recientes','Más recientes'),('antiguas','Más antiguas'),('paciente','Paciente'),('medico','Médico'),('estado','Estado')] %}<option value="{{ value }}" {% if filtros.get('orden','recientes') == value %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
+            <div class="col-lg-2"><button class="btn btn-outline-primary w-100" type="submit"><i class="fas fa-search me-2"></i>Filtrar</button></div>
+        </div>
+    </form>
+
+    <div class="cm-table table-responsive">
+        {% if constancias %}
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Código</th><th>Fecha de atención</th><th>Paciente</th><th>Médico</th><th>Dirigida a</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody>
+            {% for constancia in constancias %}
+            <tr>
+                <td>{{ constancia['codigo'] }}</td>
+                <td>{{ constancia['fecha_atencion'] }}</td>
+                <td><strong>{{ constancia['paciente_nombre'] }}</strong></td>
+                <td>{{ constancia['medico_nombre'] }}</td>
+                <td>{{ constancia['dirigida_a'] or '' }}</td>
+                <td><span class="cm-state">{{ constancia['estado'] }}</span></td>
+                <td class="text-nowrap">
+                    <div class="d-flex justify-content-center gap-2 flex-nowrap">
+                    <a class="btn btn-accion-editar" href="{{ url_for('facturacion_constancia_medica_ver', constancia_id=constancia['id']) }}"><i class="fas fa-eye"></i> Ver</a>
+                    {% if constancia['estado'] == 'Activa' and can('constancias.editar') %}<a class="btn btn-accion-editar" href="{{ url_for('facturacion_constancia_medica_editar', constancia_id=constancia['id']) }}"><i class="fas fa-edit"></i> Editar</a>{% endif %}
+                    {% if can('constancias.imprimir') %}<a class="btn btn-accion-editar" target="_blank" href="{{ url_for('facturacion_constancia_medica_imprimir', constancia_id=constancia['id']) }}"><i class="fas fa-print"></i> Imprimir</a>{% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center text-muted py-5"><i class="fas fa-file-signature fa-3x mb-3"></i><p>No hay constancias con estos filtros.</p></div>
+        {% endif %}
+    </div>
+    {% include "_pagination.html" %}
+</div>
+{% endblock %}

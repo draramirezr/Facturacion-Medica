@@ -56,6 +56,9 @@
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-plan" type="button">Plan</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-receta" type="button">Receta</button></li>
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-licencia" type="button">Licencia</button></li>
+                {% if can('constancias.crear') %}
+                <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-constancia" type="button">Constancia</button></li>
+                {% endif %}
                 <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-seguimiento" type="button">Seguimiento</button></li>
             </ul>
 
@@ -273,6 +276,21 @@
                     <p class="text-muted mb-0">No tiene permiso para emitir licencias.</p>
                     {% endif %}
                 </div>
+
+                {% if can('constancias.crear') %}
+                <div class="tab-pane fade" id="tab-constancia">
+                    <h2 class="hc-section-title">Constancia médica</h2>
+                    <p class="text-muted">Opcional. Certifica que el paciente asistió a esta consulta (para escuela, trabajo, etc.). Usa la fecha y el médico de la consulta y no incluye diagnóstico.</p>
+                    <div class="row g-3">
+                        <div class="col-12"><label class="form-check"><input class="form-check-input" type="checkbox" name="emitir_constancia" value="1"> <span class="form-check-label">Emitir constancia de asistencia al guardar la consulta</span></label></div>
+                        <div class="col-md-3"><label class="form-label">Hora de entrada</label><input type="time" class="form-control" name="constancia_hora_entrada" placeholder="Hora de la consulta"></div>
+                        <div class="col-md-3"><label class="form-label">Hora de salida</label><input type="time" class="form-control" name="constancia_hora_salida"></div>
+                        <div class="col-md-6"><label class="form-label">Dirigida a</label><input class="form-control" name="constancia_dirigida_a" maxlength="200" placeholder="A quien pueda interesar"></div>
+                        <div class="col-12"><label class="form-label">Motivo / observación</label><input class="form-control" name="constancia_motivo" maxlength="500" placeholder="Opcional, sin diagnóstico"></div>
+                        <div class="col-12"><small class="text-muted">Si deja la hora de entrada vacía se usa la hora de la consulta.</small></div>
+                    </div>
+                </div>
+                {% endif %}
 
                 <div class="tab-pane fade" id="tab-seguimiento">
                     <div class="mb-3"><label class="form-label">Nota de evolución de esta consulta</label><textarea class="form-control" name="nota_evolucion_inicial" rows="4">{{ consulta['nota_evolucion_inicial'] if consulta else '' }}</textarea></div>

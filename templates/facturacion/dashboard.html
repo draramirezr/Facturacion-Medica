@@ -1,1416 +1,360 @@
 {% extends "base.html" %}
 
-{% block title %}Dashboard de Facturación - Indicadores en Tiempo Real{% endblock %}
+{% block title %}Dashboard - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
-{% block description %}Dashboard administrativo con estadísticas e indicadores de facturación en tiempo real. Sistema de gestión médica profesional.{% endblock %}
+{% macro variacion(valor) -%}
+    {%- if valor is not none -%}
+    <span class="db-var {{ 'db-var-up' if valor >= 0 else 'db-var-down' }}"
+          title="Comparado con el periodo anterior de la misma duración">
+        <i class="fas {{ 'fa-arrow-trend-up' if valor >= 0 else 'fa-arrow-trend-down' }}"></i>
+        {{ '+' if valor > 0 else '' }}{{ valor }}%
+    </span>
+    {%- endif -%}
+{%- endmacro %}
 
 {% block content %}
 <style nonce="{{ csp_nonce }}">
-    /* Las variables de color ya vienen de base.html via tema */
-    :root {
-        --success-color: #10B981;
-        --warning-color: #F59E0B;
-        --danger-color: #EF4444;
-        --text-dark: #1E293B;
-        --text-muted: #64748B;
-    }
-    
-    body {
-        background: linear-gradient(135deg, #f5f7fa 0%, #f8f9fc 100%);
-        font-family: var(--font-body, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif);
-    }
-    
-    .dashboard-container {
-        max-width: 1400px;
-        margin: 30px auto;
-        padding: 20px;
-    }
-    
-    /* Header consistente con otras páginas */
-    .facturacion-hero {
-        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary_light }}30 100%);
-        border-radius: 20px;
-        padding: 2rem;
-        margin-bottom: 2rem;
-    }
-    
-    .btn-volver {
-        background: color-mix(in srgb, var(--primary-color) 16%, var(--ars-shell-surface, #fff));
-        border: 2px solid var(--primary-color);
-        color: var(--primary-dark);
-        padding: 0.7rem 1.5rem;
-        border-radius: 15px;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        text-decoration: none;
-        display: inline-block;
-    }
-    
-    .btn-volver:hover {
-        background: var(--primary-color);
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0 6px 20px {{ tema.primary }}50;
-    }
-    
-    /* Filtros Modernos con Glassmorphism */
-    .filter-card {
-        background: rgba(255, 255, 255, 0.95);
-        backdrop-filter: blur(20px);
-        border-radius: 20px;
-        padding: 2rem;
-        box-shadow: 
-            0 8px 32px rgba(0, 0, 0, 0.08),
-            0 0 0 1px rgba(255, 255, 255, 0.5) inset;
-        margin-bottom: 2rem;
-        border: 1px solid {{ tema.primary }}15;
-        position: relative;
-        z-index: 100;
-    }
-    
-    .filter-card h3 {
-        color: var(--text-dark);
-        font-weight: 700;
-        margin-bottom: 1.5rem;
-        font-size: 1.2rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-    
-    .filter-card h3 i {
-        color: var(--primary-color);
-        font-size: 1.3rem;
-    }
-    
-    .filter-form {
-        display: flex;
-        gap: 1rem;
-        align-items: end;
-        flex-wrap: wrap;
-    }
-    
-    .form-group {
-        flex: 1;
-        min-width: 200px;
-        position: relative;
-    }
-    
-    .form-group label {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: var(--text-muted);
-        font-weight: 600;
-        margin-bottom: 0.6rem;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .form-group input[type="date"] {
-        width: 100%;
-        padding: 0.85rem 1rem;
-        border: 2px solid {{ tema.primary }}30;
-        border-radius: 12px;
-        font-size: 1rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        background:var(--ars-shell-surface, #fff);
-        font-weight: 500;
-    }
-    
-    .form-group input[type="date"]:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 4px {{ tema.primary }}15;
-        transform: translateY(-2px);
-    }
-    
-    /* Estilo para el dropdown personalizado */
-    .custom-multiselect {
-        position: relative;
-        width: 100%;
-    }
-    
-    .multiselect-button {
-        width: 100%;
-        padding: 0.85rem 1rem;
-        border: 2px solid {{ tema.primary }}30;
-        border-radius: 12px;
-        font-size: 1rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        background:var(--ars-shell-surface, #fff);
-        font-weight: 500;
-        cursor: pointer;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        gap: 0.75rem;
-        color: var(--ars-shell-text, #2c3e50);
-        text-align: left;
-    }
+    .db { max-width: 1240px; margin: 0 auto; padding: 28px 24px 48px; }
+    .db-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; margin-bottom: 20px; }
+    .db-head h1 { margin: 0; font-size: 1.5rem; font-weight: 800; color: var(--ars-shell-text, #172033); letter-spacing: -0.02em; }
+    .db-head p { margin: 4px 0 0; color: var(--ars-shell-muted, #718096); font-size: 0.85rem; }
 
-    .multiselect-button [id$="-selected-text"] {
-        flex: 1;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    
-    .multiselect-button:hover {
-        border-color: var(--primary-color);
-    }
-    
-    .multiselect-button.open {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 4px {{ tema.primary }}15;
-    }
-    
-    .multiselect-arrow {
-        font-size: 0.8rem;
-        color: var(--primary-color);
-        transition: transform 0.3s ease;
-    }
-    
-    .multiselect-button.open .multiselect-arrow {
-        transform: rotate(180deg);
-    }
-    
-    .multiselect-dropdown {
-        position: absolute;
-        top: calc(100% + 5px);
-        left: 0;
-        right: 0;
-        background:var(--ars-shell-surface, #fff);
-        border: 2px solid var(--primary-color);
-        border-radius: 12px;
-        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
-        max-height: 300px;
-        overflow-y: auto;
-        z-index: 9999;
-        display: none;
-    }
-    
-    .multiselect-dropdown.show {
-        display: block;
-        animation: slideDown 0.3s ease;
-    }
-    
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .multiselect-option {
-        padding: 0.8rem 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.7rem;
-        cursor: pointer;
-        transition: background 0.2s ease;
-        border-bottom: 1px solid {{ tema.primary }}15;
-    }
-    
-    .multiselect-option:last-child {
-        border-bottom: none;
-    }
-    
-    .multiselect-option:hover {
-        background: {{ tema.primary }}08;
-    }
-    
-    .multiselect-option input[type="checkbox"] {
-        width: 18px;
-        height: 18px;
-        cursor: pointer;
-        accent-color: var(--primary-color);
-    }
-    
-    .multiselect-option label,
-    .multiselect-option span {
-        cursor: pointer;
-        margin: 0;
-        flex: 1;
-        font-weight: 500;
-        color: var(--ars-shell-text, #2c3e50);
-    }
-    
-    .multiselect-header {
-        padding: 0;
-        background: var(--ars-shell-surface, #fff);
-        border-bottom: 1px solid var(--ars-shell-border, {{ tema.primary }}30);
-        position: sticky;
-        top: 0;
-        z-index: 10;
-    }
+    .db-empresa { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; color: var(--ars-shell-text, #172033); font-size: 0.9rem; }
+    .db-tipo { display: inline-flex; align-items: center; gap: 6px; padding: 2px 10px; border-radius: 999px; font-size: 0.7rem; font-weight: 700;
+               letter-spacing: .04em; text-transform: uppercase; color: var(--ars-shell-muted, #718096);
+               background: var(--ars-shell-surface-alt, #f2f5f8); border: 1px solid var(--ars-shell-border, #e8edf3); }
+    .db-tipo i { color: var(--primary-color, #0891b2); }
+    .db-filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+    .db-chip { padding: 6px 12px; border-radius: 999px; border: 1px solid var(--ars-shell-border, #e8edf3);
+               background: var(--ars-shell-surface, #fff); color: var(--ars-shell-muted, #718096);
+               font-size: 0.78rem; font-weight: 600; text-decoration: none; }
+    .db-chip:hover { color: var(--primary-color, #0891b2); border-color: var(--primary-color, #0891b2); }
+    .db-chip.active { background: var(--primary-color, #0891b2); border-color: var(--primary-color, #0891b2); color: #fff; }
+    .db-filtros form { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .db-filtros input, .db-filtros select { height: 32px; padding: 2px 8px; font-size: 0.8rem; border-radius: 8px;
+               border: 1px solid var(--ars-shell-border, #e8edf3); background: var(--ars-shell-surface, #fff);
+               color: var(--ars-shell-text, #172033); }
+    .db-filtros button { height: 32px; padding: 0 12px; border-radius: 8px; border: 0; font-size: 0.8rem; font-weight: 700;
+               background: var(--ars-shell-text, #172033); color: var(--ars-shell-surface, #fff); }
 
-    .multiselect-option.is-all {
-        background: var(--ars-shell-surface, #fff);
-        font-weight: 700;
-    }
+    .db-alertas { display: grid; gap: 8px; margin-bottom: 18px; }
+    .db-alerta { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: 12px; font-size: 0.85rem; font-weight: 600; text-decoration: none; }
+    .db-alerta.danger { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+    .db-alerta.warning { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+    html[data-color-mode="dark"] .db-alerta.danger { background: #3b1219; color: #fecaca; border-color: #7f1d1d; }
+    html[data-color-mode="dark"] .db-alerta.warning { background: #3a2a0b; color: #fde68a; border-color: #78350f; }
 
-    .multiselect-option.is-all label {
-        color: var(--primary-dark);
-    }
-    
-    .btn-filter {
-        background: var(--gradient-primary);
-        border: none;
-        color: white;
-        border-radius: 12px;
-        padding: 0.85rem 2rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 15px {{ tema.primary }}50;
-        font-size: 1rem;
-    }
-    
-    .btn-filter:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px {{ tema.primary }}60;
-    }
-    
-    .btn-filter:active {
-        transform: translateY(-1px);
-    }
-    
-    /* Tarjetas Estadísticas Ultra Modernas */
-    .stat-card {
-        background:var(--ars-shell-surface, #fff);
-        border-radius: 20px;
-        padding: 2rem;
-        box-shadow: 
-            0 10px 40px rgba(0, 0, 0, 0.08),
-            0 0 0 1px {{ tema.primary }}08 inset;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        height: 100%;
-        border-left: 5px solid;
-        position: relative;
-        overflow: hidden;
-        z-index: 1;
-    }
-    
-    .stat-card::after {
-        content: '';
-        position: absolute;
-        top: -50%;
-        right: -50%;
-        width: 200px;
-        height: 200px;
-        background: radial-gradient(circle, currentColor 0%, transparent 70%);
-        opacity: 0.03;
-        border-radius: 50%;
-        transition: all 0.6s ease;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-8px) scale(1.02);
-        box-shadow: 
-            0 20px 60px rgba(0, 0, 0, 0.12),
-            0 0 0 1px {{ tema.primary }}15 inset;
-    }
-    
-    .stat-card:hover::after {
-        transform: scale(2);
-        opacity: 0.05;
-    }
-    
-    .stat-card.primary { 
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-    }
-    
-    .stat-card.success { 
-        border-color: var(--success-color);
-        color: var(--success-color);
-    }
-    
-    .stat-card.warning { 
-        border-color: var(--warning-color);
-        color: var(--warning-color);
-    }
-    
-    .stat-card.danger { 
-        border-color: var(--danger-color);
-        color: var(--danger-color);
-    }
-    
-    .stat-icon {
-        width: 70px;
-        height: 70px;
-        border-radius: 18px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin-bottom: 1.2rem;
-        font-size: 2rem;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .stat-icon.primary { 
-        background: linear-gradient(135deg, {{ tema.primary }}15 0%, {{ tema.primary }}30 100%);
-        color: var(--primary-color);
-    }
-    
-    .stat-icon.success { 
-        background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.2) 100%);
-        color: var(--success-color);
-    }
-    
-    .stat-icon.warning { 
-        background: linear-gradient(135deg, rgba(255, 193, 7, 0.1) 0%, rgba(255, 193, 7, 0.2) 100%);
-        color: var(--warning-color);
-    }
-    
-    .stat-icon.danger { 
-        background: linear-gradient(135deg, rgba(220, 53, 69, 0.1) 0%, rgba(220, 53, 69, 0.2) 100%);
-        color: var(--danger-color);
-    }
-    
-    .stat-value {
-        font-size: 2.8rem;
-        font-weight: 800;
-        color: var(--text-dark);
-        margin: 0.5rem 0;
-        line-height: 1;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .stat-label {
-        color: var(--text-muted);
-        font-size: 0.95rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin: 0;
-        position: relative;
-        z-index: 1;
-    }
-    
-    /* Gráficos Modernos */
-    .chart-card {
-        background:var(--ars-shell-surface, #fff);
-        border-radius: 20px;
-        padding: 2.5rem;
-        box-shadow: 
-            0 10px 40px rgba(0, 0, 0, 0.08),
-            0 0 0 1px {{ tema.primary }}08 inset;
-        margin-bottom: 2rem;
-        transition: all 0.3s ease;
-        border: 1px solid {{ tema.primary }}15;
-        position: relative;
-        z-index: 1;
-    }
-    
-    .chart-card:hover {
-        box-shadow: 
-            0 15px 50px rgba(0, 0, 0, 0.12),
-            0 0 0 1px {{ tema.primary }}15 inset;
-    }
-    
-    .chart-card h3 {
-        color: var(--text-dark);
-        font-weight: 700;
-        margin-bottom: 2rem;
-        font-size: 1.4rem;
-        display: flex;
-        align-items: center;
-        gap: 0.7rem;
-        padding-bottom: 1rem;
-        border-bottom: 2px solid {{ tema.primary }}15;
-    }
-    
-    .chart-card h3 i {
-        color: var(--primary-color);
-        font-size: 1.5rem;
-    }
-    
-    /* Botón Volver Moderno */
-    .btn-volver {
-        background: color-mix(in srgb, var(--primary-color) 16%, var(--ars-shell-surface, #fff));
-        backdrop-filter: none;
-        border: 2px solid var(--primary-color);
-        color: var(--primary-dark);
-        border-radius: 15px;
-        padding: 0.85rem 1.8rem;
-        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        font-weight: 600;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-    }
-    
-    .btn-volver:hover {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px color-mix(in srgb, var(--primary-color) 35%, transparent);
-        color: white;
-    }
-    
-    /* Animaciones Suaves */
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(40px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-    
-    .animate-card {
-        animation: fadeInUp 0.6s cubic-bezier(0.4, 0, 0.2, 1) backwards;
-    }
+    .db-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 14px; margin-bottom: 18px; }
+    .db-kpi { position: relative; display: block; padding: 16px 18px; border-radius: 16px; text-decoration: none;
+              background: var(--ars-shell-surface, #fff); border: 1px solid var(--ars-shell-border, #e8edf3);
+              transition: transform .15s ease, box-shadow .15s ease; }
+    a.db-kpi:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(15, 23, 42, .08); }
+    .db-kpi-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .db-kpi-label { color: var(--ars-shell-muted, #718096); font-size: 0.72rem; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+    .db-kpi-icon { width: 32px; height: 32px; border-radius: 10px; display: grid; place-items: center; font-size: .85rem; }
+    .db-kpi-valor { color: var(--ars-shell-text, #172033); font-size: 1.45rem; font-weight: 800; letter-spacing: -0.02em; line-height: 1.15; }
+    .db-kpi-sub { margin-top: 6px; color: var(--ars-shell-muted, #718096); font-size: 0.78rem; display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+    .ic-verde { background: #dcfce7; color: #15803d; }
+    .ic-azul { background: #e0f2fe; color: #0369a1; }
+    .ic-ambar { background: #fef3c7; color: #b45309; }
+    .ic-rojo { background: #fee2e2; color: #b91c1c; }
+    .ic-violeta { background: #ede9fe; color: #6d28d9; }
+    .ic-gris { background: #f1f5f9; color: #475569; }
+    html[data-color-mode="dark"] .db-kpi-icon { filter: saturate(.9) brightness(.9); }
 
-    .dashboard-title {
-        color: var(--primary-color);
-        font-weight: 800;
-        font-size: 2rem;
-        margin-bottom: 0.5rem;
-    }
+    .db-var { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .db-var-up { background: #dcfce7; color: #15803d; }
+    .db-var-down { background: #fee2e2; color: #b91c1c; }
 
-    .dashboard-subtitle {
-        color: var(--ars-shell-muted, #666);
-        margin: 0;
-    }
+    .db-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 14px; margin-bottom: 14px; }
+    .db-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+    @media (max-width: 980px) { .db-grid, .db-grid-2 { grid-template-columns: 1fr; } }
+    .db-card { padding: 18px 20px; border-radius: 16px; background: var(--ars-shell-surface, #fff); border: 1px solid var(--ars-shell-border, #e8edf3); min-width: 0; }
+    .db-card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 12px; }
+    .db-card h2 { margin: 0; font-size: 0.95rem; font-weight: 800; color: var(--ars-shell-text, #172033); }
+    .db-card-head a { font-size: 0.78rem; font-weight: 700; text-decoration: none; color: var(--primary-color, #0891b2); }
+    .db-chart { position: relative; height: 260px; }
+    .db-chart-sm { position: relative; height: 220px; }
+    .db-vacio { display: grid; place-items: center; height: 100%; min-height: 120px; color: var(--ars-shell-muted, #718096); font-size: 0.85rem; text-align: center; }
 
-    .dashboard-center {
-        display: inline-flex;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 0.45rem 0.65rem;
-        margin: 0 0 0.7rem;
-        padding: 0.45rem 0.85rem;
-        border: 1px solid color-mix(in srgb, var(--primary-color) 35%, var(--ars-shell-border, #e5edf3));
-        border-radius: 999px;
-        background: color-mix(in srgb, var(--primary-color) 12%, var(--ars-shell-surface, #fff));
-        color: var(--primary-dark);
-        font-size: 0.92rem;
-        font-weight: 700;
-    }
-
-    .dashboard-center i {
-        color: var(--primary-color);
-    }
-
-    .dashboard-center strong {
-        color: var(--ars-shell-text, #172033);
-        font-size: 1.05rem;
-    }
-
-    .filter-title {
-        font-weight: 600;
-        color: #2c3e50;
-    }
-
-    .filter-actions {
-        display: flex;
-        gap: 0.8rem;
-        flex-wrap: wrap;
-        margin-top: 0.5rem;
-    }
-
-    .btn-filter-secondary {
-        background: color-mix(in srgb, var(--primary-color) 16%, var(--ars-shell-surface, #fff));
-        border: 2px solid var(--primary-color);
-        color: var(--primary-dark);
-        box-shadow: none;
-    }
-
-    .btn-filter-secondary:hover {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
-        color: #fff;
-    }
-
-    .delay-01 { animation-delay: 0.1s; }
-    .delay-03 { animation-delay: 0.3s; }
-    .delay-035 { animation-delay: 0.35s; }
-    .delay-04 { animation-delay: 0.4s; }
-    .delay-06 { animation-delay: 0.6s; }
-    .delay-065 { animation-delay: 0.65s; }
-    .delay-07 { animation-delay: 0.7s; }
-    .delay-075 { animation-delay: 0.75s; }
-
-    .pending-ars-content {
-        position: relative;
-        z-index: 1;
-    }
-
-    .pending-ars-label { margin-bottom: 0.8rem; }
-
-    .pending-ars-list {
-        max-height: 150px;
-        overflow-y: auto;
-        padding-right: 5px;
-    }
-
-    .pending-ars-link {
-        text-decoration: none;
-        background: rgba(255, 193, 7, 0.15);
-        color: #856404;
-        padding: 0.5rem 0.85rem;
-        border-radius: 10px;
-        margin: 0.2rem;
-        font-size: 0.9rem;
-        font-weight: 700;
-        border: 1px solid rgba(255, 193, 7, 0.3);
-        box-shadow: 0 4px 12px rgba(255,193,7,0.15);
-        transition: all 0.2s ease;
-    }
-
-    .pending-empty-value { font-size: 1.5rem; }
-    .selection-empty { color: #dc3545; }
-    .selection-present { color: #2c3e50; }
-    
-    /* Responsive Mejorado */
-    @media (max-width: 992px) {
-        .dashboard-header {
-            padding: 2rem;
-        }
-        
-        .filter-card {
-            padding: 1.5rem;
-        }
-        
-        .chart-card {
-            padding: 1.5rem;
-        }
-    }
-    
-    @media (max-width: 768px) {
-        .dashboard-container {
-            padding: 10px;
-        }
-        
-        .dashboard-header {
-            border-radius: 20px;
-            padding: 1.5rem;
-        }
-        
-        .dashboard-header h1 {
-            font-size: 1.5rem !important;
-        }
-        
-        .dashboard-header p {
-            font-size: 0.9rem !important;
-        }
-        
-        .stat-value {
-            font-size: 2rem;
-        }
-        
-        .stat-label {
-            font-size: 0.85rem;
-        }
-        
-        .filter-form {
-            flex-direction: column;
-        }
-        
-        .form-group {
-            width: 100%;
-            min-width: 100%;
-        }
-        
-        .btn-filter {
-            width: 100%;
-            padding: 1rem;
-        }
-        
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            font-size: 1.8rem;
-        }
-        
-        .chart-card h3 {
-            font-size: 1.1rem;
-            flex-wrap: wrap;
-        }
-        
-        .btn-volver {
-            font-size: 0.9rem;
-            padding: 0.7rem 1.2rem;
-        }
-    }
-    
-    @media (max-width: 480px) {
-        .dashboard-header h1 {
-            font-size: 1.3rem !important;
-        }
-        
-        .stat-value {
-            font-size: 1.8rem;
-        }
-        
-        .stat-card {
-            padding: 1.5rem;
-        }
-        
-        .form-group input,
-        .form-group select {
-            font-size: 0.95rem;
-        }
-    }
-    
-    /* Scrollbar Personalizado */
-    ::-webkit-scrollbar {
-        width: 10px;
-    }
-    
-    ::-webkit-scrollbar-track {
-        background: #f1f1f1;
-        border-radius: 10px;
-    }
-    
-    ::-webkit-scrollbar-thumb {
-        background: var(--gradient-primary);
-        border-radius: 10px;
-    }
-    
-    ::-webkit-scrollbar-thumb:hover {
-        background: linear-gradient(135deg, {{ tema.primary_dark }} 0%, {{ tema.primary }} 100%);
-    }
+    .db-tabla { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+    .db-tabla th { color: var(--ars-shell-muted, #718096); font-size: 0.7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 6px 4px; border-bottom: 1px solid var(--ars-shell-border, #e8edf3); text-align: left; }
+    .db-tabla td { padding: 9px 4px; border-bottom: 1px solid var(--ars-shell-border, #e8edf3); color: var(--ars-shell-text, #172033); vertical-align: middle; }
+    .db-tabla tr:last-child td { border-bottom: 0; }
+    .db-tabla .num { text-align: right; white-space: nowrap; }
+    .db-btn-mini { display: inline-block; padding: 3px 10px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; text-decoration: none;
+                   background: var(--primary-color, #0891b2); color: #fff; white-space: nowrap; }
+    .db-btn-mini:hover { color: #fff; opacity: .9; }
+    .db-muted { color: var(--ars-shell-muted, #718096); font-size: 0.75rem; }
 </style>
 
-<div class="dashboard-container">
-    <!-- Header -->
-    <div class="facturacion-hero">
-        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
-            <div>
-                <h1 class="dashboard-title">
-                    <i class="fas fa-chart-line me-2"></i>
-                    Dashboard de Facturación
-                </h1>
-                {% if empresa and empresa.empresa_nombre %}
-                <p class="dashboard-center">
-                    <i class="fas {{ 'fa-hospital' if empresa.tipo_empresa == 'centro_salud' else 'fa-user-md' }}"></i>
-                    <span>{{ 'Centro de salud' if empresa.tipo_empresa == 'centro_salud' else 'Consultorio' }}</span>
-                    <strong>{{ empresa.empresa_nombre }}</strong>
-                </p>
-                {% endif %}
-                <p class="dashboard-subtitle">Indicadores y estadísticas en tiempo real</p>
-            </div>
-            <div>
-                <a href="{{ url_for('facturacion_menu') }}" class="btn btn-volver">
-                    <i class="fas fa-arrow-left me-2"></i>Volver al Menú
-                </a>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Filtros de Fecha -->
-    <div class="filter-card animate-card delay-01">
-        <h3><i class="fas fa-filter me-2"></i>Filtrar por Período y Categorías</h3>
-        <form method="GET" action="{{ url_for('facturacion_dashboard') }}" class="filter-form" id="filterForm">
-            <div class="form-group">
-                <label for="fecha_desde">Fecha Desde:</label>
-                <input type="date" id="fecha_desde" name="fecha_desde" value="{{ fecha_desde }}" required>
-            </div>
-            <div class="form-group">
-                <label for="fecha_hasta">Fecha Hasta:</label>
-                <input type="date" id="fecha_hasta" name="fecha_hasta" value="{{ fecha_hasta }}" required>
-            </div>
-            
-            <!-- Filtro ARS -->
-            <div class="form-group">
-                <label>ARS:</label>
-                <div class="custom-multiselect">
-                    <div class="multiselect-button" data-csp-click="toggleDropdown" data-csp-args='["ars"]'>
-                        <span id="ars-selected-text" data-all-label="Todas las ARS" data-empty-label="Ninguna ARS">Todas las ARS</span>
-                        <i class="fas fa-chevron-down multiselect-arrow"></i>
-                    </div>
-                    <div class="multiselect-dropdown" id="ars-dropdown">
-                        <div class="multiselect-header">
-                            <div class="multiselect-option is-all" data-csp-click="toggleAllOptions" data-csp-args='["ars"]'>
-                                <input type="checkbox" id="ars-all" data-select-all tabindex="-1">
-                                <span>Todas las ARS</span>
-                            </div>
-                        </div>
-                        {% for ars in ars_list %}
-                        <div class="multiselect-option" data-csp-click="toggleOption" data-csp-args='["ars"]' data-csp-pass="event">
-                            <input type="checkbox" 
-                                   name="ars_id" 
-                                   value="{{ ars.id }}" 
-                                   id="ars-{{ ars.id }}"
-                                   {% if not ars_ids_seleccionados or ars.id in ars_ids_seleccionados %}checked{% endif %}>
-                            <label for="ars-{{ ars.id }}">{{ ars.nombre }}</label>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Filtro Médico Factura (solo para administradores) -->
-            {% if es_administrador %}
-            <div class="form-group">
-                <label>Médico Factura:</label>
-                <div class="custom-multiselect">
-                    <div class="multiselect-button" data-csp-click="toggleDropdown" data-csp-args='["medico_factura"]'>
-                        <span id="medico_factura-selected-text" data-all-label="Todos los médicos" data-empty-label="Ningún médico">Todos los médicos</span>
-                        <i class="fas fa-chevron-down multiselect-arrow"></i>
-                    </div>
-                    <div class="multiselect-dropdown" id="medico_factura-dropdown">
-                        <div class="multiselect-header">
-                            <div class="multiselect-option is-all" data-csp-click="toggleAllOptions" data-csp-args='["medico_factura"]'>
-                                <input type="checkbox" id="medico_factura-all" data-select-all tabindex="-1">
-                                <span>Todos los médicos</span>
-                            </div>
-                        </div>
-                        {% for medico in medicos_factura_list %}
-                        <div class="multiselect-option" data-csp-click="toggleOption" data-csp-args='["medico_factura"]' data-csp-pass="event">
-                            <input type="checkbox" 
-                                   name="medico_factura_id" 
-                                   value="{{ medico.id }}" 
-                                   id="medico_factura-{{ medico.id }}"
-                                   {% if not medico_factura_ids_seleccionados or medico.id in medico_factura_ids_seleccionados %}checked{% endif %}>
-                            <label for="medico_factura-{{ medico.id }}">{{ medico.nombre }}</label>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
+<div class="db">
+    <div class="db-head">
+        <div>
+            <h1>Dashboard</h1>
+            {% if empresa and empresa.empresa_nombre %}
+            <div class="dashboard-center db-empresa">
+                <strong>{{ empresa.empresa_nombre }}</strong>
+                <span class="db-tipo"><i class="fas {{ 'fa-hospital' if empresa.tipo_empresa == 'centro_salud' else 'fa-user-doctor' }}"></i>{{ 'Centro de salud' if empresa.tipo_empresa == 'centro_salud' else 'Consultorio médico' }}</span>
             </div>
             {% endif %}
-            
-            <!-- Filtro Médico Paciente -->
-            <div class="form-group">
-                <label>Médico Paciente:</label>
-                <div class="custom-multiselect">
-                    <div class="multiselect-button" data-csp-click="toggleDropdown" data-csp-args='["medico_consulta"]'>
-                        <span id="medico_consulta-selected-text" data-all-label="Todos los médicos" data-empty-label="Ningún médico">Todos los médicos</span>
-                        <i class="fas fa-chevron-down multiselect-arrow"></i>
-                    </div>
-                    <div class="multiselect-dropdown" id="medico_consulta-dropdown">
-                        <div class="multiselect-header">
-                            <div class="multiselect-option is-all" data-csp-click="toggleAllOptions" data-csp-args='["medico_consulta"]'>
-                                <input type="checkbox" id="medico_consulta-all" data-select-all tabindex="-1">
-                                <span>Todos los médicos</span>
-                            </div>
-                        </div>
-                        {% for medico in medicos_consulta_list %}
-                        <div class="multiselect-option" data-csp-click="toggleOption" data-csp-args='["medico_consulta"]' data-csp-pass="event">
-                            <input type="checkbox" 
-                                   name="medico_consulta_id" 
-                                   value="{{ medico.id }}" 
-                                   id="medico_consulta-{{ medico.id }}"
-                                   {% if not medico_consulta_ids_seleccionados or medico.id in medico_consulta_ids_seleccionados %}checked{% endif %}>
-                            <label for="medico_consulta-{{ medico.id }}">{{ medico.nombre }}</label>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            
-        </form>
+            <p>
+                Del {{ desde[8:10] }}/{{ desde[5:7] }}/{{ desde[:4] }} al {{ hasta[8:10] }}/{{ hasta[5:7] }}/{{ hasta[:4] }}
+                {% if ars_id %}· {{ (ars_list|selectattr('id', 'equalto', ars_id)|map(attribute='nombre')|first) or '' }}{% endif %}
+            </p>
+        </div>
+        <div class="db-filtros">
+            {% for clave, etiqueta in presets %}
+            <a class="db-chip {{ 'active' if preset == clave else '' }}"
+               href="{{ url_for('facturacion_dashboard', periodo=clave, ars_id=ars_id or '') }}">{{ etiqueta }}</a>
+            {% endfor %}
+            <form method="get" action="{{ url_for('facturacion_dashboard') }}">
+                <input type="date" name="fecha_desde" value="{{ desde }}" aria-label="Desde">
+                <input type="date" name="fecha_hasta" value="{{ hasta }}" aria-label="Hasta">
+                <select name="ars_id" aria-label="ARS">
+                    <option value="">Todas las ARS</option>
+                    {% for ars in ars_list %}
+                    <option value="{{ ars.id }}" {{ 'selected' if ars_id == ars.id else '' }}>{{ ars.nombre }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Aplicar</button>
+            </form>
+        </div>
     </div>
-    
-    <!-- Tarjetas de Estadísticas Principales -->
-    <div class="row g-4 mb-4">
-        <!-- Total Facturado -->
-        <div class="col-lg-3 col-md-6 animate-card delay-03">
-            <div class="stat-card success">
-                <div class="stat-icon success">
-                    <i class="fas fa-dollar-sign"></i>
-                </div>
-                <p class="stat-value">${{ "{:,.2f}".format(total_facturado) }}</p>
-                <p class="stat-label">Total Facturado</p>
+
+    {% if d.alertas %}
+    <div class="db-alertas">
+        {% for alerta in d.alertas %}
+        <a class="db-alerta {{ alerta.nivel }}" href="{{ url_for(alerta.endpoint) }}">
+            <i class="fas {{ 'fa-circle-exclamation' if alerta.nivel == 'danger' else 'fa-triangle-exclamation' }}"></i>
+            {{ alerta.texto }}
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="db-kpis">
+        <a class="db-kpi" href="{{ url_for('facturacion_historico', tipo='facturas', fecha_desde=desde, fecha_hasta=hasta) }}">
+            <div class="db-kpi-top">
+                <span class="db-kpi-label">Facturado</span>
+                <span class="db-kpi-icon ic-verde"><i class="fas fa-file-invoice-dollar"></i></span>
             </div>
-        </div>
-        
-        <!-- Monto Pendiente por Facturar -->
-        <div class="col-lg-3 col-md-6 animate-card delay-035">
-            <div class="stat-card danger">
-                <div class="stat-icon danger">
-                    <i class="fas fa-exclamation-circle"></i>
-                </div>
-                <p class="stat-value">${{ "{:,.2f}".format(monto_pendiente) }}</p>
-                <p class="stat-label">Monto Pendiente por Facturar</p>
+            <div class="db-kpi-valor">RD$ {{ d.facturado|formato_moneda }}</div>
+            <div class="db-kpi-sub">{{ variacion(d.facturado_variacion) }}<span>{{ d.facturas }} factura{{ '' if d.facturas == 1 else 's' }}</span></div>
+        </a>
+        <a class="db-kpi" href="{{ url_for('facturacion_pagos') }}">
+            <div class="db-kpi-top">
+                <span class="db-kpi-label">Cobrado</span>
+                <span class="db-kpi-icon ic-azul"><i class="fas fa-sack-dollar"></i></span>
             </div>
+            <div class="db-kpi-valor">RD$ {{ d.cobrado|formato_moneda }}</div>
+            <div class="db-kpi-sub">
+                {{ variacion(d.cobrado_variacion) }}
+                {% if d.tasa_cobro is not none %}<span>{{ d.tasa_cobro }}% de lo facturado</span>{% endif %}
+            </div>
+        </a>
+        <a class="db-kpi" href="{{ url_for('facturacion_pagos') }}">
+            <div class="db-kpi-top">
+                <span class="db-kpi-label">Por cobrar a ARS</span>
+                <span class="db-kpi-icon ic-ambar"><i class="fas fa-hourglass-half"></i></span>
+            </div>
+            <div class="db-kpi-valor">RD$ {{ d.por_cobrar|formato_moneda }}</div>
+            <div class="db-kpi-sub"><span>{{ d.facturas_abiertas }} factura{{ '' if d.facturas_abiertas == 1 else 's' }} con saldo · al día de hoy</span></div>
+        </a>
+        <a class="db-kpi" href="{{ url_for('facturacion_pacientes_pendientes') }}">
+            <div class="db-kpi-top">
+                <span class="db-kpi-label">Por facturar</span>
+                <span class="db-kpi-icon ic-violeta"><i class="fas fa-clipboard-list"></i></span>
+            </div>
+            <div class="db-kpi-valor">RD$ {{ d.pendiente_facturar|formato_moneda }}</div>
+            <div class="db-kpi-sub"><span>{{ d.servicios_pendientes }} servicio{{ '' if d.servicios_pendientes == 1 else 's' }} sin facturar</span></div>
+        </a>
+        <div class="db-kpi">
+            <div class="db-kpi-top">
+                <span class="db-kpi-label">Ticket promedio</span>
+                <span class="db-kpi-icon ic-gris"><i class="fas fa-receipt"></i></span>
+            </div>
+            <div class="db-kpi-valor">RD$ {{ d.ticket_promedio|formato_moneda }}</div>
+            <div class="db-kpi-sub"><span>por factura en el periodo</span></div>
         </div>
-        
-        <!-- ARS Pendientes por Facturar (clickeables) -->
-        <div class="col-lg-3 col-md-6 animate-card delay-04">
-            <div class="stat-card warning">
-                <div class="stat-icon warning">
-                    <i class="fas fa-building"></i>
-                </div>
-                {% if ars_pendientes_detalle and ars_pendientes_detalle|length > 0 %}
-                    <div class="pending-ars-content">
-                        <p class="stat-label pending-ars-label">ARS Pendientes por Facturar</p>
-                        <div class="pending-ars-list">
-                            {% for ars in ars_pendientes_detalle %}
-                                <a href="{{ url_for('facturacion_generar') }}?auto=1&ars_id={{ ars.id }}"
-                                   class="d-inline-block pending-ars-link">
-                                    <i class="fas fa-external-link-alt me-1"></i>
-                                    {{ ars.nombre }} — {{ ars.monto|formato_moneda }}
-                                </a>
-                            {% endfor %}
-                        </div>
-                    </div>
+        <a class="db-kpi" href="{{ url_for('facturacion_reclamaciones') }}">
+            <div class="db-kpi-top">
+                <span class="db-kpi-label">Reclamaciones abiertas</span>
+                <span class="db-kpi-icon ic-rojo"><i class="fas fa-triangle-exclamation"></i></span>
+            </div>
+            <div class="db-kpi-valor">{{ d.reclamaciones }}</div>
+            <div class="db-kpi-sub"><span>RD$ {{ d.monto_reclamaciones|formato_moneda }} reclamado</span></div>
+        </a>
+    </div>
+
+    <div class="db-grid">
+        <section class="db-card">
+            <div class="db-card-head"><h2>Facturado vs. cobrado por mes</h2></div>
+            <div class="db-chart">
+                {% if graficas.facturado|sum > 0 or graficas.cobrado|sum > 0 %}
+                <canvas id="graficaMensual" aria-label="Facturado y cobrado por mes" role="img"></canvas>
                 {% else %}
-                    <p class="stat-value pending-empty-value">✓</p>
-                    <p class="stat-label">Sin ARS Pendientes</p>
+                <div class="db-vacio">Sin facturas ni cobros en este periodo.</div>
                 {% endif %}
             </div>
-        </div>
-    </div>
-    
-    <!-- Gráficos -->
-    <div class="row g-4 mb-4">
-        <!-- Facturación por Mes -->
-        <div class="col-lg-12 animate-card delay-06">
-            <div class="chart-card">
-                <h3><i class="fas fa-chart-line"></i>Facturación por Mes</h3>
-                <canvas id="chartPorMes" height="80"></canvas>
+        </section>
+        <section class="db-card">
+            <div class="db-card-head"><h2>Antigüedad de lo por cobrar</h2></div>
+            <div class="db-chart">
+                {% if graficas.antiguedad_montos|sum > 0 %}
+                <canvas id="graficaAntiguedad" aria-label="Saldo por antigüedad en días" role="img"></canvas>
+                {% else %}
+                <div class="db-vacio">No hay saldos pendientes de cobro.</div>
+                {% endif %}
             </div>
-        </div>
-    </div>
-    
-    <div class="row g-4 mb-4">
-        <!-- Facturación por ARS y Mes (nuevo gráfico) -->
-        <div class="col-lg-12 animate-card delay-065">
-            <div class="chart-card">
-                <h3><i class="fas fa-calendar-alt"></i>Facturación por ARS y Mes</h3>
-                <canvas id="chartARSporMes" height="100"></canvas>
-            </div>
-        </div>
+        </section>
     </div>
 
-    <div class="row g-4 mb-4">
-        <!-- Facturación por Médico (Paciente) y Mes -->
-        <div class="col-lg-12 animate-card delay-07">
-            <div class="chart-card">
-                <h3><i class="fas fa-user-md"></i>Facturación por Médico Paciente y Mes</h3>
-                <canvas id="chartMedicoMes" height="100"></canvas>
+    <div class="db-grid-2">
+        <section class="db-card">
+            <div class="db-card-head"><h2>Por ARS</h2></div>
+            <div class="db-chart-sm">
+                {% if graficas.ars %}
+                <canvas id="graficaArs" aria-label="Facturado y saldo por ARS" role="img"></canvas>
+                {% else %}
+                <div class="db-vacio">Sin facturas en este periodo.</div>
+                {% endif %}
             </div>
-        </div>
-    </div>
-    
-    <div class="row g-4 mb-4">
-        <!-- Facturación por Mes: ARS (X) + Médico Paciente (apilado) -->
-        <div class="col-lg-12 animate-card delay-075">
-            <div class="chart-card">
-                <h3><i class="fas fa-layer-group"></i>Facturación por Mes: ARS + Médico (apilado)</h3>
-                <canvas id="chartArsMedicoMes" height="110"></canvas>
+        </section>
+        <section class="db-card">
+            <div class="db-card-head">
+                <h2>Producción por {{ 'médico' if agrupar == 'medico' else 'centro' }}</h2>
+                <a href="{{ url_for('facturacion_reporte_produccion', desde=desde, hasta=hasta, ars_id=ars_id or '') }}">Ver reporte</a>
             </div>
-        </div>
+            {% if produccion %}
+            <table class="db-tabla">
+                <thead><tr><th>{{ 'Médico' if agrupar == 'medico' else 'Centro' }}</th><th class="num">Servicios</th><th class="num">Total</th><th class="num">%</th></tr></thead>
+                <tbody>
+                    {% for fila in produccion %}
+                    <tr>
+                        <td>{{ fila.entidad }}</td>
+                        <td class="num">{{ fila.servicios }}</td>
+                        <td class="num">{{ fila.total|formato_moneda }}</td>
+                        <td class="num">{{ fila.porcentaje }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="db-vacio">Sin servicios registrados en este periodo.</div>
+            {% endif %}
+        </section>
     </div>
+
+    <section class="db-card">
+        <div class="db-card-head">
+            <h2>Pendiente por facturar por ARS</h2>
+            <a href="{{ url_for('facturacion_pacientes_pendientes') }}">Ver todos</a>
+        </div>
+        {% if d.pendiente_por_ars %}
+        <table class="db-tabla">
+            <thead><tr><th>ARS</th><th class="num">Servicios</th><th class="num">Monto</th><th>Más antiguo</th><th></th></tr></thead>
+            <tbody>
+                {% for fila in d.pendiente_por_ars %}
+                <tr>
+                    <td>{{ fila.ars }}</td>
+                    <td class="num">{{ fila.servicios }}</td>
+                    <td class="num">{{ fila.monto|formato_moneda }}</td>
+                    <td class="db-muted">{{ fila.desde.strftime('%d/%m/%Y') if fila.desde and fila.desde.strftime is defined else (fila.desde or '') }}</td>
+                    <td class="num">
+                        {% if puede_generar and fila.ars_id %}
+                        <a class="db-btn-mini" href="{{ url_for('facturacion_generar') }}?auto=1&ars_id={{ fila.ars_id }}">Generar factura</a>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="db-vacio"><span><i class="fas fa-circle-check me-1"></i>Todo facturado: no hay servicios pendientes.</span></div>
+        {% endif %}
+    </section>
 </div>
 
-<!-- Chart.js (carga diferida para mejor performance) -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" defer></script>
-
+<script type="application/json" id="dashboard-datos" nonce="{{ csp_nonce }}">{{ graficas|tojson }}</script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js" nonce="{{ csp_nonce }}"></script>
 <script nonce="{{ csp_nonce }}">
-    // ==================== FUNCIONES PARA DROPDOWNS MULTISELECT ====================
-    
-    // Cerrar dropdown al hacer clic fuera
-    document.addEventListener('click', function(event) {
-        if (!event.target.closest('.custom-multiselect')) {
-            document.querySelectorAll('.multiselect-dropdown').forEach(dropdown => {
-                dropdown.classList.remove('show');
-                const button = dropdown.previousElementSibling;
-                button.classList.remove('open');
-            });
-        }
-    });
-    
-    // Abrir/cerrar dropdown
-    function toggleDropdown(filterName) {
-        const dropdown = document.getElementById(filterName + '-dropdown');
-        const button = dropdown.previousElementSibling;
-        const isOpen = dropdown.classList.contains('show');
-        
-        // Cerrar todos los demás dropdowns
-        document.querySelectorAll('.multiselect-dropdown').forEach(d => {
-            d.classList.remove('show');
-            d.previousElementSibling.classList.remove('open');
-        });
-        
-        // Abrir/cerrar el actual
-        if (!isOpen) {
-            dropdown.classList.add('show');
-            button.classList.add('open');
-        }
-    }
-    
-    function optionCheckboxes(dropdown) {
-        return dropdown.querySelectorAll('.multiselect-option:not(.is-all) input[type="checkbox"]');
-    }
+(function () {
+    'use strict';
+    if (typeof Chart === 'undefined') { return; }
+    const datos = JSON.parse(document.getElementById('dashboard-datos').textContent);
+    const css = getComputedStyle(document.documentElement);
+    const v = (nombre, defecto) => (css.getPropertyValue(nombre) || '').trim() || defecto;
+    const texto = v('--ars-shell-muted', '#718096');
+    const borde = v('--ars-shell-border', '#e8edf3');
+    const primario = v('--primary-color', '#0891b2');
+    const moneda = (n) => 'RD$ ' + Number(n || 0).toLocaleString('es-DO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    const mesCorto = (ym) => {
+        const [a, m] = ym.split('-');
+        return new Date(Number(a), Number(m) - 1, 1).toLocaleDateString('es-DO', { month: 'short', year: '2-digit' });
+    };
+    Chart.defaults.color = texto;
+    Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+    Chart.defaults.plugins.legend.labels.boxWidth = 10;
+    Chart.defaults.plugins.legend.labels.usePointStyle = true;
+    const ejes = {
+        x: { grid: { display: false }, border: { color: borde } },
+        y: { beginAtZero: true, grid: { color: borde }, ticks: { callback: (n) => moneda(n) } },
+    };
+    const tooltip = { callbacks: { label: (c) => ` ${c.dataset.label}: ${moneda(c.parsed.y ?? c.parsed.x ?? c.parsed)}` } };
 
-    // Marcar/desmarcar opción
-    function toggleOption(event, filterName) {
-        if (event.target.type === 'checkbox' || event.target.tagName === 'LABEL') {
-            updateSelectedText(filterName);
-            return;
-        }
-        const option = event.target.closest('.multiselect-option');
-        const checkbox = option.querySelector('input[type="checkbox"]');
-        checkbox.checked = !checkbox.checked;
-        checkbox.dispatchEvent(new Event('change', { bubbles: true }));
-        updateSelectedText(filterName);
-    }
-    
-    // Seleccionar/deseleccionar todos
-    function toggleAllOptions(filterName) {
-        const dropdown = document.getElementById(filterName + '-dropdown');
-        const checkboxes = optionCheckboxes(dropdown);
-        const allChecked = Array.from(checkboxes).every(cb => cb.checked);
-        checkboxes.forEach(cb => {
-            cb.checked = !allChecked;
-        });
-        updateSelectedText(filterName);
-        const form = document.getElementById('filterForm');
-        if (form) form.requestSubmit();
-    }
-    
-    // Actualizar texto de selección
-    function updateSelectedText(filterName) {
-        const dropdown = document.getElementById(filterName + '-dropdown');
-        const checkboxes = optionCheckboxes(dropdown);
-        const selected = Array.from(checkboxes).filter(cb => cb.checked);
-        const names = selected.map((cb) => {
-            const row = cb.closest('.multiselect-option');
-            const caption = row.querySelector('label, span');
-            return caption ? caption.textContent.trim() : '';
-        }).filter(Boolean);
-        const textElement = document.getElementById(filterName + '-selected-text');
-        const master = dropdown.querySelector('[data-select-all]');
-        const allLabel = textElement.dataset.allLabel || 'Todos';
-        const emptyLabel = textElement.dataset.emptyLabel || 'Ninguno seleccionado';
-
-        if (master) {
-            master.checked = selected.length === checkboxes.length && checkboxes.length > 0;
-            master.indeterminate = selected.length > 0 && selected.length < checkboxes.length;
-        }
-
-        if (selected.length === 0) {
-            textElement.textContent = emptyLabel;
-        } else if (selected.length === checkboxes.length) {
-            textElement.textContent = allLabel;
-        } else if (names.length <= 2) {
-            textElement.textContent = names.join(', ');
-        } else {
-            textElement.textContent = `${names.slice(0, 2).join(', ')} +${names.length - 2}`;
-        }
-        textElement.title = names.join(', ') || emptyLabel;
-        textElement.classList.toggle('selection-empty', selected.length === 0);
-        textElement.classList.toggle('selection-present', selected.length > 0);
-    }
-    
-    // Inicializar textos al cargar la página
-    document.addEventListener('DOMContentLoaded', function() {
-        updateSelectedText('ars');
-        {% if es_administrador %}
-        updateSelectedText('medico_factura');
-        {% endif %}
-        updateSelectedText('medico_consulta');
-    });
-    
-    // ==================== FUNCIONES PARA GRÁFICOS ====================
-    
-    // Esperar a que se cargue Chart.js antes de ejecutar
-    document.addEventListener('DOMContentLoaded', function() {
-        // Convertir fechas dd/mm/yyyy a yyyy-mm-dd al enviar
-        const form = document.getElementById('filterForm');
-        if (form) {
-            form.addEventListener('submit', function() {
-                const fDesde = document.getElementById('fecha_desde');
-                const fHasta = document.getElementById('fecha_hasta');
-                const toISO = (val) => {
-                    if (!val) return '';
-                    const p = val.split('/');
-                    if (p.length === 3) {
-                        const [dd, mm, yyyy] = p;
-                        if (dd.length === 2 && mm.length === 2 && yyyy.length === 4) {
-                            return `${yyyy}-${mm}-${dd}`;
-                        }
-                    }
-                    return val;
-                };
-                if (fDesde) fDesde.value = toISO(fDesde.value.trim());
-                if (fHasta) fHasta.value = toISO(fHasta.value.trim());
-            });
-        }
-
-        if (typeof Chart === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js';
-            script.onload = initCharts;
-            document.head.appendChild(script);
-        } else {
-            initCharts();
-        }
-    });
-    
-    function initCharts() {
-    // ==================== GRÁFICO: FACTURACIÓN POR MES ====================
-    const facturacionPorMes = {{ facturacion_por_mes | default([]) | tojson }};
-    if (!facturacionPorMes.length) {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'text-center text-muted py-3';
-        placeholder.innerText = 'Sin datos en el rango seleccionado';
-        const canvas = document.getElementById('chartPorMes');
-        canvas.parentNode.replaceChild(placeholder, canvas);
-    } else {
-        const ctxMes = document.getElementById('chartPorMes').getContext('2d');
-        const meses = facturacionPorMes.map(item => {
-            const [year, month] = item.mes.split('-');
-            const fecha = new Date(year, month - 1);
-            return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-        });
-        const montos = facturacionPorMes.map(item => item.total_monto);
-        
-        new Chart(ctxMes, {
+    const mensual = document.getElementById('graficaMensual');
+    if (mensual) {
+        new Chart(mensual, {
             type: 'bar',
             data: {
-                labels: meses,
-                datasets: [{
-                    label: 'Monto Facturado ($)',
-                    data: montos,
-                    backgroundColor: '{{ tema.primary }}CC',
-                    borderColor: '{{ tema.primary }}',
-                    borderWidth: 2,
-                    borderRadius: 8,
-                    hoverBackgroundColor: '{{ tema.primary }}',
-                    hoverBorderColor: '{{ tema.primary_dark }}',
-                    hoverBorderWidth: 3
-                }]
+                labels: datos.meses.map(mesCorto),
+                datasets: [
+                    { label: 'Facturado', data: datos.facturado, backgroundColor: primario, borderRadius: 6, maxBarThickness: 42 },
+                    { label: 'Cobrado', data: datos.cobrado, type: 'line', borderColor: '#16a34a', backgroundColor: '#16a34a', tension: .35, pointRadius: 3 },
+                ],
             },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            color: '#282828',
-                            font: {
-                                size: 14,
-                                weight: '600'
-                            }
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: '#fff',
-                        titleColor: '#282828',
-                        bodyColor: '#666',
-                        borderColor: '{{ tema.primary }}',
-                        borderWidth: 2,
-                        padding: 12,
-                        bodyFont: {
-                            size: 14
-                        },
-                        callbacks: {
-                            label: function(context) {
-                                return 'Monto: $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        },
-                        ticks: {
-                            color: '#666',
-                            font: {
-                                size: 12
-                            },
-                            callback: function(value) {
-                                return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0});
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: '#666',
-                            font: {
-                                size: 12
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    
-    // ==================== GRÁFICO: FACTURACIÓN POR ARS Y MES ====================
-    const facturacionARSMes = {{ facturacion_ars_mes | default([]) | tojson }};
-    if (!facturacionARSMes.length) {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'text-center text-muted py-3';
-        placeholder.innerText = 'Sin datos en el rango seleccionado';
-        const canvas = document.getElementById('chartARSporMes');
-        canvas.parentNode.replaceChild(placeholder, canvas);
-    } else {
-        const ctxARSMes = document.getElementById('chartARSporMes').getContext('2d');
-        const mesesUnicos = [...new Set(facturacionARSMes.map(item => item.mes))].sort();
-        const arsUnicos = [...new Set(facturacionARSMes.map(item => item.nombre_ars || item.nombre))];
-        const mesesFormateados = mesesUnicos.map(mes => {
-            const [year, month] = mes.split('-');
-            const fecha = new Date(year, month - 1);
-            return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-        });
-        const coloresARS = [
-            '{{ tema.primary }}', '#3498db', '#e74c3c', '#2ecc71', '#f39c12',
-            '#9b59b6', '#1abc9c', '#e67e22', '#34495e', '#16a085',
-            '#d35400', '#8e44ad', '#27ae60', '#2980b9', '#c0392b'
-        ];
-        const datasetsARS = arsUnicos.map((ars, index) => {
-            const datosARS = mesesUnicos.map(mes => {
-                const registro = facturacionARSMes.find(item => (item.nombre_ars || item.nombre) === ars && item.mes === mes);
-                return registro ? registro.total_monto : 0;
-            });
-            
-            return {
-                label: ars,
-                data: datosARS,
-                borderColor: coloresARS[index % coloresARS.length],
-                backgroundColor: coloresARS[index % coloresARS.length] + '20',
-                borderWidth: 3,
-                fill: false,
-                tension: 0.4,
-                pointBackgroundColor: coloresARS[index % coloresARS.length],
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2,
-                pointRadius: 5,
-                pointHoverRadius: 7
-            };
-        });
-        
-        new Chart(ctxARSMes, {
-            type: 'line',
-            data: {
-                labels: mesesFormateados,
-                datasets: datasetsARS
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'top',
-                        labels: {
-                            color: '#282828',
-                            font: {
-                                size: 13,
-                                weight: '600'
-                            },
-                            padding: 15,
-                            boxWidth: 15,
-                            boxHeight: 15,
-                            usePointStyle: true
-                        }
-                    },
-                    tooltip: {
-                        backgroundColor: '#fff',
-                        titleColor: '#282828',
-                        bodyColor: '#666',
-                        borderColor: '{{ tema.primary }}',
-                        borderWidth: 2,
-                        padding: 12,
-                        bodyFont: {
-                            size: 14
-                        },
-                        callbacks: {
-                            label: function(context) {
-                                return context.dataset.label + ': $' + context.parsed.y.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2});
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        grid: {
-                            color: 'rgba(0, 0, 0, 0.05)'
-                        },
-                        ticks: {
-                            color: '#666',
-                            font: {
-                                size: 12
-                            },
-                            callback: function(value) {
-                                return '$' + value.toLocaleString('en-US', {minimumFractionDigits: 0});
-                            }
-                        }
-                    },
-                    x: {
-                        grid: {
-                            display: false
-                        },
-                        ticks: {
-                            color: '#666',
-                            font: {
-                                size: 12
-                            }
-                        }
-                    }
-                }
-            }
-        });
-    }
-    
-    // ==================== GRÁFICO: FACTURACIÓN POR MÉDICO PACIENTE Y MES ====================
-    const facturacionMedicoMes = {{ facturacion_medico_paciente_mes | default([]) | tojson }};
-    if (!facturacionMedicoMes.length) {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'text-center text-muted py-3';
-        placeholder.innerText = 'Sin datos en el rango seleccionado';
-        const canvas = document.getElementById('chartMedicoMes');
-        canvas.parentNode.replaceChild(placeholder, canvas);
-    } else {
-        const ctxMedicoMes = document.getElementById('chartMedicoMes').getContext('2d');
-        const mesesMedicoUnicos = [...new Set(facturacionMedicoMes.map(item => item.mes))].sort();
-        const mesesMedicoLabels = mesesMedicoUnicos.map(mes => {
-            const [year, month] = mes.split('-');
-            const fecha = new Date(year, month - 1);
-            return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-        });
-        const medicosUnicos = [...new Set(facturacionMedicoMes.map(item => item.medico_nombre))];
-        const palette = [
-            '{{ tema.primary }}', '#3498db', '#e74c3c', '#2ecc71', '#f39c12',
-            '#9b59b6', '#1abc9c', '#e67e22', '#34495e', '#16a085',
-            '#d35400', '#8e44ad', '#27ae60', '#2980b9', '#c0392b'
-        ];
-        const datasetsMedico = medicosUnicos.map((med, idx) => {
-            const data = mesesMedicoUnicos.map(mes => {
-                const reg = facturacionMedicoMes.find(item => item.medico_nombre === med && item.mes === mes);
-                return reg ? reg.total_monto : 0;
-            });
-            const color = palette[idx % palette.length];
-            return {
-                label: med,
-                data,
-                borderColor: color,
-                backgroundColor: color + '33',
-                borderWidth: 2,
-                fill: false,
-                tension: 0.4,
-                pointRadius: 4,
-                pointBackgroundColor: color,
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2
-            };
-        });
-        
-        new Chart(ctxMedicoMes, {
-            type: 'line',
-            data: {
-                labels: mesesMedicoLabels,
-                datasets: datasetsMedico
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => `${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`
-                        }
-                    }
-                },
-                scales: {
-                    x: { ticks: { color: '#666' } },
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            color: '#666',
-                            callback: (v) => '$' + v.toLocaleString('en-US', {minimumFractionDigits:0})
-                        }
-                    }
-                }
-            }
+            options: { maintainAspectRatio: false, scales: ejes, plugins: { tooltip } },
         });
     }
 
-    // ==================== GRÁFICO: FACTURACIÓN POR MES (ARS + MÉDICO apilado) ====================
-    const facturacionArsMedicoMes = {{ facturacion_ars_medico_paciente_mes | default([]) | tojson }};
-    if (!facturacionArsMedicoMes.length) {
-        const placeholder = document.createElement('div');
-        placeholder.className = 'text-center text-muted py-3';
-        placeholder.innerText = 'Sin datos en el rango seleccionado';
-        const canvas = document.getElementById('chartArsMedicoMes');
-        canvas.parentNode.replaceChild(placeholder, canvas);
-    } else {
-        const ctxArsMedicoMes = document.getElementById('chartArsMedicoMes').getContext('2d');
-        const mesesStackUnicos = [...new Set(facturacionArsMedicoMes.map(item => item.mes))].sort();
-        const mesesStackLabels = mesesStackUnicos.map(mes => {
-            const [year, month] = mes.split('-');
-            const fecha = new Date(year, month - 1);
-            return fecha.toLocaleDateString('es-ES', { month: 'short', year: 'numeric' });
-        });
-        
-        const combos = [...new Set(facturacionArsMedicoMes.map(item => `${item.nombre_ars} — ${item.medico_nombre}`))];
-        
-        const datasetsStack = combos.map((combo, idx) => {
-            const data = mesesStackUnicos.map(mes => {
-                const reg = facturacionArsMedicoMes.find(item => `${item.nombre_ars} — ${item.medico_nombre}` === combo && item.mes === mes);
-                return reg ? reg.total_monto : 0;
-            });
-            const color = palette[idx % palette.length];
-            return {
-                label: combo,
-                data,
-                backgroundColor: color + 'CC',
-                borderColor: color,
-                borderWidth: 1
-            };
-        });
-        
-        new Chart(ctxArsMedicoMes, {
-            type: 'bar',
+    const antiguedad = document.getElementById('graficaAntiguedad');
+    if (antiguedad) {
+        new Chart(antiguedad, {
+            type: 'doughnut',
             data: {
-                labels: mesesStackLabels,
-                datasets: datasetsStack
+                labels: datos.antiguedad.map((t) => t + ' días'),
+                datasets: [{ data: datos.antiguedad_montos, backgroundColor: ['#16a34a', '#eab308', '#f97316', '#dc2626'], borderWidth: 0 }],
             },
             options: {
-                responsive: true,
-                plugins: {
-                    legend: { position: 'top' },
-                    tooltip: {
-                        callbacks: {
-                            label: (ctx) => `${ctx.dataset.label}: $${ctx.parsed.y.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2})}`
-                        }
-                    }
-                },
-                scales: {
-                    x: { stacked: true, ticks: { color: '#666' } },
-                    y: { 
-                        stacked: true,
-                        beginAtZero: true,
-                        ticks: {
-                            color: '#666',
-                            callback: (v) => '$' + v.toLocaleString('en-US', {minimumFractionDigits:0})
-                        }
-                    }
-                }
-            }
+                maintainAspectRatio: false, cutout: '62%',
+                plugins: { legend: { position: 'bottom' }, tooltip: { callbacks: { label: (c) => ` ${c.label}: ${moneda(c.parsed)}` } } },
+            },
         });
     }
-    } // Fin de initCharts()
+
+    const ars = document.getElementById('graficaArs');
+    if (ars) {
+        new Chart(ars, {
+            type: 'bar',
+            data: {
+                labels: datos.ars,
+                datasets: [
+                    { label: 'Facturado', data: datos.ars_facturado, backgroundColor: primario, borderRadius: 5 },
+                    { label: 'Saldo por cobrar', data: datos.ars_saldo, backgroundColor: '#f59e0b', borderRadius: 5 },
+                ],
+            },
+            options: {
+                indexAxis: 'y', maintainAspectRatio: false,
+                scales: {
+                    x: { beginAtZero: true, grid: { color: borde }, ticks: { callback: (n) => moneda(n) } },
+                    y: { grid: { display: false } },
+                },
+                plugins: { tooltip: { callbacks: { label: (c) => ` ${c.dataset.label}: ${moneda(c.parsed.x)}` } } },
+            },
+        });
+    }
+})();
 </script>
-
 {% endblock %}

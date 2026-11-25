@@ -46,11 +46,11 @@ class RegistroTipoPlanTests(unittest.TestCase):
                 paso = True
         return flash, update, paso
 
-    def test_centro_salud_con_plan_independiente_se_rechaza(self):
+    def test_centro_salud_con_plan_menor_se_rechaza(self):
         flash, update, paso = self._registrar('centro_salud', 'basico')
         self.assertFalse(paso)
         update.assert_not_called()
-        self.assertIn('Independiente', flash.call_args.args[0])
+        self.assertIn("Centro médico", flash.call_args.args[0])
 
     def test_medico_con_plan_independiente_sigue_permitido(self):
         _flash, _update, paso = self._registrar('medico', 'basico')

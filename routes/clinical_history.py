@@ -14,6 +14,7 @@ from core.database import execute_query, execute_update, transactional_methods
 from core.presentation import hora_input
 from core.tenant import get_current_tenant_id
 from routes.appointments import actualizar_citas_vencidas
+from routes.certificates import emitir_constancia_desde_consulta
 from routes.licenses import (
     actualizar_licencias_vencidas,
     emitir_licencia_desde_consulta,
@@ -48,6 +49,7 @@ def texto_hoja_indicaciones(plan):
 
 def url_consulta_para_impresion(
     consulta_id, receta_id=None, licencia_id=None, plan=None,
+    constancia_id=None,
 ):
     """Tras guardar, abrir la consulta y las hojas que el paciente debe llevar."""
     extra = {}
@@ -56,6 +58,8 @@ def url_consulta_para_impresion(
         extra['imprimir_receta'] = receta_id
     if licencia_id:
         extra['imprimir_licencia'] = licencia_id
+    if constancia_id:
+        extra['imprimir_constancia'] = constancia_id
     if texto_hoja_indicaciones(plan):
         extra['imprimir_indicaciones'] = 1
     if str(plan.get('laboratorios') or '').strip():
@@ -627,6 +631,18 @@ def facturacion_historia_clinica_expediente(paciente_id):
         WHERE l.paciente_id=%s AND l.tenant_id=%s
         ORDER BY l.fecha_emision DESC, l.id DESC
     ''', (paciente_id, tenant_id), fetch='all') or []
+    constancias = []
+    if user_has_permission(current_user, 'constancias.ver'):
+        constancias = execute_query('''
+            SELECT cm.id, cm.medico_id, cm.codigo, cm.fecha_atencion,
+                   cm.hora_entrada, cm.hora_salida, cm.dirigida_a, cm.estado,
+                   m.nombre AS medico_nombre
+            FROM constancias_medicas cm
+            JOIN medicos m
+              ON m.id=cm.medico_id AND m.tenant_id=cm.tenant_id
+            WHERE cm.paciente_id=%s AND cm.tenant_id=%s
+            ORDER BY cm.fecha_atencion DESC, cm.id DESC
+        ''', (paciente_id, tenant_id), fetch='all') or []
     emergencias = execute_query('''
         SELECT id, medico_id, fecha, hora_servicio, motivo_emergencia,
                diagnostico_impresion, estatus_paciente, medico_nombre
@@ -715,6 +731,7 @@ def facturacion_historia_clinica_expediente(paciente_id):
         citas=citas,
         recetas=recetas,
         licencias=licencias,
+        constancias=constancias,
         emergencias=emergencias,
         consultas_registradas=consultas_registradas,
         facturas=facturas,
@@ -904,9 +921,14 @@ def facturacion_historia_clinica_nueva(paciente_id):
             tenant_id, paciente_id, datos['medico_id'], consulta_id,
             datos['diagnostico_principal'], datos['motivo_consulta'],
         )
+        constancia_id = emitir_constancia_desde_consulta(
+            tenant_id, paciente_id, datos['medico_id'], consulta_id,
+            datos['fecha'], datos['hora'],
+        )
         return redirect(url_consulta_para_impresion(
             consulta_id, receta_id, licencia_id,
             plan=datos['plan_tratamiento'],
+            constancia_id=constancia_id,
         ))
     medicos = execute_query(
         'SELECT id, nombre, especialidad FROM medicos '
@@ -1028,8 +1050,18 @@ def facturacion_historia_clinica_ver(consulta_id):
         'WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
         (tenant_id,), fetch='all'
     ) or []
+    constancias = []
+    if user_has_permission(current_user, 'constancias.ver'):
+        constancias = execute_query('''
+            SELECT cm.id, cm.codigo, cm.fecha_atencion, cm.hora_entrada,
+                   cm.hora_salida, cm.dirigida_a, cm.estado, cm.medico_id
+            FROM constancias_medicas cm
+            WHERE cm.consulta_id=%s AND cm.tenant_id=%s
+            ORDER BY cm.fecha_atencion DESC, cm.id DESC
+        ''', (consulta_id, tenant_id), fetch='all') or []
     receta_ids = {item['id'] for item in recetas}
     licencia_ids = {item['id'] for item in licencias}
+    constancia_ids = {item['id'] for item in constancias}
     imprimir_receta = validate_int(
         request.args.get('imprimir_receta'), min_value=1, default=None
     )
@@ -1040,6 +1072,11 @@ def facturacion_historia_clinica_ver(consulta_id):
         imprimir_receta = None
     if imprimir_licencia not in licencia_ids:
         imprimir_licencia = None
+    imprimir_constancia = validate_int(
+        request.args.get('imprimir_constancia'), min_value=1, default=None
+    )
+    if imprimir_constancia not in constancia_ids:
+        imprimir_constancia = None
     plan = consulta.get('plan_tratamiento') or {}
     hay_indicaciones = bool(texto_hoja_indicaciones(plan))
     hay_laboratorio = bool(str(plan.get('laboratorios') or '').strip())
@@ -1056,6 +1093,8 @@ def facturacion_historia_clinica_ver(consulta_id):
         tipos_licencia=tipos_licencia,
         imprimir_receta=imprimir_receta,
         imprimir_licencia=imprimir_licencia,
+        constancias=constancias,
+        imprimir_constancia=imprimir_constancia,
         imprimir_indicaciones=imprimir_indicaciones,
         imprimir_lab=imprimir_lab,
         hay_indicaciones=hay_indicaciones,
@@ -1226,9 +1265,14 @@ def facturacion_historia_clinica_editar(consulta_id):
             tenant_id, consulta['paciente_id'], datos['medico_id'], consulta_id,
             datos['diagnostico_principal'], datos['motivo_consulta'],
         )
+        constancia_id = emitir_constancia_desde_consulta(
+            tenant_id, consulta['paciente_id'], datos['medico_id'], consulta_id,
+            datos['fecha'], datos['hora'],
+        )
         return redirect(url_consulta_para_impresion(
             consulta_id, receta_id, licencia_id,
             plan=datos['plan_tratamiento'],
+            constancia_id=constancia_id,
         ))
     medicos = execute_query(
         'SELECT id, nombre, especialidad FROM medicos '

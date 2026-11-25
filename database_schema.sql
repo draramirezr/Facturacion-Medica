@@ -876,6 +876,38 @@ CREATE TABLE IF NOT EXISTS auditoria_licencias_medicas (
     INDEX idx_auditoria_licencia (tenant_id, licencia_id, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Constancia de asistencia a consulta (escuela, trabajo, etc.). No exige
+-- diagnóstico: el motivo es opcional para proteger la privacidad del paciente.
+CREATE TABLE IF NOT EXISTS constancias_medicas (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    numero INT NOT NULL,
+    codigo VARCHAR(40) NOT NULL,
+    paciente_id INT NOT NULL,
+    medico_id INT NOT NULL,
+    consulta_id INT NULL,
+    fecha_atencion DATE NOT NULL,
+    hora_entrada TIME NULL,
+    hora_salida TIME NULL,
+    dirigida_a VARCHAR(200) NULL,
+    motivo VARCHAR(500) NULL,
+    estado VARCHAR(20) NOT NULL DEFAULT 'Activa',
+    created_by INT NULL,
+    updated_by INT NULL,
+    anulado_por INT NULL,
+    fecha_anulacion DATETIME NULL,
+    motivo_anulacion TEXT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_constancia_codigo (tenant_id, codigo),
+    UNIQUE KEY uq_constancia_numero (tenant_id, numero),
+    INDEX idx_constancia_paciente (tenant_id, paciente_id),
+    INDEX idx_constancia_fecha (tenant_id, fecha_atencion),
+    INDEX idx_constancia_medico (tenant_id, medico_id),
+    INDEX idx_constancia_consulta (tenant_id, consulta_id),
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS historias_emergencia (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tenant_id INT NOT NULL,

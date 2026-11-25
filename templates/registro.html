@@ -316,23 +316,22 @@
             const plan = document.getElementById('plan');
             const hint = document.getElementById('tipo_empresa_hint');
             const textoBase = hint ? hint.textContent : '';
-            const opcionBasico = plan ? plan.querySelector('option[value="basico"]') : null;
+            const opcionesSoloMedico = plan
+                ? plan.querySelectorAll('option[value="basico"], option[value="profesional"]')
+                : [];
             const sugerirPlan = () => {
                 if (!plan || !hint) {
                     return;
                 }
-                // Independiente (1 usuario) no aplica a un centro de salud.
-                if (opcionBasico) {
-                    opcionBasico.disabled = tipo.value === 'centro_salud';
-                    opcionBasico.hidden = tipo.value === 'centro_salud';
-                }
-                if (tipo.value === 'centro_salud') {
-                    if (!plan.value || plan.value === 'basico') {
-                        plan.value = 'empresarial';
-                    }
-                    hint.textContent = plan.value === 'empresarial'
-                        ? 'Centro de salud: factura con el RNC del centro e incluye turnos, emergencias y mensajería interna.'
-                        : 'Atención: turnos, emergencias y mensajería interna solo están en el plan Centro médico.';
+                // Un centro de salud siempre usa el plan Centro médico.
+                const esCentro = tipo.value === 'centro_salud';
+                opcionesSoloMedico.forEach((opcion) => {
+                    opcion.disabled = esCentro;
+                    opcion.hidden = esCentro;
+                });
+                if (esCentro) {
+                    plan.value = 'empresarial';
+                    hint.textContent = 'Centro de salud: factura con el RNC del centro y usa el plan Centro médico (turnos, emergencias y mensajería interna).';
                 } else if (tipo.value === 'medico') {
                     if (!plan.value) {
                         plan.value = 'basico';

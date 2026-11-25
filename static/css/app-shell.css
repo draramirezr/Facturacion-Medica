@@ -127,6 +127,30 @@ html[data-color-mode="dark"] .ars-brand-crop .brand-logo-dark {
     opacity: 0;
 }
 
+/* Subtítulo dentro de un grupo del menú (p. ej. Facturación → ARS / Paciente). */
+.ars-nav-subgroup {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 10px 12px 2px;
+    color: #98a2b3;
+    font-size: 0.64rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.ars-nav-subgroup i {
+    font-size: 0.66rem;
+    color: var(--primary-color);
+}
+
+.ars-nav-subgroup:not(:first-child) {
+    margin-top: 14px;
+    padding-top: 10px;
+    border-top: 1px solid var(--ars-shell-border, #e8edf3);
+}
+
 .ars-nav-section:first-child {
     margin-top: 2px;
 }

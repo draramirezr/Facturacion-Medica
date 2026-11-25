@@ -197,6 +197,10 @@ def contratar_desde_demo(empresa_id, plan_nuevo, usuario_id=None):
             'de empresa o contacte a soporte.',
             None,
         )
+    from services.plan_features import error_plan_para_tipo
+    error_plan = error_plan_para_tipo(empresa.get('tipo_empresa'), plan_nuevo)
+    if error_plan:
+        return False, error_plan, None
     marcar_demo_vencido_si_corresponde(empresa_id)
     if upgrade_pendiente_empresa(empresa_id):
         return (
@@ -295,6 +299,10 @@ def solicitar_upgrade_plan(empresa_id, plan_nuevo, usuario_id=None):
         )
     if empresa.get('estado') != 'activo':
         return False, 'La empresa debe estar activa para mejorar el plan.', None
+    from services.plan_features import error_plan_para_tipo
+    error_plan = error_plan_para_tipo(empresa.get('tipo_empresa'), plan_nuevo)
+    if error_plan:
+        return False, error_plan, None
     plan_actual = empresa.get('plan') or 'basico'
     if _indice_plan(plan_nuevo) <= _indice_plan(plan_actual):
         return False, 'Solo puede subir a un plan superior al actual.', None

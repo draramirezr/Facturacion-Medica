@@ -185,6 +185,11 @@ def plataforma_empresa_alta(empresa_id):
     if plan not in PLAN_USD:
         flash('Selecciona un plan válido.', 'error')
         return redirect(url_for('plataforma_empresa_alta', empresa_id=empresa_id))
+    from services.plan_features import error_plan_para_tipo
+    error_plan = error_plan_para_tipo(empresa.get('tipo_empresa'), plan)
+    if error_plan:
+        flash(error_plan, 'error')
+        return redirect(url_for('plataforma_empresa_alta', empresa_id=empresa_id))
     meses = 12 if request.form.get('meses') == '12' else 1
     crear_factura = request.form.get('crear_factura') == '1'
     resultado = dar_de_alta_empresa(

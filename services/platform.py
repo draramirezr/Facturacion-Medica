@@ -225,18 +225,24 @@ def dar_de_alta_empresa(empresa_id, plan='basico', meses=1, crear_factura=True, 
 
 
 def _crear_empresa_demo(nombre, email, telefono, tipo_empresa):
+    from services.plan_features import plan_requerido_para_tipo
+
     hoy = date.today()
+    # Un centro de salud prueba con su plan real (Centro médico); antes todas
+    # las demos nacían en 'basico' y el centro no veía turnos.
+    plan = plan_requerido_para_tipo(tipo_empresa) or 'basico'
+    licencias = max(2, PLAN_LICENCIAS.get(plan, 2))
     return execute_update(
         '''
         INSERT INTO empresas (
             nombre, razon_social, telefono, email, fecha_inicio, fecha_fin,
             licencias_totales, licencias_usadas, plan, estado, tipo_empresa,
             es_demo
-        ) VALUES (%s,%s,%s,%s,%s,%s,2,1,'basico','activo',%s,1)
+        ) VALUES (%s,%s,%s,%s,%s,%s,%s,1,%s,'activo',%s,1)
         ''',
         (
             nombre, nombre, telefono, email, hoy,
-            hoy + timedelta(days=DEMO_DIAS), tipo_empresa,
+            hoy + timedelta(days=DEMO_DIAS), licencias, plan, tipo_empresa,
         ),
     )
 

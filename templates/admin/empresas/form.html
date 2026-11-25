@@ -456,6 +456,29 @@
     tipoEmpresa.addEventListener('change', actualizarDocumento);
     actualizarDocumento();
 
+    // Un centro de salud siempre usa el plan Centro médico (turnos, emergencias).
+    const planSelect = document.getElementById('plan');
+    const licencias = document.getElementById('licencias_totales');
+    function ajustarPlanPorTipo() {
+        if (!planSelect || planSelect.disabled) {
+            return;
+        }
+        const esCentro = tipoEmpresa.value === 'centro_salud';
+        planSelect.querySelectorAll('option').forEach(function(opcion) {
+            const bloqueada = esCentro && opcion.value !== 'empresarial';
+            opcion.disabled = bloqueada;
+            opcion.hidden = bloqueada;
+        });
+        if (esCentro && planSelect.value !== 'empresarial') {
+            planSelect.value = 'empresarial';
+            if (licencias && !licencias.readOnly && Number(licencias.value || 0) < 5) {
+                licencias.value = 5;
+            }
+        }
+    }
+    tipoEmpresa.addEventListener('change', ajustarPlanPorTipo);
+    ajustarPlanPorTipo();
+
     // Quitar guiones/espacios al cargar para que el patrón HTML5 no bloquee el submit.
     const telefono = document.getElementById('telefono');
     if (telefono) {

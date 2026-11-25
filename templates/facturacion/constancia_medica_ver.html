@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+
+{% block title %}Constancia {{ constancia['codigo'] }} - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+{% set fecha = constancia['fecha_atencion'] %}
+{% set fecha_texto = fecha.strftime('%d/%m/%Y') if fecha.strftime is defined else fecha %}
+{% set hora_entrada = constancia['hora_entrada']|hora_input %}
+{% set hora_salida = constancia['hora_salida']|hora_input %}
+<style nonce="{{ csp_nonce }}">
+    .certificate-paper { max-width: 900px; margin: 1.5rem auto; background:var(--ars-shell-surface, #fff); border: 1px solid {{ tema.primary }}25; border-radius: 15px; padding: 2.2rem; position: relative; }
+    .certificate-title { text-align: center; border-bottom: 2px solid var(--primary-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+    .certificate-title h1 { color: var(--primary-dark); font-size: 1.7rem; margin-bottom: .2rem; }
+    .doc-centro { margin:0 0 1rem; color: var(--ars-shell-muted, #334155); font-size:.88rem; line-height:1.45; }
+    .certificate-code { font-weight: 800; letter-spacing: .05em; }
+    .certificate-to { font-weight: 700; margin-bottom: 1.2rem; }
+    .certificate-body { font-size: 1.05rem; line-height: 1.8; text-align: justify; }
+    .certificate-meta { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.5rem; }
+    .certificate-meta div { border-bottom: 1px solid {{ tema.primary }}20; padding-bottom: .5rem; }
+    .certificate-meta span { display: block; color: var(--ars-shell-muted); font-size: .76rem; }
+    .certificate-status { display:inline-block; padding:.35rem .8rem; border:1px solid {{ tema.primary }}45; background:{{ tema.primary }}15; border-radius:8px; font-weight:700; }
+    .certificate-section { margin-top: 1.5rem; }
+    .certificate-section h2 { color: var(--primary-dark); font-size: 1.05rem; border-bottom: 1px solid {{ tema.primary }}35; padding-bottom: .45rem; }
+    .signature { margin-top: 4.5rem; text-align: center; }
+    .signature-line { width: 290px; border-top: 1px solid currentColor; margin: 0 auto .4rem; }
+    .annulled { position:absolute; inset:42% 0 auto; transform:rotate(-20deg); text-align:center; font-size:5rem; font-weight:900; color:rgba(120,120,120,.15); pointer-events:none; }
+    @media (max-width: 768px) { .certificate-meta { grid-template-columns: 1fr; } .certificate-paper { margin: .5rem; padding: 1.2rem; } }
+    @media print {
+        @page { size: Letter portrait; margin: 12mm; }
+        .ars-shell-sidebar, .ars-shell-topbar, .ars-mobile-topbar, .no-print, footer { display:none !important; }
+        .ars-shell-main, .ars-shell-content { margin:0 !important; padding:0 !important; }
+        html, body { width: 100%; min-height: 0 !important; background:white !important; color: #111 !important; }
+        .certificate-paper { width: 100%; max-width: none; margin: 0; padding: 0; border: 0; border-radius: 0; box-shadow: none; background: white !important; color: #111 !important; break-inside: avoid; page-break-inside: avoid; }
+        .certificate-body { font-size: 12pt; }
+        .doc-centro { color: #334155; }
+        .annulled { font-size: 48pt; }
+    }
+</style>
+
+<div class="container py-3 no-print">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <a class="btn btn-outline-primary" href="{{ url_for('facturacion_constancias_medicas') }}"><i class="fas fa-arrow-left me-2"></i>Constancias</a>
+        <div class="d-flex gap-2">
+            {% if imprimir %}
+            <button class="btn btn-primary" type="button" data-csp-print><i class="fas fa-print me-2"></i>Imprimir</button>
+            {% else %}
+            {% if constancia['estado'] == 'Activa' and can('constancias.editar') %}<a class="btn btn-outline-primary" href="{{ url_for('facturacion_constancia_medica_editar', constancia_id=constancia['id']) }}"><i class="fas fa-pen me-2"></i>Editar</a>{% endif %}
+            {% if can('constancias.imprimir') %}<a class="btn btn-primary" target="_blank" href="{{ url_for('facturacion_constancia_medica_imprimir', constancia_id=constancia['id']) }}"><i class="fas fa-print me-2"></i>Imprimir</a>{% endif %}
+            {% if constancia['estado'] != 'Anulada' and can('constancias.anular') %}<button class="btn btn-outline-primary" type="button" data-bs-toggle="modal" data-bs-target="#cancelModal"><i class="fas fa-ban me-2"></i>Anular</button>{% endif %}
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<article class="certificate-paper">
+    {% if constancia['estado'] == 'Anulada' %}<div class="annulled">ANULADA</div>{% endif %}
+    <header class="certificate-title">
+        {% include 'partials/_documento_membrete.html' %}
+        {% include 'partials/_documento_datos_centro.html' %}
+        <h1>Constancia Médica</h1>
+        <div class="certificate-code">{{ constancia['codigo'] }}</div>
+    </header>
+
+    <p class="certificate-to">{{ constancia['dirigida_a'] or 'A quien pueda interesar' }}:</p>
+
+    <p class="certificate-body">
+        Por medio de la presente se hace constar que <strong>{{ constancia['paciente_nombre'] }}</strong>{% if constancia['cedula'] %}, portador(a) del documento de identidad <strong>{{ constancia['cedula'] }}</strong>{% endif %}, asistió a consulta médica el día <strong>{{ fecha_texto }}</strong>{% if hora_entrada and hora_salida %}, desde las <strong>{{ hora_entrada }}</strong> hasta las <strong>{{ hora_salida }}</strong>{% elif hora_entrada %}, a partir de las <strong>{{ hora_entrada }}</strong>{% elif hora_salida %}, hasta las <strong>{{ hora_salida }}</strong>{% endif %}, siendo atendido(a) por {{ constancia['medico_nombre'] }}.
+    </p>
+    {% if constancia['motivo'] %}
+    <p class="certificate-body"><strong>Observación:</strong> {{ constancia['motivo'] }}</p>
+    {% endif %}
+    <p class="certificate-body">Se expide la presente a solicitud de la parte interesada, para los fines que estime conveniente.</p>
+
+    {% if not imprimir %}
+    <div class="certificate-meta no-print">
+        <div><span>Estado</span><span class="certificate-status">{{ constancia['estado'] }}</span></div>
+        <div><span>Registrada por</span>{{ constancia['creado_por_nombre'] or 'No disponible' }} · {{ constancia['created_at'] }}</div>
+        {% if constancia['consulta_id'] %}<div><span>Consulta relacionada</span><a href="{{ url_for('facturacion_historia_clinica_ver', consulta_id=constancia['consulta_id']) }}">{{ constancia['consulta_fecha'] }} · Abrir consulta</a></div>{% endif %}
+    </div>
+    {% endif %}
+
+    {% if constancia['estado'] == 'Anulada' %}
+    <section class="certificate-section">
+        <h2>Datos de anulación</h2>
+        <p><strong>Fecha:</strong> {{ constancia['fecha_anulacion'] }} · <strong>Usuario:</strong> {{ constancia['anulado_por_nombre'] or 'No disponible' }}</p>
+        <p class="mb-0"><strong>Motivo:</strong> {{ constancia['motivo_anulacion'] }}</p>
+    </section>
+    {% endif %}
+
+    <div class="signature">
+        <div class="signature-line"></div>
+        <strong>{{ constancia['medico_nombre'] }}</strong><br>
+        <span>{{ constancia['especialidad'] or '' }}{% if constancia['exequatur'] %} · Exequátur {{ constancia['exequatur'] }}{% endif %}</span>
+    </div>
+    {% include 'partials/_documento_pie.html' %}
+</article>
+
+{% if constancia['estado'] != 'Anulada' and not imprimir and can('constancias.anular') %}
+<div class="modal fade" id="cancelModal" tabindex="-1" aria-hidden="true"><div class="modal-dialog"><form class="modal-content" method="POST" action="{{ url_for('facturacion_constancia_medica_anular', constancia_id=constancia['id']) }}" data-confirm-submit="¿Confirma que desea anular esta constancia?"><div class="modal-header"><h2 class="modal-title fs-5">Anular constancia médica</h2><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><div class="modal-body"><p>La constancia permanecerá en el historial como anulada.</p><label class="form-label">Motivo de anulación *</label><textarea class="form-control" name="motivo_anulacion" rows="4" required maxlength="2000"></textarea></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button><button class="btn btn-primary" type="submit">Confirmar anulación</button></div></form></div></div>
+{% endif %}
+{% if imprimir %}
+<script nonce="{{ csp_nonce }}">
+window.addEventListener('load', () => {
+    setTimeout(() => window.print(), 150);
+});
+</script>
+{% endif %}
+{% endblock %}

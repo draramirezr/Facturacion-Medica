@@ -88,6 +88,59 @@ def _sembrar_permisos(cursor, database):
         )
 
 
+TABLAS_MODULOS_OPCIONALES = ('constancias_medicas',)
+
+# Permisos nuevos que heredan los roles (de sistema o personalizados) que ya
+# tenían el permiso equivalente de licencias. Solo se aplica la primera vez
+# que el permiso aparece en la base, para no revertir cambios del administrador.
+PERMISOS_HEREDADOS = {
+    'constancias.ver': 'licencias.ver',
+    'constancias.crear': 'licencias.crear',
+    'constancias.editar': 'licencias.editar',
+    'constancias.anular': 'licencias.anular',
+    'constancias.imprimir': 'licencias.imprimir',
+}
+
+
+def _asegurar_tablas_modulos(cursor):
+    """Crear tablas de módulos agregados después de instalar la base."""
+    script = SCHEMA_PATH.read_text(encoding='utf-8')
+    for sentencia in extraer_sentencias_esquema(script):
+        for tabla in TABLAS_MODULOS_OPCIONALES:
+            if sentencia.startswith(f'CREATE TABLE IF NOT EXISTS {tabla} '):
+                cursor.execute(sentencia)
+
+
+def _permisos_existentes(cursor, database, codigos):
+    if not codigos or not _existe_tabla(cursor, database, 'permisos'):
+        return set()
+    placeholders = ', '.join(['%s'] * len(codigos))
+    cursor.execute(
+        f'SELECT codigo FROM permisos WHERE codigo IN ({placeholders})',
+        tuple(codigos),
+    )
+    return {fila['codigo'] for fila in cursor.fetchall()}
+
+
+def _heredar_permisos_nuevos(cursor, database, ya_existian):
+    """Dar los permisos recién sembrados a los roles con el permiso base."""
+    if not _existe_tabla(cursor, database, 'rol_permisos'):
+        return
+    for nuevo, base in PERMISOS_HEREDADOS.items():
+        if nuevo in ya_existian:
+            continue
+        cursor.execute(
+            '''
+            INSERT IGNORE INTO rol_permisos (tenant_id, rol_id, permiso_id)
+            SELECT rp.tenant_id, rp.rol_id, pn.id
+            FROM rol_permisos rp
+            JOIN permisos pb ON pb.id = rp.permiso_id AND pb.codigo = %s
+            JOIN permisos pn ON pn.codigo = %s
+            ''',
+            (base, nuevo),
+        )
+
+
 def _asegurar_columnas_activacion(cursor, database):
     columnas = {
         'email_verificado': 'TINYINT(1) NOT NULL DEFAULT 1',
@@ -399,7 +452,12 @@ def bootstrap_required_schema(connection_factory=None):
                 for sentencia in extraer_sentencias_esquema(script):
                     cursor.execute(sentencia)
                 aplicadas = True
+            _asegurar_tablas_modulos(cursor)
+            permisos_previos = _permisos_existentes(
+                cursor, database, tuple(PERMISOS_HEREDADOS)
+            )
             _sembrar_permisos(cursor, database)
+            _heredar_permisos_nuevos(cursor, database, permisos_previos)
             _asegurar_columnas_activacion(cursor, database)
             _asegurar_columnas_smtp_empresa(cursor, database)
             _asegurar_columnas_confirmacion_cita(cursor, database)

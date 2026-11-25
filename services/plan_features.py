@@ -47,3 +47,30 @@ def requiere_plan_centro_medico(view=None, *, api=False):
     if view is not None:
         return decorator(view)
     return decorator
+
+
+# Un centro de salud siempre usa el plan Centro médico: es el único que
+# incluye turnos, emergencias y mensajería interna.
+PLAN_REQUERIDO_POR_TIPO = {'centro_salud': PLAN_CENTRO_MEDICO}
+
+MENSAJE_PLAN_CENTRO_SALUD = (
+    'Un centro de salud debe usar el plan Centro médico (hasta 5 usuarios), '
+    'que incluye turnos, emergencias y mensajería interna.'
+)
+
+
+def plan_requerido_para_tipo(tipo_empresa):
+    return PLAN_REQUERIDO_POR_TIPO.get((tipo_empresa or '').strip())
+
+
+def error_plan_para_tipo(tipo_empresa, plan):
+    """Mensaje de error si el plan no corresponde al tipo de empresa."""
+    requerido = plan_requerido_para_tipo(tipo_empresa)
+    if requerido and (plan or '').strip().lower() != requerido:
+        return MENSAJE_PLAN_CENTRO_SALUD
+    return None
+
+
+def planes_permitidos_para_tipo(tipo_empresa, planes):
+    requerido = plan_requerido_para_tipo(tipo_empresa)
+    return [p for p in planes if not requerido or p == requerido]

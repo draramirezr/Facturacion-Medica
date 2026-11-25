@@ -236,6 +236,9 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             with (
                 patch_current_user(self.user),
                 patch.object(dashboard_routes, 'execute_query', side_effect=fake_query),
+                patch('services.dashboard.execute_query', side_effect=fake_query),
+                patch('routes.production_report.execute_query', side_effect=fake_query),
+                patch('services.subscriptions.get_empresa_info', return_value={'tipo_empresa': 'centro_salud'}),
                 patch.object(
                     dashboard_routes,
                     'render_template',
@@ -250,10 +253,12 @@ class PhaseZeroSecurityTests(unittest.TestCase):
             if (
                 'FROM facturas' in query
                 or 'FROM pacientes_pendientes' in query
-                or 'FROM facturas f' in query
+                or 'FROM pago_facturas' in query
+                or 'FROM reclamaciones' in query
+                or 'FROM ncf' in query
             )
         ]
-        self.assertTrue(protected_queries)
+        self.assertGreaterEqual(len(protected_queries), 8)
         for query, params in protected_queries:
             self.assertIn('tenant_id = %s', query)
             self.assertIn(22, params)

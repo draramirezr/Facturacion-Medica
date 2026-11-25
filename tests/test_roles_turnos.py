@@ -102,15 +102,17 @@ class RbacCatalogTests(unittest.TestCase):
             plantilla,
         )
         self.assertIn('can(\'usuarios.ver\') or es_administrador', plantilla)
-        self.assertIn("url_for('facturacion_reporte_pacientes_360')", plantilla)
         self.assertIn(
             "or can('historia_clinica.ver')",
             plantilla,
         )
-        self.assertEqual(
-            plantilla.count("url_for('facturacion_reporte_pacientes_360')"),
-            1,
-        )
+        # Vista 360 se abre desde la lista de pacientes, no desde el menú.
+        self.assertNotIn("url_for('facturacion_reporte_pacientes_360')", plantilla)
+        lista_pacientes = (
+            Path(app_module.__file__).resolve().parent
+            / 'templates' / 'facturacion' / 'pacientes.html'
+        ).read_text(encoding='utf-8')
+        self.assertIn('Vista 360', lista_pacientes)
 
         lista_roles = (
             Path(app_module.__file__).resolve().parent

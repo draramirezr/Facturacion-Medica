@@ -53,6 +53,10 @@ _ORDEN_ELIMINACION = (
     'ars',
 )
 
+# Tablas de módulos que no forman parte de REQUIRED_TENANT_TABLES; se borran
+# solo si existen en la base (la creación ocurre en el arranque).
+_TABLAS_OPCIONALES = ('constancias_medicas',)
+
 
 def motivo_no_eliminar_demo(empresa_id):
     """Devuelve texto de error si no se puede borrar; None si sí."""
@@ -96,6 +100,17 @@ def eliminar_empresa_demo_vacia(empresa_id):
             orden += [
                 t for t in REQUIRED_TENANT_TABLES if t not in orden
             ]
+            for tabla in _TABLAS_OPCIONALES:
+                existe = execute_query(
+                    'SELECT 1 AS ok FROM information_schema.TABLES '
+                    'WHERE TABLE_SCHEMA=DATABASE() AND TABLE_NAME=%s',
+                    (tabla,),
+                )
+                if existe:
+                    execute_update(
+                        f'DELETE FROM `{tabla}` WHERE tenant_id=%s',
+                        (empresa_id,),
+                    )
             for tabla in orden:
                 execute_update(
                     f'DELETE FROM `{tabla}` WHERE tenant_id=%s',

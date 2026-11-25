@@ -125,6 +125,7 @@
         {% if plan_centro_medico %}<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#emergency" type="button">Emergencias</button></li>{% endif %}
         {% if ver_facturacion %}<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#registered" type="button">Consultas registradas</button></li>{% endif %}
         <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#licenses" type="button">Licencias</button></li>
+        {% if can('constancias.ver') %}<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#certificates" type="button">Constancias</button></li>{% endif %}
         {% if ver_facturacion %}<li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#invoices" type="button">Facturación</button></li>{% endif %}
     </ul>
 
@@ -195,6 +196,18 @@
             </div>
             {% else %}<div class="empty-record">No hay licencias médicas registradas.</div>{% endfor %}
         </section>
+
+        {% if can('constancias.ver') %}
+        <section class="tab-pane fade patient-360-card" id="certificates">
+            <div class="d-flex justify-content-between align-items-center mb-2"><h2 class="h5 mb-0">Constancias médicas</h2>{% if can('constancias.crear') %}<a class="btn btn-sm btn-primary btn-p360" href="{{ url_for('facturacion_constancias_medicas_nueva', paciente_id=paciente['id']) }}">Nueva constancia</a>{% endif %}</div>
+            {% for constancia in constancias %}
+            <div class="record-row d-flex justify-content-between flex-wrap gap-2">
+                <div><strong>{{ constancia['fecha_atencion'] }} · {{ constancia['codigo'] }}</strong><span class="record-meta">{{ constancia['dirigida_a'] or 'A quien pueda interesar' }} · {{ constancia['medico_nombre'] }}</span><span class="record-status mt-2">{{ constancia['estado'] }}</span></div>
+                <a class="btn btn-sm btn-outline-primary btn-p360 align-self-start" href="{{ url_for('facturacion_constancia_medica_ver', constancia_id=constancia['id']) }}">Ver detalle</a>
+            </div>
+            {% else %}<div class="empty-record">No hay constancias médicas registradas.</div>{% endfor %}
+        </section>
+        {% endif %}
 
         {% if ver_facturacion %}<section class="tab-pane fade patient-360-card" id="invoices">
             <h2 class="h5 mb-2">Facturación del paciente</h2>

@@ -24,7 +24,7 @@
 <div class="container py-4">
     <div class="hc-view">
         <div class="hc-summary">
-            {% if imprimir_receta or imprimir_licencia or imprimir_indicaciones or imprimir_lab %}
+            {% if imprimir_receta or imprimir_licencia or imprimir_constancia or imprimir_indicaciones or imprimir_lab %}
             <div class="alert alert-primary no-print">
                 Entregue al paciente la copia impresa.
                 {% if imprimir_indicaciones and can('historia_clinica.imprimir') %}
@@ -39,6 +39,9 @@
                 {% if imprimir_licencia and can('licencias.imprimir') %}
                 <a class="alert-link" target="_blank" href="{{ url_for('facturacion_licencia_medica_imprimir', licencia_id=imprimir_licencia) }}">Imprimir licencia</a>
                 {% endif %}
+                {% if imprimir_constancia and can('constancias.imprimir') %}
+                <a class="alert-link" target="_blank" href="{{ url_for('facturacion_constancia_medica_imprimir', constancia_id=imprimir_constancia) }}">Imprimir constancia</a>
+                {% endif %}
             </div>
             {% endif %}
             <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
@@ -51,6 +54,9 @@
                 <div class="d-flex gap-2 flex-wrap">
                     <button class="btn btn-primary" type="button" data-hc-tab="recetas"><i class="fas fa-prescription me-2"></i>Ir a recetas</button>
                     <button class="btn btn-outline-primary" type="button" data-hc-tab="licencias"><i class="fas fa-file-medical me-2"></i>Ir a licencias</button>
+                    {% if can('constancias.ver') %}
+                    <button class="btn btn-outline-primary" type="button" data-hc-tab="constancias"><i class="fas fa-file-signature me-2"></i>Ir a constancias</button>
+                    {% endif %}
                     <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_clinica_editar', consulta_id=consulta['id']) }}"><i class="fas fa-pen me-2"></i>Editar con trazabilidad</a>
                     {% if can('historia_clinica.imprimir') and hay_laboratorio %}
                     <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_orden_laboratorio', consulta_id=consulta['id']) }}"><i class="fas fa-vial me-2"></i>Imprimir laboratorio</a>
@@ -63,6 +69,9 @@
                     {% endif %}
                     {% if can('licencias.imprimir') and licencias %}
                     <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_licencia_medica_imprimir', licencia_id=licencias[0]['id']) }}"><i class="fas fa-print me-2"></i>Imprimir licencia</a>
+                    {% endif %}
+                    {% if can('constancias.imprimir') and constancias %}
+                    <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_constancia_medica_imprimir', constancia_id=constancias[0]['id']) }}"><i class="fas fa-print me-2"></i>Imprimir constancia</a>
                     {% endif %}
                 </div>
             </div>
@@ -83,11 +92,14 @@
             <li class="nav-item"><button class="nav-link active" id="tab-btn-consulta" data-bs-toggle="tab" data-bs-target="#tab-consulta" type="button">Consulta</button></li>
             <li class="nav-item"><button class="nav-link" id="tab-btn-recetas" data-bs-toggle="tab" data-bs-target="#tab-recetas" type="button">Recetas {% if recetas %}<span class="badge text-bg-secondary">{{ recetas|length }}</span>{% endif %}</button></li>
             <li class="nav-item"><button class="nav-link" id="tab-btn-licencias" data-bs-toggle="tab" data-bs-target="#tab-licencias" type="button">Licencias {% if licencias %}<span class="badge text-bg-secondary">{{ licencias|length }}</span>{% endif %}</button></li>
+            {% if can('constancias.ver') %}
+            <li class="nav-item"><button class="nav-link" id="tab-btn-constancias" data-bs-toggle="tab" data-bs-target="#tab-constancias" type="button">Constancias {% if constancias %}<span class="badge text-bg-secondary">{{ constancias|length }}</span>{% endif %}</button></li>
+            {% endif %}
         </ul>
 
         <div class="tab-content hc-tab-card">
             <div class="tab-pane fade show active" id="tab-consulta">
-        {% if can('historia_clinica.imprimir') or recetas or licencias %}
+        {% if can('historia_clinica.imprimir') or recetas or licencias or constancias %}
         <div class="hc-block border-0 p-3 mb-4 no-print csp-s-cf1e0a49">
             <h2 class="mb-2 csp-s-fbca0edd">Imprimir para el paciente</h2>
             <p class="text-muted small mb-3">Las indicaciones (imagen, referido, otros estudios), el laboratorio, la receta y la licencia se entregan desde aquí.</p>
@@ -103,6 +115,9 @@
                 {% endif %}
                 {% if can('licencias.imprimir') and licencias %}
                 <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_licencia_medica_imprimir', licencia_id=licencias[0]['id']) }}"><i class="fas fa-print me-2"></i>Imprimir licencia</a>
+                {% endif %}
+                {% if can('constancias.imprimir') and constancias %}
+                <a class="btn btn-outline-primary" target="_blank" href="{{ url_for('facturacion_constancia_medica_imprimir', constancia_id=constancias[0]['id']) }}"><i class="fas fa-print me-2"></i>Imprimir constancia</a>
                 {% endif %}
             </div>
         </div>
@@ -391,6 +406,45 @@
                 </form>
                 {% endif %}
             </div>
+
+            {% if can('constancias.ver') %}
+            <div class="tab-pane fade" id="tab-constancias">
+                <h2 class="hc-block border-0 p-0 mb-3 csp-s-71c72e9c">Constancias de esta consulta</h2>
+                <p class="text-muted">Constancia de asistencia para escuela, trabajo u otra institución. No incluye diagnóstico.</p>
+                {% for constancia in constancias %}
+                <div class="d-flex justify-content-between align-items-center gap-2 py-2 border-bottom">
+                    <div>
+                        <strong>{{ constancia['codigo'] }}</strong>
+                        <small class="d-block text-muted">{{ constancia['fecha_atencion'] }}{% if constancia['hora_entrada'] %} · {{ constancia['hora_entrada']|hora_input }}{% if constancia['hora_salida'] %} a {{ constancia['hora_salida']|hora_input }}{% endif %}{% endif %} · {{ constancia['dirigida_a'] or 'A quien pueda interesar' }} · {{ constancia['estado'] }}</small>
+                    </div>
+                    <div class="d-flex gap-2">
+                        <a class="btn btn-sm btn-outline-primary" href="{{ url_for('facturacion_constancia_medica_ver', constancia_id=constancia['id']) }}">Ver</a>
+                        {% if can('constancias.imprimir') %}
+                        <a class="btn btn-sm btn-primary" target="_blank" href="{{ url_for('facturacion_constancia_medica_imprimir', constancia_id=constancia['id']) }}">Imprimir</a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}<p class="text-muted">No hay constancias relacionadas con esta consulta.</p>{% endfor %}
+
+                {% if can('constancias.crear') %}
+                <form method="POST" action="{{ url_for('facturacion_constancias_medicas_nueva') }}" class="mt-4" id="hcCertificateForm">
+                    <h3 class="h6">Emitir constancia en esta consulta</h3>
+                    <input type="hidden" name="paciente_id" value="{{ consulta['paciente_id'] }}">
+                    <input type="hidden" name="medico_id" value="{{ consulta['medico_id'] }}">
+                    <input type="hidden" name="consulta_id" value="{{ consulta['id'] }}">
+                    <input type="hidden" name="volver_consulta_id" value="{{ consulta['id'] }}">
+                    <div class="row g-3">
+                        <div class="col-md-4"><label class="form-label">Fecha de atención *</label><input type="date" class="form-control" name="fecha_atencion" required value="{{ consulta['fecha'] }}"></div>
+                        <div class="col-md-4"><label class="form-label">Hora de entrada</label><input type="time" class="form-control" name="hora_entrada" value="{{ consulta['hora']|hora_input }}"></div>
+                        <div class="col-md-4"><label class="form-label">Hora de salida</label><input type="time" class="form-control" name="hora_salida"></div>
+                        <div class="col-md-6"><label class="form-label">Dirigida a</label><input class="form-control" name="dirigida_a" maxlength="200" placeholder="A quien pueda interesar"></div>
+                        <div class="col-md-6"><label class="form-label">Motivo / observación</label><input class="form-control" name="motivo" maxlength="500" placeholder="Opcional, sin diagnóstico"></div>
+                    </div>
+                    <button class="btn btn-primary mt-3" type="submit">Emitir constancia</button>
+                </form>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -406,7 +460,7 @@
         button.addEventListener('click', () => showTab(button.dataset.hcTab));
     });
     const hash = (location.hash || '').replace('#', '');
-    if (hash === 'recetas' || hash === 'licencias') showTab(hash);
+    if (hash === 'recetas' || hash === 'licencias' || hash === 'constancias') showTab(hash);
 
     const rows = document.getElementById('hcMedicineRows');
     if (rows) {
@@ -443,6 +497,9 @@
     {% endif %}
     {% if imprimir_licencia and can('licencias.imprimir') %}
     printUrls.push({{ url_for('facturacion_licencia_medica_imprimir', licencia_id=imprimir_licencia)|tojson }});
+    {% endif %}
+    {% if imprimir_constancia and can('constancias.imprimir') %}
+    printUrls.push({{ url_for('facturacion_constancia_medica_imprimir', constancia_id=imprimir_constancia)|tojson }});
     {% endif %}
     {% if imprimir_indicaciones and can('historia_clinica.imprimir') %}
     printUrls.push({{ url_for('facturacion_hoja_indicaciones', consulta_id=consulta['id'])|tojson }});

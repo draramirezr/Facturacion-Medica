@@ -23,6 +23,7 @@ from routes.support import (
     validate_int,
 )
 from services.catalogos_ars import sembrar_ars_tenant
+from services.plan_features import planes_permitidos_para_tipo
 from services.datos_guia import sembrar_datos_guia_tenant
 from services.plan_upgrades import (
     PLAN_ETIQUETAS,
@@ -280,6 +281,13 @@ def _validate_company(values, editing=False):
         return duplicado
     if values['plan'] not in ('basico', 'profesional', 'empresarial'):
         return 'Debe seleccionar un plan válido'
+    # Tipo y plan solo los cambia el dueño; para el admin de la empresa vienen
+    # de la base y no deben bloquearle editar teléfono, dirección, etc.
+    if usuario_es_dueno_software(current_user):
+        from services.plan_features import error_plan_para_tipo
+        error_plan = error_plan_para_tipo(values['tipo_empresa'], values['plan'])
+        if error_plan:
+            return error_plan
     if editing and values['estado'] not in ('activo', 'suspendido', 'inactivo'):
         return 'Debe seleccionar un estado válido'
     try:
@@ -398,7 +406,9 @@ def admin_empresas_editar(empresa_id):
             empresa=empresa,
             administradores=_administradores_de_empresa(empresa_id),
             upgrade_pendiente=upgrade_pendiente_empresa(empresa_id),
-            planes_upgrade=planes_superiores(empresa.get('plan')),
+            planes_upgrade=planes_permitidos_para_tipo(
+                empresa.get('tipo_empresa'), planes_superiores(empresa.get('plan')),
+            ),
             plan_etiquetas=PLAN_ETIQUETAS,
             precios_planes=precios,
             upgrade_gracia_dias=UPGRADE_GRACIA_DIAS,
@@ -478,7 +488,9 @@ def contratar_plan():
     return render_template(
         'contratar_plan.html',
         empresa=empresa,
-        planes=list(PLAN_ORDEN),
+        planes=planes_permitidos_para_tipo(
+            empresa.get('tipo_empresa'), list(PLAN_ORDEN),
+        ),
         plan_etiquetas=PLAN_ETIQUETAS,
         precios_planes=catalogo_precios(),
         upgrade_gracia_dias=UPGRADE_GRACIA_DIAS,
