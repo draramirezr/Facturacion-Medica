@@ -29,6 +29,7 @@ from core.database import (
 )
 from core.errors import init_error_handlers
 from core.extensions import init_extensions, login_manager
+from core.monitoring import init_monitoring
 from core.presentation import init_presentation
 from core.security import (
     init_security,
@@ -53,6 +54,7 @@ def create_app():
 
 
 def configure(flask_app):
+    init_monitoring(flask_app)
     configure_app(flask_app)
     init_extensions(flask_app)
     init_database(flask_app)

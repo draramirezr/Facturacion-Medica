@@ -150,6 +150,19 @@ def crear_nota_credito(
     if not motivo:
         raise NotaCreditoError("Indique el motivo de la nota de crédito")
 
+    # Bloquear la factura hasta el commit: dos notas simultáneas sobre la
+    # misma factura se procesan en fila y la segunda ve el saldo ya rebajado.
+    from flask import g, has_app_context
+
+    if has_app_context() and not g.get("db_transaction_active", False):
+        raise RuntimeError("crear_nota_credito debe ejecutarse dentro de database_transaction()")
+    bloqueada = execute_query(
+        "SELECT id FROM facturas WHERE id=%s AND tenant_id=%s FOR UPDATE",
+        (factura_id, tenant_id),
+    )
+    if not bloqueada:
+        raise NotaCreditoError("Factura no encontrada")
+
     saldo = saldo_creditable_factura(tenant_id, factura_id)
     if saldo <= 0:
         raise NotaCreditoError("No queda saldo creditable en la factura")

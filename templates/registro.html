@@ -316,12 +316,18 @@
             const plan = document.getElementById('plan');
             const hint = document.getElementById('tipo_empresa_hint');
             const textoBase = hint ? hint.textContent : '';
+            const opcionBasico = plan ? plan.querySelector('option[value="basico"]') : null;
             const sugerirPlan = () => {
                 if (!plan || !hint) {
                     return;
                 }
+                // Independiente (1 usuario) no aplica a un centro de salud.
+                if (opcionBasico) {
+                    opcionBasico.disabled = tipo.value === 'centro_salud';
+                    opcionBasico.hidden = tipo.value === 'centro_salud';
+                }
                 if (tipo.value === 'centro_salud') {
-                    if (!plan.value) {
+                    if (!plan.value || plan.value === 'basico') {
                         plan.value = 'empresarial';
                     }
                     hint.textContent = plan.value === 'empresarial'

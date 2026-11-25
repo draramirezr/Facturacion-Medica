@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+
+{% block title %}Producción por {{ titulo_entidad|lower }} - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .produccion-resumen .card { border-radius: 14px; }
+    .produccion-resumen .valor { font-size: 1.35rem; font-weight: 800; }
+    .produccion-tabla td.num, .produccion-tabla th.num { text-align: right; white-space: nowrap; }
+    .produccion-barra { height: 6px; border-radius: 3px; background: var(--ars-shell-border, #e2e8f0); overflow: hidden; }
+    .produccion-barra > span { display: block; height: 100%; background: var(--primary-color, #0891b2); }
+    .produccion-tabla tfoot td { font-weight: 800; }
+    {% for fila in filas %}
+    .produccion-barra-{{ loop.index }} { width: {{ fila.porcentaje }}%; }
+    {% endfor %}
+</style>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+        <div>
+            <h1 class="h3 mb-1">
+                <i class="fas fa-chart-column me-2"></i>Producción por {{ titulo_entidad|lower }}
+            </h1>
+            <p class="text-muted mb-0">
+                {% if agrupar == 'medico' %}
+                    Servicios registrados y montos según el médico que atendió.
+                {% else %}
+                    Servicios registrados y montos según el centro donde se atendió.
+                {% endif %}
+            </p>
+        </div>
+        <a class="btn btn-outline-secondary"
+           href="{{ url_for('facturacion_reporte_produccion', por=agrupar, desde=desde, hasta=hasta, ars_id=ars_id or '', formato='csv') }}">
+            <i class="fas fa-file-csv me-1"></i>Descargar CSV
+        </a>
+    </div>
+
+    <form method="get" class="row g-2 align-items-end mb-4">
+        <div class="col-sm-6 col-md-3">
+            <label class="form-label" for="por">Agrupar por</label>
+            <select class="form-select" id="por" name="por">
+                <option value="medico" {{ 'selected' if agrupar == 'medico' else '' }}>Médico</option>
+                <option value="centro" {{ 'selected' if agrupar == 'centro' else '' }}>Centro</option>
+            </select>
+        </div>
+        <div class="col-sm-6 col-md-2">
+            <label class="form-label" for="desde">Desde</label>
+            <input class="form-control" type="date" id="desde" name="desde" value="{{ desde }}">
+        </div>
+        <div class="col-sm-6 col-md-2">
+            <label class="form-label" for="hasta">Hasta</label>
+            <input class="form-control" type="date" id="hasta" name="hasta" value="{{ hasta }}">
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <label class="form-label" for="ars_id">ARS</label>
+            <select class="form-select" id="ars_id" name="ars_id">
+                <option value="">Todas</option>
+                {% for ars in ars_list %}
+                <option value="{{ ars.id }}" {{ 'selected' if ars_id == ars.id else '' }}>{{ ars.nombre }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="submit">
+                <i class="fas fa-filter me-1"></i>Ver
+            </button>
+        </div>
+    </form>
+
+    <div class="row g-3 produccion-resumen mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card p-3">
+                <div class="text-muted small">Servicios</div>
+                <div class="valor">{{ totales.servicios }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card p-3">
+                <div class="text-muted small">Pacientes distintos</div>
+                <div class="valor">{{ totales.pacientes }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card p-3">
+                <div class="text-muted small">Facturado</div>
+                <div class="valor">RD$ {{ totales.facturado|formato_moneda }}</div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card p-3">
+                <div class="text-muted small">Por facturar</div>
+                <div class="valor">RD$ {{ totales.por_facturar|formato_moneda }}</div>
+            </div>
+        </div>
+    </div>
+
+    {% if filas %}
+    <div class="table-responsive">
+        <table class="table align-middle produccion-tabla">
+            <thead>
+                <tr>
+                    <th>{{ titulo_entidad }}</th>
+                    <th class="num">Servicios</th>
+                    <th class="num">Pacientes</th>
+                    <th class="num">Total</th>
+                    <th class="num">Facturado</th>
+                    <th class="num">Por facturar</th>
+                    <th>% del total</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fila in filas %}
+                <tr>
+                    <td>{{ fila.entidad }}</td>
+                    <td class="num">{{ fila.servicios }}</td>
+                    <td class="num">{{ fila.pacientes }}</td>
+                    <td class="num">{{ fila.total|formato_moneda }}</td>
+                    <td class="num">{{ fila.facturado|formato_moneda }}</td>
+                    <td class="num">{{ fila.por_facturar|formato_moneda }}</td>
+                    <td>
+                        <div class="small">{{ fila.porcentaje }}%</div>
+                        <div class="produccion-barra"><span class="produccion-barra-{{ loop.index }}"></span></div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td>Total</td>
+                    <td class="num">{{ totales.servicios }}</td>
+                    <td class="num">{{ totales.pacientes }}</td>
+                    <td class="num">{{ totales.total|formato_moneda }}</td>
+                    <td class="num">{{ totales.facturado|formato_moneda }}</td>
+                    <td class="num">{{ totales.por_facturar|formato_moneda }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    <p class="text-muted small">
+        Los pacientes del total no son la suma de las filas: un paciente atendido por dos
+        {{ 'médicos' if agrupar == 'medico' else 'centros' }} se cuenta una sola vez.
+    </p>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>No hay servicios registrados en este periodo.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -17,7 +17,4 @@ qrcode[pil]==8.2
 tzdata==2025.2
 waitress==3.0.2
 PyJWT==2.10.1
-
-
-
-
+sentry-sdk[flask]==2.19.2

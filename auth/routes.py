@@ -223,6 +223,13 @@ def registro():
     if plan not in PLAN_LICENCIAS:
         flash('Selecciona un plan', 'error')
         return render_template('registro.html')
+    if tipo_empresa == 'centro_salud' and plan == 'basico':
+        flash(
+            'El plan Independiente es de 1 usuario y no aplica a un centro de '
+            'salud. Elija Consultorio o Centro médico.',
+            'error',
+        )
+        return render_template('registro.html')
     error_nombre_empresa = validar_nombre_empresa(nombre_empresa)
     if error_nombre_empresa:
         flash(error_nombre_empresa, 'error')

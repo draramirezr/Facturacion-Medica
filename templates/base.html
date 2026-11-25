@@ -1337,6 +1337,11 @@
                         <i class="fas fa-clock-rotate-left"></i>
                         <span>Histórico</span>
                     </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'facturacion_reporte_produccion' else '' }}"
+                       href="{{ url_for('facturacion_reporte_produccion') }}">
+                        <i class="fas fa-chart-column"></i>
+                        <span>{{ 'Producción por médico' if es_centro_salud else 'Producción por centro' }}</span>
+                    </a>
                 </div>
                 {% endif %}
 

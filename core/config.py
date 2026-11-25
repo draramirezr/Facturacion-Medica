@@ -9,6 +9,7 @@ import pymysql
 from dotenv import load_dotenv
 
 from ecf import ECFConfig
+from ecf.config import ECFConfigurationError
 
 load_dotenv()
 
@@ -129,6 +130,36 @@ REQUIRED_TENANT_TABLES = (
 )
 
 
+def cargar_config_ecf(app=None, env=None):
+    """Configuración e-CF que nunca impide arrancar la app.
+
+    Un error en las variables ECF_* (por ejemplo, URL de pruebas con
+    ECF_ENVIRONMENT=PRODUCCION) antes tumbaba toda la plataforma. Ahora el
+    e-CF queda apagado, el error se registra y el resto de ClinicRD
+    (incluida la facturación con NCF) sigue funcionando.
+    """
+    import logging
+
+    origen = dict(os.environ if env is None else env)
+    try:
+        config = ECFConfig.from_env(origen)
+        error = None
+    except ECFConfigurationError as exc:
+        error = str(exc)
+        logging.getLogger(__name__).error(
+            'Configuración e-CF inválida; e-CF desactivado hasta corregirla: %s',
+            error,
+        )
+        apagado = dict(origen, ECF_ENABLED='false', ECF_ALLOW_PRODUCTION='false')
+        try:
+            config = ECFConfig.from_env(apagado)
+        except ECFConfigurationError:
+            config = ECFConfig.from_env(dict(apagado, ECF_ENVIRONMENT='PRUEBAS'))
+    if app is not None:
+        app.config['ECF_CONFIG_ERROR'] = error
+    return config
+
+
 def configure_app(app):
     """Aplicar la configuración Flask sin registrar rutas."""
     configured_secret_key = os.getenv('SECRET_KEY', '').strip()
@@ -153,7 +184,7 @@ def configure_app(app):
         MAX_CONTENT_LENGTH=int(
             os.getenv('MAX_UPLOAD_BYTES', str(10 * 1024 * 1024))
         ),
-        ECF_CONFIG=ECFConfig.from_env(),
+        ECF_CONFIG=cargar_config_ecf(app),
     )
 
 

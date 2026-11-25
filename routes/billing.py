@@ -39,17 +39,17 @@ from routes.billing_invoice_pdf import (
 from routes.billing_dashboard import (
     facturacion_dashboard,
 )
-from routes.billing_pending import (
+from routes.billing_pending import facturacion_facturas_nueva
+from routes.billing_excel import (
     descargar_plantilla_excel,
-    facturacion_facturas_nueva,
     facturacion_procesar_excel,
 )
 from routes.billing_generate import (
     facturacion_generar,
-    facturacion_generar_final,
     facturacion_generar_step2,
     facturacion_vista_previa,
 )
+from routes.billing_emit import facturacion_generar_final
 
 
 def register_billing_routes(app):

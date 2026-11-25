@@ -14,6 +14,7 @@ from routes.nursing import register_nursing_routes
 from routes.onboarding import register_onboarding_routes
 from routes.patients import register_patient_routes
 from routes.prescriptions import register_prescription_routes
+from routes.production_report import register_production_report_routes
 from routes.turnos_screens import register_turnos_routes
 from routes.users_roles import register_user_role_routes
 
@@ -21,6 +22,7 @@ from routes.users_roles import register_user_role_routes
 def register_operation_routes(app):
     register_onboarding_routes(app)
     register_billing_routes(app)
+    register_production_report_routes(app)
     register_credit_note_routes(app)
     register_catalog_routes(app)
     register_centro_contexto_routes(app)
