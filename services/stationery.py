@@ -1,6 +1,7 @@
 """Papelería del consultorio: membrete y logo aislados por empresa."""
 
 import logging
+import os
 from pathlib import Path
 
 from core.database import execute_query, execute_update
@@ -20,6 +21,11 @@ _TIPOS_LOGO = (
 
 
 def _raiz_papeleria():
+    """Carpeta de logos. En Railway va en el volumen persistente: la carpeta
+    del contenedor (instance/) se borra en cada despliegue y los logos se perdían."""
+    volumen = (os.getenv('RAILWAY_VOLUME_MOUNT_PATH') or '').strip()
+    if volumen:
+        return (Path(volumen) / 'papeleria').resolve()
     return (Path.cwd() / 'instance' / 'papeleria').resolve()
 
 

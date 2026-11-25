@@ -60,6 +60,17 @@
         gap: 12px;
         margin-bottom: 1rem;
     }
+    .logo-requisitos { list-style: none; padding: 0; margin: 0 0 1rem; display: grid; gap: .35rem; font-size: .86rem; color: var(--ars-shell-muted, #718096); }
+    .logo-requisitos li { display: flex; gap: .55rem; align-items: baseline; }
+    .logo-requisitos i { width: 16px; text-align: center; color: var(--primary-color, #0891b2); }
+    .logo-requisitos strong { color: var(--ars-shell-text, #172033); }
+    .logo-estado { margin: 0 0 .75rem; padding: .45rem .65rem; border-radius: 8px; font-size: .8rem; }
+    .logo-estado.ok { background: #ecfdf3; color: #166534; }
+    .logo-estado.aviso { background: #fffbeb; color: #92400e; }
+    .logo-estado.error { background: #fef2f2; color: #b91c1c; }
+    html[data-color-mode="dark"] .logo-estado.ok { background: #0f2e1d; color: #bbf7d0; }
+    html[data-color-mode="dark"] .logo-estado.aviso { background: #3a2a0b; color: #fde68a; }
+    html[data-color-mode="dark"] .logo-estado.error { background: #3b1219; color: #fecaca; }
     .papeleria-preview__logo {
         width: 64px;
         height: 64px;
@@ -463,8 +474,14 @@
         <div class="settings-fold-body">
         <p class="settings-card-subtitle mb-3">
             El <strong>nombre del consultorio</strong> sale de los datos de su empresa (razón social).
-            Aquí solo sube el <strong>logo</strong> que verá al imprimir. PNG, JPG o WEBP, máximo 512 KB.
+            Aquí solo sube el <strong>logo</strong> que aparecerá en recetas, licencias, constancias y facturas.
         </p>
+        <ul class="logo-requisitos">
+            <li><i class="fas fa-file-image"></i><span><strong>Formato:</strong> PNG (recomendado), JPG/JPEG/JFIF o WEBP.</span></li>
+            <li><i class="fas fa-ruler-combined"></i><span><strong>Tamaño ideal:</strong> cuadrado de 600 × 600 px, u horizontal de 800 × 300 px. Mínimo 200 px de alto.</span></li>
+            <li><i class="fas fa-feather"></i><span><strong>Peso:</strong> hasta 512 KB. Si su imagen pesa más, la reducimos automáticamente al elegirla.</span></li>
+            <li><i class="fas fa-wand-magic-sparkles"></i><span><strong>Consejo:</strong> use el logo con <strong>fondo transparente</strong> (PNG) y sin bordes vacíos; se imprime más nítido.</span></li>
+        </ul>
         <div class="row g-4 align-items-start">
             <div class="col-lg-5">
                 <form method="POST" action="{{ url_for('perfil_configuracion') }}" enctype="multipart/form-data">
@@ -472,7 +489,8 @@
                     <input type="hidden" name="accion" value="papeleria">
                     <label class="form-label" for="logo_papeleria">Archivo de logo</label>
                     <input class="form-control mb-2" id="logo_papeleria" name="logo_papeleria" type="file"
-                           accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp">
+                           accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.jfif,.webp">
+                    <p class="logo-estado" id="logo_estado" role="status" hidden></p>
                     {% if papeleria.tiene_logo %}
                     <label class="form-check mb-3">
                         <input class="form-check-input" type="checkbox" name="quitar_logo" value="1" id="quitar_logo_papeleria">
@@ -1102,14 +1120,28 @@
     const input = document.getElementById('logo_papeleria');
     const previews = document.querySelectorAll('.js-papeleria-preview-logo');
     const quitar = document.getElementById('quitar_logo_papeleria');
+    const estado = document.getElementById('logo_estado');
     if (!input || !previews.length) return;
-    let objectUrl = null;
-    const mostrar = (url) => {
-        if (objectUrl) URL.revokeObjectURL(objectUrl);
-        objectUrl = null;
+    const MAX_BYTES = 512 * 1024;
+    const MAX_LADO = 1000;
+    const MIN_ALTO = 200;
+    const TIPOS = ['image/png', 'image/jpeg', 'image/pjpeg', 'image/webp'];
+    let urlActual = null;
+
+    const kb = (bytes) => `${Math.round(bytes / 1024)} KB`;
+    const avisar = (texto, tipo) => {
+        if (!estado) return;
+        estado.textContent = texto;
+        estado.className = `logo-estado ${tipo}`;
+        estado.hidden = !texto;
+    };
+    const mostrar = (archivo) => {
+        // Liberar la vista previa anterior, nunca la nueva (antes se revocaba la recién creada).
+        if (urlActual) URL.revokeObjectURL(urlActual);
+        urlActual = archivo ? URL.createObjectURL(archivo) : null;
         previews.forEach((preview) => {
-            if (url) {
-                preview.src = url;
+            if (urlActual) {
+                preview.src = urlActual;
                 preview.hidden = false;
             } else {
                 preview.removeAttribute('src');
@@ -1117,17 +1149,77 @@
             }
         });
     };
-    input.addEventListener('change', () => {
-        const file = input.files && input.files[0];
-        if (!file) return;
+    const cargarImagen = (archivo) => new Promise((resolve, reject) => {
+        const url = URL.createObjectURL(archivo);
+        const img = new Image();
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('imagen')); };
+        img.src = url;
+    });
+    // Reduce a máximo 1000 px por lado y guarda como WEBP (conserva la transparencia).
+    const reducir = async (img, nombre) => {
+        const escala = Math.min(1, MAX_LADO / Math.max(img.naturalWidth, img.naturalHeight));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(img.naturalWidth * escala);
+        canvas.height = Math.round(img.naturalHeight * escala);
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        for (const calidad of [0.92, 0.85, 0.75, 0.6]) {
+            const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/webp', calidad));
+            if (blob && blob.type === 'image/webp' && blob.size <= MAX_BYTES) {
+                return new File([blob], nombre.replace(/\.[^.]+$/, '') + '.webp', { type: 'image/webp' });
+            }
+        }
+        return null;
+    };
+
+    input.addEventListener('change', async () => {
+        const archivo = input.files && input.files[0];
+        if (!archivo) { avisar('', 'ok'); return; }
         if (quitar) quitar.checked = false;
-        objectUrl = URL.createObjectURL(file);
-        mostrar(objectUrl);
+        if (!TIPOS.includes(archivo.type)) {
+            input.value = '';
+            mostrar(null);
+            avisar('Ese archivo no es una imagen válida. Use PNG, JPG/JFIF o WEBP.', 'error');
+            return;
+        }
+        let img;
+        try {
+            img = await cargarImagen(archivo);
+        } catch (error) {
+            input.value = '';
+            mostrar(null);
+            avisar('No se pudo leer la imagen. Pruebe exportarla de nuevo como PNG o JPG.', 'error');
+            return;
+        }
+        let final = archivo;
+        let nota = '';
+        if (archivo.size > MAX_BYTES || Math.max(img.naturalWidth, img.naturalHeight) > MAX_LADO * 2) {
+            const reducido = await reducir(img, archivo.name);
+            if (!reducido || typeof DataTransfer === 'undefined') {
+                input.value = '';
+                mostrar(null);
+                avisar(`La imagen pesa ${kb(archivo.size)} y no pudimos reducirla. Use una de máximo 512 KB.`, 'error');
+                return;
+            }
+            const transferencia = new DataTransfer();
+            transferencia.items.add(reducido);
+            input.files = transferencia.files;
+            final = reducido;
+            nota = ` Reducida automáticamente de ${kb(archivo.size)} a ${kb(reducido.size)}.`;
+        }
+        mostrar(final);
+        const medidas = `${img.naturalWidth} × ${img.naturalHeight} px · ${kb(final.size)}.`;
+        if (img.naturalHeight < MIN_ALTO) {
+            avisar(`${medidas}${nota} Es pequeña: puede verse borrosa al imprimir (recomendado 200 px de alto o más).`, 'aviso');
+        } else {
+            avisar(`${medidas}${nota} Lista para guardar.`, 'ok');
+        }
     });
     quitar?.addEventListener('change', () => {
         if (quitar.checked) {
             input.value = '';
             mostrar(null);
+            avisar('', 'ok');
         }
     });
 })();

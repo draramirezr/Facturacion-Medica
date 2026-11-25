@@ -1173,26 +1173,26 @@
                 </button>
                 <div class="ars-nav-group collapsed" id="nav-administracion">
                     {% if es_centro_salud %}
-                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_medicos') or endpoint.startswith('facturacion_medico_centro') else '' }}"
-                       href="{{ url_for('facturacion_medicos') }}">
-                        <i class="fas fa-user-doctor"></i>
-                        <span>Médicos del centro</span>
-                    </a>
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_centros_medicos') else '' }}"
                        href="{{ url_for('facturacion_centros_medicos') }}">
                         <i class="fas fa-hospital"></i>
                         <span>Datos del centro / sedes</span>
                     </a>
-                    {% else %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_medicos') or endpoint.startswith('facturacion_medico_centro') else '' }}"
                        href="{{ url_for('facturacion_medicos') }}">
                         <i class="fas fa-user-doctor"></i>
-                        <span>Médico del consultorio</span>
+                        <span>Médicos del centro</span>
                     </a>
+                    {% else %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_centros_medicos') else '' }}"
                        href="{{ url_for('facturacion_centros_medicos') }}">
                         <i class="fas fa-hospital"></i>
                         <span>Centros donde trabajo</span>
+                    </a>
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_medicos') or endpoint.startswith('facturacion_medico_centro') else '' }}"
+                       href="{{ url_for('facturacion_medicos') }}">
+                        <i class="fas fa-user-doctor"></i>
+                        <span>Médico del consultorio</span>
                     </a>
                     {% endif %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_ars') else '' }}"

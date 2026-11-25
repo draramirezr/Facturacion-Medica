@@ -12,7 +12,10 @@
     .fp-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
     @media (max-width: 960px) { .fp-grid { grid-template-columns: 1fr; } }
     .fp-card { background: var(--ars-shell-surface, #fff); border: 1px solid var(--ars-shell-border, #e8edf3); border-radius: 16px; padding: 18px 20px; margin-bottom: 16px; }
-    .fp-card h2 { font-size: .8rem; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--ars-shell-muted, #718096); margin: 0 0 12px; }
+    .fp .fp-card h2 { font-size: .78rem !important; font-weight: 800 !important; letter-spacing: .06em; text-transform: uppercase;
+                      color: var(--ars-shell-muted, #718096) !important; margin: 0 0 14px !important; padding: 0 !important;
+                      border: 0 !important; background: none !important; font-family: inherit !important; }
+    .fp-opcional { color: var(--ars-shell-muted, #718096); font-weight: 400; font-size: .8rem; }
     .fp-conceptos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
     .fp-chip { border: 1px dashed var(--ars-shell-border, #cbd5e1); background: transparent; color: var(--ars-shell-text, #172033);
                border-radius: 999px; padding: 5px 12px; font-size: .78rem; font-weight: 600; }
@@ -31,10 +34,16 @@
     .fp-sugerencia { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
                      background: var(--ars-shell-surface-alt, #f2f5f8); font-size: .8rem; }
     .fp-aviso { font-size: .78rem; color: var(--ars-shell-muted, #718096); }
-    .fp-tipo { display: grid; gap: 8px; }
-    .fp-tipo label { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 10px;
-                     border: 1px solid var(--ars-shell-border, #e8edf3); cursor: pointer; font-size: .85rem; }
-    .fp-tipo small { display: block; color: var(--ars-shell-muted, #718096); }
+    .fp-seg { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: var(--ars-shell-surface-alt, #f2f5f8);
+              border: 1px solid var(--ars-shell-border, #e8edf3); }
+    .fp-seg label { position: relative; flex: 1; margin: 0; padding: 6px 4px; border-radius: 8px; text-align: center;
+                    font-size: .76rem; font-weight: 700; color: var(--ars-shell-muted, #718096); cursor: pointer; white-space: nowrap; }
+    .fp-seg input { position: absolute; opacity: 0; pointer-events: none; }
+    .fp-seg label:has(input:checked) { background: var(--ars-shell-surface, #fff); color: var(--primary-color, #0891b2);
+                                       box-shadow: 0 1px 3px rgba(15, 23, 42, .12); }
+    .fp-seg label:has(input:focus-visible) { outline: 2px solid var(--primary-color, #0891b2); outline-offset: 1px; }
+    .fp-seg .fp-seg-off { opacity: .45; cursor: not-allowed; }
+    .fp-seg-info { margin: 6px 2px 0; font-size: .72rem; color: var(--ars-shell-muted, #718096); }
 </style>
 
 <div class="fp">
@@ -53,13 +62,14 @@
                 <section class="fp-card">
                     <h2>Paciente</h2>
                     <div class="row g-3">
-                        <div class="col-md-8">
+                        <div class="col-12">
+                            <label class="form-label required" for="fp_paciente">Paciente</label>
                             {{ patient_search(pacientes, form.get('paciente_id') or paciente_id, true, 'fp_paciente') }}
                         </div>
-                        <div class="col-md-4">
-                            <label class="form-label" for="medico_id">Médico que atendió</label>
+                        <div class="col-12">
+                            <label class="form-label" for="medico_id">Médico que atendió <span class="fp-opcional">(opcional)</span></label>
                             <select class="form-select" id="medico_id" name="medico_id">
-                                <option value="">— Opcional —</option>
+                                <option value="">Seleccione el médico</option>
                                 {% for medico in medicos %}
                                 <option value="{{ medico.id }}" {{ 'selected' if form.get('medico_id')|string == medico.id|string else '' }}>{{ medico.nombre }}</option>
                                 {% endfor %}
@@ -118,22 +128,29 @@
             <aside>
                 <section class="fp-card">
                     <h2>Comprobante</h2>
-                    <div class="fp-tipo">
-                        {% set tipo_actual = form.get('tipo_comprobante') or tipo_defecto %}
+                    {% set tipo_actual = form.get('tipo_comprobante') or tipo_defecto %}
+                    {% if tipo_actual not in secuencias %}{% set tipo_actual = (secuencias.keys()|list|sort|reverse|first) or tipo_actual %}{% endif %}
+                    <div class="fp-seg" role="radiogroup" aria-label="Tipo de comprobante">
                         {% for clave, nombre in tipos.items() %}
-                        <label>
-                            <input type="radio" name="tipo_comprobante" value="{{ clave }}" {{ 'checked' if tipo_actual == clave else '' }}>
-                            <span>
-                                <strong>{{ clave }} · {{ nombre }}</strong>
-                                {% if clave in secuencias %}
-                                <small>{% if secuencias[clave].fecha_fin %}Secuencia vigente hasta {{ secuencias[clave].fecha_fin.strftime('%d/%m/%Y') if secuencias[clave].fecha_fin.strftime is defined else secuencias[clave].fecha_fin }}{% else %}Secuencia activa{% endif %}</small>
-                                {% else %}
-                                <small class="text-danger">Sin secuencia {{ clave }} activa: regístrela en NCF</small>
-                                {% endif %}
-                            </span>
+                        {% set disponible = clave in secuencias %}
+                        <label class="{{ '' if disponible else 'fp-seg-off' }}"
+                               title="{{ clave ~ ' · ' ~ nombre if disponible else 'Sin secuencia ' ~ clave ~ ' activa: regístrela en Administración → NCF' }}">
+                            <input type="radio" name="tipo_comprobante" value="{{ clave }}"
+                                   {{ 'checked' if tipo_actual == clave and disponible else '' }}
+                                   {{ '' if disponible else 'disabled' }}>
+                            <span>{{ clave }} · {{ nombre }}</span>
                         </label>
                         {% endfor %}
                     </div>
+                    <p class="fp-seg-info">
+                        {% for clave in tipos %}
+                        {% if clave in secuencias %}
+                        {{ clave }} {% if secuencias[clave].fecha_fin %}vence {{ secuencias[clave].fecha_fin.strftime('%d/%m/%Y') if secuencias[clave].fecha_fin.strftime is defined else secuencias[clave].fecha_fin }}{% else %}activa{% endif %}
+                        {% else %}
+                        {{ clave }} sin secuencia
+                        {% endif %}{{ ' · ' if not loop.last else '' }}
+                        {% endfor %}
+                    </p>
                     <div id="fpCreditoFiscal" class="mt-3" {{ '' if tipo_actual == 'B01' else 'hidden' }}>
                         <label class="form-label" for="rnc_comprador">RNC o cédula</label>
                         <input class="form-control" id="rnc_comprador" name="rnc_comprador" inputmode="numeric" maxlength="11" data-input-filter="digits-hyphen" value="{{ form.get('rnc_comprador', '') }}">
