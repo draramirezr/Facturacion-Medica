@@ -103,7 +103,7 @@ El sistema estará disponible en: `http://localhost:5000`
 ## 👤 Usuario administrador
 
 El sistema no publica credenciales predeterminadas. Crea el primer administrador
-con `crear_admin.py`; el script solicitará el correo y la contraseña de forma
+con `scripts/admin/crear_admin.py`; el script solicitará el correo y la contraseña de forma
 interactiva.
 
 ## 📁 Estructura del Proyecto

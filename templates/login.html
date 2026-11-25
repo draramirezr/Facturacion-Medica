@@ -372,6 +372,7 @@
         }
     </style>
     <link href="{{ url_for('static', filename='css/public-theme.css') }}?v=2" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csp-utilities.css') }}?v=2">
 </head>
 <body>
     <button class="login-theme-toggle" type="button" data-theme-toggle aria-label="Activar modo oscuro" title="Modo oscuro"><i class="fas fa-moon" data-theme-icon></i></button>
@@ -403,7 +404,7 @@
                 {% endif %}
                 <h2>Bienvenido de nuevo</h2>
                 <p class="login-intro">Ingresa para continuar a tu espacio de trabajo.</p>
-                <p class="login-intro" style="font-size:0.85rem;margin-top:-0.35rem;">
+                <p class="login-intro csp-s-f191bd2a">
                     ¿Su demo terminó? Entre con el mismo correo para <strong>contratar un plan</strong>
                     y conservar sus datos.
                 </p>

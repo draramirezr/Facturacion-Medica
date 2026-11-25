@@ -189,7 +189,7 @@ class ClinicalSpecialtyIntegrationTests(unittest.TestCase):
         ), patch.object(
             clinical_history,
             "execute_query",
-            side_effect=[patient, doctor],
+            side_effect=[patient, doctor, {"centro_medico_id": 5}],
         ), patch.object(
             clinical_history,
             "execute_update",
@@ -202,14 +202,19 @@ class ClinicalSpecialtyIntegrationTests(unittest.TestCase):
             clinical_history,
             "current_user",
             SimpleNamespace(id=22),
+        ), patch(
+            "services.centro_contexto.centro_para_nuevo_registro",
+            return_value=None,
         ):
             response = handler(3)
 
         self.assertEqual(response.status_code, 302)
         insert_params = updates[0][1]
-        self.assertEqual(insert_params[3], "Cardiología")
-        self.assertEqual(insert_params[4], 2)
-        specialty_data = json.loads(insert_params[5])
+        # (tenant, paciente, medico, centro, especialidad, version, datos...)
+        self.assertEqual(insert_params[3], 5)
+        self.assertEqual(insert_params[4], "Cardiología")
+        self.assertEqual(insert_params[5], 2)
+        specialty_data = json.loads(insert_params[6])
         self.assertEqual(specialty_data["disnea_clase"], "NYHA II")
         self.assertEqual(specialty_data["fraccion_eyeccion"], 58.5)
 
@@ -237,7 +242,7 @@ class ClinicalSpecialtyIntegrationTests(unittest.TestCase):
     def test_migration_declares_all_specialty_columns(self):
         migration = (
             Path(app_module.__file__).resolve().parent
-            / "crear_modulo_historia_clinica.py"
+            / "scripts" / "migraciones" / "crear_modulo_historia_clinica.py"
         ).read_text(encoding="utf-8")
         for column in (
             "especialidad_consulta",

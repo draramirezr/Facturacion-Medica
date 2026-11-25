@@ -115,6 +115,8 @@ def _rnc_ars_ya_existe(tenant_id, rnc, excluir_ars_id=None):
     return bool(execute_query(query, tuple(params)))
 
 
+@login_required
+@permission_required('catalogos.ver')
 def facturacion_ars():
     """Lista de ARS - Filtrado por tenant"""
     
@@ -1290,8 +1292,22 @@ def facturacion_ncf_verificar_numero():
         'ncf': ncf_completo
     })
 
-@login_required
-@permission_required('catalogos.ver')
+def _otra_secuencia_activa(tenant_id, tipo, excluir_id=None):
+    """Dos secuencias activas del mismo tipo podrían emitir el mismo NCF."""
+    query = 'SELECT id FROM ncf WHERE tenant_id = %s AND tipo = %s AND activo = 1'
+    params = [tenant_id, tipo]
+    if excluir_id:
+        query += ' AND id <> %s'
+        params.append(excluir_id)
+    return bool(execute_query(query + ' LIMIT 1', tuple(params)))
+
+
+MENSAJE_SECUENCIA_DUPLICADA = (
+    'Ya existe una secuencia {tipo} activa. Desactívela antes de activar otra '
+    'del mismo tipo, para no repetir números de comprobante.'
+)
+
+
 def _alinear_prefijo_ncf(tenant_id):
     """El prefijo visible es el tipo (B01, B02…). Corrige filas viejas desfasadas."""
     execute_update(
@@ -1300,6 +1316,8 @@ def _alinear_prefijo_ncf(tenant_id):
     )
 
 
+@login_required
+@permission_required('catalogos.ver')
 def facturacion_ncf():
     """Lista de NCF - Filtrado por tenant"""
     
@@ -1443,6 +1461,10 @@ def facturacion_ncf_nuevo():
             )
             return redirect(url_for('facturacion_ncf_nuevo'))
 
+        if activo and _otra_secuencia_activa(tenant_id, tipo):
+            flash(MENSAJE_SECUENCIA_DUPLICADA.format(tipo=tipo), 'error')
+            return redirect(url_for('facturacion_ncf_nuevo'))
+
         proximo_numero = ultimo_numero_int + 1
         execute_update('''
             INSERT INTO ncf
@@ -1521,6 +1543,10 @@ def facturacion_ncf_editar(ncf_id):
                     'error'
                 )
                 return redirect(url_for('facturacion_ncf_editar', ncf_id=ncf_id))
+
+        if activo and _otra_secuencia_activa(tenant_id, tipo, excluir_id=ncf_id):
+            flash(MENSAJE_SECUENCIA_DUPLICADA.format(tipo=tipo), 'error')
+            return redirect(url_for('facturacion_ncf_editar', ncf_id=ncf_id))
 
         proximo_numero = ultimo_numero_int + 1
         execute_update('''

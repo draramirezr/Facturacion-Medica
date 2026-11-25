@@ -211,6 +211,12 @@
                 <i class="fas fa-calendar-alt me-2"></i>
                 Período de Suscripción
             </h5>
+            {% if not puede_editar_suscripcion %}
+            <p class="text-muted small mb-3">
+                <i class="fas fa-lock me-1"></i>
+                Solo el dueño de ClinicRD puede cambiar fechas, plan, licencias, estado y tipo de empresa.
+            </p>
+            {% endif %}
             
             <div class="row">
                 <div class="col-md-6 mb-3">

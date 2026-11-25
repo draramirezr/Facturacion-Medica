@@ -3,7 +3,7 @@
 ## Migración (no ejecutar en producción sin autorización)
 
 ```powershell
-py -3 crear_modulo_external_ecf_integracion.py
+py -3 scripts/migraciones/crear_modulo_external_ecf_integracion.py
 ```
 
 ## Habilitación local

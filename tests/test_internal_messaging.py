@@ -251,7 +251,7 @@ class InternalMessagingTests(unittest.TestCase):
 
     def test_schema_and_authenticated_shell_include_messaging(self):
         root = Path(app_module.__file__).resolve().parent
-        migration = (root / "crear_modulo_mensajeria_interna.py").read_text(
+        migration = (root / "scripts" / "migraciones" / "crear_modulo_mensajeria_interna.py").read_text(
             encoding="utf-8"
         )
         template = (root / "templates" / "base.html").read_text(

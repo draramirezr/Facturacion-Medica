@@ -307,6 +307,75 @@ def _asegurar_columnas_factura_edicion(cursor, database):
     )
 
 
+def _asegurar_columnas_catalogos(cursor, database):
+    """Columnas que el código usa y que bases antiguas pueden no tener."""
+    for tabla, columna, definicion in (
+        ('ncf', 'descripcion', 'VARCHAR(150) NULL'),
+        ('ncf', 'prefijo', "VARCHAR(10) NOT NULL DEFAULT 'B01'"),
+        ('ncf', 'ultimo_numero', 'INT NOT NULL DEFAULT 0'),
+        ('ncf', 'proximo_numero', 'INT NOT NULL DEFAULT 1'),
+        ('ncf', 'tamano_secuencia', 'INT NOT NULL DEFAULT 8'),
+        ('ncf', 'fecha_fin', 'DATE NULL'),
+        ('medicos', 'factura', 'TINYINT(1) NOT NULL DEFAULT 0'),
+        ('centros_medicos', 'rnc', 'VARCHAR(20) NULL'),
+        ('medico_centro', 'es_defecto', 'TINYINT(1) NOT NULL DEFAULT 0'),
+        ('servicios', 'precio_base', 'DECIMAL(10, 2) NOT NULL DEFAULT 0.00'),
+        ('codigo_ars', 'medico_id', 'INT NULL'),
+        ('codigo_ars', 'centro_medico_id', 'INT NULL'),
+        ('facturas', 'tipo_factura', "VARCHAR(20) NOT NULL DEFAULT 'TRADICIONAL'"),
+        ('pacientes', 'created_by', 'INT NULL'),
+    ):
+        _asegurar_columna(cursor, database, tabla, columna, definicion)
+
+
+def _existe_indice(cursor, database, tabla, indice):
+    cursor.execute(
+        '''
+        SELECT 1 FROM information_schema.STATISTICS
+        WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s AND INDEX_NAME = %s
+        LIMIT 1
+        ''',
+        (database, tabla, indice),
+    )
+    return cursor.fetchone() is not None
+
+
+def _asegurar_ncf_unico_por_empresa(cursor, database):
+    """Un mismo NCF no puede aparecer en dos facturas de la misma empresa.
+
+    Si ya existen duplicados no se crea el índice (fallaría el arranque);
+    se registran para que se corrijan a mano y se reintenta en el próximo inicio.
+    """
+    if not _existe_tabla(cursor, database, 'facturas'):
+        return
+    if _existe_indice(cursor, database, 'facturas', 'uq_facturas_tenant_ncf'):
+        return
+    cursor.execute(
+        '''
+        SELECT tenant_id, ncf, COUNT(*) AS veces
+        FROM facturas
+        WHERE ncf IS NOT NULL
+        GROUP BY tenant_id, ncf
+        HAVING COUNT(*) > 1
+        LIMIT 50
+        '''
+    )
+    duplicados = cursor.fetchall()
+    if duplicados:
+        logger.error(
+            'No se creó uq_facturas_tenant_ncf: hay NCF repetidos en facturas: %s',
+            ', '.join(
+                f"tenant {d['tenant_id']} NCF {d['ncf']} x{d['veces']}"
+                for d in duplicados
+            ),
+        )
+        return
+    cursor.execute(
+        'ALTER TABLE facturas ADD UNIQUE KEY uq_facturas_tenant_ncf (tenant_id, ncf)'
+    )
+    logger.info('Creado índice único uq_facturas_tenant_ncf')
+
+
 def bootstrap_required_schema(connection_factory=None):
     """Crear tablas faltantes en la base actual y sembrar permisos."""
     factory = connection_factory or pymysql.connect
@@ -341,6 +410,8 @@ def bootstrap_required_schema(connection_factory=None):
             _asegurar_columnas_factura_edicion(cursor, database)
             _asegurar_columnas_cambio_correo_empresa(cursor, database)
             _asegurar_columnas_cambio_password(cursor, database)
+            _asegurar_columnas_catalogos(cursor, database)
+            _asegurar_ncf_unico_por_empresa(cursor, database)
         connection.commit()
     except Exception:
         try:

@@ -3,7 +3,7 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
-<div class="container py-5" style="max-width:720px;">
+<div class="container py-5 csp-s-13815f62">
     <h1 class="h3 mb-1">
         <i class="fas fa-file-invoice-dollar me-2"></i>
         {{ 'Editar factura ' ~ factura.numero if factura else 'Nueva factura' }}
@@ -17,7 +17,7 @@
         {% endif %}
     </p>
 
-    <form method="post" class="p-4 rounded-4" style="background:var(--ars-shell-surface,#fff);"
+    <form method="post" class="p-4 rounded-4 csp-s-e7b6ea38"
           action="{{ url_for('plataforma_factura_editar', factura_id=factura.id) if factura else url_for('plataforma_factura_nueva') }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         {% if not factura %}

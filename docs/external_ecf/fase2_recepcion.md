@@ -11,7 +11,7 @@
 ## Migración
 
 ```powershell
-py -3 crear_modulo_external_ecf_integracion.py
+py -3 scripts/migraciones/crear_modulo_external_ecf_integracion.py
 ```
 
 Crea (si no existe) la tabla `ext_ecf_documents`.

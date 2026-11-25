@@ -72,7 +72,7 @@
         <img src="{{ url_for('facturacion_citas_qr_imagen', enlace_id=enlace['id']) }}" alt="Código QR para agendar">
         <p class="mt-2 mb-0">Escanee para agendar su cita</p>
         <div class="screen-actions justify-content-center mt-3 no-print">
-            <button class="btn btn-outline-primary" type="button" onclick="window.print()">Imprimir</button>
+            <button class="btn btn-outline-primary" type="button" data-csp-print>Imprimir</button>
             <form method="POST" class="d-inline">
                 <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <input type="hidden" name="enlace_id" value="{{ enlace['id'] }}">

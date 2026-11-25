@@ -266,7 +266,7 @@ class PlatformOwnerTests(unittest.TestCase):
             'id': 5,
             'nombre': 'Clinica',
             'razon_social': 'Clinica SRL',
-            'rnc': '00100000001',
+            'rnc': '00100000009',
             'telefono': '8095550101',
             'email': 'clinica@example.com',
             'direccion': 'Santo Domingo',
@@ -288,7 +288,7 @@ class PlatformOwnerTests(unittest.TestCase):
             data={
                 'nombre': 'Clinica',
                 'razon_social': 'Clinica SRL',
-                'rnc': '00100000001',
+                'rnc': '00100000009',
                 'telefono': '8095550101',
                 'email': 'clinica@example.com',
                 'direccion': 'Santo Domingo',
@@ -306,6 +306,16 @@ class PlatformOwnerTests(unittest.TestCase):
                 patch.object(companies, 'execute_query', return_value=empresa),
                 patch.object(companies, 'execute_update', side_effect=fake_update),
                 patch.object(companies, 'flash'),
+                patch(
+                    'services.identificadores.error_rnc_en_otra_empresa',
+                    return_value=None,
+                ),
+                patch(
+                    'services.company_email_change.asegurar_columnas_cambio_correo',
+                ),
+                patch(
+                    'services.company_email_change.execute_update',
+                ),
             ):
                 companies.admin_empresas_editar.__wrapped__(5)
 

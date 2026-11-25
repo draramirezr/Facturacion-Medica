@@ -88,8 +88,8 @@
         <div class="tab-content hc-tab-card">
             <div class="tab-pane fade show active" id="tab-consulta">
         {% if can('historia_clinica.imprimir') or recetas or licencias %}
-        <div class="hc-block border-0 p-3 mb-4 no-print" style="border:1px solid var(--ars-shell-border)!important;border-radius:12px;">
-            <h2 class="mb-2" style="border:0;padding:0;">Imprimir para el paciente</h2>
+        <div class="hc-block border-0 p-3 mb-4 no-print csp-s-cf1e0a49">
+            <h2 class="mb-2 csp-s-fbca0edd">Imprimir para el paciente</h2>
             <p class="text-muted small mb-3">Las indicaciones (imagen, referido, otros estudios), el laboratorio, la receta y la licencia se entregan desde aquí.</p>
             <div class="d-flex gap-2 flex-wrap">
                 {% if can('historia_clinica.imprimir') %}
@@ -246,7 +246,7 @@
             </div>
 
             <div class="tab-pane fade" id="tab-recetas">
-                <h2 class="hc-block border-0 p-0 mb-3" style="border:0;">Recetas de esta consulta</h2>
+                <h2 class="hc-block border-0 p-0 mb-3 csp-s-71c72e9c">Recetas de esta consulta</h2>
                 <p class="text-muted">La relación es opcional. Puede emitir una receta aquí o vincular una ya existente del mismo paciente.</p>
                 {% for receta in recetas %}
                 <div class="d-flex justify-content-between align-items-center gap-2 py-2 border-bottom">
@@ -319,7 +319,7 @@
             </div>
 
             <div class="tab-pane fade" id="tab-licencias">
-                <h2 class="hc-block border-0 p-0 mb-3" style="border:0;">Licencias de esta consulta</h2>
+                <h2 class="hc-block border-0 p-0 mb-3 csp-s-71c72e9c">Licencias de esta consulta</h2>
                 <p class="text-muted">La relación es opcional. Puede registrar una licencia aquí o vincular una ya existente del mismo paciente.</p>
                 {% for licencia in licencias %}
                 <div class="d-flex justify-content-between align-items-center gap-2 py-2 border-bottom">

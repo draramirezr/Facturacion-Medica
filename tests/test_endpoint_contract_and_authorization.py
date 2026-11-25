@@ -81,9 +81,9 @@ REPRESENTATIVE_ACCESS = {
 
 # Contrato normalizado de las rutas de aplicación (se excluye la ruta
 # ``static`` que Flask agrega). El hash incluye endpoint, URL y métodos.
-ENDPOINT_CONTRACT_COUNT = 202
+ENDPOINT_CONTRACT_COUNT = 231
 ENDPOINT_CONTRACT_SHA256 = (
-    '5e95d3ee1b830de35b4e5b30471264719c46a440c562829f520a6e49b3eabbbb'
+    '4170897fb6fb72f94ab2a690a5a947af11fd9e7df91b14bff0b8f960fa5815fb'
 )
 
 # Subconjunto legible que hace accionables las pérdidas en las áreas críticas.

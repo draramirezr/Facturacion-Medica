@@ -31,7 +31,7 @@ enviados que necesiten resolución.
 1. Ejecutar la migración idempotente:
 
    ```powershell
-   py -3.13 crear_base_facturacion_electronica.py
+   py -3.13 scripts/migraciones/crear_base_facturacion_electronica.py
    ```
 
 2. Configurar las URL oficiales de certificación con el segmento `certecf`.
@@ -50,7 +50,7 @@ enviados que necesiten resolución.
 5. Ejecutar el diagnóstico local:
 
    ```powershell
-   py -3.13 verificar_preparacion_ecf.py
+   py -3.13 scripts/admin/verificar_preparacion_ecf.py
    ```
 
 6. Completar los casos y la aprobación formal de certificación exigidos por
@@ -86,7 +86,7 @@ enviados que necesiten resolución.
        produccion_confirmada=1;
    ```
 
-7. Ejecutar pruebas y `verificar_preparacion_ecf.py` en el entorno desplegado.
+7. Ejecutar pruebas y `scripts/admin/verificar_preparacion_ecf.py` en el entorno desplegado.
 8. Habilitar una cuenta piloto mediante una transacción controlada:
 
    ```sql

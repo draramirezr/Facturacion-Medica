@@ -43,7 +43,7 @@ def _normalize_params(params):
     return params
 
 
-def _handle_database_error(error, query, operation):
+def _handle_database_error(error, query, operation, raise_always=False):
     conn = get_db_connection()
     try:
         conn.rollback()
@@ -56,7 +56,13 @@ def _handle_database_error(error, query, operation):
         (query or '')[:100],
         exc_info=not isinstance(error, pymysql.Error),
     )
-    if g.get('db_transaction_active', False) or ENVIRONMENT == 'development':
+    # Las escrituras fallidas siempre se propagan: devolver None hacía que la
+    # pantalla mostrara "guardado" aunque el dato se hubiera perdido.
+    if (
+        raise_always
+        or g.get('db_transaction_active', False)
+        or ENVIRONMENT == 'development'
+    ):
         raise error
     return None
 
@@ -107,7 +113,9 @@ def execute_update(query, params=None):
         cursor.execute(query, params or ())
         return cursor.lastrowid
     except Exception as error:
-        return _handle_database_error(error, query, 'SQL en execute_update')
+        return _handle_database_error(
+            error, query, 'SQL en execute_update', raise_always=True,
+        )
     finally:
         if cursor:
             cursor.close()

@@ -31,6 +31,11 @@ def not_found(error):
 
 
 def internal_error(error):
+    if request.path.startswith('/api/') or request.is_json:
+        return jsonify({
+            'error': True,
+            'mensaje': 'No se pudo completar la operación. Los datos no se guardaron.',
+        }), 500
     return render_template('errors/500.html'), 500
 
 

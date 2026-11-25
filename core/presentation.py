@@ -740,6 +740,13 @@ def inject_theme():
             and usuario_es_medico_operativo(current_user)
         ),
         'centro_contexto': _contexto_centro_plantilla(),
+        # Tipo de empresa (eje distinto al plan): cambia textos y flujo de facturación.
+        'es_centro_salud': empresa.get('tipo_empresa') == 'centro_salud',
+        'etiqueta_tipo_empresa': (
+            'Centro de salud'
+            if empresa.get('tipo_empresa') == 'centro_salud'
+            else 'Consultorio médico'
+        ),
         'plan_centro_medico': (
             tenant_plan_centro_medico(current_user.tenant_id)
             if current_user.is_authenticated

@@ -769,7 +769,7 @@
                 <div class="col-12">
                     <label class="form-label" for="api_pos_cliente">Sistema de caja</label>
                     <select class="form-select" id="api_pos_cliente" name="api_pos_cliente"
-                            onchange="if(this.value){location.href='{{ url_for('perfil_configuracion') }}?pos_cliente='+encodeURIComponent(this.value)+'#api-pos-ecf';}"
+                            data-navigate-url="{{ url_for('perfil_configuracion') }}" data-navigate-param="pos_cliente" data-navigate-hash="#api-pos-ecf"
                             {% if not can('configuracion.editar') %}disabled{% endif %}>
                         {% for cli in external_ecf_pos.clientes_pos %}
                         <option value="{{ cli.codigo }}" {% if cli.codigo == external_ecf_pos.client_codigo %}selected{% endif %}>
@@ -945,7 +945,7 @@
             una hoja por módulo. Úsalo para guardar tu información si dejas de usar ClinicRD.
             El archivo no incluye contraseñas ni tokens de acceso.
         </p>
-        <div class="theme-actions" style="border-top:0; margin-top:.85rem; padding-top:0; justify-content:flex-start;">
+        <div class="theme-actions csp-s-4f59ad40">
             <a class="btn btn-primary" id="backupDownloadBtn"
                href="{{ url_for('perfil_descargar_backup') }}"
                data-progress-url="{{ url_for('perfil_descargar_backup', progreso=1) }}">

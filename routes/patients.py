@@ -2,6 +2,7 @@
 
 import re
 from datetime import datetime
+from decimal import Decimal
 from io import BytesIO
 
 from flask import flash, jsonify, redirect, render_template, request, send_file, url_for
@@ -9,7 +10,7 @@ from flask_login import login_required
 
 from auth import permission_required
 from core.database import execute_query, execute_update
-from core.tenant import get_current_tenant_id
+from core.tenant import get_current_tenant_id, validate_tenant_access
 from routes.support import (
     error_cedula, execute_paginated_query, sanitize_input, validate_digits,
     validate_email,
@@ -563,10 +564,16 @@ def api_facturacion_pacientes_pendientes_update(paciente_id):
         fecha_servicio = data.get('fecha_servicio', '')
         servicio_completo = sanitize_input(data.get('servicio', ''), 500)  # Ya viene con autorización si existe
         
+        monto_error = None
+        monto_estimado = None
         try:
-            monto_estimado = float(data.get('monto_estimado', 0))
-        except (ValueError, TypeError):
-            monto_estimado = 0.0
+            monto_dec = Decimal(str(data.get('monto_estimado', '0')).replace(',', ''))
+            if not monto_dec.is_finite() or monto_dec <= 0:
+                monto_error = 'El monto debe ser mayor a cero'
+            else:
+                monto_estimado = monto_dec.quantize(Decimal('0.01'))
+        except (ValueError, TypeError, ArithmeticError):
+            monto_error = 'Monto inválido'
         
         ars_id = data.get('ars_id') or None
         medico_id = data.get('medico_id') or None
@@ -597,6 +604,8 @@ def api_facturacion_pacientes_pendientes_update(paciente_id):
         )
         if not paciente:
             return jsonify({'error': 'Registro no encontrado'}), 404
+        if monto_error:
+            return jsonify({'error': monto_error}), 400
         
         # El servicio ya viene completo con autorización desde el frontend
         servicios_realizados = servicio_completo
@@ -620,6 +629,12 @@ def api_facturacion_pacientes_pendientes_update(paciente_id):
         except (ValueError, TypeError):
             centro_medico_id = None
         
+        for tabla, valor in (
+            ('ars', ars_id), ('medicos', medico_id), ('centros_medicos', centro_medico_id),
+        ):
+            if valor and not validate_tenant_access(tabla, valor):
+                return jsonify({'error': 'Referencia no válida para esta empresa'}), 400
+
         updated_id = execute_update('''
             UPDATE pacientes_pendientes
             SET nombre_paciente = %s, nss = %s, fecha_servicio = %s,

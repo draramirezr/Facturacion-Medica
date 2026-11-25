@@ -72,3 +72,7 @@ __remote_master/
 
 
 
+
+# Notas locales con credenciales
+USUARIOS/
+app.log

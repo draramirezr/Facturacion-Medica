@@ -226,7 +226,10 @@ class QueueDomainTests(unittest.TestCase):
             rbac_role_count=1,
             medico_id=22,
         )
-        handler = turnos_routes.turnos_recepcion.__wrapped__.__wrapped__
+        # Vista sin decoradores (login, permiso y plan Centro médico).
+        handler = turnos_routes.turnos_recepcion
+        while hasattr(handler, '__wrapped__'):
+            handler = handler.__wrapped__
         with app_module.app.test_request_context('/turnos'):
             with patch.object(turnos_routes, 'current_user', doctor):
                 response = handler()

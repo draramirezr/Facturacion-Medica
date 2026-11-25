@@ -27,7 +27,7 @@
                        value="{{ rol['nombre'] if rol else '' }}"
                        {% if rol and rol['es_sistema'] %}readonly{% endif %}>
                 {% if rol and rol['es_sistema'] %}
-                <p class="text-muted" style="font-size:.78rem;">El nombre de un rol de sistema no se cambia. Sí puedes ajustar la descripción y los permisos.</p>
+                <p class="text-muted csp-s-4e79d227">El nombre de un rol de sistema no se cambia. Sí puedes ajustar la descripción y los permisos.</p>
                 {% endif %}
                 <label class="form-label" for="descripcion">Descripción</label>
                 <textarea class="form-control" id="descripcion" name="descripcion" maxlength="500" rows="2">{{ rol['descripcion'] if rol else '' }}</textarea>

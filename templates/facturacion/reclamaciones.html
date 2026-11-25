@@ -109,6 +109,9 @@
     .fi-reclamaciones-inline-11 {
         width: 14%;
     }
+    .reclamacion-observacion {
+        max-width: 220px;
+    }
     .reclamacion-acciones {
         display: flex;
         flex-wrap: nowrap;
@@ -154,6 +157,7 @@
                         <th class="text-end fi-reclamaciones-inline-7">Total Factura</th>
                         <th class="text-end fi-reclamaciones-inline-8">Monto Reclamado</th>
                         <th class="fi-reclamaciones-inline-9">Fecha</th>
+                        <th>Observación</th>
                         <th class="text-center fi-reclamaciones-inline-10">Estado</th>
                         <th class="text-center fi-reclamaciones-inline-11">Acciones</th>
                     </tr>
@@ -166,6 +170,7 @@
                         <td class="text-end">${{ "{:,.2f}".format(reclamacion['total_factura']) }}</td>
                         <td class="text-end"><strong>${{ "{:,.2f}".format(reclamacion['monto_reclamado']) }}</strong></td>
                         <td>{{ reclamacion['fecha_reclamacion'] }}</td>
+                        <td class="text-truncate reclamacion-observacion" title="{{ reclamacion['observaciones'] or '' }}">{{ reclamacion['observaciones'] or '—' }}</td>
                         <td class="text-center">
                             {% if reclamacion['estado'] == 'Pendiente' %}
                                 <span class="badge-estado badge-pendiente">Pendiente</span>

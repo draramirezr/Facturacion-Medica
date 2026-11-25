@@ -454,7 +454,7 @@
                         {% if acciones_factura and fila.get('anulable') and can('facturacion.anular') %}
                         <form method="POST"
                               action="{{ url_for('facturacion_anular_factura', factura_id=fila['id']) }}"
-                              onsubmit="return confirm('¿Anular esta factura? Los pacientes volverán a pendientes.');">
+                              data-confirm-submit="¿Anular esta factura? Los pacientes volverán a pendientes.">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <input type="hidden" name="motivo_anulacion" value="Anulación desde histórico">
                             <button type="submit" class="btn btn-accion-editar" title="Anular factura">

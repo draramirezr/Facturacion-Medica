@@ -44,8 +44,15 @@ class ECFReadinessTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             certificate = Path(directory) / "certificate.p12"
             create_certificate(certificate, "clave-prueba")
+            # Almacén por cliente propio del test (no depende de instance/ local).
+            tenant_store = Path(directory) / "secrets"
+            tenant_dir = tenant_store / "tenant-1"
+            tenant_dir.mkdir(parents=True)
+            create_certificate(tenant_dir / "certificate.p12", "clave-tenant")
+            (tenant_dir / "password.txt").write_text("clave-tenant", encoding="utf-8")
             base = "https://ecf.dgii.gov.do/certecf"
             config = ECFConfig.from_env({
+                "ECF_TENANT_SECRETS_ROOT": str(tenant_store),
                 "ECF_ENABLED": "true",
                 "ECF_ENVIRONMENT": "CERTIFICACION",
                 "ECF_CERTIFICATE_PATH": str(certificate),

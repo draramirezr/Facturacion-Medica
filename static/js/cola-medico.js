@@ -18,14 +18,7 @@
         avisoMostrado = true;
         const bar = document.createElement('div');
         bar.setAttribute('role', 'status');
-        bar.style.cssText = [
-            'margin:0.85rem 0 0',
-            'padding:0.75rem 1rem',
-            'border-radius:12px',
-            'background:#ecfeff',
-            'color:#0e7490',
-            'font-weight:700',
-        ].join(';');
+        bar.className = 'cola-aviso-bar';
         bar.textContent = texto;
         const hero = document.querySelector('.doctor-hero');
         if (hero && hero.parentNode) {

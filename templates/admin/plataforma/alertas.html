@@ -3,13 +3,20 @@
 {% block robots %}noindex, nofollow{% endblock %}
 
 {% block content %}
+<style nonce="{{ csp_nonce }}">
+    .alertas-hero {
+        background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30);
+        border-radius: 20px;
+        padding: 2rem;
+    }
+</style>
 <div class="container py-5">
-    <div class="empresas-hero mb-4" style="background:linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30);border-radius:20px;padding:2rem;">
+    <div class="empresas-hero alertas-hero mb-4">
         <h1 class="h3 mb-1"><i class="fas fa-bell me-2"></i>Alertas de licencias</h1>
         <p class="text-muted mb-0">Empresas vencidas o que vencen en los próximos 30 días.</p>
     </div>
 
-    <div class="table-empresas" style="background:var(--ars-shell-surface,#fff);border-radius:15px;overflow:hidden;">
+    <div class="table-empresas csp-s-2ef7ca7e">
         {% if alertas %}
         <div class="table-responsive">
             <table class="table table-hover mb-0">

@@ -275,6 +275,7 @@
         @media(max-width:620px){ .container{width:min(100% - 28px,1160px)}.brand{width:160px;height:44px}.brand img{height:44px}.nav-inner{min-height:66px}.button{padding:0 15px}.nav-actions .button-secondary{display:none}.nav-actions .theme-button{display:inline-flex;padding:0}.hero{padding:52px 0}.hero-grid{gap:42px}.hero h1{font-size:2.55rem}.preview-layout{grid-template-columns:72px 1fr;min-height:350px}.preview-cards{grid-template-columns:1fr}.preview-card:nth-child(n+2){display:none}.features,.workflow,.results,.integration-grid,.security-cards,.plan-options,.footer-grid,.demo-grid{grid-template-columns:1fr}.section{padding:66px 0}.cta-card{padding:30px 24px;grid-template-columns:1fr}.trust-inner{gap:18px;padding:20px 0}.nav-login span{display:none}.cta-actions{min-width:0}.whatsapp-float{right:16px;bottom:16px;width:52px;height:52px} }
     </style>
     <link href="{{ url_for('static', filename='css/public-theme.css') }}?v=2" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csp-utilities.css') }}?v=2">
 </head>
 <body>
     <nav class="site-nav" aria-label="Navegación principal">
@@ -444,7 +445,7 @@
                         </div>
                     </div>
                 </div>
-                <p class="hero-copy" id="precioUsuarioNota" style="text-align:center;margin-top:18px" data-dop="{{ precios.usuario_dop }}" data-usd="{{ precios.usuario_usd }}">Usuario adicional: <strong id="precioUsuario">{{ precios.usuario_dop }}</strong> / mes. Independiente no admite usuarios extra.</p>
+                <p class="hero-copy csp-s-12051af6" id="precioUsuarioNota" data-dop="{{ precios.usuario_dop }}" data-usd="{{ precios.usuario_usd }}">Usuario adicional: <strong id="precioUsuario">{{ precios.usuario_dop }}</strong> / mes. Independiente no admite usuarios extra.</p>
                 <div class="plans-action"><a class="button button-primary" href="{{ url_for('facturacion_menu') if current_user.is_authenticated else url_for('registro') }}">{{ 'Ir al panel' if current_user.is_authenticated else 'Probar 7 días' }} <i class="fas fa-arrow-right"></i></a></div>
             </div>
         </section>

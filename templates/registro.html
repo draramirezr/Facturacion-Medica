@@ -150,6 +150,7 @@
         html[data-color-mode="dark"] .register-theme-toggle { background:#111a2b; border-color:#344258; color:#e7edf6; }
     </style>
     <link href="{{ url_for('static', filename='css/public-theme.css') }}?v=2" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csp-utilities.css') }}?v=2">
 </head>
 <body>
     <button class="register-theme-toggle" type="button" data-theme-toggle aria-label="Activar modo oscuro" title="Modo oscuro"><i class="fas fa-moon" data-theme-icon></i></button>
@@ -170,7 +171,7 @@
             {% endwith %}
 
             {% if sugerir_login|default(false) %}
-            <div class="login-prompt" style="margin-bottom:1rem;padding:12px 14px;border-radius:10px;background:#ebf8ff;border:1px solid #bee3f8;">
+            <div class="login-prompt csp-s-08d7c8bd">
                 <strong>¿Ya tuvo una demo?</strong>
                 <a href="{{ url_for('login') }}">Inicie sesión</a>
                 para contratar un plan o
@@ -195,6 +196,7 @@
                         <option value="medico" {% if request.form.get('tipo_empresa') == 'medico' %}selected{% endif %}>Médico / Consultorio</option>
                         <option value="centro_salud" {% if request.form.get('tipo_empresa') == 'centro_salud' %}selected{% endif %}>Centro de salud</option>
                     </select>
+                    <p class="hint" id="tipo_empresa_hint">Médico: factura a ARS a su nombre y puede trabajar en varios centros. Centro de salud: factura con el RNC del centro y gestiona varios médicos.</p>
                 </div>
 
                 <div class="form-group">
@@ -308,6 +310,37 @@
             };
             empresa.addEventListener('input', copiarSiMedico);
             tipo.addEventListener('change', copiarSiMedico);
+
+            // Plan sugerido según el tipo: los módulos de centro (turnos,
+            // emergencias, mensajería interna) solo vienen en el plan Centro médico.
+            const plan = document.getElementById('plan');
+            const hint = document.getElementById('tipo_empresa_hint');
+            const textoBase = hint ? hint.textContent : '';
+            const sugerirPlan = () => {
+                if (!plan || !hint) {
+                    return;
+                }
+                if (tipo.value === 'centro_salud') {
+                    if (!plan.value) {
+                        plan.value = 'empresarial';
+                    }
+                    hint.textContent = plan.value === 'empresarial'
+                        ? 'Centro de salud: factura con el RNC del centro e incluye turnos, emergencias y mensajería interna.'
+                        : 'Atención: turnos, emergencias y mensajería interna solo están en el plan Centro médico.';
+                } else if (tipo.value === 'medico') {
+                    if (!plan.value) {
+                        plan.value = 'basico';
+                    }
+                    hint.textContent = 'Médico: factura a ARS a su nombre (cédula/exequátur) y puede trabajar en varios centros.';
+                } else {
+                    hint.textContent = textoBase;
+                }
+            };
+            tipo.addEventListener('change', sugerirPlan);
+            if (plan) {
+                plan.addEventListener('change', sugerirPlan);
+            }
+            sugerirPlan();
         })();
 
         document.querySelectorAll('[data-password-target]').forEach((button) => {

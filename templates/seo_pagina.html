@@ -62,6 +62,7 @@
         .brand img { height:44px; }
         footer { border-top:1px solid var(--border); padding:28px 0; color:var(--muted); font-size:.82rem; }
     </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/csp-utilities.css') }}?v=2">
 </head>
 <body>
     <nav class="site-nav">
@@ -93,7 +94,7 @@
         </div>
     </main>
     <footer>
-        <div class="wrap" style="padding-top:0">
+        <div class="wrap csp-s-a2bcfd46">
             <a href="{{ url_for('index') }}">ClinicRD</a> ·
             <a href="{{ url_for('pagina_seo_gestion_de_pacientes') }}">Pacientes</a> ·
             <a href="{{ url_for('pagina_seo_software_consultorio') }}">Consultorio</a> ·

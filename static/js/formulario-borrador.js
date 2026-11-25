@@ -14,11 +14,11 @@
             banner = document.createElement('div');
             banner.id = bannerId;
             banner.setAttribute('role', 'status');
-            banner.style.cssText = 'padding:0.75rem 1rem;margin-bottom:1rem;border-radius:12px;font-weight:700;';
             form.parentNode.insertBefore(banner, form);
         }
-        banner.style.background = tipo === 'offline' ? '#fff7ed' : '#ecfdf3';
-        banner.style.color = tipo === 'offline' ? '#9a3412' : '#166534';
+        banner.className = tipo === 'offline'
+            ? 'borrador-banner borrador-banner-offline'
+            : 'borrador-banner borrador-banner-ok';
         banner.textContent = texto;
     };
 

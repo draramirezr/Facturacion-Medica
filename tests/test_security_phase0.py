@@ -1,6 +1,7 @@
 import unittest
 import re
-from contextlib import contextmanager
+import sys
+from contextlib import ExitStack, contextmanager
 from datetime import date, datetime, time
 from pathlib import Path
 from types import SimpleNamespace
@@ -12,7 +13,9 @@ import auth.routes as auth_routes
 import core.database as database_module
 import core.tenant as tenant_module
 import routes.admin_companies as company_routes
-import routes.billing as billing_routes
+import routes.billing_dashboard as dashboard_routes
+import routes.billing_invoice_pdf as invoice_pdf_routes
+import routes.billing_payments as payments_routes
 import routes.catalogs as catalog_routes
 import routes.clinical_history as clinical_history_routes
 import routes.patients as patient_routes
@@ -29,10 +32,17 @@ def patch_current_user(user):
         patch.object(auth_routes, 'current_user', user),
         patch.object(tenant_module, 'current_user', user),
         patch.object(company_routes, 'current_user', user),
-        patch.object(billing_routes, 'current_user', user),
         patch.object(search_routes, 'current_user', user),
         patch.object(user_routes, 'current_user', user),
+        ExitStack() as stack,
     ):
+        # Cada módulo routes/billing_*.py que importe current_user.
+        for module in list(sys.modules.values()):
+            if (
+                getattr(module, '__name__', '').startswith('routes.billing')
+                and hasattr(module, 'current_user')
+            ):
+                stack.enter_context(patch.object(module, 'current_user', user))
         yield
 
 
@@ -225,14 +235,14 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         with self.flask_app.test_request_context('/facturacion/dashboard'):
             with (
                 patch_current_user(self.user),
-                patch.object(billing_routes, 'execute_query', side_effect=fake_query),
+                patch.object(dashboard_routes, 'execute_query', side_effect=fake_query),
                 patch.object(
-                    billing_routes,
+                    dashboard_routes,
                     'render_template',
                     side_effect=lambda template, **context: context,
                 ),
             ):
-                billing_routes.facturacion_dashboard.__wrapped__()
+                dashboard_routes.facturacion_dashboard.__wrapped__()
 
         protected_queries = [
             (query, params)
@@ -257,17 +267,17 @@ class PhaseZeroSecurityTests(unittest.TestCase):
 
         with (
             patch.object(
-                billing_routes,
+                dashboard_routes,
                 'execute_query',
                 side_effect=fake_query,
             ),
             patch.object(
-                billing_routes,
+                dashboard_routes,
                 'render_template',
                 side_effect=lambda template, **context: (template, context),
             ),
         ):
-            template, _context = billing_routes._render_dashboard_medico(
+            template, _context = dashboard_routes._render_dashboard_medico(
                 22,
                 77,
                 '2026-08-01',
@@ -342,6 +352,13 @@ class PhaseZeroSecurityTests(unittest.TestCase):
                 patch_current_user(self.user),
                 patch.object(user_routes, 'execute_query', side_effect=fake_query),
                 patch.object(user_routes, 'execute_update', side_effect=fake_update),
+                patch(
+                    'core.database.get_db_connection',
+                    return_value=SimpleNamespace(
+                        begin=lambda: None, commit=lambda: None,
+                        rollback=lambda: None,
+                    ),
+                ),
             ):
                 response = user_routes.admin_usuarios_editar.__wrapped__(99)
 
@@ -561,7 +578,13 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         update.assert_not_called()
 
     def test_runtime_code_has_no_tenant_column_fallbacks(self):
-        source = Path(billing_routes.__file__).read_text(encoding='utf-8')
+        # Todo el dominio de facturación (routes/billing*.py), no solo el registro.
+        source = '\n'.join(
+            path.read_text(encoding='utf-8')
+            for path in sorted(
+                Path(payments_routes.__file__).parent.glob('billing*.py')
+            )
+        )
         self.assertNotIn('tiene_tenant_id', source)
         self.assertNotIn('OR tenant_id IS NULL', source)
         self.assertNotIn('def add_tenant_filter(', source)
@@ -576,7 +599,7 @@ class PhaseZeroSecurityTests(unittest.TestCase):
 
     def test_pdf_download_rejects_invoice_outside_tenant(self):
         generator = Mock()
-        handler = billing_routes.facturacion_descargar_pdf
+        handler = invoice_pdf_routes.facturacion_descargar_pdf
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
 
@@ -590,14 +613,14 @@ class PhaseZeroSecurityTests(unittest.TestCase):
                     'user_has_permission',
                     return_value=True,
                 ),
-                patch.object(billing_routes, 'REPORTLAB_AVAILABLE', True),
+                patch.object(invoice_pdf_routes, 'REPORTLAB_AVAILABLE', True),
                 patch.object(
                     tenant_module,
                     'execute_query',
                     return_value=None,
                 ) as query,
                 patch.object(
-                    billing_routes,
+                    invoice_pdf_routes,
                     'generar_pdf_factura_vista_previa',
                     generator,
                 ),
@@ -1099,19 +1122,19 @@ class PhaseZeroSecurityTests(unittest.TestCase):
         self.assertIn("url_for('facturacion_pagos_nuevo')", formulario)
 
     def test_available_payment_invoices_stay_empty_without_ars(self):
-        from routes.billing import _facturas_disponibles_pago
+        from routes.billing_payments import _facturas_disponibles_pago
 
-        with patch.object(billing_routes, 'execute_query') as query:
+        with patch.object(payments_routes, 'execute_query') as query:
             resultado = _facturas_disponibles_pago(22)
 
         query.assert_not_called()
         self.assertEqual(resultado, [])
 
     def test_available_payment_invoices_limit_oldest_unpaid(self):
-        from routes.billing import FACTURAS_ANTIGUAS_PAGO, _facturas_disponibles_pago
+        from routes.billing_payments import FACTURAS_ANTIGUAS_PAGO, _facturas_disponibles_pago
 
         with patch.object(
-            billing_routes,
+            payments_routes,
             'execute_query',
             return_value=[{'id': 1, 'numero_factura': 'FAC-1'}],
         ) as query:

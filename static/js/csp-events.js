@@ -64,6 +64,12 @@
             return;
         }
 
+        if (event.target.closest('[data-csp-print]')) {
+            event.preventDefault();
+            window.print();
+            return;
+        }
+
         const element = event.target.closest('[data-csp-click]');
         if (!element) {
             return;
@@ -78,6 +84,17 @@
         const element = event.target.closest('[data-csp-change]');
         if (element) {
             invokeHandlers(element, 'cspChange', event);
+        }
+
+        // Navega a data-navigate-url añadiendo el valor elegido (codificado).
+        const navigator = event.target.closest('[data-navigate-url]');
+        if (navigator && navigator.value) {
+            const base = navigator.dataset.navigateUrl;
+            const param = navigator.dataset.navigateParam || 'valor';
+            const hash = navigator.dataset.navigateHash || '';
+            const separator = base.includes('?') ? '&' : '?';
+            window.location.href = `${base}${separator}${param}=`
+                + `${encodeURIComponent(navigator.value)}${hash}`;
         }
 
         const submitter = event.target.closest('[data-submit-form-on-change]');

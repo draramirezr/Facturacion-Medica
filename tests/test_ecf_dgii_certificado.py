@@ -10,7 +10,7 @@ from ecf.fecha_secuencia import (
 )
 from ecf.qr import ECFStampError
 from ecf.tests_runner import run_dgii_pruebas
-from routes.billing import _factura_tiene_qr_ecf
+from routes.billing_invoice_view import _factura_tiene_qr_ecf
 from services.ecf_operations import emisor_ecf_para_xml
 
 
@@ -120,7 +120,8 @@ class QrFacturaContextTests(unittest.TestCase):
             stamp_url="https://ecf.dgii.gov.do/ecf/consultatimbre"
         )
         with app.app_context():
-            with patch("routes.billing.build_stamp", return_value=object()):
+            stamp = SimpleNamespace(security_code="ABC123", signature_date="01-01-2026 10:00:00")
+            with patch("routes.billing_invoice_view.build_stamp", return_value=stamp):
                 self.assertTrue(_factura_tiene_qr_ecf(factura))
 
     def test_qr_hidden_when_rejected_or_unsigned(self):
@@ -138,7 +139,7 @@ class QrFacturaContextTests(unittest.TestCase):
                 )
             )
             with patch(
-                "routes.billing.build_stamp",
+                "routes.billing_invoice_view.build_stamp",
                 side_effect=ECFStampError("sin código"),
             ):
                 self.assertFalse(

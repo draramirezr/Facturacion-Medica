@@ -417,7 +417,7 @@
                                 {% if empresa.get('puede_eliminar_demo') %}
                                 <form method="post"
                                       action="{{ url_for('admin_empresas_eliminar_demo', empresa_id=empresa['id']) }}"
-                                      onsubmit="return confirm('¿Eliminar la demo «{{ empresa['nombre']|e }}»? Se borran usuarios y datos (incluidos ejemplos de guía) y queda libre el correo.');">
+                                      data-confirm-submit="¿Eliminar la demo «{{ empresa['nombre'] }}»? Se borran usuarios y datos (incluidos ejemplos de guía) y queda libre el correo.">
                                     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                     <button class="btn btn-accion-editar text-danger" type="submit"
                                             title="Eliminar demo: solo ejemplos de guía, libera el correo">

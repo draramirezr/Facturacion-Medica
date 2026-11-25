@@ -9,7 +9,8 @@ import app as app_module
 import auth.decorators as auth_decorators
 import auth.routes as auth_routes
 import core.tenant as tenant_module
-import routes.billing as billing_routes
+import routes.billing_claims as claims_routes
+import routes.billing_payments as payments_routes
 
 
 @contextmanager
@@ -229,7 +230,7 @@ class CSPAndEndpointTests(unittest.TestCase):
             tenant_id=22,
             is_authenticated=True,
         )
-        handler = billing_routes.facturacion_reclamacion_detalle
+        handler = claims_routes.facturacion_reclamacion_detalle
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
 
@@ -239,7 +240,7 @@ class CSPAndEndpointTests(unittest.TestCase):
             with (
                 patch_current_user(user),
                 patch.object(
-                    billing_routes,
+                    claims_routes,
                     'execute_query',
                     return_value=None,
                 ) as query,
@@ -258,7 +259,7 @@ class CSPAndEndpointTests(unittest.TestCase):
             is_authenticated=True,
         )
         update = Mock()
-        handler = billing_routes.facturacion_reclamacion_cambiar_estado
+        handler = claims_routes.facturacion_reclamacion_cambiar_estado
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
 
@@ -270,11 +271,11 @@ class CSPAndEndpointTests(unittest.TestCase):
             with (
                 patch_current_user(user),
                 patch.object(
-                    billing_routes,
+                    claims_routes,
                     'execute_query',
                     return_value=None,
                 ) as query,
-                patch.object(billing_routes, 'execute_update', update),
+                patch.object(claims_routes, 'execute_update', update),
             ):
                 response = handler(91)
 
@@ -289,7 +290,7 @@ class CSPAndEndpointTests(unittest.TestCase):
             tenant_id=22,
             is_authenticated=True,
         )
-        handler = billing_routes.facturacion_pago_detalle
+        handler = payments_routes.facturacion_pago_detalle
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
 
@@ -297,7 +298,7 @@ class CSPAndEndpointTests(unittest.TestCase):
             with (
                 patch_current_user(user),
                 patch.object(
-                    billing_routes,
+                    payments_routes,
                     'execute_query',
                     return_value=None,
                 ) as query,
@@ -315,7 +316,7 @@ class CSPAndEndpointTests(unittest.TestCase):
             is_authenticated=True,
         )
         update = Mock()
-        handler = billing_routes.facturacion_pago_editar
+        handler = payments_routes.facturacion_pago_editar
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
 
@@ -332,11 +333,11 @@ class CSPAndEndpointTests(unittest.TestCase):
             with (
                 patch_current_user(user),
                 patch.object(
-                    billing_routes,
+                    payments_routes,
                     'execute_query',
                     return_value=None,
                 ) as query,
-                patch.object(billing_routes, 'execute_update', update),
+                patch.object(payments_routes, 'execute_update', update),
             ):
                 response = handler(91)
 
@@ -352,7 +353,7 @@ class CSPAndEndpointTests(unittest.TestCase):
             is_authenticated=True,
         )
         update = Mock()
-        handler = billing_routes.facturacion_reclamacion_editar
+        handler = claims_routes.facturacion_reclamacion_editar
         while hasattr(handler, '__wrapped__'):
             handler = handler.__wrapped__
 
@@ -369,11 +370,11 @@ class CSPAndEndpointTests(unittest.TestCase):
             with (
                 patch_current_user(user),
                 patch.object(
-                    billing_routes,
+                    claims_routes,
                     'execute_query',
                     return_value=None,
                 ) as query,
-                patch.object(billing_routes, 'execute_update', update),
+                patch.object(claims_routes, 'execute_update', update),
             ):
                 response = handler(91)
 
@@ -425,6 +426,7 @@ class CSPAndEndpointTests(unittest.TestCase):
             data={
                 'nombre_empresa': 'Consultorio Prueba',
                 'tipo_empresa': 'medico',
+                'plan': 'basico',
                 'nombre': 'Usuario Prueba',
                 'email': 'usuario@example.com',
                 'telefono': '8095551234',
@@ -447,6 +449,9 @@ class CSPAndEndpointTests(unittest.TestCase):
                 ),
                 patch.object(auth_routes, 'sembrar_ars_tenant'),
                 patch.object(auth_routes, '_asegurar_columnas_activacion'),
+                patch.object(auth_routes, 'sembrar_datos_guia_tenant'),
+                patch.object(auth_routes, 'asegurar_tablas_plataforma'),
+                patch('services.tenant_roles.asignar_rol_administrador'),
                 patch(
                     'services.account_activation.registrar_activacion_pendiente',
                     return_value='token-demo',
@@ -490,6 +495,7 @@ class CSPAndEndpointTests(unittest.TestCase):
         ):
             with (
                 patch.object(auth_routes, 'verificar_suscripciones_vencidas'),
+                patch('services.plan_upgrades.marcar_demo_vencido_si_corresponde'),
                 patch.object(auth_routes, 'execute_query', return_value=user_data),
                 patch.object(
                     auth_routes, 'check_password_hash', return_value=True,
