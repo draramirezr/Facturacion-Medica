@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+
+{% block title %}Almacén - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .alm-hero { background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); border-radius: 18px; padding: 1.6rem 2rem; margin-bottom: 1.25rem; }
+    .alm-hero p { color: var(--ars-shell-muted, #64748b); }
+    .alm-kpis .alm-kpi { background: var(--ars-shell-surface, #fff); border: 1px solid var(--ars-shell-border, #e2e8f0); border-radius: 14px; padding: .9rem 1.1rem; color: var(--ars-shell-text, #0f172a); }
+    .alm-kpi .alm-kpi-label { font-size: .78rem; color: var(--ars-shell-muted, #64748b); text-transform: uppercase; letter-spacing: .03em; font-weight: 700; }
+    .alm-kpi .alm-kpi-valor { font-size: 1.45rem; font-weight: 800; }
+    .alm-kpi.alm-kpi-alerta .alm-kpi-valor { color: #dc2626; }
+    .alm-filters, .alm-table { background: var(--ars-shell-surface, #fff); border: 1px solid var(--ars-shell-border, #e2e8f0); border-radius: 15px; padding: 1.1rem; margin-bottom: 1.25rem; color: var(--ars-shell-text, #0f172a); }
+    .alm-table { padding: 0; overflow: hidden; }
+    .alm-table th { background: var(--primary-dark) !important; color: white !important; padding: .85rem; border: 0; white-space: nowrap; }
+    .alm-table td { padding: .75rem .85rem; vertical-align: middle; }
+    .alm-table td.num, .alm-table th.num { text-align: right; white-space: nowrap; }
+    .alm-codigo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; }
+    .alm-chip { display: inline-block; padding: .22rem .6rem; border-radius: 999px; font-size: .72rem; font-weight: 700; border: 1px solid var(--ars-shell-border, #e2e8f0); background: var(--ars-shell-surface-alt, #f8fafc); }
+    .alm-chip.alm-med { color: #0369a1; border-color: #0369a140; background: #0369a112; }
+    .alm-chip.alm-mat { color: #7c3aed; border-color: #7c3aed40; background: #7c3aed12; }
+    .alm-chip.alm-off { color: var(--ars-shell-muted, #64748b); }
+    .alm-cero { color: #dc2626; font-weight: 800; }
+    .alm-inactivo td { opacity: .62; }
+</style>
+
+<div class="container py-4">
+    <div class="alm-hero d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h1 class="h3 mb-1"><i class="fas fa-boxes-stacked me-2"></i>Almacén</h1>
+            <p class="mb-0">Medicamentos y materiales del almacén general. La existencia cambia solo con entradas, salidas y lo usado en emergencias.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            {% if can('almacen.movimientos') %}
+            <a class="btn btn-success" href="{{ url_for('facturacion_almacen_entrada') }}"><i class="fas fa-arrow-down me-1"></i>Registrar entrada</a>
+            <a class="btn btn-outline-danger" href="{{ url_for('facturacion_almacen_salida') }}"><i class="fas fa-arrow-up me-1"></i>Registrar salida</a>
+            {% endif %}
+            <a class="btn btn-outline-primary" href="{{ url_for('facturacion_almacen_movimientos') }}"><i class="fas fa-list-ul me-1"></i>Movimientos</a>
+            {% if can('almacen.gestionar') %}
+            <a class="btn btn-primary" href="{{ url_for('facturacion_almacen_nuevo') }}"><i class="fas fa-plus me-1"></i>Nuevo artículo</a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="row g-3 alm-kpis mb-3">
+        <div class="col-6 col-md-4"><div class="alm-kpi"><div class="alm-kpi-label">Artículos</div><div class="alm-kpi-valor">{{ resumen.get('total') or 0 }}</div></div></div>
+        <div class="col-6 col-md-4"><div class="alm-kpi"><div class="alm-kpi-label">Activos</div><div class="alm-kpi-valor">{{ resumen.get('activos') or 0 }}</div></div></div>
+        <div class="col-12 col-md-4"><div class="alm-kpi {{ 'alm-kpi-alerta' if (resumen.get('sin_existencia') or 0)|int > 0 else '' }}"><div class="alm-kpi-label">Activos sin existencia</div><div class="alm-kpi-valor">{{ resumen.get('sin_existencia') or 0 }}</div></div></div>
+    </div>
+
+    <form class="alm-filters" method="GET">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-3"><label class="form-label" for="buscar">Buscar</label><input class="form-control" id="buscar" name="buscar" value="{{ filtros.get('buscar','') }}" placeholder="Código o descripción"></div>
+            <div class="col-6 col-lg-2"><label class="form-label" for="tipo">Tipo</label><select class="form-select" id="tipo" name="tipo"><option value="">Todos</option>{% for valor, etiqueta in etiquetas_tipo.items() %}<option value="{{ valor }}" {% if filtros.get('tipo') == valor %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-lg-2"><label class="form-label" for="estado">Estado</label><select class="form-select" id="estado" name="estado">{% for valor, etiqueta in [('activos','Activos'),('inactivos','Desactivados'),('todos','Todos')] %}<option value="{{ valor }}" {% if estado == valor %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-lg-2"><label class="form-label" for="existencia">Existencia</label><select class="form-select" id="existencia" name="existencia">{% for valor, etiqueta in [('','Todas'),('con','Con existencia'),('sin','Sin existencia')] %}<option value="{{ valor }}" {% if filtros.get('existencia','') == valor %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}</select></div>
+            <div class="col-6 col-lg-2"><label class="form-label" for="orden">Ordenar</label><select class="form-select" id="orden" name="orden">{% for valor, etiqueta in [('descripcion','Descripción'),('codigo','Código'),('existencia_asc','Menor existencia'),('existencia_desc','Mayor existencia')] %}<option value="{{ valor }}" {% if filtros.get('orden','descripcion') == valor %}selected{% endif %}>{{ etiqueta }}</option>{% endfor %}</select></div>
+            <div class="col-lg-1"><button class="btn btn-outline-primary w-100" type="submit" title="Filtrar"><i class="fas fa-search"></i></button></div>
+        </div>
+    </form>
+
+    <div class="alm-table table-responsive">
+        {% if articulos %}
+        <table class="table table-hover mb-0">
+            <thead><tr><th>Código</th><th>Descripción</th><th>Tipo</th><th>Unidad</th><th class="num">Existencia</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody>
+            {% for articulo in articulos %}
+            <tr class="{{ '' if articulo['activo'] else 'alm-inactivo' }}">
+                <td class="alm-codigo">{{ articulo['codigo'] }}</td>
+                <td><strong>{{ articulo['descripcion'] }}</strong></td>
+                <td><span class="alm-chip {{ 'alm-med' if articulo['tipo'] == 'MEDICAMENTO' else 'alm-mat' }}">{{ etiquetas_tipo.get(articulo['tipo'], articulo['tipo']) }}</span></td>
+                <td>{{ articulo['unidad'] }}</td>
+                <td class="num {{ 'alm-cero' if articulo['existencia']|float <= 0 else '' }}">{{ articulo['existencia']|cantidad }}</td>
+                <td><span class="alm-chip {{ '' if articulo['activo'] else 'alm-off' }}">{{ 'Activo' if articulo['activo'] else 'Desactivado' }}</span></td>
+                <td class="text-nowrap">
+                    <div class="d-flex gap-2 flex-nowrap">
+                        <a class="btn btn-accion-editar" href="{{ url_for('facturacion_almacen_movimientos', articulo_id=articulo['id']) }}" title="Ver movimientos"><i class="fas fa-list-ul"></i> Kardex</a>
+                        {% if articulo['activo'] and can('almacen.movimientos') %}
+                        <a class="btn btn-accion-editar" href="{{ url_for('facturacion_almacen_entrada', articulo_id=articulo['id']) }}" title="Registrar entrada"><i class="fas fa-arrow-down"></i></a>
+                        <a class="btn btn-accion-editar" href="{{ url_for('facturacion_almacen_salida', articulo_id=articulo['id']) }}" title="Registrar salida"><i class="fas fa-arrow-up"></i></a>
+                        {% endif %}
+                        {% if can('almacen.gestionar') %}
+                        <a class="btn btn-accion-editar" href="{{ url_for('facturacion_almacen_editar', articulo_id=articulo['id']) }}"><i class="fas fa-edit"></i> Editar</a>
+                        <form method="POST" action="{{ url_for('facturacion_almacen_estado', articulo_id=articulo['id']) }}"
+                              data-confirm-submit="{{ ('¿Desactivar ' ~ articulo['codigo'] ~ '? No podrá recibir movimientos ni usarse en emergencias; su historial se conserva.') if articulo['activo'] else ('¿Activar ' ~ articulo['codigo'] ~ '?') }}">
+                            <button class="btn btn-accion-editar" type="submit">
+                                {% if articulo['activo'] %}<i class="fas fa-toggle-off"></i> Desactivar{% else %}<i class="fas fa-toggle-on"></i> Activar{% endif %}
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="text-center text-muted py-5">
+            <i class="fas fa-boxes-stacked fa-3x mb-3"></i>
+            <p class="mb-2">No hay artículos con estos filtros.</p>
+            {% if can('almacen.gestionar') %}<a class="btn btn-primary" href="{{ url_for('facturacion_almacen_nuevo') }}"><i class="fas fa-plus me-1"></i>Crear el primer artículo</a>{% endif %}
+        </div>
+        {% endif %}
+    </div>
+    {% include "_pagination.html" %}
+</div>
+{% endblock %}

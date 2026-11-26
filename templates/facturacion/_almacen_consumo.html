@@ -1,0 +1,48 @@
+{#- Filas dinámicas "Medicamentos y materiales del almacén" (historia de emergencia).
+    Variables: articulos_almacen (con 'disponible'), consumo_previo (dict id -> cantidad). -#}
+{% macro fila_consumo(articulos, seleccionado='', cantidad='') %}
+<div class="row g-2 align-items-center alm-consumo-fila" data-alm-fila>
+    <div class="col-md-8">
+        <select class="form-select" name="almacen_articulo_id" aria-label="Artículo del almacén" data-alm-articulo>
+            <option value="">Seleccione un artículo…</option>
+            {% for articulo in articulos %}
+            {% set es_seleccionado = seleccionado|string == articulo['id']|string %}
+            <option value="{{ articulo['id'] }}" data-unidad="{{ articulo['unidad'] }}" data-disponible="{{ articulo['disponible'] }}"
+                    {% if es_seleccionado %}selected{% elif articulo['disponible']|float <= 0 or not articulo['activo'] %}disabled{% endif %}>
+                {{ articulo['codigo'] }} · {{ articulo['descripcion'] }} — disponible {{ articulo['disponible']|cantidad }} {{ articulo['unidad'] }}{% if not articulo['activo'] %} (desactivado){% endif %}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+    <div class="col-9 col-md-3">
+        <div class="input-group">
+            <input class="form-control" type="number" name="almacen_cantidad" min="0.01" max="99999999.99" step="0.01"
+                   value="{{ cantidad }}" placeholder="Cantidad" aria-label="Cantidad" data-alm-cantidad>
+            <span class="input-group-text" data-alm-unidad>—</span>
+        </div>
+    </div>
+    <div class="col-3 col-md-1">
+        <button class="btn btn-outline-danger w-100" type="button" title="Quitar fila" aria-label="Quitar fila" data-alm-quitar><i class="fas fa-trash"></i></button>
+    </div>
+</div>
+{% endmacro %}
+
+<div class="alm-consumo" data-alm-consumo>
+    {% if articulos_almacen %}
+    <div class="d-grid gap-2 mb-2" data-alm-filas>
+        {% if consumo_previo %}
+            {% for articulo_id, cantidad_previa in consumo_previo.items() %}
+            {{ fila_consumo(articulos_almacen, articulo_id, cantidad_previa) }}
+            {% endfor %}
+        {% else %}
+            {{ fila_consumo(articulos_almacen) }}
+        {% endif %}
+    </div>
+    <button class="btn btn-outline-primary btn-sm" type="button" data-alm-agregar><i class="fas fa-plus me-1"></i>Agregar artículo</button>
+    <small class="text-muted d-block mt-2">Se descuenta del almacén general al guardar. Solo aparecen artículos activos; la existencia no puede quedar negativa.</small>
+    <template data-alm-plantilla>{{ fila_consumo(articulos_almacen) }}</template>
+    {% else %}
+    <p class="text-muted mb-0"><i class="fas fa-info-circle me-1"></i>No hay artículos activos en el almacén.{% if can('almacen.gestionar') %} <a href="{{ url_for('facturacion_almacen_nuevo') }}">Crear artículos</a>.{% endif %}</p>
+    {% endif %}
+</div>
+<script src="{{ url_for('static', filename='js/almacen-consumo.js') }}?v=1" nonce="{{ csp_nonce }}" defer></script>

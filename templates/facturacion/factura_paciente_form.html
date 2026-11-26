@@ -4,9 +4,49 @@
 {% block title %}Nueva factura paciente - ClinicRD{% endblock %}
 {% block robots %}noindex, nofollow{% endblock %}
 
+{# Una línea de servicio. Con seguro: el paciente paga la diferencia y lo que
+   cubre la ARS va a Estado de Facturación (factura ARS de fin de mes). #}
+{% macro linea_servicio(linea) -%}
+{% set con_seguro = (linea.get('seguro')|string) in ['1', 'true', 'on'] %}
+<tbody class="fp-linea" data-fp-linea>
+    <tr>
+        <td>
+            <input class="form-control form-control-sm" name="linea_descripcion" value="{{ linea.get('descripcion', '') }}" maxlength="500" placeholder="Ej.: Consulta general">
+            <input type="hidden" name="linea_servicio_id" value="{{ linea.get('servicio_id') or '' }}">
+        </td>
+        <td class="fp-col-seguro">
+            <label class="fp-switch" title="El servicio lo cubre una ARS">
+                <input type="checkbox" data-fp-seguro {{ 'checked' if con_seguro else '' }}>
+                <span>Seguro</span>
+            </label>
+            <input type="hidden" name="linea_seguro" value="{{ '1' if con_seguro else '0' }}">
+        </td>
+        <td class="fp-cant"><input class="form-control form-control-sm" name="linea_cantidad" type="number" min="1" max="999" value="{{ linea.get('cantidad', 1) }}" {{ 'readonly' if con_seguro else '' }}></td>
+        <td class="fp-precio"><input class="form-control form-control-sm" name="linea_precio" type="number" min="0" step="0.01" value="{{ linea.get('precio', '') }}" placeholder="0.00" aria-label="Monto del servicio"></td>
+        <td class="fp-sub-linea" data-fp-subtotal>0.00</td>
+        <td><button type="button" class="fp-quitar" data-fp-quitar aria-label="Quitar línea"><i class="fas fa-xmark"></i></button></td>
+    </tr>
+    <tr class="fp-seguro-fila" data-fp-seguro-fila {{ '' if con_seguro else 'hidden' }}>
+        <td colspan="6">
+            <div class="fp-seguro-campos">
+                <label>Autorización ARS *
+                    <input class="form-control form-control-sm" name="linea_autorizacion" maxlength="50" value="{{ linea.get('autorizacion', '') }}" placeholder="Número de autorización" autocomplete="off">
+                </label>
+                <label>Cubre ARS
+                    <input class="form-control form-control-sm" name="linea_cubre" type="number" min="0" step="0.01" value="{{ linea.get('cubre', '') }}" placeholder="0.00" data-fp-cubre>
+                </label>
+                <label>Diferencia (paciente)
+                    <input class="form-control form-control-sm" type="number" min="0" step="0.01" placeholder="0.00" data-fp-diferencia>
+                </label>
+            </div>
+        </td>
+    </tr>
+</tbody>
+{%- endmacro %}
+
 {% block content %}
 <style nonce="{{ csp_nonce }}">
-    .fp { max-width: 1080px; margin: 0 auto; padding: 24px 20px 48px; }
+    .fp { max-width: 1120px; margin: 0 auto; padding: 24px 20px 48px; }
     .fp h1 { font-size: 1.45rem; font-weight: 800; color: var(--ars-shell-text, #172033); margin: 0; }
     .fp-sub { color: var(--ars-shell-muted, #718096); font-size: .85rem; margin: 4px 0 18px; }
     .fp-grid { display: grid; grid-template-columns: 1fr 340px; gap: 16px; align-items: start; }
@@ -16,24 +56,41 @@
                       color: var(--ars-shell-muted, #718096) !important; margin: 0 0 14px !important; padding: 0 !important;
                       border: 0 !important; background: none !important; font-family: inherit !important; }
     .fp-opcional { color: var(--ars-shell-muted, #718096); font-weight: 400; font-size: .8rem; }
+    .fp-seguro-datos { margin-top: 4px; padding: 12px; border-radius: 12px; background: var(--ars-shell-surface-alt, #f2f5f8); }
     .fp-conceptos { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
     .fp-chip { border: 1px dashed var(--ars-shell-border, #cbd5e1); background: transparent; color: var(--ars-shell-text, #172033);
                border-radius: 999px; padding: 5px 12px; font-size: .78rem; font-weight: 600; }
     .fp-chip:hover { border-color: var(--primary-color, #0891b2); color: var(--primary-color, #0891b2); }
-    .fp-lineas th { font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ars-shell-muted, #718096); }
+    .fp-lineas th { font-size: .7rem; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--ars-shell-muted, #718096); white-space: nowrap; }
     .fp-lineas td { vertical-align: middle; }
-    .fp-lineas .fp-cant { width: 80px; }
-    .fp-lineas .fp-precio { width: 140px; }
-    .fp-lineas .fp-sub-linea { width: 120px; text-align: right; font-weight: 700; white-space: nowrap; }
+    .fp-lineas .fp-linea { border-bottom: 1px solid var(--ars-shell-border, #e8edf3); }
+    .fp-lineas .fp-linea td { border-bottom: 0; }
+    .fp-lineas .fp-col-seguro { width: 92px; }
+    .fp-lineas .fp-cant { width: 70px; }
+    .fp-lineas .fp-precio { width: 120px; }
+    .fp-lineas .fp-sub-linea { width: 110px; text-align: right; font-weight: 700; white-space: nowrap; }
+    .fp-switch { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: .78rem; font-weight: 600; cursor: pointer; color: var(--ars-shell-muted, #718096); }
+    .fp-switch input { width: 16px; height: 16px; accent-color: var(--primary-color, #0891b2); }
+    .fp-switch:has(input:checked) { color: var(--primary-color, #0891b2); }
+    .fp-seguro-fila td { padding-top: 0; }
+    .fp-seguro-campos { display: grid; grid-template-columns: 1.3fr 1fr 1fr; gap: 10px; padding: 10px 12px; border-radius: 10px;
+                        background: var(--ars-shell-surface-alt, #f2f5f8); border-left: 3px solid var(--primary-color, #0891b2); }
+    .fp-seguro-campos label { margin: 0; font-size: .72rem; font-weight: 700; color: var(--ars-shell-muted, #718096); }
+    .fp-seguro-campos input { margin-top: 3px; }
+    @media (max-width: 640px) { .fp-seguro-campos { grid-template-columns: 1fr; } }
     .fp-quitar { border: 0; background: transparent; color: var(--ars-shell-muted, #718096); }
     .fp-quitar:hover { color: #dc2626; }
-    .fp-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 12px; border-top: 1px solid var(--ars-shell-border, #e8edf3); }
+    .fp-resumen { display: grid; gap: 4px; font-size: .84rem; color: var(--ars-shell-muted, #718096); padding-top: 10px; border-top: 1px solid var(--ars-shell-border, #e8edf3); }
+    .fp-resumen div { display: flex; justify-content: space-between; }
+    .fp-total { display: flex; justify-content: space-between; align-items: baseline; padding-top: 8px; }
     .fp-total strong { font-size: 1.6rem; font-weight: 800; color: var(--ars-shell-text, #172033); }
     .fp-cambio { font-size: .9rem; font-weight: 700; color: #15803d; }
     .fp-sugerencias { display: grid; gap: 6px; }
     .fp-sugerencia { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px;
                      background: var(--ars-shell-surface-alt, #f2f5f8); font-size: .8rem; }
     .fp-aviso { font-size: .78rem; color: var(--ars-shell-muted, #718096); }
+    .fp-sin-cobro { font-size: .8rem; padding: 8px 10px; border-radius: 10px; background: #ecfdf3; color: #166534; }
+    html[data-color-mode="dark"] .fp-sin-cobro { background: #0f2e1d; color: #bbf7d0; }
     .fp-seg { display: flex; gap: 3px; padding: 3px; border-radius: 10px; background: var(--ars-shell-surface-alt, #f2f5f8);
               border: 1px solid var(--ars-shell-border, #e8edf3); }
     .fp-seg label { position: relative; flex: 1; margin: 0; padding: 6px 4px; border-radius: 8px; text-align: center;
@@ -50,12 +107,14 @@
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
         <div>
             <h1><i class="fas fa-file-invoice me-2"></i>Nueva factura paciente</h1>
-            <p class="fp-sub">Cobro al paciente: diferencia o copago de la ARS, consulta privada u otros servicios.</p>
+            <p class="fp-sub">Factura al paciente lo que le toca. Lo que cubre el seguro pasa solo a Estado de Facturación para la factura ARS.</p>
         </div>
         <a class="btn btn-outline-secondary" href="{{ url_for('facturas_pacientes') }}"><i class="fas fa-list me-1"></i>Facturas de pacientes</a>
     </div>
 
-    <form method="post" id="facturaPacienteForm" data-confirm-submit="¿Emitir la factura y registrar el cobro?" data-consultas-url="{{ url_for('api_consultas_recientes_paciente', paciente_id=0) }}">
+    <form method="post" id="facturaPacienteForm"
+          data-confirm-submit="¿Registrar la atención? Se cobra al paciente lo que le toca y lo del seguro pasa a Estado de Facturación."
+          data-consultas-url="{{ url_for('api_consultas_recientes_paciente', paciente_id=0) }}">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
         <div class="fp-grid">
             <div>
@@ -67,13 +126,28 @@
                             {{ patient_search(pacientes, form.get('paciente_id') or paciente_id, true, 'fp_paciente') }}
                         </div>
                         <div class="col-12">
-                            <label class="form-label" for="medico_id">Médico que atendió <span class="fp-opcional">(opcional)</span></label>
+                            <label class="form-label" for="medico_id">Médico que atendió <span class="fp-opcional" id="fpMedicoNota">(opcional; obligatorio con seguro)</span></label>
                             <select class="form-select" id="medico_id" name="medico_id">
                                 <option value="">Seleccione el médico</option>
                                 {% for medico in medicos %}
                                 <option value="{{ medico.id }}" {{ 'selected' if form.get('medico_id')|string == medico.id|string else '' }}>{{ medico.nombre }}</option>
                                 {% endfor %}
                             </select>
+                        </div>
+                    </div>
+                    <div class="fp-seguro-datos row g-3 mx-0 mt-3" id="fpSeguroDatos" hidden>
+                        <div class="col-md-7 ps-0">
+                            <label class="form-label required" for="ars_id">ARS</label>
+                            <select class="form-select" id="ars_id" name="ars_id">
+                                <option value="">Seleccione la ARS</option>
+                                {% for ars in ars_list %}
+                                <option value="{{ ars.id }}" {{ 'selected' if form.get('ars_id')|string == ars.id|string else '' }}>{{ ars.nombre }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-5 pe-0">
+                            <label class="form-label required" for="nss">NSS del paciente</label>
+                            <input class="form-control" id="nss" name="nss" maxlength="20" data-input-filter="digits-hyphen" value="{{ form.get('nss', '') }}" autocomplete="off">
                         </div>
                     </div>
                     <div class="fp-sugerencias mt-3" id="fpSugerencias" hidden>
@@ -97,24 +171,11 @@
                         {% endif %}
                     </div>
                     <div class="table-responsive">
-                        <table class="table fp-lineas mb-0">
+                        <table class="table fp-lineas mb-0" id="fpTabla">
                             <thead>
-                                <tr><th>Descripción</th><th>Cant.</th><th>Precio</th><th class="text-end">Subtotal</th><th></th></tr>
+                                <tr><th>Descripción</th><th></th><th>Cant.</th><th>Monto</th><th class="text-end">Paga paciente</th><th></th></tr>
                             </thead>
-                            <tbody id="fpLineas">
-                                {% for linea in lineas %}
-                                <tr data-fp-linea>
-                                    <td>
-                                        <input class="form-control form-control-sm" name="linea_descripcion" value="{{ linea.get('descripcion', '') }}" maxlength="500" placeholder="Ej.: Diferencia consulta ARS Humano">
-                                        <input type="hidden" name="linea_servicio_id" value="{{ linea.get('servicio_id') or '' }}">
-                                    </td>
-                                    <td class="fp-cant"><input class="form-control form-control-sm" name="linea_cantidad" type="number" min="1" max="999" value="{{ linea.get('cantidad', 1) }}"></td>
-                                    <td class="fp-precio"><input class="form-control form-control-sm" name="linea_precio" type="number" min="0" step="0.01" value="{{ linea.get('precio', '') }}" placeholder="0.00"></td>
-                                    <td class="fp-sub-linea" data-fp-subtotal>0.00</td>
-                                    <td><button type="button" class="fp-quitar" data-fp-quitar aria-label="Quitar línea"><i class="fas fa-xmark"></i></button></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
+                            {% for linea in lineas %}{{ linea_servicio(linea) }}{% endfor %}
                         </table>
                     </div>
                     <button type="button" class="btn btn-sm btn-outline-secondary mt-2" id="fpAgregar"><i class="fas fa-plus me-1"></i>Agregar línea</button>
@@ -126,7 +187,7 @@
             </div>
 
             <aside>
-                <section class="fp-card">
+                <section class="fp-card" id="fpComprobante">
                     <h2>Comprobante</h2>
                     {% set tipo_actual = form.get('tipo_comprobante') or tipo_defecto %}
                     {% if tipo_actual not in secuencias %}{% set tipo_actual = (secuencias.keys()|list|sort|reverse|first) or tipo_actual %}{% endif %}
@@ -161,28 +222,37 @@
 
                 <section class="fp-card">
                     <h2>Cobro</h2>
-                    <label class="form-label" for="metodo_pago">Forma de pago</label>
-                    <select class="form-select" id="metodo_pago" name="metodo_pago" required>
-                        {% for metodo in metodos %}
-                        <option value="{{ metodo }}" {{ 'selected' if (form.get('metodo_pago') or 'Efectivo') == metodo else '' }}>{{ metodo }}</option>
-                        {% endfor %}
-                    </select>
-                    <div id="fpEfectivo" class="mt-2">
-                        <label class="form-label" for="monto_recibido">Monto recibido</label>
-                        <input class="form-control" id="monto_recibido" name="monto_recibido" type="number" min="0" step="0.01" value="{{ form.get('monto_recibido', '') }}">
+                    <div id="fpPago">
+                        <label class="form-label" for="metodo_pago">Forma de pago</label>
+                        <select class="form-select" id="metodo_pago" name="metodo_pago">
+                            {% for metodo in metodos %}
+                            <option value="{{ metodo }}" {{ 'selected' if (form.get('metodo_pago') or 'Efectivo') == metodo else '' }}>{{ metodo }}</option>
+                            {% endfor %}
+                        </select>
+                        <div id="fpEfectivo" class="mt-2">
+                            <label class="form-label" for="monto_recibido">Monto recibido</label>
+                            <input class="form-control" id="monto_recibido" name="monto_recibido" type="number" min="0" step="0.01" value="{{ form.get('monto_recibido', '') }}">
+                        </div>
+                        <div id="fpReferencia" class="mt-2" hidden>
+                            <label class="form-label" for="referencia_pago">Referencia / aprobación</label>
+                            <input class="form-control" id="referencia_pago" name="referencia_pago" maxlength="100" value="{{ form.get('referencia_pago', '') }}">
+                        </div>
                     </div>
-                    <div id="fpReferencia" class="mt-2" hidden>
-                        <label class="form-label" for="referencia_pago">Referencia / aprobación</label>
-                        <input class="form-control" id="referencia_pago" name="referencia_pago" maxlength="100" value="{{ form.get('referencia_pago', '') }}">
+                    <div class="fp-resumen mt-3" id="fpResumenSeguro" hidden>
+                        <div><span>Total servicios</span><span>RD$ <span id="fpTotalServicios">0.00</span></span></div>
+                        <div><span>Cubre la ARS (a Estado de Facturación)</span><span>RD$ <span id="fpTotalArs">0.00</span></span></div>
                     </div>
-                    <div class="fp-total mt-3">
-                        <span>Total</span>
+                    <div class="fp-total">
+                        <span>Paga el paciente</span>
                         <strong>RD$ <span id="fpTotal">0.00</span></strong>
                     </div>
                     <div class="text-end fp-cambio" id="fpCambio" hidden>Cambio: RD$ <span></span></div>
+                    <p class="fp-sin-cobro mt-2 mb-0" id="fpSinCobro" hidden>
+                        El seguro cubre todo: no se emite factura al paciente. Solo se registra lo de la ARS.
+                    </p>
                     <p class="fp-aviso mt-2 mb-3">Servicios de salud exentos de ITBIS. La factura queda pagada al emitirse.</p>
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="fas fa-check me-1"></i>Emitir y cobrar
+                    <button type="submit" class="btn btn-primary w-100" id="fpEmitir">
+                        <i class="fas fa-check me-1"></i><span>Emitir y cobrar</span>
                     </button>
                 </section>
             </aside>
@@ -190,17 +260,6 @@
     </form>
 </div>
 
-<template id="fpLineaTpl">
-    <tr data-fp-linea>
-        <td>
-            <input class="form-control form-control-sm" name="linea_descripcion" maxlength="500">
-            <input type="hidden" name="linea_servicio_id" value="">
-        </td>
-        <td class="fp-cant"><input class="form-control form-control-sm" name="linea_cantidad" type="number" min="1" max="999" value="1"></td>
-        <td class="fp-precio"><input class="form-control form-control-sm" name="linea_precio" type="number" min="0" step="0.01" placeholder="0.00"></td>
-        <td class="fp-sub-linea" data-fp-subtotal>0.00</td>
-        <td><button type="button" class="fp-quitar" data-fp-quitar aria-label="Quitar línea"><i class="fas fa-xmark"></i></button></td>
-    </tr>
-</template>
-<script src="{{ url_for('static', filename='js/factura-paciente.js') }}?v=1" nonce="{{ csp_nonce }}" defer></script>
+<template id="fpLineaTpl">{{ linea_servicio({}) }}</template>
+<script src="{{ url_for('static', filename='js/factura-paciente.js') }}?v=2" nonce="{{ csp_nonce }}" defer></script>
 {% endblock %}

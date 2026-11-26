@@ -88,17 +88,27 @@ def _sembrar_permisos(cursor, database):
         )
 
 
-TABLAS_MODULOS_OPCIONALES = ('constancias_medicas',)
+# El orden importa: almacen_movimientos tiene FK hacia almacen_articulos.
+TABLAS_MODULOS_OPCIONALES = (
+    'constancias_medicas',
+    'almacen_articulos',
+    'almacen_movimientos',
+)
 
 # Permisos nuevos que heredan los roles (de sistema o personalizados) que ya
-# tenían el permiso equivalente de licencias. Solo se aplica la primera vez
-# que el permiso aparece en la base, para no revertir cambios del administrador.
+# tenían el permiso equivalente. Solo se aplica la primera vez que el permiso
+# aparece en la base, para no revertir cambios del administrador.
 PERMISOS_HEREDADOS = {
     'constancias.ver': 'licencias.ver',
     'constancias.crear': 'licencias.crear',
     'constancias.editar': 'licencias.editar',
     'constancias.anular': 'licencias.anular',
     'constancias.imprimir': 'licencias.imprimir',
+    # Quien registra emergencias consume del almacén; quien edita catálogos
+    # administra los artículos.
+    'almacen.ver': 'emergencia.crear',
+    'almacen.movimientos': 'emergencia.crear',
+    'almacen.gestionar': 'catalogos.editar',
 }
 
 

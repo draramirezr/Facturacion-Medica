@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+
+{% block title %}Reporte de almacén - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .almrep-resumen .card { border-radius: 14px; background: var(--ars-shell-surface, #fff); border: 1px solid var(--ars-shell-border, #e2e8f0); color: var(--ars-shell-text, #0f172a); }
+    .almrep-resumen .valor { font-size: 1.35rem; font-weight: 800; }
+    .almrep-resumen .almrep-alerta .valor { color: #dc2626; }
+    .almrep-tabla td.num, .almrep-tabla th.num { text-align: right; white-space: nowrap; }
+    .almrep-tabla tfoot td { font-weight: 800; }
+    .almrep-codigo { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 700; }
+    .almrep-cero td { background: #dc262612 !important; }
+    .almrep-cero td.almrep-existencia { color: #dc2626; font-weight: 800; }
+    .almrep-inactivo td { opacity: .65; }
+</style>
+
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-3">
+        <div>
+            <h1 class="h3 mb-1"><i class="fas fa-warehouse me-2"></i>Almacén</h1>
+            <p class="text-muted mb-0">Existencia actual de cada artículo y sus entradas, salidas y consumo en emergencias del periodo.</p>
+        </div>
+        <a class="btn btn-outline-secondary"
+           href="{{ url_for('facturacion_reporte_almacen', desde=desde, hasta=hasta, tipo=tipo, estado=estado, formato='csv') }}">
+            <i class="fas fa-file-csv me-1"></i>Descargar CSV
+        </a>
+    </div>
+
+    <form method="get" class="row g-2 align-items-end mb-4">
+        <div class="col-sm-6 col-md-2">
+            <label class="form-label" for="desde">Desde</label>
+            <input class="form-control" type="date" id="desde" name="desde" value="{{ desde }}">
+        </div>
+        <div class="col-sm-6 col-md-2">
+            <label class="form-label" for="hasta">Hasta</label>
+            <input class="form-control" type="date" id="hasta" name="hasta" value="{{ hasta }}">
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <label class="form-label" for="tipo">Tipo</label>
+            <select class="form-select" id="tipo" name="tipo">
+                <option value="">Medicamentos y materiales</option>
+                {% for valor, etiqueta in etiquetas_tipo.items() %}
+                <option value="{{ valor }}" {{ 'selected' if tipo == valor else '' }}>{{ etiqueta }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-sm-6 col-md-3">
+            <label class="form-label" for="estado">Estado</label>
+            <select class="form-select" id="estado" name="estado">
+                {% for valor, etiqueta in [('activos','Activos'),('inactivos','Desactivados'),('todos','Todos')] %}
+                <option value="{{ valor }}" {{ 'selected' if estado == valor else '' }}>{{ etiqueta }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button class="btn btn-primary w-100" type="submit">
+                <i class="fas fa-filter me-1"></i>Ver
+            </button>
+        </div>
+    </form>
+
+    <div class="row g-3 almrep-resumen mb-4">
+        <div class="col-6 col-md">
+            <div class="card p-3"><div class="text-muted small">Artículos</div><div class="valor">{{ totales.articulos }}</div></div>
+        </div>
+        <div class="col-6 col-md">
+            <div class="card p-3 {{ 'almrep-alerta' if totales.sin_existencia else '' }}"><div class="text-muted small">Sin existencia</div><div class="valor">{{ totales.sin_existencia }}</div></div>
+        </div>
+        <div class="col-4 col-md">
+            <div class="card p-3"><div class="text-muted small">Entradas</div><div class="valor">{{ totales.entradas|cantidad }}</div></div>
+        </div>
+        <div class="col-4 col-md">
+            <div class="card p-3"><div class="text-muted small">Salidas</div><div class="valor">{{ totales.salidas|cantidad }}</div></div>
+        </div>
+        <div class="col-4 col-md">
+            <div class="card p-3"><div class="text-muted small">Consumo en emergencias</div><div class="valor">{{ totales.consumo_emergencias|cantidad }}</div></div>
+        </div>
+    </div>
+
+    {% if filas %}
+    <div class="table-responsive">
+        <table class="table align-middle almrep-tabla">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Descripción</th>
+                    <th>Tipo</th>
+                    <th>Unidad</th>
+                    <th class="num">Entradas</th>
+                    <th class="num">Salidas</th>
+                    <th class="num">Consumo emergencias</th>
+                    <th class="num">Existencia actual</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for fila in filas %}
+                <tr class="{{ 'almrep-cero' if fila.sin_existencia else '' }} {{ '' if fila.activo else 'almrep-inactivo' }}">
+                    <td class="almrep-codigo">{{ fila.codigo }}</td>
+                    <td>{{ fila.descripcion }}{% if not fila.activo %} <span class="badge bg-secondary">Desactivado</span>{% endif %}</td>
+                    <td>{{ fila.tipo_etiqueta }}</td>
+                    <td>{{ fila.unidad }}</td>
+                    <td class="num">{{ fila.entradas|cantidad }}</td>
+                    <td class="num">{{ fila.salidas|cantidad }}</td>
+                    <td class="num">{{ fila.consumo_emergencias|cantidad }}</td>
+                    <td class="num almrep-existencia">{{ fila.existencia|cantidad }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td colspan="4">Total ({{ totales.articulos }} artículos)</td>
+                    <td class="num">{{ totales.entradas|cantidad }}</td>
+                    <td class="num">{{ totales.salidas|cantidad }}</td>
+                    <td class="num">{{ totales.consumo_emergencias|cantidad }}</td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+    <p class="text-muted small">
+        Las filas en rojo no tienen existencia. Los totales suman cantidades de unidades distintas;
+        úselos como referencia de actividad. El consumo en emergencias es neto de ajustes.
+    </p>
+    {% else %}
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>No hay artículos con estos filtros.
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

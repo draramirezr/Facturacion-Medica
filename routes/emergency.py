@@ -6,9 +6,15 @@ from datetime import datetime
 from flask import flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
-from auth import permission_required
-from core.database import execute_query, execute_update
+from auth import permission_required, user_has_permission
+from core.clock import fecha_clinica
+from core.database import execute_query, execute_update, transactional_methods
 from core.tenant import get_current_tenant_id
+from routes.almacen import (
+    aplicar_movimientos, articulos_para_consumo, consumo_registrado_historia,
+    detalle_consumo_historia, leer_consumo_formulario,
+    preparar_consumo_emergencia,
+)
 from routes.patients import paciente_adulto_sin_cedula
 from routes.support import sanitize_input, validate_int
 from services.plan_features import requiere_plan_centro_medico
@@ -56,10 +62,15 @@ def facturacion_historias_emergencia():
 
 
 @login_required
+@transactional_methods('POST')
 @permission_required('emergencia.crear')
 @requiere_plan_centro_medico
 def facturacion_historias_emergencia_nueva():
-    """Registrar una historia clínica de emergencia."""
+    """Registrar una historia clínica de emergencia.
+
+    Lo usado del almacén se descuenta en la misma transacción que la
+    historia; el permiso emergencia.crear basta para ese consumo.
+    """
     tenant_id = get_current_tenant_id()
     medico_id_restringido = medico_id_emergencias_restringido()
 
@@ -162,6 +173,18 @@ def facturacion_historias_emergencia_nueva():
             'medicamentos': sanitize_input(request.form.get('medicamentos', ''), 4000)
         }
 
+        consumo, error_almacen = leer_consumo_formulario(request.form)
+        plan_almacen = []
+        if not error_almacen and consumo:
+            # Bloquea las filas de los artículos y valida existencia antes
+            # de escribir; los bloqueos duran hasta el commit.
+            plan_almacen, error_almacen = preparar_consumo_emergencia(
+                tenant_id, consumo,
+            )
+        if error_almacen:
+            flash(error_almacen, 'error')
+            return redirect(url_for('facturacion_historias_emergencia_nueva'))
+
         historia_id = execute_update('''
             INSERT INTO historias_emergencia (
                 tenant_id, paciente_id, medico_id, fecha, hora_servicio, autorizacion,
@@ -181,6 +204,12 @@ def facturacion_historias_emergencia_nueva():
             diagnostico, estatus, origen, observaciones or None, medico['nombre'],
             current_user.id
         ))
+        if plan_almacen:
+            aplicar_movimientos(
+                tenant_id, plan_almacen, fecha,
+                nota=f"Emergencia #{historia_id} · {paciente['nombre']}"[:500],
+                historia_emergencia_id=historia_id,
+            )
         flash('Historia de emergencia registrada exitosamente', 'success')
         return redirect(url_for('facturacion_historia_emergencia_ver', historia_id=historia_id))
 
@@ -241,6 +270,7 @@ def facturacion_historias_emergencia_nueva():
         fecha_actual=datetime.now().strftime('%Y-%m-%d'),
         hora_actual=datetime.now().strftime('%H:%M'),
         emergencias_restringidas=bool(medico_id_restringido),
+        articulos_almacen=articulos_para_consumo(tenant_id),
     )
 
 
@@ -270,28 +300,107 @@ def obtener_historia_emergencia(
 @permission_required('emergencia.ver')
 @requiere_plan_centro_medico
 def facturacion_historia_emergencia_ver(historia_id):
-    historia = obtener_historia_emergencia(
-        historia_id,
-        get_current_tenant_id(),
-    )
+    tenant_id = get_current_tenant_id()
+    historia = obtener_historia_emergencia(historia_id, tenant_id)
     if not historia:
         flash('Historia de emergencia no encontrada', 'error')
         return redirect(url_for('facturacion_historias_emergencia'))
-    return render_template('facturacion/historia_emergencia_ver.html', historia=historia, imprimir=False)
+    return render_template(
+        'facturacion/historia_emergencia_ver.html', historia=historia,
+        imprimir=False,
+        consumo_almacen=detalle_consumo_historia(tenant_id, historia_id),
+        puede_ajustar_almacen=historia_editable_por_usuario(historia),
+    )
 
 
 @login_required
 @permission_required('emergencia.imprimir')
 @requiere_plan_centro_medico
 def facturacion_historia_emergencia_imprimir(historia_id):
-    historia = obtener_historia_emergencia(
-        historia_id,
-        get_current_tenant_id(),
+    tenant_id = get_current_tenant_id()
+    historia = obtener_historia_emergencia(historia_id, tenant_id)
+    if not historia:
+        flash('Historia de emergencia no encontrada', 'error')
+        return redirect(url_for('facturacion_historias_emergencia'))
+    return render_template(
+        'facturacion/historia_emergencia_ver.html', historia=historia,
+        imprimir=True,
+        consumo_almacen=detalle_consumo_historia(tenant_id, historia_id),
+        puede_ajustar_almacen=False,
+    )
+
+
+def historia_editable_por_usuario(historia):
+    """Ajustar el consumo: emergencia.crear y, si es médico operativo, solo
+    sus propias historias."""
+    if not user_has_permission(current_user, 'emergencia.crear'):
+        return False
+    restringido = medico_id_emergencias_restringido()
+    return not restringido or historia.get('medico_id') == restringido
+
+
+@login_required
+@transactional_methods('POST')
+@permission_required('emergencia.crear')
+@requiere_plan_centro_medico
+def facturacion_historia_emergencia_almacen(historia_id):
+    """Corregir lo usado del almacén en una historia ya registrada.
+
+    Concilia por artículo lo indicado contra lo ya consumido y registra la
+    diferencia como AJUSTE_EMERGENCIA (+ devuelve, - consume más).
+    """
+    tenant_id = get_current_tenant_id()
+    restringido = medico_id_emergencias_restringido()
+    sql = (
+        'SELECT id, fecha, nombre_paciente, medico_id, medico_nombre '
+        'FROM historias_emergencia WHERE id=%s AND tenant_id=%s '
+        'AND (%s IS NULL OR medico_id=%s)'
+    )
+    if request.method == 'POST':
+        # Serializa ediciones simultáneas de la misma historia.
+        sql += ' FOR UPDATE'
+    historia = execute_query(
+        sql, (historia_id, tenant_id, restringido, restringido),
     )
     if not historia:
         flash('Historia de emergencia no encontrada', 'error')
         return redirect(url_for('facturacion_historias_emergencia'))
-    return render_template('facturacion/historia_emergencia_ver.html', historia=historia, imprimir=True)
+    previo = consumo_registrado_historia(tenant_id, historia_id)
+
+    if request.method == 'POST':
+        nuevo, error = leer_consumo_formulario(request.form)
+        plan = []
+        if not error:
+            plan, error = preparar_consumo_emergencia(
+                tenant_id, nuevo, previo, es_edicion=True,
+            )
+        if error:
+            flash(error, 'error')
+            return redirect(url_for(
+                'facturacion_historia_emergencia_almacen', historia_id=historia_id,
+            ))
+        if not plan:
+            flash('No hubo cambios en lo usado del almacén', 'info')
+        else:
+            aplicar_movimientos(
+                tenant_id, plan, fecha_clinica(),
+                nota=(
+                    f"Ajuste emergencia #{historia_id} · "
+                    f"{historia['nombre_paciente']}"
+                )[:500],
+                historia_emergencia_id=historia_id,
+            )
+            flash('Consumo del almacén actualizado', 'success')
+        return redirect(url_for(
+            'facturacion_historia_emergencia_ver', historia_id=historia_id,
+        ))
+
+    return render_template(
+        'facturacion/historia_emergencia_almacen.html',
+        historia=historia,
+        consumo_previo=previo,
+        articulos_almacen=articulos_para_consumo(tenant_id, previo),
+    )
 
 
 def register_emergency_routes(app):
@@ -299,3 +408,4 @@ def register_emergency_routes(app):
     app.add_url_rule('/facturacion/historias-emergencia/nueva', endpoint='facturacion_historias_emergencia_nueva', view_func=facturacion_historias_emergencia_nueva, methods=['GET', 'POST'])
     app.add_url_rule('/facturacion/historias-emergencia/<int:historia_id>', endpoint='facturacion_historia_emergencia_ver', view_func=facturacion_historia_emergencia_ver)
     app.add_url_rule('/facturacion/historias-emergencia/<int:historia_id>/imprimir', endpoint='facturacion_historia_emergencia_imprimir', view_func=facturacion_historia_emergencia_imprimir)
+    app.add_url_rule('/facturacion/historias-emergencia/<int:historia_id>/almacen', endpoint='facturacion_historia_emergencia_almacen', view_func=facturacion_historia_emergencia_almacen, methods=['GET', 'POST'])

@@ -11,12 +11,16 @@ Preparado para e-CF: el tipo de comprobante es un dato aparte; E32/E31 se
 agregan cuando la empresa esté certificada ante la DGII.
 """
 
+import re
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
 
 from core.database import database_transaction, execute_query, execute_update
 
 CENTAVO = Decimal('0.01')
+# Mismas reglas que el registro de consultas ARS (routes/billing_common.py).
+_RE_NSS = re.compile(r'^[0-9\-]+$')
+_RE_AUTORIZACION = re.compile(r'^[A-Z0-9\-]+$')
 DESTINATARIO = 'PACIENTE'
 TIPOS_COMPROBANTE = {
     'B02': 'Consumo',
@@ -90,21 +94,25 @@ def validar_factura_paciente(tenant_id, form, lineas):
             errores.append('Para crédito fiscal (B01) indique el nombre o razón social')
 
     metodo = (form.get('metodo_pago') or '').strip()
-    if metodo not in METODOS_PAGO:
-        errores.append('Seleccione la forma de pago')
     referencia = (form.get('referencia_pago') or '').strip()[:100] or None
 
-    detalle = []
+    detalle = []          # Lo que paga el paciente (va en su factura).
+    consultas_ars = []    # Lo que cubre el seguro (va a Estado de Facturación).
     total = Decimal('0.00')
+    autorizaciones = set()
     if not lineas:
         errores.append('Agregue al menos un servicio')
     for numero, linea in enumerate(lineas[:MAX_LINEAS], start=1):
         descripcion = (linea.get('descripcion') or '').strip()[:500]
+        con_seguro = str(linea.get('seguro') or '').lower() in ('1', 'true', 'on', 'si', 'sí')
         try:
-            cantidad = int(linea.get('cantidad') or 1)
+            cantidad = 1 if con_seguro else int(linea.get('cantidad') or 1)
             precio = _monto(linea.get('precio'))
         except (TypeError, ValueError):
             errores.append(f'Línea {numero}: cantidad o precio inválido')
+            continue
+        except FacturaPacienteError:
+            errores.append(f'Línea {numero}: precio inválido')
             continue
         if not descripcion:
             errores.append(f'Línea {numero}: falta la descripción')
@@ -113,7 +121,7 @@ def validar_factura_paciente(tenant_id, form, lineas):
             errores.append(f'Línea {numero}: la cantidad debe estar entre 1 y 999')
             continue
         if precio <= 0:
-            errores.append(f'Línea {numero}: el precio debe ser mayor que cero')
+            errores.append(f'Línea {numero}: el monto debe ser mayor que cero')
             continue
         servicio_id = linea.get('servicio_id') or None
         if servicio_id:
@@ -126,6 +134,48 @@ def validar_factura_paciente(tenant_id, form, lineas):
                 (servicio_id, tenant_id),
             ):
                 servicio_id = None
+
+        if con_seguro:
+            autorizacion = (linea.get('autorizacion') or '').strip().upper()
+            if not autorizacion:
+                errores.append(f'Línea {numero}: la autorización de la ARS es obligatoria')
+                continue
+            if not _RE_AUTORIZACION.match(autorizacion) or len(autorizacion) > 50:
+                errores.append(f'Línea {numero}: autorización inválida (solo letras, números y guiones)')
+                continue
+            if autorizacion in autorizaciones:
+                errores.append(f'Línea {numero}: la autorización {autorizacion} está repetida')
+                continue
+            autorizaciones.add(autorizacion)
+            try:
+                cubre = _monto(linea.get('cubre'))
+            except FacturaPacienteError:
+                errores.append(f'Línea {numero}: el monto que cubre la ARS no es válido')
+                continue
+            if cubre <= 0:
+                errores.append(f'Línea {numero}: indique cuánto cubre la ARS')
+                continue
+            if cubre > precio:
+                errores.append(f'Línea {numero}: lo que cubre la ARS no puede ser mayor que el monto del servicio')
+                continue
+            diferencia = (precio - cubre).quantize(CENTAVO)
+            consultas_ars.append({
+                'servicio': descripcion,
+                'autorizacion': autorizacion,
+                'monto': cubre,
+                'diferencia': diferencia,
+            })
+            if diferencia > 0:
+                detalle.append({
+                    'descripcion': f'Diferencia {descripcion} (Aut. {autorizacion})'[:500],
+                    'cantidad': 1,
+                    'precio_unitario': diferencia,
+                    'subtotal': diferencia,
+                    'servicio_id': servicio_id,
+                })
+                total += diferencia
+            continue
+
         subtotal = (precio * cantidad).quantize(CENTAVO)
         detalle.append({
             'descripcion': descripcion,
@@ -136,14 +186,37 @@ def validar_factura_paciente(tenant_id, form, lineas):
         })
         total += subtotal
 
+    # Datos de seguro (una sola vez para toda la atención).
+    ars = None
+    nss = None
+    if consultas_ars:
+        try:
+            ars_id = int(form.get('ars_id') or 0)
+        except (TypeError, ValueError):
+            ars_id = 0
+        ars = execute_query(
+            'SELECT id, nombre FROM ars WHERE id=%s AND tenant_id=%s AND activo=1',
+            (ars_id, tenant_id),
+        ) if ars_id else None
+        if not ars:
+            errores.append('Seleccione la ARS del paciente')
+        nss = (form.get('nss') or '').strip()
+        if not nss or not _RE_NSS.match(nss) or len(nss) > 20:
+            errores.append('Indique el NSS del paciente (solo números y guiones)')
+        if not medico:
+            errores.append('Para servicios con seguro indique el médico que atendió')
+
+    if total > 0 and metodo not in METODOS_PAGO:
+        errores.append('Seleccione la forma de pago')
+
     monto_recibido = None
-    if metodo == 'Efectivo' and form.get('monto_recibido') not in (None, ''):
+    if total > 0 and metodo == 'Efectivo' and form.get('monto_recibido') not in (None, ''):
         try:
             monto_recibido = _monto(form.get('monto_recibido'))
         except FacturaPacienteError:
             errores.append('El monto recibido no es válido')
         else:
-            if detalle and monto_recibido < total:
+            if monto_recibido < total:
                 errores.append('El monto recibido en efectivo es menor que el total')
 
     if errores:
@@ -158,6 +231,9 @@ def validar_factura_paciente(tenant_id, form, lineas):
         'referencia_pago': referencia,
         'monto_recibido': monto_recibido,
         'lineas': detalle,
+        'consultas_ars': consultas_ars,
+        'ars': ars,
+        'nss': nss,
         'total': total.quantize(CENTAVO),
         'observaciones': (form.get('observaciones') or '').strip()[:500] or None,
     }
@@ -310,3 +386,93 @@ def anular_factura_paciente(tenant_id, factura_id, motivo, usuario_id):
             ''',
             (motivo, usuario_id, factura_id, tenant_id),
         )
+
+
+def _autorizaciones_existentes(tenant_id, ars_id, autorizaciones):
+    """Autorizaciones ya registradas para esa ARS (en cualquier fecha)."""
+    if not autorizaciones:
+        return set()
+    condiciones = ' OR '.join(['servicios_realizados LIKE %s'] * len(autorizaciones))
+    filas = execute_query(
+        f"""
+        SELECT servicios_realizados FROM pacientes_pendientes
+        WHERE tenant_id=%s AND ars_id=%s AND ({condiciones})
+        FOR UPDATE
+        """,
+        (tenant_id, ars_id, *[f'%- Autorización: {a}' for a in autorizaciones]),
+        fetch='all',
+    ) or []
+    usadas = set()
+    for fila in filas:
+        texto = fila.get('servicios_realizados') or ''
+        for autorizacion in autorizaciones:
+            if texto.endswith(f'- Autorización: {autorizacion}'):
+                usadas.add(autorizacion)
+    return usadas
+
+
+def registrar_atencion(tenant_id, datos, usuario_id, hoy=None):
+    """Factura al paciente lo que le toca y envía a la ARS lo que cubre el seguro.
+
+    Todo o nada: si una autorización ya existe o falla el NCF, no se guarda nada.
+    Retorna (factura_id o None, cantidad de consultas enviadas a la ARS).
+    """
+    hoy = hoy or date.today()
+    consultas = datos.get('consultas_ars') or []
+    with database_transaction():
+        if consultas:
+            ars = datos['ars']
+            repetidas = _autorizaciones_existentes(
+                tenant_id, ars['id'], [c['autorizacion'] for c in consultas],
+            )
+            if repetidas:
+                raise FacturaPacienteError(
+                    'Estas autorizaciones ya fueron registradas para '
+                    f"{ars['nombre']}: {', '.join(sorted(repetidas))}"
+                )
+
+        factura_id = None
+        ncf = None
+        if datos['total'] > 0:
+            factura_id = emitir_factura_paciente(tenant_id, datos, usuario_id, hoy=hoy)
+            fila = execute_query(
+                'SELECT ncf FROM facturas WHERE id=%s AND tenant_id=%s',
+                (factura_id, tenant_id),
+            ) or {}
+            ncf = fila.get('ncf')
+
+        if consultas:
+            paciente = datos['paciente']
+            # Completa NSS y ARS del paciente si no los tenía.
+            execute_update(
+                """
+                UPDATE pacientes
+                SET nss = COALESCE(NULLIF(nss, ''), %s),
+                    ars_id = COALESCE(ars_id, %s)
+                WHERE id=%s AND tenant_id=%s
+                """,
+                (datos['nss'], datos['ars']['id'], paciente['id'], tenant_id),
+            )
+            medico = datos.get('medico') or {}
+            for consulta in consultas:
+                nota = (
+                    f"Diferencia RD$ {consulta['diferencia']} cobrada al paciente"
+                    + (f' (factura {ncf})' if ncf else '')
+                    if consulta['diferencia'] > 0 else 'Sin diferencia para el paciente'
+                )
+                execute_update(
+                    """
+                    INSERT INTO pacientes_pendientes
+                    (tenant_id, paciente_id, nombre_paciente, nss, ars_id,
+                     fecha_servicio, servicios_realizados, monto_estimado,
+                     estado, medico_id, observaciones, created_by)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, 'Pendiente', %s, %s, %s)
+                    """,
+                    (
+                        tenant_id, paciente['id'], paciente.get('nombre') or '',
+                        datos['nss'], datos['ars']['id'], hoy,
+                        f"{consulta['servicio']} - Autorización: {consulta['autorizacion']}",
+                        consulta['monto'], medico.get('id'), nota, usuario_id,
+                    ),
+                )
+    return factura_id, len(consultas)

@@ -54,8 +54,13 @@ _ORDEN_ELIMINACION = (
 )
 
 # Tablas de módulos que no forman parte de REQUIRED_TENANT_TABLES; se borran
-# solo si existen en la base (la creación ocurre en el arranque).
-_TABLAS_OPCIONALES = ('constancias_medicas',)
+# solo si existen en la base (la creación ocurre en el arranque). Los
+# movimientos del almacén van antes que los artículos por la clave foránea.
+_TABLAS_OPCIONALES = (
+    'constancias_medicas',
+    'almacen_movimientos',
+    'almacen_articulos',
+)
 
 
 def motivo_no_eliminar_demo(empresa_id):

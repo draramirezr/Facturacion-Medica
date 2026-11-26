@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Almacén de la emergencia #{{ historia['id'] }} - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+<style nonce="{{ csp_nonce }}">
+    .alm-emergencia { max-width: 980px; margin: 0 auto; }
+    .alm-emergencia .clinical-card { background: var(--ars-shell-surface, #fff); border: 1px solid var(--ars-shell-border, #e2e8f0); border-radius: 15px; padding: 1.5rem; margin-bottom: 1.25rem; color: var(--ars-shell-text, #0f172a); }
+    .alm-emergencia .clinical-card h2 { font-size: 1.05rem; font-weight: 800; padding-bottom: .7rem; margin-bottom: 1rem; border-bottom: 2px solid {{ tema.primary }}25; }
+    .alm-emergencia .alm-nota { color: var(--ars-shell-muted, #64748b); }
+</style>
+
+<div class="container py-4">
+    <div class="alm-emergencia">
+        <div class="d-flex justify-content-between align-items-center mb-4 gap-3 flex-wrap">
+            <div>
+                <h1 class="h3 mb-1"><i class="fas fa-boxes-stacked me-2"></i>Lo usado del almacén</h1>
+                <p class="alm-nota mb-0">Emergencia #{{ historia['id'] }} · {{ historia['nombre_paciente'] }} · {{ historia['fecha'] }} · {{ historia['medico_nombre'] }}</p>
+            </div>
+            <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_emergencia_ver', historia_id=historia['id']) }}"><i class="fas fa-arrow-left me-2"></i>Volver a la historia</a>
+        </div>
+
+        <form method="POST" data-confirm-submit="¿Guardar los cambios? La diferencia se registrará como ajuste en el almacén.">
+            <section class="clinical-card">
+                <h2>Medicamentos y materiales del almacén</h2>
+                <p class="alm-nota small">Indique las cantidades finales usadas en esta emergencia. Se registra solo la diferencia como ajuste: si aumenta se descuenta del almacén y si disminuye o quita una fila se devuelve. “Disponible” incluye lo ya usado en esta historia.</p>
+                {% include 'facturacion/_almacen_consumo.html' %}
+            </section>
+            <div class="d-flex justify-content-between gap-3 mb-5">
+                <a class="btn btn-outline-primary" href="{{ url_for('facturacion_historia_emergencia_ver', historia_id=historia['id']) }}">Cancelar</a>
+                <button class="btn btn-primary px-4" type="submit"><i class="fas fa-save me-2"></i>Guardar cambios</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -58,6 +58,11 @@ PERMISOS_POR_GRUPO = {
         ("emergencia.crear", "Crear emergencias", "Registrar historias clínicas de emergencia."),
         ("emergencia.imprimir", "Imprimir emergencias", "Generar impresiones de historias de emergencia."),
     ),
+    "almacen": (
+        ("almacen.ver", "Ver almacén", "Consultar artículos, existencias, movimientos y el reporte de almacén."),
+        ("almacen.gestionar", "Gestionar artículos", "Crear, editar, activar y desactivar medicamentos y materiales del almacén."),
+        ("almacen.movimientos", "Registrar movimientos", "Registrar entradas y salidas del almacén."),
+    ),
     "enfermeria": (
         ("enfermeria.ver", "Ver enfermería", "Consultar hojas de enfermería."),
         ("enfermeria.crear", "Crear hojas de enfermería", "Registrar hojas de enfermería."),
@@ -210,6 +215,8 @@ PERMISOS_ROLES_SISTEMA = {
             "emergencia.ver",
             "emergencia.crear",
             "emergencia.imprimir",
+            "almacen.ver",
+            "almacen.movimientos",
             "enfermeria.ver",
             "enfermeria.crear",
             "enfermeria.imprimir",

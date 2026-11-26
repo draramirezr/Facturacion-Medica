@@ -16,6 +16,7 @@
     .history-label { display: block; font-size: .7rem; font-weight: 800; text-transform: uppercase; color: #526071; }
     .history-text { white-space: pre-wrap; min-height: 2.8rem; border-bottom: 1px solid #aeb8c4; padding: .2rem 0 .5rem; }
     .history-checks { display: flex; flex-wrap: wrap; gap: .4rem 1rem; }
+    .history-almacen { line-height: 1.6; }
     .history-signature { width: 55%; margin: 4rem auto 1rem; text-align: center; border-top: 1px solid #172033; padding-top: .4rem; }
     @media (max-width: 767px) { .history-grid { grid-template-columns: 1fr 1fr; } }
     @media print {
@@ -69,6 +70,7 @@
         .history-section .mt-2 { margin-top: 4px !important; }
         .history-section .mb-1 { margin-bottom: 2px !important; }
         .history-section p { margin-top: 3px; margin-bottom: 3px; }
+        .history-section p.history-almacen { margin: 2px 0 0 !important; line-height: 1.15; }
         .history-signature {
             width: 45%;
             margin: 24px auto 0;
@@ -161,6 +163,14 @@
             <p class="mt-2 mb-1"><strong>Oxígeno:</strong> {{ historia.datos.get('oxigeno_inicio') or 'N/D' }} a {{ historia.datos.get('oxigeno_final') or 'N/D' }} · Total/hora: {{ historia.datos.get('oxigeno_total_hora') or 'N/D' }}</p>
             {% endif %}
             <div class="history-text mt-2"><strong>Medicamentos:</strong><br>{{ historia.datos.get('medicamentos') or 'Ninguno registrado' }}</div>
+            {% if consumo_almacen or puede_ajustar_almacen %}
+            <p class="history-almacen mt-2 mb-1 {{ '' if consumo_almacen else 'no-print' }}"><strong>Del almacén:</strong>
+                {% for item in consumo_almacen %}{{ item['descripcion'] }} × {{ item['cantidad']|cantidad }}{% if item['unidad'] and item['unidad'] != 'Unidad' %} {{ item['unidad'] }}{% endif %}{% if not loop.last %} · {% endif %}{% else %}Ninguno{% endfor %}
+                {% if puede_ajustar_almacen and not imprimir %}
+                <a class="btn btn-sm btn-outline-primary ms-2 no-print" href="{{ url_for('facturacion_historia_emergencia_almacen', historia_id=historia['id']) }}"><i class="fas fa-boxes-stacked me-1"></i>Ajustar lo usado del almacén</a>
+                {% endif %}
+            </p>
+            {% endif %}
         </section>
 
         <section class="history-section">

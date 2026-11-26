@@ -916,6 +916,52 @@ CREATE TABLE IF NOT EXISTS constancias_medicas (
     FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
+-- Almacén general (uno por empresa): medicamentos y materiales.
+-- La existencia es un saldo en caché que solo cambia junto con un
+-- movimiento, en la misma transacción y con la fila bloqueada (FOR UPDATE).
+CREATE TABLE IF NOT EXISTS almacen_articulos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    tipo VARCHAR(20) NOT NULL,
+    numero INT NOT NULL,
+    codigo VARCHAR(20) NOT NULL,
+    descripcion VARCHAR(200) NOT NULL,
+    unidad VARCHAR(30) NOT NULL DEFAULT 'Unidad',
+    existencia DECIMAL(12,2) NOT NULL DEFAULT 0.00,
+    activo TINYINT(1) NOT NULL DEFAULT 1,
+    created_by INT NULL,
+    updated_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_almacen_articulo_codigo (tenant_id, codigo),
+    UNIQUE KEY uq_almacen_articulo_numero (tenant_id, tipo, numero),
+    INDEX idx_almacen_articulo_descripcion (tenant_id, descripcion),
+    INDEX idx_almacen_articulo_estado (tenant_id, activo, tipo),
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Kardex del almacén. cantidad lleva signo (+ entra, - sale) y
+-- saldo_resultante es la existencia del artículo después del movimiento.
+-- Los movimientos no se borran: las correcciones son movimientos nuevos.
+CREATE TABLE IF NOT EXISTS almacen_movimientos (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    tenant_id INT NOT NULL,
+    articulo_id INT NOT NULL,
+    tipo VARCHAR(30) NOT NULL,
+    fecha DATE NOT NULL,
+    cantidad DECIMAL(10,2) NOT NULL,
+    saldo_resultante DECIMAL(12,2) NOT NULL,
+    nota VARCHAR(500) NULL,
+    historia_emergencia_id INT NULL,
+    created_by INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_almacen_mov_articulo (tenant_id, articulo_id, fecha),
+    INDEX idx_almacen_mov_emergencia (tenant_id, historia_emergencia_id),
+    INDEX idx_almacen_mov_fecha (tenant_id, fecha, tipo),
+    FOREIGN KEY (tenant_id) REFERENCES empresas(id) ON DELETE RESTRICT,
+    FOREIGN KEY (articulo_id) REFERENCES almacen_articulos(id) ON DELETE RESTRICT
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS historias_emergencia (
     id INT AUTO_INCREMENT PRIMARY KEY,
     tenant_id INT NOT NULL,

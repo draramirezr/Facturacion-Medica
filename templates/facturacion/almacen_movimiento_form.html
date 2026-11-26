@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Registrar {{ etiqueta|lower }} - Almacén - ClinicRD{% endblock %}
+{% block robots %}noindex, nofollow{% endblock %}
+
+{% block content %}
+{% set es_entrada = tipo == 'ENTRADA' %}
+{% set articulo_valor = form_data.get('articulo_id', '')|string %}
+<style nonce="{{ csp_nonce }}">
+    .alm-form { max-width: 760px; margin: 0 auto; }
+    .alm-form-header { border-radius: 18px; padding: 1.5rem 1.7rem; margin-bottom: 1.25rem; background: linear-gradient(135deg, {{ tema.primary }}15, {{ tema.primary_light }}30); }
+    .alm-form-header p { color: var(--ars-shell-muted, #64748b); }
+    .alm-form-header .alm-icono { width: 46px; height: 46px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; font-size: 1.2rem; color: #fff; }
+    .alm-form-header .alm-icono.alm-entrada { background: #16a34a; }
+    .alm-form-header .alm-icono.alm-salida { background: #dc2626; }
+    .alm-section { background: var(--ars-shell-surface, #fff); border: 1px solid var(--ars-shell-border, #e2e8f0); border-radius: 15px; padding: 1.35rem; margin-bottom: 1.25rem; color: var(--ars-shell-text, #0f172a); }
+    .required::after { content: " *"; color: var(--primary-color); }
+</style>
+
+<div class="container py-4">
+    <div class="alm-form">
+        <div class="alm-form-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <span class="alm-icono {{ 'alm-entrada' if es_entrada else 'alm-salida' }}"><i class="fas {{ 'fa-arrow-down' if es_entrada else 'fa-arrow-up' }}"></i></span>
+                <div>
+                    <h1 class="h3 mb-1">Registrar {{ etiqueta|lower }}</h1>
+                    <p class="mb-0">{% if es_entrada %}Suma existencia al almacén general (compras, donaciones, existencia inicial).{% else %}Descuenta existencia del almacén general (vencimiento, daño, uso interno). Nunca puede quedar negativa.{% endif %}</p>
+                </div>
+            </div>
+            <a class="btn btn-outline-primary" href="{{ url_for('facturacion_almacen') }}"><i class="fas fa-arrow-left me-2"></i>Volver</a>
+        </div>
+
+        <form method="POST">
+            <section class="alm-section">
+                {% if articulos %}
+                <div class="row g-3">
+                    <div class="col-12">
+                        <label class="form-label required" for="articulo_id">Artículo</label>
+                        <select class="form-select" id="articulo_id" name="articulo_id" required>
+                            <option value="">Seleccione…</option>
+                            {% for articulo in articulos %}
+                            <option value="{{ articulo['id'] }}" {% if articulo_valor == articulo['id']|string %}selected{% endif %}>{{ articulo['codigo'] }} · {{ articulo['descripcion'] }} — existencia {{ articulo['existencia']|cantidad }} {{ articulo['unidad'] }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label required" for="fecha">Fecha</label>
+                        <input class="form-control" type="date" id="fecha" name="fecha" required max="{{ fecha_actual }}" value="{{ form_data.get('fecha') or fecha_actual }}">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label required" for="cantidad">Cantidad</label>
+                        <input class="form-control" type="number" id="cantidad" name="cantidad" min="0.01" max="99999999.99" step="0.01" required value="{{ form_data.get('cantidad') or '' }}">
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label {{ '' if es_entrada else 'required' }}" for="nota">{{ 'Nota' if es_entrada else 'Motivo' }}</label>
+                        <input class="form-control" id="nota" name="nota" maxlength="500" {{ '' if es_entrada else 'required' }} value="{{ form_data.get('nota') or '' }}" placeholder="{{ 'Opcional. Ej.: factura del proveedor 0012' if es_entrada else 'Ej.: vencido, dañado, uso interno' }}">
+                    </div>
+                </div>
+                {% else %}
+                <div class="alert alert-info mb-0">
+                    <i class="fas fa-info-circle me-2"></i>No hay artículos activos en el almacén.
+                    {% if can('almacen.gestionar') %}<a href="{{ url_for('facturacion_almacen_nuevo') }}">Crear un artículo</a>.{% endif %}
+                </div>
+                {% endif %}
+            </section>
+
+            {% if articulos %}
+            <div class="form-actions right">
+                <a class="btn btn-cancelar" href="{{ url_for('facturacion_almacen') }}">Cancelar</a>
+                <button class="btn btn-guardar" type="submit"><i class="fas fa-save me-2"></i>Registrar {{ etiqueta|lower }}</button>
+            </div>
+            {% endif %}
+        </form>
+    </div>
+</div>
+{% endblock %}

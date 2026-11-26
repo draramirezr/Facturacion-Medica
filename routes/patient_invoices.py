@@ -18,7 +18,7 @@ from services.factura_paciente import (
     FacturaPacienteError,
     anular_factura_paciente,
     cargar_factura_paciente,
-    emitir_factura_paciente,
+    registrar_atencion,
     validar_factura_paciente,
 )
 
@@ -28,6 +28,9 @@ def _lineas_del_formulario():
     cantidades = request.form.getlist('linea_cantidad')
     precios = request.form.getlist('linea_precio')
     servicios = request.form.getlist('linea_servicio_id')
+    seguros = request.form.getlist('linea_seguro')
+    autorizaciones = request.form.getlist('linea_autorizacion')
+    cubiertos = request.form.getlist('linea_cubre')
     lineas = []
     for i, descripcion in enumerate(descripciones):
         if not (descripcion or '').strip() and not (precios[i] if i < len(precios) else ''):
@@ -37,6 +40,9 @@ def _lineas_del_formulario():
             'cantidad': cantidades[i] if i < len(cantidades) else 1,
             'precio': precios[i] if i < len(precios) else '',
             'servicio_id': servicios[i] if i < len(servicios) else None,
+            'seguro': seguros[i] if i < len(seguros) else '',
+            'autorizacion': sanitize_input(autorizaciones[i] if i < len(autorizaciones) else '', 50),
+            'cubre': cubiertos[i] if i < len(cubiertos) else '',
         })
     return lineas
 
@@ -57,6 +63,11 @@ def _contexto_formulario(tenant_id, form=None, lineas=None):
         (tenant_id,),
         fetch='all',
     ) or []
+    ars_list = execute_query(
+        'SELECT id, nombre FROM ars WHERE tenant_id=%s AND activo=1 ORDER BY nombre',
+        (tenant_id,),
+        fetch='all',
+    ) or []
     secuencias = {
         fila['tipo']: fila
         for fila in (execute_query(
@@ -72,7 +83,7 @@ def _contexto_formulario(tenant_id, form=None, lineas=None):
     pacientes = []
     if paciente_id:
         pacientes = execute_query(
-            'SELECT id, nombre, cedula, nss, telefono FROM pacientes WHERE id=%s AND tenant_id=%s',
+            'SELECT id, nombre, cedula, nss, telefono, ars_id FROM pacientes WHERE id=%s AND tenant_id=%s',
             (validate_int(paciente_id, min_value=1, default=0), tenant_id),
             fetch='all',
         ) or []
@@ -81,6 +92,7 @@ def _contexto_formulario(tenant_id, form=None, lineas=None):
         'lineas': lineas or [{}],
         'servicios': servicios,
         'medicos': medicos,
+        'ars_list': ars_list,
         'secuencias': secuencias,
         'pacientes': pacientes,
         'paciente_id': paciente_id,
@@ -100,15 +112,23 @@ def factura_paciente_nueva():
         lineas = _lineas_del_formulario()
         try:
             datos = validar_factura_paciente(tenant_id, form, lineas)
-            factura_id = emitir_factura_paciente(tenant_id, datos, current_user.id)
+            factura_id, enviadas_ars = registrar_atencion(tenant_id, datos, current_user.id)
         except FacturaPacienteError as error:
             flash(str(error), 'error')
             return render_template(
                 'facturacion/factura_paciente_form.html',
                 **_contexto_formulario(tenant_id, form, lineas or [{}]),
             )
-        flash('Factura emitida y cobrada.', 'success')
-        return redirect(url_for('factura_paciente_ver', factura_id=factura_id, imprimir=1))
+        aviso_ars = (
+            f' {enviadas_ars} servicio(s) enviado(s) a Estado de Facturación para la ARS.'
+            if enviadas_ars else ''
+        )
+        if factura_id:
+            flash(f'Factura emitida y cobrada.{aviso_ars}', 'success')
+            return redirect(url_for('factura_paciente_ver', factura_id=factura_id, imprimir=1))
+        # Todo lo cubrió el seguro: no hay nada que cobrarle al paciente.
+        flash(f'El paciente no tiene diferencia que pagar.{aviso_ars}', 'success')
+        return redirect(url_for('facturacion_pacientes_pendientes'))
     return render_template(
         'facturacion/factura_paciente_form.html',
         **_contexto_formulario(tenant_id),

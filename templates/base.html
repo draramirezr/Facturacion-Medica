@@ -1165,13 +1165,14 @@
                 </div>
                 {% endif %}
 
-                {% if can('catalogos.crear') or can('catalogos.editar') %}
+                {% if can('catalogos.crear') or can('catalogos.editar') or can('almacen.ver') %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-administracion" aria-expanded="false" aria-controls="nav-administracion">
                     <span>Administración</span>
                     <i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="ars-nav-group collapsed" id="nav-administracion">
+                    {% if can('catalogos.crear') or can('catalogos.editar') %}
                     {% if es_centro_salud %}
                     <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_centros_medicos') else '' }}"
                        href="{{ url_for('facturacion_centros_medicos') }}">
@@ -1215,6 +1216,14 @@
                         <i class="fas fa-receipt"></i>
                         <span>NCF</span>
                     </a>
+                    {% endif %}
+                    {% if can('almacen.ver') %}
+                    <a class="ars-nav-link {{ 'active' if endpoint.startswith('facturacion_almacen') else '' }}"
+                       href="{{ url_for('facturacion_almacen') }}">
+                        <i class="fas fa-boxes-stacked"></i>
+                        <span>Almacén</span>
+                    </a>
+                    {% endif %}
                 </div>
                 {% endif %}
 
@@ -1343,13 +1352,15 @@
                 </div>
                 {% endif %}
 
-                {% if can('reportes.ver') and not es_medico_operativo %}
+                {% set ver_reportes_facturacion = can('reportes.ver') and not es_medico_operativo %}
+                {% if ver_reportes_facturacion or can('almacen.ver') %}
                 <button class="ars-nav-section ars-nav-group-toggle" type="button"
                         data-nav-target="nav-reportes" aria-expanded="false" aria-controls="nav-reportes">
                     <span>Reportes</span>
                     <i class="fas fa-chevron-down"></i>
                 </button>
                 <div class="ars-nav-group collapsed" id="nav-reportes">
+                    {% if ver_reportes_facturacion %}
                     <a class="ars-nav-link {{ 'active' if endpoint in ['facturacion_historico', 'facturacion_ver_factura', 'facturacion_editar_factura'] else '' }}"
                        href="{{ url_for('facturacion_historico') }}">
                         <i class="fas fa-clock-rotate-left"></i>
@@ -1360,6 +1371,14 @@
                         <i class="fas fa-chart-column"></i>
                         <span>{{ 'Producción por médico' if es_centro_salud else 'Producción por centro' }}</span>
                     </a>
+                    {% endif %}
+                    {% if can('almacen.ver') %}
+                    <a class="ars-nav-link {{ 'active' if endpoint == 'facturacion_reporte_almacen' else '' }}"
+                       href="{{ url_for('facturacion_reporte_almacen') }}">
+                        <i class="fas fa-warehouse"></i>
+                        <span>Almacén</span>
+                    </a>
+                    {% endif %}
                 </div>
                 {% endif %}
 

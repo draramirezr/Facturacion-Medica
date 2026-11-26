@@ -38,6 +38,10 @@ MODULOS = (
     ('Constancias', (('constancias_medicas', 'tenant_id'),)),
     ('Emergencia', (('historias_emergencia', 'tenant_id'),)),
     ('Enfermeria', (('hojas_enfermeria', 'tenant_id'),)),
+    ('Almacen', (
+        ('almacen_articulos', 'tenant_id'),
+        ('almacen_movimientos', 'tenant_id'),
+    )),
     ('Facturas', (
         ('facturas', 'tenant_id'),
         ('factura_detalles', 'tenant_id'),

@@ -499,7 +499,9 @@ class EsquemaConstanciaTests(unittest.TestCase):
         bootstrap._heredar_permisos_nuevos(cursor, 'db', set())
         herencias = [p for sql, p in cursor.sentencias if 'INSERT IGNORE' in sql]
         self.assertIn(('licencias.ver', 'constancias.ver'), herencias)
-        self.assertEqual(len(herencias), 5)
+        self.assertEqual(
+            len([h for h in herencias if h[1].startswith('constancias.')]), 5,
+        )
 
         cursor = _CursorRegistro()
         bootstrap._heredar_permisos_nuevos(
