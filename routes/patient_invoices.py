@@ -217,27 +217,47 @@ def factura_paciente_anular(factura_id):
 @login_required
 @permission_required('facturacion.crear')
 def api_consultas_recientes_paciente(paciente_id):
-    """Servicios registrados del paciente (últimos 45 días) para sugerir el cobro
-    de la diferencia o copago que la ARS no cubre."""
+    """Servicios del paciente enviados a la ARS (últimos 45 días) cuya diferencia
+    aún no se le ha cobrado. No son facturas: son registros de Estado de Facturación.
+
+    Se excluyen los registrados desde la factura al paciente (ya cobraron la
+    diferencia en ese momento) y los que ya tienen una factura al paciente
+    vigente que los referencia con «(Ref. N)»."""
     tenant_id = get_current_tenant_id()
     filas = execute_query(
         '''
-        SELECT pp.fecha_servicio, pp.servicios_realizados, a.nombre AS ars
+        SELECT pp.id, pp.fecha_servicio, pp.servicios_realizados, pp.monto_estimado,
+               a.nombre AS ars
         FROM pacientes_pendientes pp
         LEFT JOIN ars a ON a.id = pp.ars_id AND a.tenant_id = pp.tenant_id
         WHERE pp.tenant_id=%s AND pp.paciente_id=%s AND pp.fecha_servicio >= %s
+          AND COALESCE(pp.observaciones, '') NOT LIKE %s
+          AND COALESCE(pp.observaciones, '') NOT LIKE %s
+          AND NOT EXISTS (
+              SELECT 1 FROM factura_detalles fd
+              JOIN facturas f ON f.id = fd.factura_id AND f.tenant_id = fd.tenant_id
+              WHERE fd.tenant_id = pp.tenant_id AND f.destinatario = %s
+                AND f.estado <> 'Anulada'
+                AND fd.descripcion LIKE CONCAT('%%(Ref. ', pp.id, ')%%')
+          )
         ORDER BY pp.fecha_servicio DESC
         LIMIT 10
         ''',
-        (tenant_id, paciente_id, date.today() - timedelta(days=45)),
+        (
+            tenant_id, paciente_id, date.today() - timedelta(days=45),
+            'Diferencia RD$%cobrada al paciente%', 'Sin diferencia para el paciente%',
+            DESTINATARIO,
+        ),
         fetch='all',
     ) or []
     return jsonify([
         {
+            'id': fila['id'],
             'fecha': fila['fecha_servicio'].strftime('%d/%m/%Y')
             if hasattr(fila['fecha_servicio'], 'strftime') else str(fila['fecha_servicio']),
             'servicio': (fila.get('servicios_realizados') or 'Consulta').split(' - Autorización:')[0][:200],
             'ars': fila.get('ars') or '',
+            'monto_ars': str(fila.get('monto_estimado') or '0.00'),
         }
         for fila in filas
     ])

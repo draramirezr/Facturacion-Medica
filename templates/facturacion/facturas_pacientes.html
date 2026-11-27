@@ -6,7 +6,10 @@
 {% block content %}
 <style nonce="{{ csp_nonce }}">
     .fpl { max-width: 1180px; margin: 0 auto; padding: 24px 20px 48px; }
-    .fpl h1 { font-size: 1.45rem; font-weight: 800; margin: 0; color: var(--ars-shell-text, #172033); }
+    .fpl .facturacion-hero h1 { font-size: 1.6rem; margin: 0 0 4px; }
+    .fpl-barra { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+    .fpl-buscar { display: flex; gap: 8px; flex: 0 1 420px; }
+    .fpl-buscar .btn { white-space: nowrap; }
     .fpl-hoy { display: inline-flex; gap: 14px; padding: 8px 14px; border-radius: 12px; font-size: .85rem;
                background: var(--ars-shell-surface-alt, #f2f5f8); color: var(--ars-shell-muted, #718096); }
     .fpl-hoy strong { color: var(--ars-shell-text, #172033); }
@@ -19,20 +22,23 @@
 </style>
 
 <div class="fpl">
-    <div class="d-flex justify-content-between align-items-end flex-wrap gap-3 mb-3">
-        <div>
-            <h1><i class="fas fa-receipt me-2"></i>Facturas de pacientes</h1>
-            <div class="fpl-hoy mt-2"><span>Hoy: <strong>{{ hoy_cantidad }}</strong> factura{{ '' if hoy_cantidad == 1 else 's' }}</span><span>Cobrado: <strong>RD$ {{ hoy_total|formato_moneda }}</strong></span></div>
-        </div>
-        <div class="d-flex gap-2 flex-wrap">
-            <form method="get" class="d-flex gap-2">
-                <input class="form-control" type="search" name="buscar" value="{{ buscar }}" placeholder="Paciente, cédula o NCF">
-                <button class="btn btn-outline-secondary" type="submit"><i class="fas fa-search"></i></button>
-            </form>
+    <div class="facturacion-hero mb-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <div>
+                <h1><i class="fas fa-receipt me-2"></i>Facturas de pacientes</h1>
+                <p class="text-muted mb-0">Cobros hechos al paciente: diferencias, consultas privadas y otros servicios.</p>
+            </div>
             {% if can('facturacion.crear') %}
             <a class="btn btn-primary" href="{{ url_for('factura_paciente_nueva') }}"><i class="fas fa-plus me-1"></i>Nueva factura paciente</a>
             {% endif %}
         </div>
+    </div>
+    <div class="fpl-barra mb-3">
+        <div class="fpl-hoy"><span>Hoy: <strong>{{ hoy_cantidad }}</strong> factura{{ '' if hoy_cantidad == 1 else 's' }}</span><span>Cobrado: <strong>RD$ {{ hoy_total|formato_moneda }}</strong></span></div>
+        <form method="get" class="fpl-buscar">
+            <input class="form-control" type="search" name="buscar" value="{{ buscar }}" placeholder="Buscar paciente, cédula o NCF" aria-label="Buscar factura">
+            <button class="btn btn-outline-primary" type="submit"><i class="fas fa-search me-1"></i>Buscar</button>
+        </form>
     </div>
 
     <div class="fpl-card">

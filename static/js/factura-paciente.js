@@ -203,6 +203,9 @@
         const sugerida = evento.target.closest('[data-fp-sugerida]');
         if (sugerida) {
             agregarLinea(sugerida.dataset.fpSugerida);
+            // Ya agregada: se quita de la lista para no cobrarla dos veces.
+            sugerida.closest('.fp-sugerencia').remove();
+            sugerencias.hidden = !sugerencias.querySelector('.fp-sugerencia');
         }
     });
     document.getElementById('fpAgregar').addEventListener('click', () => {
@@ -266,11 +269,14 @@
                 const fila = document.createElement('div');
                 fila.className = 'fp-sugerencia';
                 const texto = document.createElement('span');
-                texto.textContent = `${consulta.fecha} · ${consulta.servicio}${consulta.ars ? ' · ' + consulta.ars : ''}`;
+                texto.textContent = `${consulta.fecha} · ${consulta.servicio}${consulta.ars ? ' · ' + consulta.ars : ''}`
+                    + ` · ARS cubre RD$ ${Number(consulta.monto_ars || 0).toLocaleString('es-DO', { minimumFractionDigits: 2 })}`;
                 const boton = document.createElement('button');
                 boton.type = 'button';
                 boton.className = 'fp-chip';
-                boton.dataset.fpSugerida = `Diferencia ${consulta.servicio}${consulta.ars ? ' (' + consulta.ars + ')' : ''} ${consulta.fecha}`.slice(0, 500);
+                // «(Ref. N)» enlaza la diferencia con el registro de la ARS para no ofrecerla otra vez.
+                const sufijo = ` ${consulta.fecha} (Ref. ${consulta.id})`;
+                boton.dataset.fpSugerida = (`Diferencia ${consulta.servicio}`.slice(0, 500 - sufijo.length)) + sufijo;
                 boton.textContent = 'Cobrar diferencia';
                 fila.append(texto, boton);
                 sugerencias.appendChild(fila);
